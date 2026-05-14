@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ourcivicatlas.org/schemas/atlas-node-v0.schema.json",
+  "title": "Our Civic Atlas AtlasNode manifest v0",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "atlas_id",
+    "name",
+    "slug",
+    "canonical_url",
+    "scope_type",
+    "parent_node_ids",
+    "child_node_ids",
+    "neighbor_node_ids",
+    "boundary_geojson_url",
+    "bbox",
+    "centroid",
+    "maintainers",
+    "public_contact",
+    "license",
+    "data_license",
+    "contribution_policy_url",
+    "source_registry_url",
+    "layer_catalog_url",
+    "node_catalog_url",
+    "read_model_catalog_url",
+    "capabilities",
+    "federation_status",
+    "last_updated_at"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "atlas_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "slug": { "type": "string", "minLength": 1 },
+    "canonical_url": { "type": "string", "minLength": 1 },
+    "scope_type": {
+      "type": "string",
+      "enum": ["neighborhood", "city", "county", "region", "state", "corridor", "watershed", "custom"]
+    },
+    "parent_node_ids": { "type": "array", "items": { "type": "string" } },
+    "child_node_ids": { "type": "array", "items": { "type": "string" } },
+    "neighbor_node_ids": { "type": "array", "items": { "type": "string" } },
+    "boundary_geojson_url": { "type": "string", "minLength": 1 },
+    "bbox": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "number" }
+    },
+    "centroid": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number" }
+    },
+    "maintainers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "role"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "role": { "type": "string", "minLength": 1 },
+          "url": { "type": "string" }
+        }
+      }
+    },
+    "public_contact": { "type": "string" },
+    "license": { "type": "string" },
+    "data_license": { "type": "string" },
+    "contribution_policy_url": { "type": "string" },
+    "source_registry_url": { "type": "string" },
+    "layer_catalog_url": { "type": "string" },
+    "node_catalog_url": { "type": "string" },
+    "read_model_catalog_url": { "type": "string" },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "federation_status": { "type": "string", "enum": ["seed", "active", "stale", "candidate", "archived"] },
+    "last_updated_at": { "type": "string" }
+  }
+}

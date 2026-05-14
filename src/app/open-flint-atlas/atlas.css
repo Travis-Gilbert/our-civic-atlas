@@ -1,0 +1,102 @@
+/*
+ * Open Flint Atlas · canvas-paper palette.
+ *
+ * The standalone route restores the Context canvas temperature:
+ * paper-white floor, warm ink, and terracotta accent. Depth comes from
+ * <AtlasCanvasBackdrop/>, a real viewport canvas mounted by layout.tsx.
+ *
+ * Component code already reads var(--ctx-*) tokens, so swapping the
+ * palette here cascades through the entire atlas without touching
+ * AtlasShell, AtlasMap, panels, or the capture monitor.
+ */
+
+.civic-atlas {
+  /* CANVAS — paper-white floor, three tonal steps for depth. */
+  --ctx-paper:        #f6f4ee;
+  --ctx-paper-soft:   #efece4;
+  --ctx-paper-deep:   #e2dfd4;
+
+  /* INK — warm dark brown. */
+  --ctx-ink:          #2a2419;
+  --ctx-ink-soft:     #4a4032;
+  --ctx-ink-mute:     #7a6e5b;
+  --ctx-ink-faint:    #a89c84;
+
+  /* RULES — paper borders. */
+  --ctx-rule:         #c8bda1;
+  --ctx-rule-soft:    #d6cdb4;
+
+  /* ACCENT — terracotta, restored from the canvas system. */
+  --ctx-accent:       #c14a2c;
+  --ctx-accent-soft:  #e07a55;
+  --ctx-accent-glow:  rgba(193, 74, 44, 0.32);
+
+  /* NAVY — deep slate for contrast panels (kept for AtlasShell dark zones). */
+  --ctx-navy:         #1a1f26;
+  --ctx-navy-2:       #252b34;
+  --ctx-navy-3:       #353c47;
+  --ctx-navy-rule:    #4a525e;
+  --ctx-navy-text:    #e8e3d6;
+  --ctx-navy-mute:    #a8a397;
+  --ctx-navy-faint:   #757269;
+
+  /* Shadows — neutral, soft. */
+  --ctx-shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 1px 3px rgba(60, 40, 12, 0.08),
+    0 4px 16px -8px rgba(60, 40, 12, 0.22);
+
+  /* Shadcn bridge overrides (cascade from --ctx-*). */
+  --background:           var(--ctx-paper);
+  --foreground:           var(--ctx-ink);
+  --muted:                var(--ctx-paper-soft);
+  --muted-foreground:     var(--ctx-ink-mute);
+  --border:               var(--ctx-rule);
+  --input:                var(--ctx-rule);
+  --ring:                 var(--ctx-accent);
+  --primary:              var(--ctx-accent);
+  --primary-foreground:   var(--ctx-paper);
+  --card:                 var(--ctx-paper-soft);
+  --card-foreground:      var(--ctx-ink);
+
+  /* Atlas-specific semantic tokens. Kept distinct from civic-blue
+     family so map layers stay readable. */
+  --atlas-ward:           #6b7d8c;
+  --atlas-parcel:         #b8893f;
+  --atlas-infrastructure: #4a8a82;
+  --atlas-building:       #7a7568;
+  --atlas-event:          var(--ctx-accent);
+  --atlas-source:         #7a6294;
+  --atlas-success:        #4a8a5a;
+  --atlas-warning:        #c08a3a;
+  --atlas-danger:         var(--ctx-accent);
+
+  background: var(--ctx-paper);
+  color: var(--ctx-ink);
+}
+
+/* Atlas panels: floating sticky tiles, vertically centered against the
+   map viewport, transparent backgrounds so the AppShell's MT19937 dot
+   field reads through. The proximity-fade logic in CanvasBackground
+   sees the `.atlas-panel` selector and softens dots behind each tile. */
+.civic-atlas .atlas-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Control Dossier card. Slight translucent paper tone + backdrop blur
+   so the dossier reads as a defined object without becoming opaque
+   chrome. The canvas dot field and map remain faintly visible
+   through it. */
+.civic-atlas .control-dossier-card {
+  background: rgba(246, 244, 238, 0.68);
+  backdrop-filter: blur(8px) saturate(108%);
+  -webkit-backdrop-filter: blur(8px) saturate(108%);
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 1px 3px rgba(60, 40, 12, 0.06),
+    0 6px 18px -10px rgba(60, 40, 12, 0.18);
+}

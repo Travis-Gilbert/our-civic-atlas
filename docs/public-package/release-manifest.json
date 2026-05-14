@@ -1,0 +1,114 @@
+{
+  "project": "our-civic-atlas",
+  "release": "v0.1.0-fixture-boundary",
+  "status": "standalone_public_repo_initializing",
+  "public_disclaimer": "Our Civic Atlas and Flint Atlas are not official City of Flint websites.",
+  "package_decision": {
+    "current_boundary": "standalone repository named our-civic-atlas",
+    "recommended_next_home": "this standalone repository",
+    "decision": "Use Our Civic Atlas as the public repository and platform name, with Flint Atlas as the first city node.",
+    "reason": "The atlas is public infrastructure with its own governance, privacy, data, and deployment boundary; it should not stay buried in Index-API internals."
+  },
+  "artifacts": [
+    {
+      "path": "docs/plans/open-flint-atlas/source-registry.json",
+      "kind": "source_registry"
+    },
+    {
+      "path": "data/open-flint-atlas/source-probes",
+      "kind": "source_probe_directory"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/public-read-model.schema.json",
+      "kind": "read_model_schema"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/fixtures/read-model",
+      "kind": "read_model_fixtures"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/provenance-graph-contract.md",
+      "kind": "provenance_contract"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/fixtures/provenance/provenance-graph.json",
+      "kind": "provenance_fixture"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/contribution-workflow.schema.json",
+      "kind": "contribution_workflow_schema"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/fixtures/contributions/moderation-fixtures.json",
+      "kind": "moderation_fixtures"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/prototype/index.html",
+      "kind": "static_prototype"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/public-package",
+      "kind": "public_package_docs"
+    },
+    {
+      "path": "docs/plans/open-flint-atlas/domain-cutover.md",
+      "kind": "domain_cutover_runbook"
+    }
+  ],
+  "validators": [
+    "python3 scripts/validate_open_flint_source_registry.py",
+    "python3 scripts/validate_open_flint_source_probes.py",
+    "python3 scripts/validate_open_flint_read_model.py",
+    "python3 scripts/validate_open_flint_provenance_graph.py",
+    "python3 scripts/validate_open_flint_contribution_workflow.py",
+    "python3 scripts/validate_open_flint_prototype.py",
+    "python3 scripts/validate_open_flint_public_package.py"
+  ],
+  "release_checklist": [
+    {
+      "item": "source registry validates",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_source_registry.py"
+    },
+    {
+      "item": "source probes validate",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_source_probes.py"
+    },
+    {
+      "item": "public read model validates",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_read_model.py"
+    },
+    {
+      "item": "provenance graph validates",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_provenance_graph.py"
+    },
+    {
+      "item": "contribution workflow validates",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_contribution_workflow.py"
+    },
+    {
+      "item": "static prototype validates",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_prototype.py"
+    },
+    {
+      "item": "public package boundary validates",
+      "status": "done",
+      "validator": "python3 scripts/validate_open_flint_public_package.py"
+    },
+    {
+      "item": "standalone repository extraction",
+      "status": "done",
+      "validator": "manual Git boundary review"
+    },
+    {
+      "item": "final public license text",
+      "status": "deferred",
+      "validator": "manual legal/license review before standalone public release"
+    }
+  ]
+}

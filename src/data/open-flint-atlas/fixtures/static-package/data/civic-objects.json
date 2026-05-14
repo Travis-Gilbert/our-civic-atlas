@@ -1,0 +1,169 @@
+[
+  {
+    "id": "atlas:flint-mi",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "atlas_node",
+    "name": "Flint Atlas",
+    "description": "The first city node in Our Civic Atlas, scoped to Flint, Michigan and source-backed public civic evidence.",
+    "geometry_ref": "/data/boundaries/flint-city.geojson",
+    "time_start": null,
+    "time_end": null,
+    "temporal_status": "current",
+    "current_status": "active",
+    "confidence_score": 0.82,
+    "confidence_reasons": [
+      "The current fixture is grounded in the existing public read model and source registry.",
+      "Full boundary and static-package exports still need production export validation."
+    ],
+    "review_state": "accepted",
+    "source_ids": [
+      "city_of_flint_gis",
+      "um_flint_gis_center",
+      "census_acs_tiger"
+    ],
+    "claim_ids": [
+      "claim:flint-atlas-is-first-node"
+    ],
+    "render_modes": [
+      "current_confirmed",
+      "source_high_confidence"
+    ],
+    "dossier_url": "/nodes/atlas:flint-mi",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": "2026-05-13",
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "place:flint-city",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "place",
+    "name": "Flint, Michigan",
+    "description": "City-level civic geography used as the public launch boundary for Flint Atlas.",
+    "geometry_ref": "/data/boundaries/flint-city.geojson",
+    "time_start": null,
+    "time_end": null,
+    "temporal_status": "current",
+    "current_status": "active",
+    "confidence_score": 0.78,
+    "confidence_reasons": [
+      "Boundary geometry is planned from public GIS sources.",
+      "This starter fixture uses a coarse bounding box until the boundary export is promoted."
+    ],
+    "review_state": "accepted",
+    "source_ids": [
+      "city_of_flint_gis",
+      "census_acs_tiger"
+    ],
+    "claim_ids": [
+      "claim:flint-city-boundary"
+    ],
+    "render_modes": [
+      "current_confirmed"
+    ],
+    "dossier_url": "/places/place:flint-city",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": "2026-05-13",
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "place:carriage-town",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "place",
+    "name": "Carriage Town",
+    "description": "Candidate child atlas node for higher-resolution neighborhood memory and Lost Flint work.",
+    "geometry_ref": null,
+    "time_start": null,
+    "time_end": null,
+    "temporal_status": "current",
+    "current_status": "unknown",
+    "confidence_score": 0.45,
+    "confidence_reasons": [
+      "The neighborhood is intentionally modeled as a child-node candidate.",
+      "Boundary and source package are not promoted yet."
+    ],
+    "review_state": "needs_review",
+    "source_ids": [
+      "mapflint"
+    ],
+    "claim_ids": [
+      "claim:carriage-town-child-node"
+    ],
+    "render_modes": [
+      "current_low_confidence"
+    ],
+    "dossier_url": "/places/place:carriage-town",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": null,
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "source:city-of-flint-gis",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "source",
+    "name": "City of Flint GIS",
+    "description": "Official spatial source candidate for boundaries, wards, parcels, zoning, and planning layers.",
+    "geometry_ref": null,
+    "time_start": null,
+    "time_end": null,
+    "temporal_status": "current",
+    "current_status": "active",
+    "confidence_score": 0.74,
+    "confidence_reasons": [
+      "The source is public and already listed in the atlas source registry.",
+      "Per-layer freshness and terms still need ingestion-probe review."
+    ],
+    "review_state": "accepted",
+    "source_ids": [
+      "city_of_flint_gis"
+    ],
+    "claim_ids": [
+      "claim:city-gis-source"
+    ],
+    "render_modes": [
+      "source_high_confidence"
+    ],
+    "dossier_url": "/sources/city_of_flint_gis",
+    "public_visibility": "public",
+    "privacy_class": "public",
+    "last_checked_at": "2026-05-11",
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "dataset:flint-read-model-v0",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "dataset",
+    "name": "Flint Atlas public read model v0",
+    "description": "The current fixture-backed public read model for places, events, sources, confidence cards, and provenance previews.",
+    "geometry_ref": null,
+    "time_start": "2026-05-12",
+    "time_end": null,
+    "temporal_status": "current",
+    "current_status": "active",
+    "confidence_score": 0.68,
+    "confidence_reasons": [
+      "The read model builds and renders in the standalone Next app.",
+      "The static package still needs export automation and Parquet/GeoParquet outputs."
+    ],
+    "review_state": "accepted",
+    "source_ids": [
+      "city_of_flint_gis",
+      "um_flint_gis_center",
+      "mapflint",
+      "census_acs_tiger"
+    ],
+    "claim_ids": [
+      "claim:public-read-model-v0"
+    ],
+    "render_modes": [
+      "current_confirmed"
+    ],
+    "dossier_url": "/objects/dataset:flint-read-model-v0",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": "2026-05-13",
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  }
+]

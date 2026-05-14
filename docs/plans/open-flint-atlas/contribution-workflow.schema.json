@@ -1,0 +1,75 @@
+{
+  "project": "open-flint-atlas",
+  "schema_version": 1,
+  "states": [
+    "submitted",
+    "needs_review",
+    "corroborated",
+    "conflicts_with_official_source",
+    "accepted",
+    "rejected",
+    "superseded"
+  ],
+  "transitions": [
+    { "from": "submitted", "to": "needs_review", "requires": ["format_check", "privacy_scan"] },
+    { "from": "needs_review", "to": "corroborated", "requires": ["public_source_or_safe_second_observation"] },
+    { "from": "needs_review", "to": "conflicts_with_official_source", "requires": ["official_source_compared", "reviewer_summary"] },
+    { "from": "needs_review", "to": "accepted", "requires": ["reviewer_summary", "public_place_id", "safe_public_fields"] },
+    { "from": "needs_review", "to": "rejected", "requires": ["reviewer_reason_private"] },
+    { "from": "corroborated", "to": "accepted", "requires": ["reviewer_decision"] },
+    { "from": "corroborated", "to": "superseded", "requires": ["newer_source_or_reviewed_observation"] },
+    { "from": "accepted", "to": "superseded", "requires": ["newer_source_or_reviewed_observation"] },
+    { "from": "conflicts_with_official_source", "to": "superseded", "requires": ["newer_source_or_reviewed_observation"] }
+  ],
+  "public_observation_fields": [
+    "observation_id",
+    "place_id",
+    "observation_type",
+    "summary",
+    "status",
+    "confidence_label",
+    "source_ids",
+    "reviewed_at",
+    "caveat"
+  ],
+  "private_moderation_fields": [
+    "contributor_name",
+    "contributor_email",
+    "contributor_phone",
+    "ip_address",
+    "raw_text",
+    "photo_originals",
+    "exif_metadata",
+    "exact_submitted_at",
+    "private_reviewer_notes",
+    "moderation_reason_internal",
+    "faces",
+    "license_plates",
+    "address_level_service_line_record"
+  ],
+  "observation_types": [
+    "condition_update",
+    "resource_update",
+    "access_issue",
+    "source_correction",
+    "near_miss",
+    "other"
+  ],
+  "confidence_labels": [
+    "unreviewed",
+    "reviewed",
+    "corroborated",
+    "conflicting",
+    "accepted",
+    "stale"
+  ],
+  "redaction_rules": [
+    "No contributor identity in public read models.",
+    "No raw text in public read models; publish reviewer summaries only.",
+    "No exact household-level detail from resident observations.",
+    "No EXIF metadata in public photo workflows.",
+    "No faces or license plates without redaction.",
+    "No model-only promotion to accepted."
+  ],
+  "public_read_model_rule": "Community submissions are observations and do not become facts without review."
+}

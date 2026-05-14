@@ -1,0 +1,670 @@
+{
+  "project": "open-flint-atlas",
+  "version": 1,
+  "last_verified": "2026-05-11",
+  "description": "Seed registry for public and public-interest Flint civic data sources. Entries describe source trust, privacy exposure, first ingestion targets, and review needs before data is made public.",
+  "sources": [
+    {
+      "id": "city_of_flint_gis",
+      "name": "City of Flint GIS",
+      "homepage_url": "https://gis.cityofflint.com/",
+      "source_type": "official_gis_portal",
+      "steward": "City of Flint GIS / Planning Division",
+      "geography": "City of Flint",
+      "current_status": "needs_ingestion_probe",
+      "update_cadence": "unknown",
+      "trust_tier": "official_spatial",
+      "public_use": "public_source_with_terms_review_required",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "zoning",
+        "wards",
+        "parcels",
+        "planning_boundaries"
+      ],
+      "known_limits": [
+        "Portal availability and download formats need to be probed from live services.",
+        "Official geometry can still be stale or incomplete for current field conditions."
+      ],
+      "first_checks": [
+        "Identify ArcGIS REST service endpoints and downloadable layer formats.",
+        "Record source update timestamps per layer.",
+        "Compare boundary geometries against UM-Flint and Genesee County references."
+      ]
+    },
+    {
+      "id": "um_flint_gis_center",
+      "name": "University of Michigan-Flint GIS Center Data",
+      "homepage_url": "https://www.umflint.edu/gis/gis-data/",
+      "source_type": "academic_public_data_catalog",
+      "steward": "University of Michigan-Flint GIS Center",
+      "geography": "Flint, Genesee County, and seven-county I-69 Thumb Corridor",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "mixed",
+      "trust_tier": "curated_public_reference",
+      "public_use": "public_catalog_with_request_workflow",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "census_tracts",
+        "block_groups",
+        "service_line_connections",
+        "boundaries",
+        "transportation",
+        "hydrography"
+      ],
+      "known_limits": [
+        "Some files require contacting the GIS Center instead of direct download.",
+        "Census attributes and geometries may have different vintages."
+      ],
+      "first_checks": [
+        "Create a request list for files that are not direct downloads.",
+        "Separate geometry vintages from ACS metric vintages.",
+        "Document which fields are source-derived versus atlas-derived."
+      ]
+    },
+    {
+      "id": "flint_property_portal",
+      "name": "Flint Property Portal",
+      "homepage_url": "https://flintpropertyportal.com/",
+      "source_type": "public_property_portal",
+      "steward": "Genesee County Land Bank Authority and City of Flint origin partnership",
+      "geography": "City of Flint parcels",
+      "current_status": "terms_and_freshness_review_required",
+      "update_cadence": "reported_unreliable",
+      "trust_tier": "legacy_public_reference",
+      "public_use": "do_not_scrape_until_terms_reviewed",
+      "contains_personal_data": true,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "property_condition",
+        "parcel_status",
+        "resident_update_pattern"
+      ],
+      "known_limits": [
+        "Current update reliability is uncertain.",
+        "Property data can imply household-level conditions and must be handled carefully.",
+        "Use as an origin story and comparison source before treating as a canonical feed."
+      ],
+      "first_checks": [
+        "Review terms, robots, and available export/API paths.",
+        "Record latest observable update timestamps.",
+        "Limit early public display to source freshness and aggregate patterns unless reuse is clearly allowed."
+      ]
+    },
+    {
+      "id": "mapflint",
+      "name": "MapFlint",
+      "homepage_url": "https://www.mapflint.org/?page_id=230",
+      "source_type": "community_academic_map_catalog",
+      "steward": "MapFlint / UM-Flint affiliated data products",
+      "geography": "Flint and Genesee County",
+      "current_status": "needs_layer_inventory",
+      "update_cadence": "mixed",
+      "trust_tier": "curated_public_reference",
+      "public_use": "public_source_with_terms_review_required",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "education",
+        "economic",
+        "environment",
+        "health",
+        "demographic",
+        "census_2020",
+        "parks"
+      ],
+      "known_limits": [
+        "Some map layers are older analytical products, not live operational feeds.",
+        "Download links may live on ArcGIS open-data subdomains."
+      ],
+      "first_checks": [
+        "Inventory each category and its source vintage.",
+        "Prioritize health resources, parks, and economic indicators for v0.1.",
+        "Label older products as historical context instead of current fact."
+      ]
+    },
+    {
+      "id": "michigan_traffic_crash_facts",
+      "name": "Michigan Traffic Crash Facts",
+      "homepage_url": "https://www.michigantrafficcrashfacts.org/",
+      "source_type": "official_state_crash_data_portal",
+      "steward": "Michigan Traffic Crash Facts / Michigan State Police release cycle",
+      "geography": "Michigan, queryable to county/community",
+      "current_status": "usable_with_query_export_review",
+      "update_cadence": "annual",
+      "trust_tier": "official_statistical",
+      "public_use": "public_query_tool_with_terms_review_required",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "crash_counts",
+        "crash_density",
+        "historical_crash_trends"
+      ],
+      "known_limits": [
+        "Crash location precision and export permissions need verification.",
+        "Annual official closed datasets may lag current conditions."
+      ],
+      "first_checks": [
+        "Confirm Flint and Genesee County query export paths.",
+        "Normalize annual crash counts by tract, ward, road segment, and corridor where legally usable.",
+        "Preserve crash statistics as aggregate safety indicators, not person-level records."
+      ]
+    },
+    {
+      "id": "cdc_places_tract_2025",
+      "name": "CDC PLACES Census Tract Data 2025 Release",
+      "homepage_url": "https://data.cdc.gov/500-Cities-Places/PLACES-Local-Data-for-Better-Health-Census-Tract-D/cwsq-ngmh",
+      "source_type": "federal_public_health_dataset",
+      "steward": "Centers for Disease Control and Prevention",
+      "geography": "United States census tracts",
+      "current_status": "usable_with_field_dictionary",
+      "update_cadence": "annual_or_periodic",
+      "trust_tier": "official_statistical",
+      "public_use": "public_open_data",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "health_measures",
+        "tract_health_context"
+      ],
+      "known_limits": [
+        "Tract estimates are modeled public health measures, not clinical records.",
+        "Uncertainty and measure definitions must be visible in the atlas."
+      ],
+      "first_checks": [
+        "Filter to Flint tracts by GEOID.",
+        "Attach measure metadata and confidence/limitation notes.",
+        "Avoid ranking neighborhoods without plain-language caveats."
+      ]
+    },
+    {
+      "id": "census_acs_tiger",
+      "name": "U.S. Census ACS and TIGER/Line",
+      "homepage_url": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+      "source_type": "federal_census_geometry_and_statistics",
+      "steward": "U.S. Census Bureau",
+      "geography": "United States census geographies",
+      "current_status": "usable",
+      "update_cadence": "annual",
+      "trust_tier": "official_statistical",
+      "public_use": "public_open_data",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "tract_boundaries",
+        "block_group_boundaries",
+        "acs_demographic_indicators",
+        "acs_economic_indicators"
+      ],
+      "known_limits": [
+        "TIGER/Line provides geography, while ACS provides estimates and margins of error.",
+        "ACS estimates require margin-of-error handling before comparison views."
+      ],
+      "first_checks": [
+        "Pin a starting ACS 5-year vintage.",
+        "Store margins of error with every ACS metric.",
+        "Use GEOID as the stable join key."
+      ]
+    },
+    {
+      "id": "genesee_county_gis",
+      "name": "Genesee County GIS",
+      "homepage_url": "https://www.gc4me.com/",
+      "source_type": "county_public_gis_reference",
+      "steward": "Genesee County",
+      "geography": "Genesee County",
+      "current_status": "needs_ingestion_probe",
+      "update_cadence": "unknown",
+      "trust_tier": "official_spatial",
+      "public_use": "public_source_with_terms_review_required",
+      "contains_personal_data": true,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "county_boundaries",
+        "parcel_reference",
+        "tax_or_assessment_context_if_allowed"
+      ],
+      "known_limits": [
+        "County parcel and ownership context may expose personal data and should not be mirrored casually.",
+        "Source terms and field-level privacy policy need review before public export."
+      ],
+      "first_checks": [
+        "Identify public GIS endpoints and terms.",
+        "Separate public geometry from sensitive ownership or assessment fields.",
+        "Use this as a reconciliation source for official boundaries before parcel dossiers."
+      ]
+    },
+    {
+      "id": "loc_sanborn_flint_maps",
+      "name": "Library of Congress Sanborn Fire Insurance Maps for Flint",
+      "homepage_url": "https://www.loc.gov/item/sanborn04009_001/",
+      "source_type": "historical_fire_insurance_map_archive",
+      "steward": "Library of Congress Geography and Map Division",
+      "geography": "Flint, Genesee County",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "historical_archive_static",
+      "trust_tier": "curated_public_reference",
+      "public_use": "public_domain_with_attribution_recommended",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "historical_building_footprints",
+        "street_grid_snapshots",
+        "industrial_land_use",
+        "lost_flint_presence_intervals"
+      ],
+      "known_limits": [
+        "Sanborn maps are historical snapshots and should not be treated as current parcel truth.",
+        "Georeferencing, sheet stitching, and OCR extraction require manual review before public geometry claims."
+      ],
+      "first_checks": [
+        "Capture Flint volume years and sheet identifiers relevant to Lost Flint research.",
+        "Record IIIF or image access paths and georeferencing assumptions.",
+        "Use map-derived building presence as reviewable historical evidence, not automatic demolition facts."
+      ]
+    },
+    {
+      "id": "hathitrust_flint_city_directories",
+      "name": "HathiTrust Flint City Directories",
+      "homepage_url": "https://catalog.hathitrust.org/Search/Home?lookfor=Flint+city+directory&type=title&inst=",
+      "source_type": "historical_city_directory_archive",
+      "steward": "HathiTrust Digital Library",
+      "geography": "Flint, Michigan",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "historical_archive_static",
+      "trust_tier": "curated_public_reference",
+      "public_use": "historical_archive_with_rights_and_excerpt_review",
+      "contains_personal_data": true,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "street_directory",
+        "business_listings",
+        "resident_name_index",
+        "address_occupancy_hints"
+      ],
+      "known_limits": [
+        "Historical directories can contain personally identifying names, addresses, and occupations even when records are old.",
+        "Some volumes are view-restricted or rights-limited and may require manual citation instead of bulk text extraction."
+      ],
+      "first_checks": [
+        "Inventory Flint directory years and stable volume links.",
+        "Decide a public-safe excerpt policy for names and address listings.",
+        "Treat directory-derived occupancy as historical evidence for Lost Flint review, not as a standalone truth source."
+      ]
+    },
+    {
+      "id": "genesee_historical_aerials",
+      "name": "Genesee Historical Aerial Imagery",
+      "homepage_url": "https://www.historicaerials.com/",
+      "source_type": "historical_aerial_imagery_catalog",
+      "steward": "Historic Aerials / NETR Online with Michigan imagery context from MiSAIL",
+      "geography": "Genesee County and City of Flint",
+      "current_status": "terms_and_freshness_review_required",
+      "update_cadence": "historical_imagery_series",
+      "trust_tier": "curated_public_reference",
+      "public_use": "manual_review_required_before_tile_or_image_reuse",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "historical_aerial_years",
+        "site_change_reference",
+        "building_presence_visual_checks"
+      ],
+      "known_limits": [
+        "Historic imagery licensing and export rights may differ from simple on-screen viewing rights.",
+        "Aerial interpretation can imply false precision when exact demolition or build dates are unknown."
+      ],
+      "first_checks": [
+        "Record which Flint and Genesee years are publicly visible without account-gated export.",
+        "Separate visual review use from any downloadable raster workflow.",
+        "Use historical aerials as corroborating evidence for presence intervals and site change review."
+      ]
+    },
+    {
+      "id": "genesee_land_bank_demolitions",
+      "name": "Genesee County Land Bank Demolition Program",
+      "homepage_url": "https://www.thelandbank.org/demofunding.asp",
+      "source_type": "public_demolition_program",
+      "steward": "Genesee County Land Bank Authority",
+      "geography": "Flint and Genesee County",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "rolling_program_updates",
+      "trust_tier": "official_spatial",
+      "public_use": "public_program_data_with_terms_review_required",
+      "contains_personal_data": true,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "demolition_schedule",
+        "demolition_status",
+        "blight_program_reference"
+      ],
+      "known_limits": [
+        "Address-level demolition records can imply household-level conditions and must be handled carefully.",
+        "Program schedules change as properties are sold, cancelled, or delayed."
+      ],
+      "first_checks": [
+        "Capture stable list or export paths for demolition schedules and status fields.",
+        "Separate Flint-specific demolitions from countywide lists.",
+        "Show demolition activity as reviewable source-backed interventions, not as a complete building history."
+      ]
+    },
+    {
+      "id": "racer_buick_city_site",
+      "name": "RACER Trust Buick City Site",
+      "homepage_url": "https://www.racertrust.org/properties/buick-city-site",
+      "source_type": "redevelopment_property_record",
+      "steward": "Revitalizing Auto Communities Environmental Response Trust",
+      "geography": "Buick City site, Flint",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "episodic_property_updates",
+      "trust_tier": "curated_public_reference",
+      "public_use": "public_reference_with_document_and_terms_review",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "site_boundary_reference",
+        "redevelopment_milestones",
+        "property_history_reference"
+      ],
+      "known_limits": [
+        "RACER materials focus on site status and reuse, not a complete historical chronology of Buick City.",
+        "Property narratives may require cross-checking with local archives before they are presented as civic history."
+      ],
+      "first_checks": [
+        "Capture any downloadable site maps or public property documents.",
+        "Record site acreage, reuse milestones, and public status language.",
+        "Link RACER site history to Lost Flint building/site records only through cited review notes."
+      ]
+    },
+    {
+      "id": "openhistoricalmap",
+      "name": "OpenHistoricalMap",
+      "homepage_url": "https://www.openhistoricalmap.org/",
+      "source_type": "community_historical_map_platform",
+      "steward": "OpenHistoricalMap / OpenStreetMap US community",
+      "geography": "Global, queryable for Flint",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "community_updated",
+      "trust_tier": "curated_public_reference",
+      "public_use": "public_domain_community_data_with_provenance_review",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "historical_places",
+        "former_streets_and_features",
+        "community_historical_annotations"
+      ],
+      "known_limits": [
+        "Community-edited historical data needs visible provenance and should not outrank official or archival source evidence by default.",
+        "Temporal tagging quality can vary by feature and contributor."
+      ],
+      "first_checks": [
+        "Identify Flint-area query paths or export formats from the OHM API.",
+        "Record license and attribution rules alongside any imported features.",
+        "Use OHM as corroborating context for Lost Flint and site dossiers, not as the only source."
+      ]
+    },
+    {
+      "id": "national_register_spatial_data",
+      "name": "National Register of Historic Places Spatial Data",
+      "homepage_url": "https://www.nps.gov/subjects/nationalregister/data-downloads.htm",
+      "source_type": "federal_historic_register_gis",
+      "steward": "National Park Service Cultural Resources GIS Facility",
+      "geography": "United States, filterable to Flint and Genesee County",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "periodic_federal_updates",
+      "trust_tier": "official_spatial",
+      "public_use": "public_download_with_geometry_caveats",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "historic_properties",
+        "historic_district_polygons",
+        "nrhp_reference_metadata"
+      ],
+      "known_limits": [
+        "NPS warns that some points and polygon boundaries need correction and should not be treated as field-verified geometry.",
+        "Sensitive or secure geographies are omitted from the public dataset."
+      ],
+      "first_checks": [
+        "Filter unrestricted listings to Flint and Genesee County.",
+        "Store National Register identifiers and listing dates with any public feature.",
+        "Use the dataset as a historic-place anchor and corroboration source, not as a full building inventory."
+      ]
+    },
+    {
+      "id": "city_of_flint_capital_improvement_plan",
+      "name": "City of Flint Capital Improvement Plan",
+      "homepage_url": "https://www.cityofflint.com/documents/capital-improvement-plan/",
+      "source_type": "official_capital_improvement_plan",
+      "steward": "City of Flint Planning Department",
+      "geography": "City of Flint",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "periodic_plan_update",
+      "trust_tier": "official_statistical",
+      "public_use": "public_planning_document_with_status_review",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "capital_projects",
+        "project_status",
+        "funding_sources",
+        "department_priority_lists"
+      ],
+      "known_limits": [
+        "The document itself warns that some cost, funding, or status details may be out of date as allocations change.",
+        "Project descriptions need place resolution and source-date labeling before public map use."
+      ],
+      "first_checks": [
+        "Extract project names, departments, statuses, and funding fields into intervention candidates.",
+        "Geocode only reviewed place references, not every free-text description automatically.",
+        "Present CIP items as planned or underway interventions, not completed outcomes unless another source confirms them."
+      ]
+    },
+    {
+      "id": "city_of_flint_community_services",
+      "name": "City of Flint Community Services and HUD Action Plans",
+      "homepage_url": "https://www.cityofflint.com/community-services/",
+      "source_type": "official_hud_program_page",
+      "steward": "City of Flint Community Services Department",
+      "geography": "City of Flint",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "annual_hud_cycle",
+      "trust_tier": "official_statistical",
+      "public_use": "public_program_documents_with_terms_review_required",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "hud_allocations",
+        "cdbg_projects",
+        "home_esg_programs",
+        "community_intervention_documents"
+      ],
+      "known_limits": [
+        "Program pages and action plans describe allocations and intended uses, not verified physical outcomes.",
+        "Some linked PDFs can change between annual funding cycles and need date-specific citations."
+      ],
+      "first_checks": [
+        "Capture the latest action-plan and allocation documents with dates.",
+        "Separate grant categories, implementing organizations, and target geographies.",
+        "Represent HUD-related work as intervention ledger records with explicit source dates and stages."
+      ]
+    },
+    {
+      "id": "flint_service_line_map",
+      "name": "Flint Water Service Line Materials Map",
+      "homepage_url": "https://flintpipemap.org/",
+      "source_type": "public_water_infrastructure_map",
+      "steward": "Flint service line map collaborators using ongoing City of Flint data",
+      "geography": "City of Flint residential service lines",
+      "current_status": "terms_and_freshness_review_required",
+      "update_cadence": "ongoing_city_data_updates",
+      "trust_tier": "curated_public_reference",
+      "public_use": "address_level_infrastructure_data_with_terms_and_privacy_limits",
+      "contains_personal_data": true,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "service_line_material_status",
+        "inspection_dates",
+        "replacement_progress",
+        "modeled_material_probability"
+      ],
+      "known_limits": [
+        "The public map includes address-level infrastructure context and modeled probabilities that require careful public-use boundaries.",
+        "The site terms limit use and explicitly warn that the map should not be used as a legal or guaranteed accuracy source."
+      ],
+      "first_checks": [
+        "Capture terms-of-use language and whether bulk export is allowed.",
+        "Decide whether public atlas views must stay aggregated rather than address-level.",
+        "Treat modeled service-line predictions as uncertainty-bearing observations, not definitive infrastructure facts."
+      ]
+    },
+    {
+      "id": "michigan_geographic_framework_roads",
+      "name": "Michigan Geographic Framework Roads",
+      "homepage_url": "https://www.michigan.gov/dtmb/services/maps/mgf-data-hub",
+      "source_type": "statewide_open_roads_basemap",
+      "steward": "Michigan DTMB Center for Shared Solutions",
+      "geography": "Michigan statewide roads, filterable to Flint and Genesee County",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "statewide_framework_updates",
+      "trust_tier": "official_spatial",
+      "public_use": "public_open_data_with_layer_selection_review",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "road_centerlines",
+        "jurisdictional_roads",
+        "functional_class",
+        "linear_reference_support"
+      ],
+      "known_limits": [
+        "Statewide framework roads are strong basemap references, but local lane or curb conditions may still differ on the ground.",
+        "The atlas should clip to Flint/Genesee scope and preserve source vintage."
+      ],
+      "first_checks": [
+        "Identify the exact open-data road centerline layer used for Flint corridor analysis.",
+        "Record functional class and jurisdiction fields relevant to street-safety work.",
+        "Use MGF roads as the spatial skeleton for crash and intervention rollups."
+      ]
+    },
+    {
+      "id": "mdot_traffic_monitoring_program",
+      "name": "MDOT Traffic Monitoring Program",
+      "homepage_url": "https://www.michigan.gov/mdot/programs/planning/asset-mgt/traffic-monitoring-program",
+      "source_type": "official_traffic_monitoring_program",
+      "steward": "Michigan Department of Transportation",
+      "geography": "Michigan statewide traffic counts and AADT references",
+      "current_status": "usable_with_query_export_review",
+      "update_cadence": "annual_or_rolling_counts",
+      "trust_tier": "official_statistical",
+      "public_use": "public_dashboard_and_query_outputs_with_export_review",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "aadt",
+        "commercial_traffic",
+        "count_station_reference",
+        "traffic_volume_dashboards"
+      ],
+      "known_limits": [
+        "ADT and AADT are aggregated traffic estimates and need method labeling for short-count versus continuous-count sources.",
+        "The public workflow emphasizes dashboards and program pages, so export reproducibility needs to be documented."
+      ],
+      "first_checks": [
+        "Record Flint and Genesee count retrieval steps from the public program surface.",
+        "Decide which traffic metrics belong in first public corridor cards.",
+        "Cross-link corridor and road volumes to Michigan Traffic Crash Facts aggregate safety records."
+      ]
+    },
+    {
+      "id": "gcmpc_traffic_counts",
+      "name": "Genesee County Metropolitan Planning Commission Traffic Counts",
+      "homepage_url": "https://www.geneseecountymi.gov/Document_Center/Map/Traffic%20Counts/GC2000_2001TrafficCounts9.pdf",
+      "source_type": "mpo_traffic_count_reference",
+      "steward": "Genesee County Metropolitan Planning Commission with partner agencies",
+      "geography": "Flint and Genesee County road network",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "periodic_map_publications",
+      "trust_tier": "official_statistical",
+      "public_use": "public_reference_maps_with_freshness_review_required",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "local_traffic_counts",
+        "corridor_reference_maps",
+        "legacy_adt_snapshots"
+      ],
+      "known_limits": [
+        "The public evidence currently found is map/PDF oriented and may be stale for current traffic conditions.",
+        "Traffic-count maps summarize local agency observations but are not yet a clean machine-readable feed."
+      ],
+      "first_checks": [
+        "Find the newest public Flint/Genesee count maps or tables from the planning commission or successor surface.",
+        "Document agency provenance for local counts versus MDOT trunkline counts.",
+        "Use this source as local corridor context and compare it with MDOT traffic and crash aggregates."
+      ]
+    },
+    {
+      "id": "flint_mta_gtfs",
+      "name": "Flint MTA GTFS",
+      "homepage_url": "https://www.mtaflint.org/terms-of-use/",
+      "source_type": "transit_gtfs_feed",
+      "steward": "Mass Transportation Authority of Flint",
+      "geography": "Flint and Genesee County transit network",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "service_change_updates",
+      "trust_tier": "official_statistical",
+      "public_use": "developer_feed_with_terms_review_required",
+      "contains_personal_data": false,
+      "ingestion_priority": 1,
+      "initial_layers": [
+        "routes",
+        "stops",
+        "trips",
+        "stop_times"
+      ],
+      "known_limits": [
+        "GTFS is excellent for scheduled service geometry and timing, but does not prove real-time performance or accessibility quality by itself.",
+        "Developer terms and feed-hosting arrangements need to be captured before mirroring."
+      ],
+      "first_checks": [
+        "Confirm the current static GTFS ZIP path and licensing terms.",
+        "Clip transit coverage and stop access to Flint-focused mobility views.",
+        "Use GTFS to build route and stop context for corridor dossiers, not to imply live service reliability."
+      ]
+    },
+    {
+      "id": "transitland_flint_mta_gtfs",
+      "name": "Transitland Flint MTA GTFS Mirror",
+      "homepage_url": "https://www.transit.land/feeds/f-dpsk-masstransportationauthorityflint",
+      "source_type": "transit_feed_directory",
+      "steward": "Transitland / Interline feed registry",
+      "geography": "Flint MTA feed metadata",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "feed_fetch_cycle",
+      "trust_tier": "curated_public_reference",
+      "public_use": "public_feed_directory_with_upstream_license_review",
+      "contains_personal_data": false,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "feed_metadata",
+        "upstream_gtfs_urls",
+        "fetch_timestamps",
+        "license_reference"
+      ],
+      "known_limits": [
+        "Transitland is a useful mirror and metadata registry, but upstream agency terms still govern real use.",
+        "Mirror availability can lag or differ from the agency-hosted GTFS feed."
+      ],
+      "first_checks": [
+        "Record the upstream GTFS URL, last fetch date, and license metadata from Transitland.",
+        "Prefer the agency feed for canonical schedule ingestion and use Transitland as a discoverability backstop.",
+        "Use Transitland metadata to detect feed freshness drift or hosting changes."
+      ]
+    }
+  ]
+}

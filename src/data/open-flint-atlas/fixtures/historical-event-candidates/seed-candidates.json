@@ -1,0 +1,200 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-05-12T00:00:00Z",
+  "candidates": [
+    {
+      "candidate_id": "cand:city_of_flint_capital_improvement_plan:a1b2c3d4e5f6",
+      "source_artifact_id": "raw:city_of_flint_capital_improvement_plan:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_id": "city_of_flint_capital_improvement_plan",
+      "proposed_event_type": "intervention",
+      "proposed_title": "FY2024 Water Main Replacement: Chevrolet Avenue Corridor",
+      "proposed_summary": "Capital improvement plan identifies scheduled water main replacement along Chevrolet Avenue between Industrial Avenue and Kearsley Street. Project is part of the post-crisis infrastructure rebuild funded through state appropriations.",
+      "proposed_place": {
+        "resolution_level": "approximate",
+        "place_id": null,
+        "place_name": "Chevrolet Avenue corridor, Flint",
+        "proposed_coordinates": [-83.6875, 43.0125],
+        "proposed_geometry": null,
+        "geocoding_source": "source_metadata"
+      },
+      "proposed_time": {
+        "temporal_shape": "interval",
+        "date": null,
+        "start_date": "2024-07-01",
+        "end_date": "2025-06-30",
+        "period_label": null,
+        "precision": "month"
+      },
+      "proposed_confidence": 0.85,
+      "candidate_status": "reviewable_proposal",
+      "extraction_method": {
+        "method": "rule_based",
+        "model_id": null,
+        "extraction_notes": "Extracted from CIP table of projects; matched water infrastructure category"
+      },
+      "review_metadata": null,
+      "promoted_event_id": null,
+      "created_at": "2026-05-12T00:00:00Z",
+      "evidence_excerpt": "Project W-2024-017: Chevrolet Ave water main replacement, Industrial Ave to Kearsley St. Estimated cost $2.3M. State appropriation funding source.",
+      "tags": ["water_infrastructure", "post_crisis_rebuild"]
+    },
+    {
+      "candidate_id": "cand:genesee_land_bank_demolitions:b2c3d4e5f6a7",
+      "source_artifact_id": "raw:genesee_land_bank_demolitions:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      "source_id": "genesee_land_bank_demolitions",
+      "proposed_event_type": "building_presence",
+      "proposed_title": "Demolition: 1425 Lippincott Boulevard",
+      "proposed_summary": "Genesee County Land Bank completed demolition of blighted residential structure at 1425 Lippincott Blvd. Property was acquired through tax reversion and flagged for demolition in the 2023 priority list.",
+      "proposed_place": {
+        "resolution_level": "exact_reviewed",
+        "place_id": "flint_ward_5",
+        "place_name": "1425 Lippincott Boulevard, Flint",
+        "proposed_coordinates": [-83.7012, 43.0234],
+        "proposed_geometry": null,
+        "geocoding_source": "geocoder"
+      },
+      "proposed_time": {
+        "temporal_shape": "instant",
+        "date": "2024-03-15",
+        "start_date": null,
+        "end_date": null,
+        "period_label": null,
+        "precision": "day"
+      },
+      "proposed_confidence": 0.95,
+      "candidate_status": "accepted",
+      "extraction_method": {
+        "method": "manual_extraction",
+        "model_id": null,
+        "extraction_notes": "Direct from land bank demolition completion records"
+      },
+      "review_metadata": {
+        "reviewed_at": "2026-05-10T14:30:00Z",
+        "reviewer_role": "atlas_editor",
+        "decision": "accept",
+        "decision_notes": "Verified against land bank public records. Address geocoded and confirmed within Ward 5.",
+        "place_corrections": null,
+        "time_corrections": null
+      },
+      "promoted_event_id": "sei:building_presence:demo_1425_lippincott",
+      "created_at": "2026-05-08T10:00:00Z",
+      "evidence_excerpt": "Demolition completed 03/15/2024. Parcel 41-07-530-024. Structure type: residential. Condition: blighted/dangerous.",
+      "tags": ["demolition", "land_bank", "blight_remediation"]
+    },
+    {
+      "candidate_id": "cand:loc_sanborn_flint_maps:c3d4e5f6a7b8",
+      "source_artifact_id": "raw:loc_sanborn_flint_maps:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "source_id": "loc_sanborn_flint_maps",
+      "proposed_event_type": "building_presence",
+      "proposed_title": "Buick Motor Company Factory Complex (Sanborn 1915)",
+      "proposed_summary": "Sanborn fire insurance map sheet 42 (1915 edition) documents the Buick Motor Company factory complex at its peak extent along Industrial Avenue. The complex spanned approximately 40 acres with multiple manufacturing buildings, foundries, and rail connections.",
+      "proposed_place": {
+        "resolution_level": "neighborhood_only",
+        "place_id": "buick_city",
+        "place_name": "Buick City / Industrial Avenue complex",
+        "proposed_coordinates": [-83.6950, 43.0350],
+        "proposed_geometry": null,
+        "geocoding_source": "manual"
+      },
+      "proposed_time": {
+        "temporal_shape": "observed_at",
+        "date": "1915",
+        "start_date": null,
+        "end_date": null,
+        "period_label": null,
+        "precision": "year"
+      },
+      "proposed_confidence": 0.70,
+      "candidate_status": "reviewable_proposal",
+      "extraction_method": {
+        "method": "hybrid",
+        "model_id": "theseus_rule_v1",
+        "extraction_notes": "Building footprints identified from Sanborn map raster; factory labels extracted via OCR with manual correction"
+      },
+      "review_metadata": null,
+      "promoted_event_id": null,
+      "created_at": "2026-05-11T16:00:00Z",
+      "evidence_excerpt": "Sheet 42: Buick Motor Co. Multiple frame and brick buildings. Foundry, machine shop, assembly. Rail siding connections to Flint & Pere Marquette.",
+      "tags": ["sanborn_map", "industrial_heritage", "automotive_history"]
+    },
+    {
+      "candidate_id": "cand:city_of_flint_gis:d4e5f6a7b8c9",
+      "source_artifact_id": "raw:city_of_flint_gis:fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+      "source_id": "city_of_flint_gis",
+      "proposed_event_type": "observation",
+      "proposed_title": "Vacant Lot Cluster: Thread Lake Neighborhood",
+      "proposed_summary": "GIS parcel data shows a cluster of 23 contiguous vacant lots in the Thread Lake neighborhood, bounded by Robert T. Longway Blvd to the north and Court Street to the south. Pattern consistent with systematic demolition activity over the 2016 to 2022 period.",
+      "proposed_place": {
+        "resolution_level": "approximate",
+        "place_id": null,
+        "place_name": "Thread Lake neighborhood",
+        "proposed_coordinates": [-83.6780, 43.0090],
+        "proposed_geometry": null,
+        "geocoding_source": "source_metadata"
+      },
+      "proposed_time": {
+        "temporal_shape": "first_seen_last_seen",
+        "date": null,
+        "start_date": "2016",
+        "end_date": "2022",
+        "period_label": null,
+        "precision": "year"
+      },
+      "proposed_confidence": 0.60,
+      "candidate_status": "needs_more_evidence",
+      "extraction_method": {
+        "method": "model_assisted",
+        "model_id": "theseus_spatial_cluster_v1",
+        "extraction_notes": "Cluster detection on parcel vacancy status; temporal range inferred from demolition permit dates"
+      },
+      "review_metadata": {
+        "reviewed_at": "2026-05-11T09:15:00Z",
+        "reviewer_role": "atlas_editor",
+        "decision": "needs_more_evidence",
+        "decision_notes": "Cluster boundary needs confirmation. Some parcels may have been vacant before 2016. Cross-reference with land bank records.",
+        "place_corrections": null,
+        "time_corrections": null
+      },
+      "promoted_event_id": null,
+      "created_at": "2026-05-10T08:00:00Z",
+      "evidence_excerpt": "23 parcels with status=VACANT in contiguous block. Earliest demolition permit in cluster: 2016-04. Latest: 2022-09.",
+      "tags": ["vacancy_pattern", "spatial_analysis", "demolition_cluster"]
+    },
+    {
+      "candidate_id": "cand:flint_property_portal:e5f6a7b8c9d0",
+      "source_artifact_id": "raw:flint_property_portal:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "source_id": "flint_property_portal",
+      "proposed_event_type": "metric",
+      "proposed_title": "Property Tax Delinquency Rate: Ward 7, FY2023",
+      "proposed_summary": "Flint Property Portal data indicates 34.2% of residential parcels in Ward 7 were tax-delinquent for FY2023, the highest rate among Flint wards. This represents 847 parcels out of 2,476 total residential parcels in the ward.",
+      "proposed_place": {
+        "resolution_level": "neighborhood_only",
+        "place_id": "flint_ward_7",
+        "place_name": "Ward 7, Flint",
+        "proposed_coordinates": [-83.7100, 43.0000],
+        "proposed_geometry": null,
+        "geocoding_source": "source_metadata"
+      },
+      "proposed_time": {
+        "temporal_shape": "period",
+        "date": null,
+        "start_date": null,
+        "end_date": null,
+        "period_label": "FY2023",
+        "precision": "year"
+      },
+      "proposed_confidence": 0.90,
+      "candidate_status": "reviewable_proposal",
+      "extraction_method": {
+        "method": "rule_based",
+        "model_id": null,
+        "extraction_notes": "Aggregated from individual parcel tax status records; ward boundary from city GIS"
+      },
+      "review_metadata": null,
+      "promoted_event_id": null,
+      "created_at": "2026-05-12T00:00:00Z",
+      "evidence_excerpt": "Ward 7 residential parcels: 2,476 total, 847 delinquent (34.2%). City average: 22.1%. Next highest: Ward 5 at 28.7%.",
+      "tags": ["property_tax", "fiscal_health", "ward_level_metric"]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "name": "Flint Atlas",
+  "canonical_url": "https://flint.ourcivicatlas.org",
+  "atlas_node_url": "/data/atlas-node.json",
+  "node_catalog_url": "/data/node-catalog.json",
+  "source_registry_url": "/data/source-registry.json",
+  "layer_catalog_url": "/data/layer-catalog.json",
+  "read_model_catalog_url": "/data/read-model-catalog.json",
+  "contribution_policy_url": "/contribute",
+  "federation_status": "seed",
+  "capabilities": [
+    "static_only",
+    "has_provenance_graph",
+    "has_scene_manifests",
+    "has_lost_buildings",
+    "has_safety_lab",
+    "has_interventions",
+    "has_public_api"
+  ],
+  "generated_at": "2026-05-13T00:00:00-04:00"
+}

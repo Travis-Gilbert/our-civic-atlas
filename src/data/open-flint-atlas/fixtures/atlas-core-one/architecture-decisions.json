@@ -1,0 +1,117 @@
+{
+  "project": "open-flint-atlas",
+  "schema_version": 1,
+  "decisions": [
+    {
+      "id": "ofa3_decision_projection_split",
+      "title": "Keep spatial, graph, public read-model, and model snapshot projections separate",
+      "owner": "gpt-5.5",
+      "status": "accepted",
+      "complexity": "high",
+      "decision": "Promote reviewed Spatial Event Index records into projections; do not promote one projection into another.",
+      "rationale": "Spatial joins and tiling have different correctness requirements than source/provenance relationships and model exports.",
+      "must_hold": [
+        "PostGIS/DuckDB/GeoParquet/PMTiles own spatial projection.",
+        "Memgraph/Theseus owns source, claim, conflict, review, and relationship projection.",
+        "Public read models exclude private moderation, owner, and raw contributor fields.",
+        "Model snapshots cannot mutate public facts."
+      ],
+      "validators": [
+        "scripts/validate_open_flint_spatial_event_index.py",
+        "scripts/validate_open_flint_atlas_core_architecture.py"
+      ]
+    },
+    {
+      "id": "ofa3_decision_lost_flint_presence_intervals",
+      "title": "Represent Lost Flint as source-backed presence intervals",
+      "owner": "gpt-5.5",
+      "status": "accepted",
+      "complexity": "high",
+      "decision": "Use first_seen/last_seen or observed_at semantics for historical buildings and sites unless exact dates are directly sourced.",
+      "rationale": "Historical maps, directories, aerials, newspapers, and demolition records rarely support exact lifecycle facts for every building.",
+      "must_hold": [
+        "Do not infer exact demolition dates from absence alone.",
+        "Allow approximate or unresolved geometry.",
+        "Attach source IDs and rights notes.",
+        "Keep model-assisted place links as reviewable proposals."
+      ],
+      "validators": [
+        "scripts/validate_open_flint_spatial_event_index.py",
+        "scripts/validate_open_flint_atlas_core_architecture.py"
+      ]
+    },
+    {
+      "id": "ofa3_decision_civic_intervention_ledger",
+      "title": "Track civic actions without inventing causality",
+      "owner": "gpt-5.5",
+      "status": "accepted",
+      "complexity": "high",
+      "decision": "Use promised, funded, work_started, work_completed, outcome_observed, and cancelled_or_changed intervention stages.",
+      "rationale": "The atlas should connect public action records to places and outcomes while keeping causal claims source-bounded.",
+      "must_hold": [
+        "Outcome observations can be near an intervention in place/time without being causal claims.",
+        "Causality requires explicit source support or a later causal-evidence contract.",
+        "Public copy should distinguish promised, funded, work, and observed outcome states.",
+        "Funding, agency, project, source, metric, and place relationships belong in the graph projection."
+      ],
+      "validators": [
+        "scripts/validate_open_flint_spatial_event_index.py",
+        "scripts/validate_open_flint_atlas_core_architecture.py"
+      ]
+    },
+    {
+      "id": "ofa3_decision_three_surface_renderer",
+      "title": "Use MapLibre, Mosaic, and Cosmograph as coordinated surfaces",
+      "owner": "gpt-5.5",
+      "status": "accepted",
+      "complexity": "high",
+      "decision": "MapLibre answers where, Mosaic/vgplot/Observable answers how patterns change, and Cosmograph answers what supports the dossier.",
+      "rationale": "The atlas needs geography, analytical crossfiltering, and source/provenance graph exploration without overloading one renderer.",
+      "must_hold": [
+        "Cosmograph is the public-good evidence canvas.",
+        "Mosaic/vgplot/Observable Framework is the DuckDB-backed analytical workbench.",
+        "MapLibre/PMTiles remains the resident-facing geographic surface.",
+        "Do not replace existing UI until a reversible route passes visual gates."
+      ],
+      "validators": [
+        "scripts/validate_open_flint_atlas_core_architecture.py"
+      ]
+    },
+    {
+      "id": "ofa3_decision_model_gates",
+      "title": "Gate models behind data sufficiency, baselines, uncertainty, and review",
+      "owner": "gpt-5.5",
+      "status": "accepted",
+      "complexity": "high",
+      "decision": "Gemma 4, TimesFM, DyGFormer, higher-order dynamic graph learning, Graph WaveNet, ASTGCN, and road ST-GNN work remain gated until their inputs and public semantics are safe.",
+      "rationale": "Open Flint Atlas should be accountable civic science, not model theater.",
+      "must_hold": [
+        "Gemma 4 is late and contest-rule gated.",
+        "TimesFM is aggregate trend or benchmark only.",
+        "Higher-order dynamic graph learning starts with dynamic civic-knowledge proposals.",
+        "Street-safety neural models require road graph, crash aggregates, baselines, fairness, and uncertainty review.",
+        "Model outputs are proposals or predictions, not facts."
+      ],
+      "validators": [
+        "scripts/validate_open_flint_spatial_event_index.py",
+        "scripts/validate_open_flint_atlas_core_architecture.py"
+      ]
+    }
+  ],
+  "handoff_boundary": {
+    "gpt_5_5_keeps": [
+      "ontology",
+      "projection semantics",
+      "model gates",
+      "renderer architecture",
+      "final review"
+    ],
+    "gpt_5_4_can_take": [
+      "source registry entries",
+      "source probe manifests",
+      "documentation cross-links",
+      "public-package bookkeeping",
+      "focused validator runs"
+    ]
+  }
+}

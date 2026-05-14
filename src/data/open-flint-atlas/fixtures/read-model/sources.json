@@ -1,0 +1,115 @@
+[
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://gis.cityofflint.com/",
+    "known_limits": [
+      "Portal availability and download formats need to be probed from live services.",
+      "Official geometry can still be stale or incomplete for current field conditions."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "City of Flint GIS",
+    "public_use": "public_source_with_terms_review_required",
+    "source_id": "city_of_flint_gis",
+    "source_update_label": "mixed",
+    "trust_tier": "official_spatial"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.umflint.edu/gis/gis-data/",
+    "known_limits": [
+      "Some files require contacting the GIS Center instead of direct download.",
+      "Census attributes and geometries may have different vintages."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "University of Michigan-Flint GIS Center Data",
+    "public_use": "public_catalog_with_request_workflow",
+    "source_id": "um_flint_gis_center",
+    "source_update_label": "unknown_per_layer_until_downloaded",
+    "trust_tier": "curated_public_reference"
+  },
+  {
+    "contains_personal_data": true,
+    "homepage_url": "https://flintpropertyportal.com/",
+    "known_limits": [
+      "Current update reliability is uncertain.",
+      "Property data can imply household-level conditions and must be handled carefully.",
+      "Use as an origin story and comparison source before treating as a canonical feed."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Flint Property Portal",
+    "public_use": "do_not_scrape_until_terms_reviewed",
+    "source_id": "flint_property_portal",
+    "source_update_label": "stale_or_unverified",
+    "trust_tier": "legacy_public_reference"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.mapflint.org/?page_id=230",
+    "known_limits": [
+      "Some map layers are older analytical products, not live operational feeds.",
+      "Download links may live on ArcGIS open-data subdomains."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "MapFlint",
+    "public_use": "public_source_with_terms_review_required",
+    "source_id": "mapflint",
+    "source_update_label": "historical_context",
+    "trust_tier": "curated_public_reference"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.michigantrafficcrashfacts.org/",
+    "known_limits": [
+      "Crash location precision and export permissions need verification.",
+      "Annual official closed datasets may lag current conditions."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Michigan Traffic Crash Facts",
+    "public_use": "public_query_tool_with_terms_review_required",
+    "source_id": "michigan_traffic_crash_facts",
+    "source_update_label": "annual_official_closed_dataset",
+    "trust_tier": "official_statistical"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://data.cdc.gov/500-Cities-Places/PLACES-Local-Data-for-Better-Health-Census-Tract-D/cwsq-ngmh",
+    "known_limits": [
+      "Tract estimates are modeled public health measures, not clinical records.",
+      "Uncertainty and measure definitions must be visible in the atlas."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "CDC PLACES Census Tract Data 2025 Release",
+    "public_use": "public_open_data",
+    "source_id": "cdc_places_tract_2025",
+    "source_update_label": "official_statistical_release_with_model_years",
+    "trust_tier": "official_statistical"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html",
+    "known_limits": [
+      "TIGER/Line provides geography, while ACS provides estimates and margins of error.",
+      "ACS estimates require margin-of-error handling before comparison views."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "U.S. Census ACS and TIGER/Line",
+    "public_use": "public_open_data",
+    "source_id": "census_acs_tiger",
+    "source_update_label": "official_geometry_2025_and_acs_2024",
+    "trust_tier": "official_statistical"
+  },
+  {
+    "contains_personal_data": true,
+    "homepage_url": "https://www.gc4me.com/",
+    "known_limits": [
+      "County parcel and ownership context may expose personal data and should not be mirrored casually.",
+      "Source terms and field-level privacy policy need review before public export."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Genesee County GIS",
+    "public_use": "public_source_with_terms_review_required",
+    "source_id": "genesee_county_gis",
+    "source_update_label": "unknown_until_manual_review",
+    "trust_tier": "official_spatial"
+  }
+]

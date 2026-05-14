@@ -1,0 +1,58 @@
+{
+  "schema_version": "0.1.0",
+  "scene_id": "scene:flint-overview",
+  "atlas_node_id": "atlas:flint-mi",
+  "name": "Flint overview scene",
+  "description": "Seed SceneManifest connecting the Flint Atlas node to current city geometry, candidate child nodes, source cards, and public read-model layers.",
+  "bbox": [
+    -83.83,
+    42.94,
+    -83.58,
+    43.13
+  ],
+  "time": {
+    "start": null,
+    "end": null,
+    "mode": "current_with_history"
+  },
+  "objects": [
+    {
+      "object_id": "atlas:flint-mi",
+      "render_mode": "current_confirmed",
+      "geometry_ref": "/data/boundaries/flint-city.geojson",
+      "style_token": "atlas_boundary_confirmed"
+    },
+    {
+      "object_id": "place:carriage-town",
+      "render_mode": "current_low_confidence",
+      "geometry_ref": null,
+      "style_token": "node_horizon_child_candidate"
+    },
+    {
+      "object_id": "dataset:flint-read-model-v0",
+      "render_mode": "source_high_confidence",
+      "geometry_ref": null,
+      "style_token": "evidence_package"
+    }
+  ],
+  "source_ids": [
+    "city_of_flint_gis",
+    "um_flint_gis_center",
+    "mapflint",
+    "census_acs_tiger"
+  ],
+  "confidence": {
+    "score": 0.68,
+    "reasons": [
+      "Scene objects are generated from reviewed starter contracts.",
+      "Final city boundary, child node geometry, and 3D assets remain planned outputs."
+    ]
+  },
+  "assets": [],
+  "dossier_links": [
+    "/nodes/atlas:flint-mi",
+    "/objects/dataset:flint-read-model-v0"
+  ],
+  "review_state": "accepted",
+  "updated_at": "2026-05-13T00:00:00-04:00"
+}

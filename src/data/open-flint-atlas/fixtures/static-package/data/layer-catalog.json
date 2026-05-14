@@ -1,0 +1,99 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "layers": [
+    {
+      "id": "places",
+      "name": "Places and civic geographies",
+      "civic_object_types": [
+        "place",
+        "parcel",
+        "metric"
+      ],
+      "geometry_type": "mixed",
+      "source_ids": [
+        "city_of_flint_gis",
+        "um_flint_gis_center",
+        "census_acs_tiger"
+      ],
+      "read_model_url": "/data/places.geoparquet",
+      "temporal": false,
+      "confidence": true,
+      "privacy_class": "public_aggregate"
+    },
+    {
+      "id": "historical-memory",
+      "name": "Historical events and building presence",
+      "civic_object_types": [
+        "historical_event",
+        "news_article",
+        "building_presence"
+      ],
+      "geometry_type": "mixed",
+      "source_ids": [
+        "mapflint"
+      ],
+      "read_model_url": "/data/events.geoparquet",
+      "temporal": true,
+      "confidence": true,
+      "privacy_class": "public_reviewed"
+    },
+    {
+      "id": "interventions",
+      "name": "Civic interventions and public commitments",
+      "civic_object_types": [
+        "intervention",
+        "claim",
+        "source"
+      ],
+      "geometry_type": "mixed",
+      "source_ids": [
+        "city_of_flint_gis",
+        "mapflint"
+      ],
+      "read_model_url": "/data/interventions.geoparquet",
+      "temporal": true,
+      "confidence": true,
+      "privacy_class": "public_reviewed"
+    },
+    {
+      "id": "street-safety",
+      "name": "Street safety aggregates",
+      "civic_object_types": [
+        "road_segment",
+        "corridor",
+        "metric"
+      ],
+      "geometry_type": "mixed",
+      "source_ids": [
+        "michigan_traffic_crash_facts",
+        "census_acs_tiger"
+      ],
+      "read_model_url": "/data/safety.geoparquet",
+      "temporal": true,
+      "confidence": true,
+      "privacy_class": "public_aggregate"
+    },
+    {
+      "id": "evidence",
+      "name": "Sources, claims, and provenance graph",
+      "civic_object_types": [
+        "source",
+        "dataset",
+        "claim",
+        "observation"
+      ],
+      "geometry_type": "none",
+      "source_ids": [
+        "city_of_flint_gis",
+        "um_flint_gis_center",
+        "mapflint",
+        "census_acs_tiger"
+      ],
+      "read_model_url": "/data/claims-summary.parquet",
+      "temporal": true,
+      "confidence": true,
+      "privacy_class": "public_reviewed"
+    }
+  ]
+}

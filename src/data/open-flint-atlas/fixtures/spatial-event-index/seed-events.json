@@ -1,0 +1,251 @@
+{
+  "project": "open-flint-atlas",
+  "schema_version": 1,
+  "events": [
+    {
+      "event_id": "sei_building_presence_buick_city_northend",
+      "event_type": "building_presence",
+      "title": "Buick City Northend industrial buildings presence interval",
+      "summary": "Industrial buildings are represented as present during a sourced interval and gone only where source evidence supports disappearance.",
+      "place": {
+        "place_id": "place_buick_city_northend",
+        "label": "Buick City Northend",
+        "geometry_status": "approximate_area",
+        "geometry_source_id": "racer_buick_city"
+      },
+      "time": {
+        "shape": "first_seen_last_seen",
+        "first_seen": "1900",
+        "last_seen": "2012",
+        "certainty": "mixed_source_interval"
+      },
+      "source": {
+        "source_ids": [
+          "racer_buick_city"
+        ],
+        "rights_note": "Link to public source; do not republish restricted source text."
+      },
+      "review": {
+        "status": "needs_review",
+        "reviewed_at": null,
+        "reviewer_role": null
+      },
+      "confidence": {
+        "label": "medium",
+        "reason": "Industrial site source supports a major demolition milestone, but exact building-level dates require more records."
+      },
+      "model_output_status": "not_model_output",
+      "public_caveat": "Presence interval is source-bounded and not an exact construction or demolition date."
+    },
+    {
+      "event_id": "sei_intervention_cip_water_service_line",
+      "event_type": "intervention",
+      "title": "Water service line work intervention record",
+      "summary": "A public infrastructure intervention can be tracked as promised, funded, work, and outcome events before causal claims are made.",
+      "place": {
+        "place_id": "place_flint_citywide",
+        "label": "City of Flint",
+        "geometry_status": "citywide",
+        "geometry_source_id": "city_of_flint_gis"
+      },
+      "time": {
+        "shape": "interval",
+        "start": "2017",
+        "end": null,
+        "certainty": "program_interval"
+      },
+      "source": {
+        "source_ids": [
+          "city_of_flint_cip_community_services",
+          "flint_service_line_map"
+        ],
+        "rights_note": "Use public project and map links; household-level records stay private."
+      },
+      "review": {
+        "status": "candidate",
+        "reviewed_at": null,
+        "reviewer_role": null
+      },
+      "confidence": {
+        "label": "low",
+        "reason": "Program-level source exists, but stage, geography, and outcome details require record-level review."
+      },
+      "model_output_status": "not_model_output",
+      "public_caveat": "Do not expose address-level service-line records in public read models.",
+      "intervention_stage": "work_started"
+    },
+    {
+      "event_id": "sei_crash_aggregate_corridor_month",
+      "event_type": "crash_aggregate",
+      "title": "Monthly corridor crash aggregate",
+      "summary": "Street-safety records begin as reviewed aggregates before forecasts or neural road-risk layers are shown.",
+      "place": {
+        "place_id": "corridor_saginaw_st_sample",
+        "label": "Saginaw Street sample corridor",
+        "geometry_status": "corridor_segment",
+        "geometry_source_id": "mdot_michigan_geographic_framework_roads"
+      },
+      "time": {
+        "shape": "period",
+        "period": "2024-01",
+        "certainty": "monthly_aggregate"
+      },
+      "source": {
+        "source_ids": [
+          "michigan_traffic_crash_facts",
+          "mdot_michigan_geographic_framework_roads"
+        ],
+        "rights_note": "Public display must stay aggregate and source-labeled."
+      },
+      "review": {
+        "status": "needs_review",
+        "reviewed_at": null,
+        "reviewer_role": null
+      },
+      "confidence": {
+        "label": "unknown",
+        "reason": "Fixture record proves shape only; no official aggregate value is asserted."
+      },
+      "model_output_status": "not_model_output",
+      "public_caveat": "Aggregate fixture has no public claim until source values are imported and reviewed."
+    },
+    {
+      "event_id": "sei_event_historical_article_candidate",
+      "event_type": "event",
+      "title": "Historical article candidate event",
+      "summary": "Historical newspapers can create event candidates linked to place and time without republishing full article text.",
+      "place": {
+        "place_id": "place_downtown_flint_sample",
+        "label": "Downtown Flint sample area",
+        "geometry_status": "neighborhood_only",
+        "geometry_source_id": "city_of_flint_gis"
+      },
+      "time": {
+        "shape": "instant",
+        "date": "1924",
+        "certainty": "source_year"
+      },
+      "source": {
+        "source_ids": [
+          "black_community_newspapers_flint",
+          "chronicling_america"
+        ],
+        "rights_note": "Store archive links and short review summaries; do not republish full copyrighted article text."
+      },
+      "review": {
+        "status": "candidate",
+        "reviewed_at": null,
+        "reviewer_role": null
+      },
+      "confidence": {
+        "label": "low",
+        "reason": "Fixture proves event shape only; article, place, and date need source review."
+      },
+      "model_output_status": "not_model_output",
+      "public_caveat": "Historical event candidates require source and rights review before publication."
+    },
+    {
+      "event_id": "sei_metric_resource_access_ward",
+      "event_type": "metric",
+      "title": "Ward-level resource access metric",
+      "summary": "Metrics attach measured civic context to a place/time period with source and uncertainty notes.",
+      "place": {
+        "place_id": "ward_01_sample",
+        "label": "Ward 1 sample",
+        "geometry_status": "official_boundary",
+        "geometry_source_id": "city_of_flint_gis"
+      },
+      "time": {
+        "shape": "period",
+        "period": "2025",
+        "certainty": "source_vintage"
+      },
+      "source": {
+        "source_ids": [
+          "cdc_places_tract_2025",
+          "census_acs_tiger"
+        ],
+        "rights_note": "Use aggregate public data with measure definitions and margin/caveat cards."
+      },
+      "review": {
+        "status": "needs_review",
+        "reviewed_at": null,
+        "reviewer_role": null
+      },
+      "confidence": {
+        "label": "unknown",
+        "reason": "Fixture has no numeric value; later metrics must carry definitions and uncertainty."
+      },
+      "model_output_status": "not_model_output",
+      "public_caveat": "Aggregate metric fixtures are not rankings and require plain-language caveats."
+    },
+    {
+      "event_id": "sei_source_update_mapflint_inventory",
+      "event_type": "source_update",
+      "title": "Source freshness inventory update",
+      "summary": "Source update events record when an atlas source was checked and what freshness limits were found.",
+      "place": {
+        "place_id": "place_flint_citywide",
+        "label": "City of Flint",
+        "geometry_status": "citywide",
+        "geometry_source_id": "city_of_flint_gis"
+      },
+      "time": {
+        "shape": "observed_at",
+        "observed_at": "2026-05-12",
+        "certainty": "atlas_probe_date"
+      },
+      "source": {
+        "source_ids": [
+          "mapflint"
+        ],
+        "rights_note": "Record source-card freshness metadata without copying restricted data."
+      },
+      "review": {
+        "status": "accepted",
+        "reviewed_at": "2026-05-12",
+        "reviewer_role": "atlas_maintainer"
+      },
+      "confidence": {
+        "label": "medium",
+        "reason": "Freshness event documents an atlas review action, not a source data claim."
+      },
+      "model_output_status": "not_model_output",
+      "public_caveat": "Freshness events say when the atlas checked a source, not when the source last changed."
+    },
+    {
+      "event_id": "sei_model_candidate_historical_place_link",
+      "event_type": "observation",
+      "title": "Historical place-link candidate",
+      "summary": "A model-assisted historical place link remains a reviewable proposal until a reviewer promotes it.",
+      "place": {
+        "place_id": "place_unresolved_historical_address",
+        "label": "Unresolved historical address",
+        "geometry_status": "unresolved",
+        "geometry_source_id": null
+      },
+      "time": {
+        "shape": "observed_at",
+        "observed_at": "1924",
+        "certainty": "source_year"
+      },
+      "source": {
+        "source_ids": [
+          "hathitrust_flint_city_directories"
+        ],
+        "rights_note": "Use source link and short review notes only."
+      },
+      "review": {
+        "status": "needs_review",
+        "reviewed_at": null,
+        "reviewer_role": null
+      },
+      "confidence": {
+        "label": "low",
+        "reason": "Candidate link was generated from historical text and needs address/geocoder review."
+      },
+      "model_output_status": "reviewable_proposal",
+      "public_caveat": "Model proposal cannot become a public place fact without review."
+    }
+  ]
+}

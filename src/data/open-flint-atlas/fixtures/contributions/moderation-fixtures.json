@@ -1,0 +1,72 @@
+{
+  "project": "open-flint-atlas",
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "case_id": "fixture-resource-update-accepted",
+      "private_input": {
+        "contributor_email": "private@example.invalid",
+        "raw_text": "The hours listed for this resource changed. Their public website says the clinic is now closed on Fridays.",
+        "exact_submitted_at": "2026-05-11T20:17:42Z"
+      },
+      "public_output": {
+        "observation_id": "obs-resource-update-001",
+        "place_id": "tract:26049001400",
+        "observation_type": "resource_update",
+        "summary": "A public source review found that a listed resource schedule may have changed.",
+        "status": "accepted",
+        "confidence_label": "accepted",
+        "source_ids": ["cdc_places_tract_2025"],
+        "reviewed_at": "2026-05-11",
+        "caveat": "This observation updates source-review status only; it is not a resident identity or household-level record."
+      },
+      "expected_public": true
+    },
+    {
+      "case_id": "fixture-property-condition-rejected",
+      "private_input": {
+        "contributor_phone": "555-0100",
+        "raw_text": "A named person at a specific house is doing something suspicious.",
+        "private_reviewer_notes": "Rejected because it targets a person and contains private allegations."
+      },
+      "public_output": null,
+      "expected_public": false
+    },
+    {
+      "case_id": "fixture-official-conflict",
+      "private_input": {
+        "raw_text": "This park is marked open, but the public sign says part of it is closed for construction."
+      },
+      "public_output": {
+        "observation_id": "obs-conflict-001",
+        "place_id": "park:2",
+        "observation_type": "access_issue",
+        "summary": "A reviewed observation conflicts with the current public parks layer about access status.",
+        "status": "conflicts_with_official_source",
+        "confidence_label": "conflicting",
+        "source_ids": ["city_of_flint_gis"],
+        "reviewed_at": "2026-05-11",
+        "caveat": "This is a reviewed conflict marker, not a replacement for the official source."
+      },
+      "expected_public": true
+    },
+    {
+      "case_id": "fixture-superseded",
+      "private_input": {
+        "raw_text": "Earlier report said a public location was closed."
+      },
+      "public_output": {
+        "observation_id": "obs-superseded-001",
+        "place_id": "park:2",
+        "observation_type": "access_issue",
+        "summary": "A prior access observation was superseded by a newer public source review.",
+        "status": "superseded",
+        "confidence_label": "stale",
+        "source_ids": ["city_of_flint_gis"],
+        "reviewed_at": "2026-05-11",
+        "caveat": "Superseded observations remain visible only when they explain a public data change."
+      },
+      "expected_public": true
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "built_at": "2026-05-12T01:01:50+00:00",
+  "counts": {
+    "confidence_cards": 225,
+    "metrics": 714,
+    "places": 222,
+    "sources": 8
+  },
+  "outputs": {
+    "confidence_cards": "confidence-cards.json",
+    "metrics": "metrics.json",
+    "places": "places.geojson",
+    "sources": "sources.json"
+  },
+  "privacy_notes": [
+    "No owner names, tax fields, assessment fields, or raw parcel records are emitted.",
+    "Zoning data is aggregated by ward and zoning category.",
+    "Census and CDC values are aggregate/statistical records with uncertainty fields."
+  ],
+  "project": "open-flint-atlas",
+  "schema_version": 1
+}

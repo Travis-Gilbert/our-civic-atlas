@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ourcivicatlas.org/schemas/civic-object-v0.schema.json",
+  "title": "Our Civic Atlas CivicObject v0",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "atlas_node_id",
+    "object_type",
+    "name",
+    "description",
+    "geometry_ref",
+    "time_start",
+    "time_end",
+    "temporal_status",
+    "current_status",
+    "confidence_score",
+    "confidence_reasons",
+    "review_state",
+    "source_ids",
+    "claim_ids",
+    "render_modes",
+    "dossier_url",
+    "public_visibility",
+    "privacy_class",
+    "last_checked_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "atlas_node_id": { "type": "string", "minLength": 1 },
+    "object_type": {
+      "type": "string",
+      "enum": [
+        "atlas_node",
+        "place",
+        "parcel",
+        "building_presence",
+        "street",
+        "road_segment",
+        "corridor",
+        "historical_event",
+        "news_article",
+        "source",
+        "dataset",
+        "claim",
+        "observation",
+        "intervention",
+        "metric",
+        "scene_object",
+        "brush_asset",
+        "ifc_asset"
+      ]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "geometry_ref": { "type": ["string", "null"] },
+    "time_start": { "type": ["string", "null"] },
+    "time_end": { "type": ["string", "null"] },
+    "temporal_status": {
+      "type": "string",
+      "enum": ["current", "historical", "vanished", "inferred", "disputed", "unknown"]
+    },
+    "current_status": {
+      "type": "string",
+      "enum": ["active", "inactive", "not_currently_present", "unknown", "not_applicable"]
+    },
+    "confidence_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "confidence_reasons": { "type": "array", "items": { "type": "string" } },
+    "review_state": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "needs_review",
+        "needs_more_evidence",
+        "corroborated",
+        "conflicting",
+        "accepted",
+        "rejected",
+        "superseded",
+        "withdrawn"
+      ]
+    },
+    "source_ids": { "type": "array", "items": { "type": "string" } },
+    "claim_ids": { "type": "array", "items": { "type": "string" } },
+    "render_modes": { "type": "array", "items": { "type": "string" } },
+    "dossier_url": { "type": "string", "minLength": 1 },
+    "public_visibility": { "type": "string", "enum": ["public", "private", "restricted"] },
+    "privacy_class": { "type": "string" },
+    "last_checked_at": { "type": ["string", "null"] },
+    "updated_at": { "type": "string", "minLength": 1 }
+  }
+}

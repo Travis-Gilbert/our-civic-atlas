@@ -1,0 +1,69 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "files": [
+    {
+      "id": "atlas-node",
+      "name": "Atlas node manifest",
+      "url": "/data/atlas-node.json",
+      "media_type": "application/json",
+      "description": "Identity, boundary, capabilities, and federation links for Flint Atlas."
+    },
+    {
+      "id": "source-registry",
+      "name": "Source registry",
+      "url": "/data/source-registry.json",
+      "media_type": "application/json",
+      "description": "Reviewed source list with public-use and privacy notes."
+    },
+    {
+      "id": "layer-catalog",
+      "name": "Layer catalog",
+      "url": "/data/layer-catalog.json",
+      "media_type": "application/json",
+      "description": "Public layer inventory and data roles."
+    },
+    {
+      "id": "node-catalog",
+      "name": "Node catalog",
+      "url": "/data/node-catalog.json",
+      "media_type": "application/json",
+      "description": "Self, parent, child, and neighbor atlas node references."
+    },
+    {
+      "id": "civic-objects",
+      "name": "Civic objects",
+      "url": "/data/civic-objects.parquet",
+      "media_type": "application/vnd.apache.parquet",
+      "description": "Source-backed civic object table. The current repo ships a JSON fixture until Parquet export lands."
+    },
+    {
+      "id": "places",
+      "name": "Places",
+      "url": "/data/places.geoparquet",
+      "media_type": "application/vnd.apache.parquet",
+      "description": "Spatial read model for public places and civic geographies."
+    },
+    {
+      "id": "events",
+      "name": "Events",
+      "url": "/data/events.geoparquet",
+      "media_type": "application/vnd.apache.parquet",
+      "description": "Temporal civic events, observations, and historical memory records."
+    },
+    {
+      "id": "confidence-cards",
+      "name": "Confidence cards",
+      "url": "/data/confidence-cards.json",
+      "media_type": "application/json",
+      "description": "Public explanation cards for confidence and source-support progress."
+    },
+    {
+      "id": "scene-manifests",
+      "name": "Scene manifests",
+      "url": "/data/scene-manifests/*.json",
+      "media_type": "application/json",
+      "description": "Renderable scene contracts for Atlas Scene and Scene Foundry."
+    }
+  ]
+}

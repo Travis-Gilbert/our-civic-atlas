@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "name": "Flint Atlas",
+  "slug": "flint",
+  "canonical_url": "https://flint.ourcivicatlas.org",
+  "scope_type": "city",
+  "parent_node_ids": [
+    "atlas:michigan"
+  ],
+  "child_node_ids": [
+    "atlas:flint-mi:carriage-town"
+  ],
+  "neighbor_node_ids": [
+    "atlas:grand-blanc-mi",
+    "atlas:detroit-mi"
+  ],
+  "boundary_geojson_url": "/data/boundaries/flint-city.geojson",
+  "bbox": [
+    -83.83,
+    42.94,
+    -83.58,
+    43.13
+  ],
+  "centroid": [
+    -83.6875,
+    43.0125
+  ],
+  "maintainers": [
+    {
+      "name": "Our Civic Atlas maintainers",
+      "role": "public-interest atlas steward",
+      "url": "https://ourcivicatlas.org"
+    }
+  ],
+  "public_contact": "Public contribution and correction routes will be published at /contribute.",
+  "license": "Original atlas code and documentation are intended for open reuse; source data retains source-specific terms.",
+  "data_license": "Mixed public-source terms. See /data/source-registry.json before reuse.",
+  "contribution_policy_url": "/contribute",
+  "source_registry_url": "/data/source-registry.json",
+  "layer_catalog_url": "/data/layer-catalog.json",
+  "node_catalog_url": "/data/node-catalog.json",
+  "read_model_catalog_url": "/data/read-model-catalog.json",
+  "capabilities": [
+    "static_only",
+    "has_provenance_graph",
+    "has_scene_manifests",
+    "has_lost_buildings",
+    "has_safety_lab",
+    "has_interventions",
+    "has_public_api"
+  ],
+  "federation_status": "seed",
+  "last_updated_at": "2026-05-13T00:00:00-04:00"
+}
