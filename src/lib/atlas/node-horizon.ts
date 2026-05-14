@@ -8,6 +8,7 @@ import { getStaticAtlasPackage } from "@/lib/atlas/static-package";
 export type NodeHorizonEntry = {
   atlasId: string;
   name: string;
+  detailHref: string;
   relation: NodeCatalogEntry["relation"];
   relationLabel: string;
   scopeLabel: string;
@@ -72,41 +73,50 @@ function sourceCountLabel(value: number | undefined): string {
   return value === 1 ? "1 source" : `${value} sources`;
 }
 
+function nodeHref(atlasId: string): string {
+  return `/open-flint-atlas/node/${encodeURIComponent(atlasId)}`;
+}
+
 export function getNodeHorizonEntries(): NodeHorizonEntry[] {
   const { nodeCatalog } = getStaticAtlasPackage();
 
   return nodeCatalog.nodes
-    .filter((node) => node.relation !== "self")
-    .map((node) => {
+    .flatMap((node) => {
+      const atlasId = node.atlas_id.trim();
+      if (node.relation === "self" || atlasId.length === 0) return [];
+
       const updatedAt = dateLabel(node.last_updated_at);
       const capabilityLabels = node.capabilities
         .slice(0, 3)
         .map((capability) => CAPABILITY_LABELS[capability] ?? capability);
 
-      return {
-        atlasId: node.atlas_id,
-        name: node.name,
-        relation: node.relation,
-        relationLabel: RELATION_LABELS[node.relation],
-        scopeLabel: SCOPE_LABELS[node.scope_type],
-        statusLabel: FEDERATION_STATUS_LABELS[node.federation_status],
-        description:
-          node.description ??
-          "Candidate atlas node awaiting a promoted public manifest.",
-        freshnessLabel:
-          node.freshness_label ??
-          (updatedAt ? `updated ${updatedAt}` : "manifest planned"),
-        directionLabel: [node.distance_label, node.direction_label]
-          .filter(Boolean)
-          .join(" ")
-          .trim(),
-        sourceCountLabel: sourceCountLabel(node.source_count),
-        contributionStatus:
-          node.contribution_status ?? "contribution policy planned",
-        maintainerLabel: node.maintainer_label ?? "maintainer planned",
-        capabilityLabels,
-        manifestAvailable: node.manifest_url !== null,
-        compareAvailable: node.compare_available === true,
-      };
+      return [
+        {
+          atlasId,
+          name: node.name,
+          detailHref: nodeHref(atlasId),
+          relation: node.relation,
+          relationLabel: RELATION_LABELS[node.relation],
+          scopeLabel: SCOPE_LABELS[node.scope_type],
+          statusLabel: FEDERATION_STATUS_LABELS[node.federation_status],
+          description:
+            node.description ??
+            "Candidate atlas node awaiting a promoted public manifest.",
+          freshnessLabel:
+            node.freshness_label ??
+            (updatedAt ? `updated ${updatedAt}` : "manifest planned"),
+          directionLabel: [node.distance_label, node.direction_label]
+            .filter(Boolean)
+            .join(" ")
+            .trim(),
+          sourceCountLabel: sourceCountLabel(node.source_count),
+          contributionStatus:
+            node.contribution_status ?? "contribution policy planned",
+          maintainerLabel: node.maintainer_label ?? "maintainer planned",
+          capabilityLabels,
+          manifestAvailable: node.manifest_url !== null,
+          compareAvailable: node.compare_available === true,
+        },
+      ];
     });
 }

@@ -97,6 +97,19 @@ function validateCivicObjects(civicObjects) {
   });
 }
 
+function validateNodeCatalog(nodeCatalog) {
+  assertString(nodeCatalog.schema_version, "node-catalog.schema_version");
+  assertString(nodeCatalog.atlas_id, "node-catalog.atlas_id");
+  assert(Array.isArray(nodeCatalog.nodes) && nodeCatalog.nodes.length > 0, "node-catalog.nodes must not be empty");
+
+  nodeCatalog.nodes.forEach((node, index) => {
+    for (const key of ["atlas_id", "name", "scope_type", "relation", "federation_status"]) {
+      assertString(node[key], `node-catalog.nodes.${index}.${key}`);
+    }
+    assertStringArray(node.capabilities, `node-catalog.nodes.${index}.capabilities`);
+  });
+}
+
 async function main() {
   const [discoveryManifest, atlasNode, nodeCatalog, layerCatalog, readModelCatalog, civicObjects, sceneManifest] =
     await Promise.all([
@@ -114,7 +127,7 @@ async function main() {
   assertStringArray(discoveryManifest.capabilities, "well-known.capabilities");
   validateAtlasNode(atlasNode);
 
-  assert(Array.isArray(nodeCatalog.nodes) && nodeCatalog.nodes.length > 0, "node-catalog.nodes must not be empty");
+  validateNodeCatalog(nodeCatalog);
   assert(Array.isArray(layerCatalog.layers) && layerCatalog.layers.length > 0, "layer-catalog.layers must not be empty");
   assert(Array.isArray(readModelCatalog.files) && readModelCatalog.files.length > 0, "read-model-catalog.files must not be empty");
   validateCivicObjects(civicObjects);

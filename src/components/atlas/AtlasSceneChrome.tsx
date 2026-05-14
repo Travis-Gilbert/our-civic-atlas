@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Activity,
   Boxes,
@@ -279,22 +280,23 @@ export function AtlasSceneChrome({
                   {node.contributionStatus}
                 </span>
                 <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
+                  <Link
+                    href={node.detailHref}
                     className="atlas-horizon-action"
-                    disabled={!node.manifestAvailable}
+                    aria-label={`Open ${node.name}`}
                     title={
                       node.manifestAvailable
                         ? `Open ${node.name}`
-                        : `${node.name} manifest is planned`
+                        : `${node.name} route is available; manifest is planned`
                     }
                   >
                     Open
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     className="atlas-horizon-action"
                     disabled={!node.compareAvailable}
+                    aria-label={`Compare Flint Atlas with ${node.name}`}
                     title={
                       node.compareAvailable
                         ? `Compare Flint Atlas with ${node.name}`

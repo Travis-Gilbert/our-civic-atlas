@@ -4,7 +4,7 @@ Source of truth for this note:
 - `docs/plans/our-civic-atlas-v1-launch-plan.md` (OCA checklist + production gates)
 - `docs/plans/renderer-stack-integration.md` (Atlas runtime/renderer contract)
 
-Scope note: local UI/API/code work currently in this repo is in a dirty state and includes active Atlas Scene / Node Horizon / dossier path edits.
+Scope note: local UI/API/code work in this recovery stream includes active Atlas Scene / Node Horizon / dossier path edits.
 This recovery session completed the immediate timed-out slice for the reusable place dossier contract, strict dossier validation, source-card linkage cleanup, tablet evidence panel spacing, and mobile evidence provenance access. The launch plan still shows broader product work as partial or planned, especially non-place dossier subjects, contribution/review, full Evidence Constellation interactions, and public launch governance.
 
 ## Current recovery evidence
@@ -14,11 +14,12 @@ This recovery session completed the immediate timed-out slice for the reusable p
 - Product gates rerun: `npm run typecheck`, `npm run lint`, `npm run build`, and `git diff --check`.
 - Visual gate rerun: Playwright MCP checked `/open-flint-atlas/evidence` at 1024 x 768 with no overlapping floating panels and 390 x 844 with a visible mobile provenance sheet.
 - Route envelope gate: OCA-003 now has routed pages for map/explore/lenses, sources, contribute, methodology, node, place, object, and scene; `npm run validate:routes:live` checks 13 public URLs.
+- Node Horizon gate: OCA-005/OCA-017B now exposes parent/child/neighbor `Open` actions as accessible links to `/open-flint-atlas/node/[atlasId]`; Playwright MCP clicked the first horizon link and confirmed the Michigan node detail route, no horizontal overflow, and named `Open {node}` actions. `Compare`, breadcrumbs, and spatial portal transitions remain partial.
 
 ## Immediate next slices
 - OCA-003A: finalize component map for the new Atlas Scene shell (`AtlasAppShell`, mode rail, Node Horizon, confidence receipt/review/evidence panels, mosaic/timeline controls).
 - OCA-004: finish bounded-world Atlas Scene treatment (custom boundary/camera presets/style and fallback consistency with mobile map).
-- OCA-005: harden Node Horizon interactions and metadata previews so neighboring/parent/child nodes are first-class navigation affordances, not static badges.
+- OCA-005: continue Node Horizon interaction hardening with compare/breadcrumb behavior and spatial portal transitions now that neighboring/parent/child nodes are route-backed navigation affordances.
 
 ## Data / contract slices
 - OCA-002, OCA-002A, OCA-002B: finish manifest-first federation schema and AtlasNode/CivicObject contracts.
