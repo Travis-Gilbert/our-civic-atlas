@@ -100,3 +100,364 @@
     0 1px 3px rgba(60, 40, 12, 0.06),
     0 6px 18px -10px rgba(60, 40, 12, 0.18);
 }
+
+.civic-atlas .atlas-scene-map {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 58% 24%, rgba(193, 74, 44, 0.16), transparent 31%),
+    radial-gradient(circle at 22% 74%, rgba(74, 138, 130, 0.16), transparent 28%),
+    var(--ctx-paper);
+}
+
+.civic-atlas .atlas-scene-map::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(246, 244, 238, 0.48), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
+    linear-gradient(180deg, rgba(246, 244, 238, 0.36), transparent 24%, transparent 72%, rgba(42, 36, 25, 0.14));
+  mix-blend-mode: normal;
+}
+
+.civic-atlas .atlas-scene-map .maplibregl-map,
+.civic-atlas .atlas-scene-map .leaflet-container {
+  background: var(--ctx-paper-soft);
+}
+
+.civic-atlas .atlas-scene-map .maplibregl-canvas {
+  filter: saturate(0.92) contrast(1.04) sepia(0.08);
+}
+
+.civic-atlas [data-scene-view="street"] .atlas-scene-map .maplibregl-canvas {
+  filter: saturate(0.96) contrast(1.08) sepia(0.1);
+}
+
+.civic-atlas [data-active-lens="memory"] .atlas-scene-map::before {
+  background:
+    linear-gradient(90deg, rgba(246, 244, 238, 0.5), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
+    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 22%, rgba(193, 74, 44, 0.1) 72%, rgba(42, 36, 25, 0.12));
+}
+
+.civic-atlas [data-active-lens="evidence"] .atlas-scene-map::before {
+  background:
+    linear-gradient(90deg, rgba(246, 244, 238, 0.46), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
+    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 24%, rgba(92, 106, 160, 0.12) 72%, rgba(42, 36, 25, 0.12));
+}
+
+.civic-atlas .atlas-scene-glass,
+.civic-atlas .atlas-scene-search-results {
+  background: rgba(246, 244, 238, 0.72);
+  border: 1px solid rgba(42, 36, 25, 0.12);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 10px 28px -18px rgba(42, 36, 25, 0.42);
+  backdrop-filter: blur(12px) saturate(115%);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+}
+
+.civic-atlas .atlas-scene-brand {
+  background:
+    linear-gradient(135deg, rgba(246, 244, 238, 0.84), rgba(239, 236, 228, 0.68)),
+    rgba(246, 244, 238, 0.74);
+}
+
+.civic-atlas .atlas-scene-search-results {
+  overflow: hidden;
+}
+
+.civic-atlas .atlas-scene-search-results button {
+  border: none;
+  background: transparent;
+}
+
+.civic-atlas .atlas-scene-search-results button:hover,
+.civic-atlas .atlas-scene-search-results button:focus-visible {
+  background: rgba(42, 36, 25, 0.06);
+  outline: none;
+}
+
+.civic-atlas .atlas-scene-icon-button,
+.civic-atlas .atlas-scene-camera-button {
+  color: var(--ctx-ink-mute);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.civic-atlas .atlas-scene-icon-button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+}
+
+.civic-atlas .atlas-scene-camera-button {
+  display: flex;
+  min-width: 86px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.civic-atlas .atlas-scene-icon-button:hover,
+.civic-atlas .atlas-scene-icon-button:focus-visible,
+.civic-atlas .atlas-scene-camera-button:hover,
+.civic-atlas .atlas-scene-camera-button:focus-visible {
+  color: var(--ctx-ink);
+  background: rgba(42, 36, 25, 0.06);
+  outline: none;
+}
+
+.civic-atlas .atlas-scene-icon-button.is-active,
+.civic-atlas .atlas-scene-camera-button.is-active {
+  color: var(--ctx-paper);
+  background: var(--ctx-ink);
+  border-color: rgba(42, 36, 25, 0.82);
+  box-shadow: 0 8px 18px -14px rgba(42, 36, 25, 0.72);
+}
+
+.civic-atlas .atlas-scene-icon-button:active,
+.civic-atlas .atlas-scene-camera-button:active {
+  transform: translateY(1px);
+}
+
+.civic-atlas .atlas-scene-readout {
+  color: var(--ctx-ink-soft);
+  background: rgba(246, 244, 238, 0.66);
+  border: 1px solid rgba(42, 36, 25, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 10px 28px -20px rgba(42, 36, 25, 0.4);
+  backdrop-filter: blur(10px) saturate(110%);
+  -webkit-backdrop-filter: blur(10px) saturate(110%);
+}
+
+.civic-atlas .atlas-horizon-node {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.civic-atlas .atlas-horizon-chip {
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  color: var(--ctx-ink-mute);
+  font-size: 9px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.civic-atlas .atlas-horizon-action {
+  border: 1px solid rgba(42, 36, 25, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.38);
+  color: var(--ctx-ink);
+  font-size: 10px;
+  line-height: 1;
+  padding: 6px 7px;
+}
+
+.civic-atlas .atlas-horizon-action:disabled {
+  color: var(--ctx-ink-faint);
+  cursor: not-allowed;
+}
+
+.civic-atlas .atlas-horizon-action:not(:disabled):hover,
+.civic-atlas .atlas-horizon-action:not(:disabled):focus-visible {
+  border-color: color-mix(in srgb, var(--ctx-accent) 34%, transparent);
+  outline: none;
+}
+
+.civic-atlas .atlas-dossier-close {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  place-items: center;
+  color: var(--ctx-ink-mute);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.civic-atlas .atlas-dossier-close:hover,
+.civic-atlas .atlas-dossier-close:focus-visible {
+  color: var(--ctx-ink);
+  background: rgba(42, 36, 25, 0.06);
+  outline: none;
+}
+
+.civic-atlas .atlas-dossier-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.civic-atlas .atlas-dossier-tab {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--ctx-ink-mute);
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0 10px;
+}
+
+.civic-atlas .atlas-dossier-tab[data-active="true"] {
+  color: var(--ctx-paper);
+  background: var(--ctx-ink);
+  border-color: rgba(42, 36, 25, 0.78);
+}
+
+.civic-atlas .atlas-dossier-tab:hover,
+.civic-atlas .atlas-dossier-tab:focus-visible {
+  color: var(--ctx-ink);
+  border-color: rgba(42, 36, 25, 0.18);
+  outline: none;
+}
+
+.civic-atlas .atlas-dossier-tab[data-active="true"]:hover,
+.civic-atlas .atlas-dossier-tab[data-active="true"]:focus-visible {
+  color: var(--ctx-paper);
+}
+
+.civic-atlas .atlas-dossier-tab-count {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
+
+.civic-atlas .atlas-mobile-dossier-sheet {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .civic-atlas .atlas-scene-brand {
+    display: none;
+  }
+
+  .civic-atlas .atlas-scene-camera-button {
+    min-width: 44px;
+    width: 44px;
+    padding: 0;
+  }
+
+  .civic-atlas .atlas-scene-camera-button span {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .civic-atlas .atlas-scene-glass {
+    background: rgba(246, 244, 238, 0.82);
+  }
+
+  .civic-atlas .atlas-scene-header {
+    left: 20px;
+    right: 20px;
+  }
+
+  .civic-atlas .atlas-scene-search-shell {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .civic-atlas .atlas-scene-lens-card,
+  .civic-atlas .atlas-scene-readout {
+    display: none;
+  }
+
+  .civic-atlas .atlas-panel {
+    display: none;
+  }
+
+  .civic-atlas .atlas-mobile-dossier-sheet {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    z-index: 48;
+    display: flex;
+    max-height: calc(100vh - 86px);
+    flex-direction: column;
+    overflow: hidden;
+    background: rgba(246, 244, 238, 0.92);
+    border: 1px solid rgba(42, 36, 25, 0.12);
+    border-radius: 8px 8px 6px 6px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.55) inset,
+      0 18px 50px -28px rgba(42, 36, 25, 0.62);
+    backdrop-filter: blur(14px) saturate(112%);
+    -webkit-backdrop-filter: blur(14px) saturate(112%);
+  }
+
+  .civic-atlas .atlas-mobile-dossier-grip {
+    width: 44px;
+    height: 4px;
+    flex-shrink: 0;
+    margin: 8px auto 0;
+    border-radius: 999px;
+    background: rgba(42, 36, 25, 0.22);
+  }
+
+  .civic-atlas .atlas-mobile-dossier-snaps {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .civic-atlas .atlas-mobile-dossier-snaps button {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .civic-atlas .atlas-mobile-dossier-snaps button span {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(42, 36, 25, 0.22);
+  }
+
+  .civic-atlas .atlas-mobile-dossier-snaps button[data-active="true"] span {
+    background: var(--ctx-ink);
+  }
+
+  .civic-atlas .atlas-mobile-dossier-snaps button:focus-visible {
+    border-color: rgba(42, 36, 25, 0.24);
+    outline: none;
+  }
+}

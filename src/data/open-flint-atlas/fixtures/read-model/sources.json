@@ -111,5 +111,103 @@
     "source_id": "genesee_county_gis",
     "source_update_label": "unknown_until_manual_review",
     "trust_tier": "official_spatial"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.racertrust.org/properties/buick-city-site",
+    "known_limits": [
+      "Site materials focus on redevelopment status and reuse, not a complete building-level chronology.",
+      "Historical claims need corroborating local archive review before they become public facts."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "RACER Trust Buick City Site",
+    "public_use": "public_reference_with_document_and_terms_review",
+    "source_id": "racer_buick_city_site",
+    "source_update_label": "episodic_property_updates",
+    "trust_tier": "curated_public_reference"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.cityofflint.com/documents/capital-improvement-plan/",
+    "known_limits": [
+      "Plan details can become stale as allocations and project scopes change.",
+      "Project descriptions require reviewed place resolution before public map use."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "City of Flint Capital Improvement Plan",
+    "public_use": "public_planning_document_with_status_review",
+    "source_id": "city_of_flint_capital_improvement_plan",
+    "source_update_label": "periodic_plan_update",
+    "trust_tier": "official_statistical"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.cityofflint.com/community-services/",
+    "known_limits": [
+      "Program pages and action plans describe allocations and intended uses, not verified physical outcomes.",
+      "Linked PDFs can change between annual funding cycles and need date-specific citations."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "City of Flint Community Services and HUD Action Plans",
+    "public_use": "public_program_documents_with_terms_review_required",
+    "source_id": "city_of_flint_community_services",
+    "source_update_label": "annual_hud_cycle",
+    "trust_tier": "official_statistical"
+  },
+  {
+    "contains_personal_data": true,
+    "homepage_url": "https://flintpipemap.org/",
+    "known_limits": [
+      "Address-level infrastructure records require privacy limits before public display.",
+      "Modeled service-line probabilities are uncertainty-bearing observations, not definitive infrastructure facts."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Flint Water Service Line Materials Map",
+    "public_use": "address_level_infrastructure_data_with_terms_and_privacy_limits",
+    "source_id": "flint_service_line_map",
+    "source_update_label": "ongoing_city_data_updates",
+    "trust_tier": "curated_public_reference"
+  },
+  {
+    "contains_personal_data": false,
+    "homepage_url": "https://www.michigan.gov/dtmb/services/maps/mgf-data-hub",
+    "known_limits": [
+      "Statewide framework roads are strong basemap references, but local lane or curb conditions may differ.",
+      "The atlas should clip to Flint/Genesee scope and preserve source vintage."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Michigan Geographic Framework Roads",
+    "public_use": "public_open_data_with_layer_selection_review",
+    "source_id": "michigan_geographic_framework_roads",
+    "source_update_label": "statewide_framework_updates",
+    "trust_tier": "official_spatial"
+  },
+  {
+    "contains_personal_data": true,
+    "homepage_url": "https://quod.lib.umich.edu/b/blackcommunitynews/",
+    "known_limits": [
+      "Historical newspaper material can contain named people and sensitive context even when it is old.",
+      "Use archive links and short review summaries; do not republish full article text without rights review."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Black Community Newspapers of Flint",
+    "public_use": "historical_archive_with_rights_and_excerpt_review",
+    "source_id": "black_community_newspapers_flint",
+    "source_update_label": "historical_archive_static",
+    "trust_tier": "curated_public_reference"
+  },
+  {
+    "contains_personal_data": true,
+    "homepage_url": "https://chroniclingamerica.loc.gov/about/api/",
+    "known_limits": [
+      "OCR and place extraction can be noisy and must remain reviewable.",
+      "Use archive links and short review summaries; do not treat extracted mentions as accepted place facts."
+    ],
+    "last_checked": "2026-05-11",
+    "name": "Chronicling America API",
+    "public_use": "historical_archive_with_rights_and_excerpt_review",
+    "source_id": "chronicling_america",
+    "source_update_label": "historical_archive_static",
+    "trust_tier": "curated_public_reference"
   }
 ]

@@ -11,7 +11,7 @@
         "place_id": "place_buick_city_northend",
         "label": "Buick City Northend",
         "geometry_status": "approximate_area",
-        "geometry_source_id": "racer_buick_city"
+        "geometry_source_id": "racer_buick_city_site"
       },
       "time": {
         "shape": "first_seen_last_seen",
@@ -21,7 +21,7 @@
       },
       "source": {
         "source_ids": [
-          "racer_buick_city"
+          "racer_buick_city_site"
         ],
         "rights_note": "Link to public source; do not republish restricted source text."
       },
@@ -56,7 +56,8 @@
       },
       "source": {
         "source_ids": [
-          "city_of_flint_cip_community_services",
+          "city_of_flint_capital_improvement_plan",
+          "city_of_flint_community_services",
           "flint_service_line_map"
         ],
         "rights_note": "Use public project and map links; household-level records stay private."
@@ -83,7 +84,7 @@
         "place_id": "corridor_saginaw_st_sample",
         "label": "Saginaw Street sample corridor",
         "geometry_status": "corridor_segment",
-        "geometry_source_id": "mdot_michigan_geographic_framework_roads"
+        "geometry_source_id": "michigan_geographic_framework_roads"
       },
       "time": {
         "shape": "period",
@@ -93,7 +94,7 @@
       "source": {
         "source_ids": [
           "michigan_traffic_crash_facts",
-          "mdot_michigan_geographic_framework_roads"
+          "michigan_geographic_framework_roads"
         ],
         "rights_note": "Public display must stay aggregate and source-labeled."
       },

@@ -172,6 +172,15 @@ export type NodeCatalogEntry = {
   federation_status: AtlasFederationStatus;
   last_updated_at: string | null;
   capabilities: AtlasCapability[];
+  description?: string;
+  distance_label?: string;
+  direction_label?: string;
+  maintainer_label?: string;
+  source_count?: number;
+  contribution_status?: string;
+  freshness_label?: string;
+  preview_place_id?: string;
+  compare_available?: boolean;
 };
 
 export type NodeCatalog = {

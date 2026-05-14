@@ -22,6 +22,10 @@ export function AtlasShell({
   tabs = DEFAULT_ATLAS_TABS,
   activeTabId: activeTabIdProp,
   onTabChange,
+  showTabs = true,
+  showDossier = true,
+  showTimeline = true,
+  showProvenance = true,
 }: {
   /** Map/canvas area (deck.gl, MapLibre, etc.) */
   children: ReactNode;
@@ -43,6 +47,14 @@ export function AtlasShell({
   activeTabId?: string;
   /** Notified when the user clicks a tab. */
   onTabChange?: (id: string) => void;
+  /** Render the legacy saved-view tab strip. Atlas Scene can replace it. */
+  showTabs?: boolean;
+  /** Render the dossier/control panel. */
+  showDossier?: boolean;
+  /** Render the timeline panel. */
+  showTimeline?: boolean;
+  /** Render the provenance panel. */
+  showProvenance?: boolean;
 }) {
   const [dossierOpen] = useState(true);
   const [timelineOpen] = useState(true);
@@ -53,6 +65,9 @@ export function AtlasShell({
   );
 
   const activeTabId = activeTabIdProp ?? internalActiveTabId;
+  const leftPanelOffsetClass = showTabs ? "left-4" : "left-[76px]";
+  const rightPanelOffsetClass = showTabs ? "right-4" : "right-4 xl:right-[320px]";
+  const timelineOffsetClass = showTabs ? "bottom-4" : "bottom-[72px]";
   const handleTabChange = useCallback(
     (id: string) => {
       if (onTabChange) onTabChange(id);
@@ -68,11 +83,13 @@ export function AtlasShell({
               full atlas state per tab (layers, time range, place,
               camera). The morph indicator is framer-motion's layoutId
               pattern. --- */}
-      <AtlasTabBar
-        tabs={tabs}
-        activeId={activeTabId}
-        onChange={handleTabChange}
-      />
+      {showTabs && (
+        <AtlasTabBar
+          tabs={tabs}
+          activeId={activeTabId}
+          onChange={handleTabChange}
+        />
+      )}
 
       {/* -- Body: map is full-bleed; panels float over it as sticky,
               vertically-centered, transparent tiles. ----------------- */}
@@ -86,9 +103,9 @@ export function AtlasShell({
 
         {/* LEFT: Dossier — floating sticky panel, vertically centered.
             Width sizes to content (max 340 to keep map area legible). */}
-        {dossierOpen && (
+        {showDossier && dossierOpen && (
           <aside
-            className="atlas-panel absolute left-4 top-1/2 -translate-y-1/2 w-fit max-w-[340px] max-h-[calc(100%-2rem)] overflow-y-auto pointer-events-auto z-10"
+            className={`atlas-panel absolute ${leftPanelOffsetClass} top-1/2 -translate-y-1/2 w-fit max-w-[340px] max-h-[calc(100%-2rem)] overflow-y-auto pointer-events-auto z-10`}
             data-fade-source
           >
             {dossier ?? (
@@ -111,9 +128,9 @@ export function AtlasShell({
         )}
 
         {/* RIGHT: Provenance — floating sticky panel, vertically centered. */}
-        {provenanceOpen && (
+        {showProvenance && provenanceOpen && (
           <aside
-            className="atlas-panel absolute right-4 top-1/2 -translate-y-1/2 w-[320px] max-h-[calc(100%-2rem)] overflow-y-auto pointer-events-auto z-10"
+            className={`atlas-panel absolute ${rightPanelOffsetClass} top-1/2 -translate-y-1/2 w-[320px] max-h-[calc(100%-2rem)] overflow-y-auto pointer-events-auto z-10`}
             data-fade-source
           >
             {provenance ?? (
@@ -136,9 +153,9 @@ export function AtlasShell({
         )}
 
         {/* BOTTOM: Timeline — floating sticky strip, horizontally centered. */}
-        {timelineOpen && (
+        {showTimeline && timelineOpen && (
           <div
-            className="atlas-panel absolute left-1/2 -translate-x-1/2 bottom-4 w-[min(720px,80%)] max-h-[180px] overflow-hidden pointer-events-auto z-10"
+            className={`atlas-panel absolute left-1/2 -translate-x-1/2 ${timelineOffsetClass} w-[min(720px,80%)] max-h-[180px] overflow-hidden pointer-events-auto z-10`}
             data-fade-source
           >
             <div className="px-4 py-2">

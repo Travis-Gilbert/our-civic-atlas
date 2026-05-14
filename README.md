@@ -7,9 +7,12 @@ This repository is intended to be public. Do not commit secrets, private contrib
 ## Current Slice
 
 - Standalone Next.js app at `/open-flint-atlas` for the Flint Atlas launch node.
+- Routed civic lenses at `/open-flint-atlas/memory`, `/open-flint-atlas/safety`, `/open-flint-atlas/interventions`, and `/open-flint-atlas/evidence`.
+- Public route envelope for sources, contribution boundary, methodology, atlas nodes, places, civic objects, and scene manifests.
+- Atlas Scene shell with Oblique, Street, Section, and Atlas camera modes, source-backed deck.gl overlays, package-backed Node Horizon chrome, and reference-driven visual grammar tokens.
 - Local fixture-backed API routes under `/api/v2/theseus/open-flint-atlas/*`.
 - Public read-model fixtures copied from the Index-API atlas plan.
-- Baseline map/timeline/provenance UI ported from the earlier Open Flint atlas work, without the later uncommitted History/contribution-form frontend pass.
+- Baseline map/timeline/provenance plumbing ported from the earlier Open Flint atlas work, now contextual under the scene lenses instead of always-on dashboard chrome.
 - Product-vault notes mirrored under `docs/product-vault/flint-ouratlast/` so launch planning stays with the app repo while the original Obsidian vault remains an idea notebook.
 
 ## Development
@@ -18,6 +21,8 @@ This repository is intended to be public. Do not commit secrets, private contrib
 npm install
 npm run dev
 npm run validate:atlas
+npm run validate:dossier:live
+npm run validate:routes:live
 ```
 
 Then open `http://localhost:3000/open-flint-atlas`.

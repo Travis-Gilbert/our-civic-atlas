@@ -39600,9 +39600,9 @@
         "place_id": "place_buick_city_northend",
         "name": "Buick City Northend sample area",
         "place_type": "corridor",
-        "geometry_ref": "racer_buick_city:approximate_area_centroid",
+        "geometry_ref": "racer_buick_city_site:approximate_area_centroid",
         "source_ids": [
-          "racer_buick_city"
+          "racer_buick_city_site"
         ],
         "privacy_class": "aggregate_only"
       }
@@ -39620,9 +39620,9 @@
         "place_id": "corridor_saginaw_st_sample",
         "name": "Saginaw Street sample corridor",
         "place_type": "corridor",
-        "geometry_ref": "mdot_michigan_geographic_framework_roads:sample_corridor_centroid",
+        "geometry_ref": "michigan_geographic_framework_roads:sample_corridor_centroid",
         "source_ids": [
-          "mdot_michigan_geographic_framework_roads"
+          "michigan_geographic_framework_roads"
         ],
         "privacy_class": "aggregate_only"
       }

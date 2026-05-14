@@ -29,6 +29,10 @@ import type {
   PlacesCollection,
   SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
+import type {
+  AtlasLensId,
+  AtlasSceneViewModeId,
+} from "@/lib/atlas/scene-view";
 
 const AtlasMap = dynamic(
   () => import("./AtlasMap").then((m) => m.AtlasMap),
@@ -50,6 +54,8 @@ export type ResponsiveAtlasMapProps = {
   onPlaceSelect: (placeId: string) => void;
   selectedPlaceId: string | null;
   layerVisibility: Record<string, boolean>;
+  viewMode?: AtlasSceneViewModeId;
+  activeLens?: AtlasLensId;
   className?: string;
 };
 

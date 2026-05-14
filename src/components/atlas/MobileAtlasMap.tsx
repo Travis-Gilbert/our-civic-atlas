@@ -28,7 +28,7 @@
  * it assumes a browser environment.
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -48,6 +48,10 @@ import type {
   PlaceProperties,
   SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
+import type {
+  AtlasLensId,
+  AtlasSceneViewModeId,
+} from "@/lib/atlas/scene-view";
 import { cn } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
 
@@ -151,6 +155,8 @@ export type MobileAtlasMapProps = {
   onPlaceSelect: (placeId: string) => void;
   selectedPlaceId: string | null;
   layerVisibility: Record<string, boolean>;
+  viewMode?: AtlasSceneViewModeId;
+  activeLens?: AtlasLensId;
   className?: string;
 };
 
@@ -164,8 +170,13 @@ export function MobileAtlasMap({
   onPlaceSelect,
   selectedPlaceId,
   layerVisibility,
+  viewMode = "atlas",
+  activeLens = "explore",
   className,
 }: MobileAtlasMapProps) {
+  const [mapInstanceKey] = useState(
+    () => `mobile-atlas-${Math.random().toString(36).slice(2)}`,
+  );
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
     return {
@@ -252,8 +263,11 @@ export function MobileAtlasMap({
     <div
       className={cn("relative w-full h-full overflow-hidden", className)}
       data-mobile-atlas-map="true"
+      data-atlas-view-mode={viewMode}
+      data-atlas-lens={activeLens}
     >
       <MapContainer
+        key={mapInstanceKey}
         center={FLINT_CENTER}
         zoom={DEFAULT_ZOOM}
         scrollWheelZoom

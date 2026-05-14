@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 
 import manifest from "@/data/open-flint-atlas/fixtures/read-model/build-manifest.json";
+import metrics from "@/data/open-flint-atlas/fixtures/read-model/metrics.json";
 import places from "@/data/open-flint-atlas/fixtures/read-model/places.json";
 import sources from "@/data/open-flint-atlas/fixtures/read-model/sources.json";
 import spatialEventIndex from "@/data/open-flint-atlas/fixtures/spatial-event-index/seed-events.json";
 import provenanceGraph from "@/data/open-flint-atlas/fixtures/provenance/provenance-graph.json";
 import sourceRegistry from "@/data/open-flint-atlas/source-registry.json";
+import {
+  buildPlaceDossierPayload,
+  type RawAtlasMetric,
+} from "@/lib/atlas/dossier-payload";
+import type {
+  AtlasSource,
+  ReviewStatus,
+  SpatialEvent,
+  TimeShape,
+} from "@/lib/api/openFlintAtlas";
 import {
   getStaticAtlasPackage,
   validateStaticAtlasPackageFixture,
@@ -26,7 +37,7 @@ type PlaceFeature = {
     place_id: string;
     name: string;
     place_type: string;
-    ward_number: number | null;
+    ward_number?: number | null;
     privacy_class: string;
     geometry_ref: string;
     source_ids: string[];
@@ -43,10 +54,12 @@ type RawSpatialEvent = JsonRecord & {
   event_type: string;
   title: string;
   summary: string;
+  time: TimeShape;
   place: { place_id: string; name?: string; label?: string };
   source: { source_ids: string[] };
   confidence: string | { label?: string; reason?: string };
-  review: { status: string };
+  review: { status: ReviewStatus };
+  model_output_status: string | null;
 };
 
 function json(data: unknown, init?: ResponseInit) {
@@ -61,7 +74,7 @@ function getSearchParams(request: Request) {
   return new URL(request.url).searchParams;
 }
 
-function normalizeEvent(event: RawSpatialEvent) {
+function normalizeEvent(event: RawSpatialEvent): SpatialEvent {
   const confidence =
     typeof event.confidence === "string"
       ? event.confidence
@@ -104,6 +117,67 @@ function sourceIdsForPlace(place: PlaceFeature, events: ReturnType<typeof allEve
     for (const sourceId of event.source.source_ids ?? []) ids.add(sourceId);
   }
   return ids;
+}
+
+function metricPlaceIds(place: PlaceFeature) {
+  const ids = new Set([place.properties.place_id]);
+  const wardNumber = place.properties.ward_number;
+  if (wardNumber != null) ids.add(`ward:${wardNumber}`);
+
+  const sampleWard = place.properties.place_id.match(/^ward_0?(\d+)_sample$/);
+  if (sampleWard) ids.add(`ward:${Number(sampleWard[1])}`);
+
+  return ids;
+}
+
+function metricsForPlace(place: PlaceFeature) {
+  const ids = metricPlaceIds(place);
+  return (metrics as RawAtlasMetric[]).filter((metric) =>
+    metric.place_id ? ids.has(metric.place_id) : false,
+  );
+}
+
+function nearbyPlacesFor(place: PlaceFeature) {
+  const placeType = place.properties.place_type;
+  return allPlaces().features.filter((feature) => {
+    if (feature.properties.place_id === place.properties.place_id) return false;
+    return (
+      feature.properties.place_type === placeType ||
+      feature.properties.privacy_class === place.properties.privacy_class
+    );
+  });
+}
+
+function placeDossierPayload(place: PlaceFeature) {
+  const events = allEvents().filter((event) => event.place.place_id === place.properties.place_id);
+  const placeMetrics = metricsForPlace(place);
+  const sourceIds = sourceIdsForPlace(place, events);
+  for (const metric of placeMetrics) {
+    if (metric.source_id) sourceIds.add(metric.source_id);
+  }
+  const placeSources = (sources as AtlasSource[]).filter((source) =>
+    sourceIds.has(source.source_id),
+  );
+  const payload = buildPlaceDossierPayload({
+    place,
+    events,
+    sources: placeSources,
+    metrics: placeMetrics,
+    nearbyPlaces: nearbyPlacesFor(place),
+  });
+
+  return {
+    place,
+    events,
+    sources: placeSources,
+    metrics: placeMetrics,
+    payload,
+    observations: [],
+    event_count: events.length,
+    source_count: placeSources.length,
+    metric_count: placeMetrics.length,
+    observation_count: 0,
+  };
 }
 
 function readLimit(params: URLSearchParams, fallback = 100) {
@@ -255,21 +329,13 @@ export async function GET(request: Request, { params }: RouteContext) {
     const place = placeById(decodeURIComponent(id));
     if (!place) return notFound("Place not found");
 
-    const events = allEvents().filter((event) => event.place.place_id === place.properties.place_id);
-    const sourceIds = sourceIdsForPlace(place, events);
-    const placeSources = (sources as { source_id: string }[]).filter((source) =>
-      sourceIds.has(source.source_id),
-    );
+    return json(placeDossierPayload(place));
+  }
 
-    return json({
-      place,
-      events,
-      sources: placeSources,
-      observations: [],
-      event_count: events.length,
-      source_count: placeSources.length,
-      observation_count: 0,
-    });
+  if (segment === "dossiers" && id) {
+    const place = placeById(decodeURIComponent(id));
+    if (!place) return notFound("Dossier subject not found");
+    return json(placeDossierPayload(place).payload);
   }
 
   if (segment === "events") {

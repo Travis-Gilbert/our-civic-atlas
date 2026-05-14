@@ -30,6 +30,14 @@
       "boundary_geojson_url": null,
       "federation_status": "candidate",
       "last_updated_at": null,
+      "description": "State-level context for comparing Flint against statewide programs, agencies, and source packages.",
+      "distance_label": "statewide",
+      "direction_label": "parent",
+      "maintainer_label": "state atlas steward planned",
+      "source_count": 0,
+      "contribution_status": "not accepting contributions yet",
+      "freshness_label": "manifest planned",
+      "compare_available": false,
       "capabilities": [
         "static_only"
       ]
@@ -43,6 +51,15 @@
       "boundary_geojson_url": null,
       "federation_status": "candidate",
       "last_updated_at": null,
+      "description": "Neighborhood-scale memory node for Lost Flint, building presence intervals, and local source review.",
+      "distance_label": "inside Flint",
+      "direction_label": "west of downtown",
+      "maintainer_label": "neighborhood steward planned",
+      "source_count": 1,
+      "contribution_status": "source nominations planned",
+      "freshness_label": "boundary review needed",
+      "preview_place_id": "place:carriage-town",
+      "compare_available": false,
       "capabilities": [
         "static_only",
         "has_lost_buildings"
@@ -57,6 +74,14 @@
       "boundary_geojson_url": null,
       "federation_status": "candidate",
       "last_updated_at": null,
+      "description": "Neighbor city candidate for future comparison across civic services, safety, and corridor patterns.",
+      "distance_label": "8 mi",
+      "direction_label": "south",
+      "maintainer_label": "local steward needed",
+      "source_count": 0,
+      "contribution_status": "not accepting contributions yet",
+      "freshness_label": "source package needed",
+      "compare_available": false,
       "capabilities": [
         "static_only"
       ]
@@ -70,6 +95,14 @@
       "boundary_geojson_url": null,
       "federation_status": "candidate",
       "last_updated_at": null,
+      "description": "Regional neighbor candidate for comparing methods, public read models, and governance patterns.",
+      "distance_label": "66 mi",
+      "direction_label": "southeast",
+      "maintainer_label": "regional steward needed",
+      "source_count": 0,
+      "contribution_status": "not accepting contributions yet",
+      "freshness_label": "source package needed",
+      "compare_available": false,
       "capabilities": [
         "static_only"
       ]

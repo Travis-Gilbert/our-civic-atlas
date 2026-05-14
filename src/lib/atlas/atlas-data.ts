@@ -134,6 +134,8 @@ function quoteSqlFloat(value: number | null | undefined): string {
   return String(value);
 }
 
+let atlasTableLoadQueue: Promise<void> = Promise.resolve();
+
 /**
  * Drop + recreate the atlas_events and atlas_places tables on the
  * shared Mosaic connection and load the provided rows.
@@ -142,6 +144,17 @@ function quoteSqlFloat(value: number | null | undefined): string {
  * the underlying API responses change.
  */
 export async function loadAtlasTables(
+  mosaic: AtlasMosaic,
+  places: PlacesCollection | null,
+  events: SpatialEvent[],
+): Promise<void> {
+  atlasTableLoadQueue = atlasTableLoadQueue
+    .catch(() => undefined)
+    .then(() => loadAtlasTablesNow(mosaic, places, events));
+  return atlasTableLoadQueue;
+}
+
+async function loadAtlasTablesNow(
   mosaic: AtlasMosaic,
   places: PlacesCollection | null,
   events: SpatialEvent[],

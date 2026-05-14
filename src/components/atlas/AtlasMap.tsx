@@ -6,6 +6,7 @@ import { MapboxOverlay } from "@deck.gl/mapbox";
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
+import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import type {
   PlacesCollection,
@@ -13,6 +14,11 @@ import type {
   PlaceProperties,
   SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
+import {
+  ATLAS_SCENE_VIEW_MODE_LOOKUP,
+  type AtlasLensId,
+  type AtlasSceneViewModeId,
+} from "@/lib/atlas/scene-view";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -20,11 +26,34 @@ import "maplibre-gl/dist/maplibre-gl.css";
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const FLINT_CENTER = { latitude: 43.0125, longitude: -83.6875 };
-const DEFAULT_ZOOM = 12;
-
-const BASEMAP_STYLE =
-  "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const BASEMAP_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    carto: {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      attribution:
+        "&copy; OpenStreetMap contributors &copy; CARTO",
+    },
+  },
+  layers: [
+    {
+      id: "carto-base",
+      type: "raster",
+      source: "carto",
+      paint: {
+        "raster-opacity": 0.74,
+        "raster-saturation": -0.18,
+        "raster-contrast": 0.08,
+      },
+    },
+  ],
+};
 
 type GeometricPlaceFeature = GeoJSON.Feature<
   GeoJSON.Geometry,
@@ -74,6 +103,14 @@ const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
 };
 const EVENT_TYPE_COLOR_DEFAULT: [number, number, number] = [140, 140, 150];
 
+const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
+  explore: [193, 132, 58, 34],
+  memory: [193, 74, 44, 44],
+  safety: [56, 132, 128, 44],
+  interventions: [82, 126, 82, 46],
+  evidence: [92, 106, 160, 42],
+};
+
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
 /* ------------------------------------------------------------------ */
@@ -118,6 +155,35 @@ function hasGeometry(feature: PlaceFeature): feature is GeometricPlaceFeature {
   return feature.geometry !== null;
 }
 
+function placeElevation(placeType: string, viewMode: AtlasSceneViewModeId) {
+  const mode = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
+  if (mode.extrusionScale === 0) return 0;
+
+  const baseElevation =
+    {
+      ward: 38,
+      parcel: 18,
+      building: 92,
+      infrastructure: 72,
+    }[placeType] ?? 26;
+
+  return baseElevation * mode.extrusionScale;
+}
+
+function lensFillColor(
+  placeType: string,
+  activeLens: AtlasLensId,
+): [number, number, number, number] {
+  const base = PLACE_TYPE_FILL[placeType] ?? PLACE_TYPE_FILL_DEFAULT;
+  const tint = LENS_FILL_TINT[activeLens];
+  return [
+    Math.round(base[0] * 0.72 + tint[0] * 0.28),
+    Math.round(base[1] * 0.72 + tint[1] * 0.28),
+    Math.round(base[2] * 0.72 + tint[2] * 0.28),
+    Math.max(base[3], tint[3]),
+  ];
+}
+
 /* ------------------------------------------------------------------ */
 /*  DeckGL overlay hook                                                */
 /* ------------------------------------------------------------------ */
@@ -140,6 +206,8 @@ export type AtlasMapProps = {
   onPlaceSelect: (placeId: string) => void;
   selectedPlaceId: string | null;
   layerVisibility: Record<string, boolean>;
+  viewMode?: AtlasSceneViewModeId;
+  activeLens?: AtlasLensId;
   className?: string;
 };
 
@@ -153,9 +221,12 @@ export function AtlasMap({
   onPlaceSelect,
   selectedPlaceId,
   layerVisibility,
+  viewMode = "oblique",
+  activeLens = "explore",
   className,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
+  const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
 
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
@@ -228,15 +299,17 @@ export function AtlasMap({
           pickable: true,
           stroked: true,
           filled: true,
-          extruded: false,
-          lineWidthMinPixels: 1,
+          extruded: viewMode !== "atlas",
+          wireframe: viewMode !== "atlas",
+          lineWidthMinPixels: viewMode === "atlas" ? 1 : 0.7,
           getLineWidth: 1,
+          getElevation: (f) => {
+            const ft = f as PlaceFeature;
+            return placeElevation(ft.properties.place_type, viewMode);
+          },
           getFillColor: (f) => {
             const ft = f as PlaceFeature;
-            return (
-              PLACE_TYPE_FILL[ft.properties.place_type] ??
-              PLACE_TYPE_FILL_DEFAULT
-            );
+            return lensFillColor(ft.properties.place_type, activeLens);
           },
           getLineColor: (f) => {
             const ft = f as PlaceFeature;
@@ -248,9 +321,16 @@ export function AtlasMap({
           getPointRadius: 6,
           pointRadiusMinPixels: 4,
           pointRadiusMaxPixels: 12,
+          material: {
+            ambient: 0.62,
+            diffuse: 0.42,
+            shininess: 18,
+            specularColor: [255, 239, 215],
+          },
           onClick: handleClick,
           updateTriggers: {
-            getFillColor: [],
+            getElevation: [viewMode],
+            getFillColor: [activeLens],
             getLineColor: [],
           },
         }),
@@ -322,19 +402,25 @@ export function AtlasMap({
     layerVisibility,
     handleClick,
     onPlaceSelect,
+    viewMode,
+    activeLens,
   ]);
 
   /* ---- Render ----------------------------------------------------- */
   return (
-    <div className={cn("relative w-full h-full", className)}>
+    <div
+      className={cn("atlas-scene-map relative w-full h-full", className)}
+      data-atlas-view-mode={viewMode}
+      data-atlas-lens={activeLens}
+    >
       <Map
-        initialViewState={{
-          ...FLINT_CENTER,
-          zoom: DEFAULT_ZOOM,
-        }}
+        key={viewMode}
+        initialViewState={camera}
+        maxPitch={75}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}
         attributionControl={false}
+        reuseMaps
       >
         <DeckGLOverlay layers={layers} />
         <NavigationControl position="bottom-right" />

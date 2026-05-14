@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "validate:atlas": "node scripts/validate-static-atlas.mjs"
+    "validate:atlas": "node scripts/validate-static-atlas.mjs && node scripts/validate-dossier-payload.mjs --fail-on-warning",
+    "validate:dossier": "node scripts/validate-dossier-payload.mjs --fail-on-warning",
+    "validate:dossier:live": "node scripts/validate-dossier-payload.mjs --fail-on-warning --base-url http://localhost:3000",
+    "validate:routes:live": "node scripts/smoke-open-flint-routes.mjs --base-url http://localhost:3000"
   },
   "dependencies": {
     "@cosmos.gl/graph": "^2.6.4",
@@ -33,6 +36,7 @@
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "leaflet": "^1.9.4",
+    "lucide-react": "^1.14.0",
     "maplibre-gl": "^4.7.1",
     "next": "^16.1.6",
     "pmtiles": "^4.4.1",

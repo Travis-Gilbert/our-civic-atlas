@@ -296,6 +296,62 @@
       ]
     },
     {
+      "id": "black_community_newspapers_flint",
+      "name": "Black Community Newspapers of Flint",
+      "homepage_url": "https://quod.lib.umich.edu/b/blackcommunitynews/",
+      "source_type": "historical_newspaper_archive",
+      "steward": "University of Michigan Library digital collections",
+      "geography": "Flint, Michigan",
+      "current_status": "usable_with_rights_and_excerpt_review",
+      "update_cadence": "historical_archive_static",
+      "trust_tier": "curated_public_reference",
+      "public_use": "historical_archive_with_rights_and_excerpt_review",
+      "contains_personal_data": true,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "historical_articles",
+        "place_mentions",
+        "memory_events"
+      ],
+      "known_limits": [
+        "Historical newspaper material can contain named people and sensitive context even when it is old.",
+        "Article text reuse and excerpt size require rights review before public display."
+      ],
+      "first_checks": [
+        "Record stable collection and item links for Flint articles used in memory dossiers.",
+        "Use short review summaries and archive links instead of republishing full article text.",
+        "Keep extracted people, organizations, and place mentions as candidates until reviewed."
+      ]
+    },
+    {
+      "id": "chronicling_america",
+      "name": "Chronicling America API",
+      "homepage_url": "https://chroniclingamerica.loc.gov/about/api/",
+      "source_type": "historical_newspaper_api",
+      "steward": "Library of Congress and National Endowment for the Humanities",
+      "geography": "United States, queryable for Flint",
+      "current_status": "usable_with_request_or_download_review",
+      "update_cadence": "historical_archive_static",
+      "trust_tier": "curated_public_reference",
+      "public_use": "historical_archive_with_rights_and_excerpt_review",
+      "contains_personal_data": true,
+      "ingestion_priority": 2,
+      "initial_layers": [
+        "historical_articles",
+        "ocr_mentions",
+        "memory_events"
+      ],
+      "known_limits": [
+        "OCR and place extraction can be noisy and must remain reviewable.",
+        "Search results are discovery evidence, not accepted place facts."
+      ],
+      "first_checks": [
+        "Pin query parameters and item URLs for each candidate event.",
+        "Store OCR-derived claims as reviewable candidates with source-date caveats.",
+        "Show archive links and short public-safe summaries instead of long article text."
+      ]
+    },
+    {
       "id": "genesee_historical_aerials",
       "name": "Genesee Historical Aerial Imagery",
       "homepage_url": "https://www.historicaerials.com/",

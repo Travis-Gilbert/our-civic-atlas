@@ -15,6 +15,7 @@ import type {
   StaticAtlasPackage,
   WellKnownAtlasManifest,
 } from "@/lib/atlas/contracts";
+import type { DossierPayload } from "@/lib/atlas/dossier-payload";
 
 const BASE = "/api/v2/theseus/open-flint-atlas";
 
@@ -45,7 +46,12 @@ export type TimeShape =
   | { shape: "period"; period: string; certainty?: string }
   | { shape: "observed_at"; observed_at: string; certainty?: string };
 
-export type ReviewStatus = "pending" | "accepted" | "rejected" | "needs_review";
+export type ReviewStatus =
+  | "pending"
+  | "candidate"
+  | "accepted"
+  | "rejected"
+  | "needs_review";
 
 // ---------------------------------------------------------------------------
 // Manifest
@@ -84,7 +90,7 @@ export type PlaceProperties = {
   place_id: string;
   name: string;
   place_type: string;
-  ward_number: number | null;
+  ward_number?: number | null;
   privacy_class: string;
   geometry_ref: string;
   source_ids: string[];
@@ -120,6 +126,20 @@ export type SpatialEvent = {
 export type EventsResponse = {
   events: SpatialEvent[];
   total: number;
+};
+
+export type AtlasMetric = {
+  metric_id: string;
+  metric_key?: string;
+  metric_label: string;
+  place_id: string;
+  category: string;
+  value: number | string | null;
+  unit?: string | null;
+  source_id?: string;
+  release_year?: number | null;
+  estimate_year?: number | null;
+  caveat?: string | null;
 };
 
 export type EventFilters = {
@@ -204,8 +224,12 @@ export type PlaceDossier = {
   place: PlaceFeature;
   events: SpatialEvent[];
   sources: AtlasSource[];
+  metrics: AtlasMetric[];
+  payload: DossierPayload;
   event_count: number;
   source_count: number;
+  metric_count: number;
+  observation_count: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -382,6 +406,10 @@ export function fetchPlaces() {
 
 export function fetchPlaceDossier(placeId: string) {
   return get<PlaceDossier>(`/places/${encodeURIComponent(placeId)}/`);
+}
+
+export function fetchDossierPayload(placeId: string) {
+  return get<DossierPayload>(`/dossiers/${encodeURIComponent(placeId)}/`);
 }
 
 export function fetchEvents(filters?: EventFilters) {
