@@ -235,7 +235,10 @@ export function AtlasSceneChrome({
         })}
       </div>
 
-      <aside className="atlas-scene-glass pointer-events-auto absolute right-5 top-[88px] hidden max-h-[calc(100vh-196px)] w-[280px] overflow-y-auto px-4 py-3 md:block md:max-h-[calc(100vh-112px)]">
+      <aside
+        id="node-horizon"
+        className="atlas-scene-glass pointer-events-auto absolute right-5 top-[88px] hidden max-h-[calc(100vh-196px)] w-[280px] overflow-y-auto px-4 py-3 md:block md:max-h-[calc(100vh-112px)]"
+      >
         <div className="flex items-center gap-2">
           <Telescope className="h-4 w-4 text-[color:var(--ctx-accent)]" />
           <p className="text-[13px] font-medium leading-none text-[color:var(--ctx-ink)]">

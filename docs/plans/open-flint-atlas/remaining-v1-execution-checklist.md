@@ -15,6 +15,7 @@ This recovery session completed the immediate timed-out slice for the reusable p
 - Visual gate rerun: Playwright MCP checked `/open-flint-atlas/evidence` at 1024 x 768 with no overlapping floating panels and 390 x 844 with a visible mobile provenance sheet.
 - Route envelope gate: OCA-003 now has routed pages for map/explore/lenses, sources, contribute, methodology, node, place, object, and scene; `npm run validate:routes:live` checks 13 public URLs.
 - Node Horizon gate: OCA-005/OCA-017B now exposes parent/child/neighbor `Open` actions as accessible links to `/open-flint-atlas/node/[atlasId]`; Playwright MCP clicked the first horizon link and confirmed the Michigan node detail route, no horizontal overflow, and named `Open {node}` actions. `Compare`, breadcrumbs, and spatial portal transitions remain partial.
+- Node Horizon return gate: node detail pages now expose a Federation path and `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node route has the return affordance and clicks back to the anchored map shell without horizontal overflow. `Compare` and spatial portal transitions remain partial.
 
 ## Immediate next slices
 - OCA-003A: finalize component map for the new Atlas Scene shell (`AtlasAppShell`, mode rail, Node Horizon, confidence receipt/review/evidence panels, mosaic/timeline controls).
