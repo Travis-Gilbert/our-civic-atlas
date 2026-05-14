@@ -27,6 +27,12 @@ npm run validate:routes:live
 
 Then open `http://localhost:3000/open-flint-atlas`.
 
+## Deployment
+
+- Production Vercel project: `travis-gilberts-projects/our-civic-atlas`.
+- Production domain: `https://flint.ourcivicatlas.org`.
+- Production fallback alias: `https://our-civic-atlas.vercel.app`.
+
 ## Public-Good Boundary
 
 The atlas is not an official City of Flint website. The product goal is a public-interest civic atlas where people can explore source-backed places and events, contribute evidence, and understand why review confidence changes over time.

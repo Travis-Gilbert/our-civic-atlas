@@ -164,6 +164,7 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 - Current visual smoke covers `/open-flint-atlas/evidence` at 1024 x 768 for panel overlap and at 390 x 844 for mobile evidence provenance access.
 - Public route smoke now covers 13 URLs across map/explore/lenses, sources, contribute, methodology, node, place, object, and scene routes with `npm run validate:routes:live`.
 - Node Horizon `Open` actions now route from the map shell into node detail pages with accessible `Open {node}` names; Playwright MCP clicked the first horizon link to `/open-flint-atlas/node/atlas%3Amichigan` and confirmed the Michigan node detail page with no horizontal overflow. Compare, breadcrumbs, and spatial portal transitions remain partial.
+- Production deployment now targets Vercel project `travis-gilberts-projects/our-civic-atlas`; `flint.ourcivicatlas.org` is attached to the ready production deployment and verified in Vercel project-domain records.
 
 ## Production Gates
 
