@@ -1,37 +1,5 @@
 # Our Civic Atlas
 
-Our Civic Atlas is open, source-backed civic atlas infrastructure. Flint Atlas is the first city node: a public civic knowledge map for Flint, Michigan that should be useful, inspectable, and contributable on its own, while still tracking Theseus/ACC review primitives where they help with moderation and accuracy.
-
-This repository is intended to be public. Do not commit secrets, private contributor data, raw uploads, or unreviewed personal information.
-
-## Current Slice
-
-- Standalone Next.js app at `/open-flint-atlas` for the Flint Atlas launch node.
-- Routed civic lenses at `/open-flint-atlas/memory`, `/open-flint-atlas/safety`, `/open-flint-atlas/interventions`, and `/open-flint-atlas/evidence`.
-- Public route envelope for sources, contribution boundary, methodology, atlas nodes, places, civic objects, and scene manifests.
-- Atlas Scene shell with Oblique, Street, Section, and Atlas camera modes, source-backed deck.gl overlays, package-backed Node Horizon chrome, and reference-driven visual grammar tokens.
-- Local fixture-backed API routes under `/api/v2/theseus/open-flint-atlas/*`.
-- Public read-model fixtures copied from the Index-API atlas plan.
-- Baseline map/timeline/provenance plumbing ported from the earlier Open Flint atlas work, now contextual under the scene lenses instead of always-on dashboard chrome.
-- Product-vault notes mirrored under `docs/product-vault/flint-ouratlast/` so launch planning stays with the app repo while the original Obsidian vault remains an idea notebook.
-
-## Development
-
-```bash
-npm install
-npm run dev
-npm run validate:atlas
-npm run validate:dossier:live
-npm run validate:routes:live
-```
-
-Then open `http://localhost:3000/open-flint-atlas`.
-
-## Deployment
-
-- Production Vercel project: `travis-gilberts-projects/our-civic-atlas`.
-- Production domain: `https://flint.ourcivicatlas.org`.
-- Production fallback alias: `https://our-civic-atlas.vercel.app`.
 
 ## Public-Good Boundary
 
