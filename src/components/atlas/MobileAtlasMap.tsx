@@ -43,6 +43,7 @@ import {
   type PathOptions,
 } from "leaflet";
 import type {
+  FreshSignal,
   PlacesCollection,
   PlaceFeature,
   PlaceProperties,
@@ -108,6 +109,12 @@ const EVENT_TYPE_COLOR: Record<string, string> = {
 };
 const EVENT_TYPE_COLOR_DEFAULT = "#8c8c96";
 
+const SIGNAL_KIND_COLOR: Record<string, string> = {
+  public_record: "#4a8a5a",
+  candidate: "#b8513a",
+};
+const SIGNAL_KIND_COLOR_DEFAULT = "#3a4f5c";
+
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
 /* ------------------------------------------------------------------ */
@@ -152,8 +159,11 @@ function hasGeometry(feature: PlaceFeature): feature is GeometricPlaceFeature {
 export type MobileAtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
+  signals: FreshSignal[];
   onPlaceSelect: (placeId: string) => void;
+  onSignalSelect: (signalId: string) => void;
   selectedPlaceId: string | null;
+  selectedSignalId: string | null;
   layerVisibility: Record<string, boolean>;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
@@ -167,8 +177,11 @@ export type MobileAtlasMapProps = {
 export function MobileAtlasMap({
   places,
   events,
+  signals,
   onPlaceSelect,
+  onSignalSelect,
   selectedPlaceId,
+  selectedSignalId,
   layerVisibility,
   viewMode = "atlas",
   activeLens = "explore",
@@ -250,6 +263,7 @@ export function MobileAtlasMap({
   /* Only render the GeoJSON layer when places are present AND visible. */
   const showPlaces = !!geometricPlaces && layerVisibility.places !== false;
   const showEvents = layerVisibility.events !== false;
+  const showSignals = layerVisibility.freshSignals !== false;
 
   /* React-leaflet's GeoJSON memoizes by the data prop reference; key
      it by feature count so toggling layers actually rebuilds. */
@@ -285,7 +299,9 @@ export function MobileAtlasMap({
           <GeoJSON
             key={placesKey}
             data={geometricPlaces as GeoJSON.FeatureCollection}
-            style={(f) => styleForFeature(f as PlaceFeature)}
+            style={(feature?: GeoJSON.Feature) =>
+              styleForFeature(feature as PlaceFeature)
+            }
             onEachFeature={onEachFeature}
             pointToLayer={pointToLayer}
           />
@@ -319,6 +335,49 @@ export function MobileAtlasMap({
               >
                 <Tooltip direction="top" opacity={0.9}>
                   {event.title}
+                </Tooltip>
+              </CircleMarker>
+            );
+          })}
+
+        {showSignals &&
+          signals.map((signal) => {
+            const center =
+              signal.geometry?.type === "Point" &&
+              Array.isArray(signal.geometry.coordinates)
+                ? ([
+                    signal.geometry.coordinates[1],
+                    signal.geometry.coordinates[0],
+                  ] as [number, number])
+                : signal.place_id
+                  ? placeCentroids.get(signal.place_id)
+                  : null;
+            if (!center) return null;
+
+            const stroke =
+              SIGNAL_KIND_COLOR[signal.signal_kind] ??
+              SIGNAL_KIND_COLOR_DEFAULT;
+
+            return (
+              <CircleMarker
+                key={signal.signal_id}
+                center={center}
+                radius={signal.signal_id === selectedSignalId ? 7 : 6}
+                pathOptions={{
+                  color: stroke,
+                  weight: signal.signal_id === selectedSignalId ? 2 : 1.5,
+                  fillColor: stroke,
+                  fillOpacity: 0.85,
+                  opacity: 1,
+                }}
+                eventHandlers={{
+                  click: () => {
+                    onSignalSelect(signal.signal_id);
+                  },
+                }}
+              >
+                <Tooltip direction="top" opacity={0.9}>
+                  {signal.title}
                 </Tooltip>
               </CircleMarker>
             );

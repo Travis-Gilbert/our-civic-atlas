@@ -26,6 +26,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type {
+  FreshSignal,
   PlacesCollection,
   SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
@@ -51,8 +52,11 @@ const MOBILE_MAX_WIDTH = 768;
 export type ResponsiveAtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
+  signals: FreshSignal[];
   onPlaceSelect: (placeId: string) => void;
+  onSignalSelect: (signalId: string) => void;
   selectedPlaceId: string | null;
+  selectedSignalId: string | null;
   layerVisibility: Record<string, boolean>;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;

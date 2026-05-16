@@ -9,6 +9,7 @@ import type { PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import type {
+  FreshSignal,
   PlacesCollection,
   PlaceFeature,
   PlaceProperties,
@@ -102,6 +103,12 @@ const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
   community: [160, 100, 220],
 };
 const EVENT_TYPE_COLOR_DEFAULT: [number, number, number] = [140, 140, 150];
+
+const SIGNAL_KIND_COLOR: Record<string, [number, number, number]> = {
+  public_record: [74, 138, 90],
+  candidate: [184, 81, 58],
+};
+const SIGNAL_KIND_COLOR_DEFAULT: [number, number, number] = [58, 79, 92];
 
 const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   explore: [193, 132, 58, 34],
@@ -203,8 +210,11 @@ function DeckGLOverlay(props: MapboxOverlayProps) {
 export type AtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
+  signals: FreshSignal[];
   onPlaceSelect: (placeId: string) => void;
+  onSignalSelect: (signalId: string) => void;
   selectedPlaceId: string | null;
+  selectedSignalId: string | null;
   layerVisibility: Record<string, boolean>;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
@@ -218,8 +228,11 @@ export type AtlasMapProps = {
 export function AtlasMap({
   places,
   events,
+  signals,
   onPlaceSelect,
+  onSignalSelect,
   selectedPlaceId,
+  selectedSignalId,
   layerVisibility,
   viewMode = "oblique",
   activeLens = "explore",
@@ -264,6 +277,28 @@ export function AtlasMap({
       );
   }, [events, placeCentroids]);
 
+  const positionedSignals = useMemo(() => {
+    return signals
+      .map((signal) => {
+        if (
+          signal.geometry?.type === "Point" &&
+          Array.isArray(signal.geometry.coordinates)
+        ) {
+          const [lng, lat] = signal.geometry.coordinates as [number, number];
+          return { ...signal, _position: [lng, lat] as [number, number] };
+        }
+
+        if (!signal.place_id) return null;
+        const position = placeCentroids.get(signal.place_id);
+        if (!position) return null;
+        return { ...signal, _position: position };
+      })
+      .filter(
+        (signal): signal is FreshSignal & { _position: [number, number] } =>
+          signal !== null,
+      );
+  }, [signals, placeCentroids]);
+
   /* ---- Selected feature (separate GeoJSON for highlight ring) ----- */
   const selectedFeatureCollection = useMemo<GeometricPlacesCollection | null>(() => {
     if (!selectedPlaceId || !geometricPlaces) return null;
@@ -293,7 +328,7 @@ export function AtlasMap({
     /* Places polygons/points */
     if (geometricPlaces && layerVisibility.places !== false) {
       result.push(
-        new GeoJsonLayer({
+        new GeoJsonLayer<GeometricPlaceFeature>({
           id: "atlas-places",
           data: geometricPlaces,
           pickable: true,
@@ -303,18 +338,18 @@ export function AtlasMap({
           wireframe: viewMode !== "atlas",
           lineWidthMinPixels: viewMode === "atlas" ? 1 : 0.7,
           getLineWidth: 1,
-          getElevation: (f) => {
-            const ft = f as PlaceFeature;
-            return placeElevation(ft.properties.place_type, viewMode);
+          getElevation: (feature) => {
+            const place = feature as unknown as PlaceFeature;
+            return placeElevation(place.properties.place_type, viewMode);
           },
-          getFillColor: (f) => {
-            const ft = f as PlaceFeature;
-            return lensFillColor(ft.properties.place_type, activeLens);
+          getFillColor: (feature) => {
+            const place = feature as unknown as PlaceFeature;
+            return lensFillColor(place.properties.place_type, activeLens);
           },
-          getLineColor: (f) => {
-            const ft = f as PlaceFeature;
+          getLineColor: (feature) => {
+            const place = feature as unknown as PlaceFeature;
             return (
-              PLACE_TYPE_LINE[ft.properties.place_type] ??
+              PLACE_TYPE_LINE[place.properties.place_type] ??
               PLACE_TYPE_LINE_DEFAULT
             );
           },
@@ -372,14 +407,16 @@ export function AtlasMap({
           filled: true,
           radiusMinPixels: 4,
           radiusMaxPixels: 14,
-          getPosition: (d) => d._position,
+          getPosition: (event) => event._position,
           getRadius: 5,
-          getFillColor: (d) =>
-            EVENT_TYPE_COLOR[d.event_type] ?? EVENT_TYPE_COLOR_DEFAULT,
+          getFillColor: (event) =>
+            EVENT_TYPE_COLOR[event.event_type] ?? EVENT_TYPE_COLOR_DEFAULT,
           getLineColor: [255, 255, 255],
           getLineWidth: 1,
           lineWidthMinPixels: 1,
-          onClick: (info) => {
+          onClick: (
+            info: PickingInfo<SpatialEvent & { _position: [number, number] }>,
+          ) => {
             const ev = info.object as
               | (SpatialEvent & { _position: [number, number] })
               | undefined;
@@ -394,14 +431,53 @@ export function AtlasMap({
       );
     }
 
+    if (positionedSignals.length > 0 && layerVisibility.freshSignals !== false) {
+      result.push(
+        new ScatterplotLayer<
+          FreshSignal & { _position: [number, number] }
+        >({
+          id: "atlas-fresh-signals",
+          data: positionedSignals,
+          pickable: true,
+          opacity: 0.92,
+          stroked: true,
+          filled: true,
+          radiusMinPixels: 6,
+          radiusMaxPixels: 18,
+          getPosition: (signal) => signal._position,
+          getRadius: (signal) =>
+            signal.signal_id === selectedSignalId ? 9 : 7,
+          getFillColor: (signal) =>
+            SIGNAL_KIND_COLOR[signal.signal_kind] ??
+            SIGNAL_KIND_COLOR_DEFAULT,
+          getLineColor: [255, 255, 255],
+          getLineWidth: (signal) =>
+            signal.signal_id === selectedSignalId ? 2 : 1,
+          lineWidthMinPixels: 1,
+          onClick: (
+            info: PickingInfo<FreshSignal & { _position: [number, number] }>,
+          ) => {
+            const signal = info.object as
+              | (FreshSignal & { _position: [number, number] })
+              | undefined;
+            if (!signal) return;
+            onSignalSelect(signal.signal_id);
+          },
+        }),
+      );
+    }
+
     return result;
   }, [
     geometricPlaces,
     positionedEvents,
+    positionedSignals,
     selectedFeatureCollection,
     layerVisibility,
     handleClick,
     onPlaceSelect,
+    onSignalSelect,
+    selectedSignalId,
     viewMode,
     activeLens,
   ]);

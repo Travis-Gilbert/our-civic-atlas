@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
@@ -14,6 +14,8 @@ import {
   MobileDossierSheet,
   PlaceDossierPanel,
 } from "@/components/atlas/PlaceDossier";
+import { FreshSignalsPanel } from "@/components/atlas/FreshSignalsPanel";
+import { SourceTrail } from "@/components/atlas/SourceTrail";
 import { getAtlasMosaic, type AtlasMosaic } from "@/lib/atlas/mosaic";
 import { loadAtlasTables, eventStartIso } from "@/lib/atlas/atlas-data";
 import type {
@@ -46,18 +48,23 @@ const ProvenancePanel = dynamic(
   { ssr: false },
 );
 import {
-  fetchPlaces,
   fetchEvents,
+  fetchPlaces,
   fetchProvenance,
+  fetchSignals,
+  fetchSources,
+  type AtlasSource,
+  type FreshSignal,
   type PlacesCollection,
-  type SpatialEvent,
-  type ProvenanceNode,
   type ProvenanceEdge,
+  type ProvenanceNode,
+  type SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
 
 const DEFAULT_LAYERS: Record<string, boolean> = {
   places: true,
   events: true,
+  freshSignals: true,
   wards: true,
   infrastructure: true,
 };
@@ -69,6 +76,8 @@ export function OpenFlintAtlasScene({
 }) {
   const router = useRouter();
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [layerVisibility, setLayerVisibility] = useState(DEFAULT_LAYERS);
   const [viewMode, setViewMode] =
     useState<AtlasSceneViewModeId>(DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
@@ -76,9 +85,12 @@ export function OpenFlintAtlasScene({
     useState<AtlasLensId>(initialLens);
   const [searchValue, setSearchValue] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [includeCandidateSignals, setIncludeCandidateSignals] = useState(false);
 
   const [places, setPlaces] = useState<PlacesCollection | null>(null);
   const [events, setEvents] = useState<SpatialEvent[]>([]);
+  const [signals, setSignals] = useState<FreshSignal[]>([]);
+  const [sources, setSources] = useState<AtlasSource[]>([]);
   const [provNodes, setProvNodes] = useState<ProvenanceNode[]>([]);
   const [provEdges, setProvEdges] = useState<ProvenanceEdge[]>([]);
   const [provLoading, setProvLoading] = useState(false);
@@ -106,19 +118,54 @@ export function OpenFlintAtlasScene({
     let cancelled = false;
 
     async function load() {
-      const [placesRes, eventsRes] = await Promise.all([
+      const [placesRes, eventsRes, sourcesRes] = await Promise.all([
         fetchPlaces(),
         fetchEvents(),
+        fetchSources(),
       ]);
 
       if (cancelled) return;
       if (placesRes.ok) setPlaces(placesRes.data);
       if (eventsRes.ok) setEvents(eventsRes.data.events);
+      if (sourcesRes.ok) setSources(sourcesRes.data);
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSignals({
+      candidate_visibility: includeCandidateSignals
+        ? "with_candidates"
+        : undefined,
+      limit: 24,
+    }).then((result) => {
+      if (cancelled || !result.ok) return;
+
+      setSignals(result.data.signals);
+      setSelectedSignalId((previousSignalId) => {
+        if (result.data.signals.length === 0) return null;
+        if (
+          previousSignalId &&
+          result.data.signals.some(
+            (signal) => signal.signal_id === previousSignalId,
+          )
+        ) {
+          return previousSignalId;
+        }
+        return result.data.signals[0]?.signal_id ?? null;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [includeCandidateSignals]);
 
   /* Initialize Mosaic + DuckDB-WASM once on mount. The singleton in
      getAtlasMosaic guards against double-init under React strict mode. */
@@ -292,10 +339,30 @@ export function OpenFlintAtlasScene({
     router.push(lens === "explore" ? "/open-flint-atlas" : `/open-flint-atlas/${lens}`);
   }, [router]);
 
+  const handleSignalSelect = useCallback(
+    (signalId: string) => {
+      const signal = signals.find((item) => item.signal_id === signalId);
+      setSelectedSignalId(signalId);
+      setSelectedPlaceId(signal?.place_id ?? null);
+      setSelectedSourceId(signal?.source_id ?? null);
+    },
+    [signals],
+  );
+
   const handleSearchResultSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
     setSearchValue("");
   }, []);
+
+  const handleSourceFocus = useCallback(
+    (sourceId: string) => {
+      setSelectedSourceId(sourceId);
+      if (activeLens !== "evidence") {
+        handleLensChange("evidence");
+      }
+    },
+    [activeLens, handleLensChange],
+  );
 
   const handleProvenanceNodeSelect = useCallback(
     (nodeId: string) => {
@@ -366,6 +433,25 @@ export function OpenFlintAtlasScene({
       ),
     },
     {
+      id: "freshSignals",
+      name: "Fresh Signals",
+      extension: "json",
+      controls: (
+        <div className="space-y-2">
+          <p className="text-[11px] leading-[1.5]">
+            Public records stay on by default. Candidate signals only join the
+            atlas when the advanced toggle is enabled above.
+          </p>
+          <p
+            className="font-mono text-[10px] uppercase tracking-[0.10em]"
+            style={{ color: "var(--ctx-ink-mute)" }}
+          >
+            {signals.length} signals loaded
+          </p>
+        </div>
+      ),
+    },
+    {
       id: "wards",
       name: "Ward Boundaries",
       extension: "geojson",
@@ -419,13 +505,25 @@ export function OpenFlintAtlasScene({
       ),
     },
   ];
-  const provenancePanel = (
+
+  const provenanceGraphPanel = (
     <ProvenancePanel
       nodes={provNodes}
       edges={provEdges}
       loading={provLoading}
       onNodeSelect={handleProvenanceNodeSelect}
     />
+  );
+
+  const evidencePanel = (
+    <div className="flex flex-col gap-3">
+      <SourceTrail
+        sources={sources}
+        selectedSourceId={selectedSourceId}
+        onSourceSelect={handleSourceFocus}
+      />
+      {provenanceGraphPanel}
+    </div>
   );
 
   return (
@@ -442,12 +540,23 @@ export function OpenFlintAtlasScene({
           (activeLens === "evidence" || !!selectedPlaceId)
         }
         dossier={
-          <ControlDossier
-            presets={controlDossierPresets}
-            visibility={layerVisibility}
-            onToggle={handleLayerChange}
-            defaultOpenId={selectedPlaceId ? "places" : undefined}
-          />
+          <div className="flex w-[320px] flex-col gap-3">
+            <FreshSignalsPanel
+              signals={signals}
+              sources={sources}
+              selectedSignalId={selectedSignalId}
+              onSignalSelect={handleSignalSelect}
+              onPlaceJump={handlePlaceSelect}
+              includeCandidates={includeCandidateSignals}
+              onIncludeCandidatesChange={setIncludeCandidateSignals}
+            />
+            <ControlDossier
+              presets={controlDossierPresets}
+              visibility={layerVisibility}
+              onToggle={handleLayerChange}
+              defaultOpenId={selectedPlaceId ? "places" : "freshSignals"}
+            />
+          </div>
         }
         timeline={
           <AtlasTimelineHistogram
@@ -457,7 +566,7 @@ export function OpenFlintAtlasScene({
         }
         provenance={
           activeLens === "evidence" ? (
-            provenancePanel
+            evidencePanel
           ) : (
             <PlaceDossierPanel
               placeId={selectedPlaceId}
@@ -477,8 +586,11 @@ export function OpenFlintAtlasScene({
           <AtlasMap
             places={places}
             events={visibleEvents}
+            signals={signals}
             onPlaceSelect={handlePlaceSelect}
+            onSignalSelect={handleSignalSelect}
             selectedPlaceId={selectedPlaceId}
+            selectedSignalId={selectedSignalId}
             layerVisibility={layerVisibility}
             viewMode={viewMode}
             activeLens={activeLens}
@@ -505,7 +617,7 @@ export function OpenFlintAtlasScene({
               aria-label="Evidence provenance"
               style={{ height: "54vh" }}
             >
-              {provenancePanel}
+              {evidencePanel}
             </aside>
           )}
           {isMobileViewport && activeLens !== "evidence" && (

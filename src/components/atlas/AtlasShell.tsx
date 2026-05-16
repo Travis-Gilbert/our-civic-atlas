@@ -68,6 +68,12 @@ export function AtlasShell({
   const leftPanelOffsetClass = showTabs ? "left-4" : "left-[76px]";
   const rightPanelOffsetClass = showTabs ? "right-4" : "right-4 xl:right-[320px]";
   const timelineOffsetClass = showTabs ? "bottom-4" : "bottom-[72px]";
+  const dossierPanelPlacementClass = showTabs
+    ? "top-1/2 -translate-y-1/2 max-h-[calc(100%-2rem)]"
+    : "top-[156px] max-h-[calc(100%-180px)]";
+  const provenancePanelPlacementClass = showTabs
+    ? "top-1/2 -translate-y-1/2 max-h-[calc(100%-2rem)]"
+    : "top-[88px] max-h-[calc(100%-112px)]";
   const handleTabChange = useCallback(
     (id: string) => {
       if (onTabChange) onTabChange(id);
@@ -105,7 +111,7 @@ export function AtlasShell({
             Width sizes to content (max 340 to keep map area legible). */}
         {showDossier && dossierOpen && (
           <aside
-            className={`atlas-panel absolute ${leftPanelOffsetClass} top-1/2 -translate-y-1/2 w-fit max-w-[340px] max-h-[calc(100%-2rem)] overflow-y-auto pointer-events-auto z-10`}
+            className={`atlas-panel absolute ${leftPanelOffsetClass} ${dossierPanelPlacementClass} w-fit max-w-[340px] overflow-y-auto pointer-events-auto z-10`}
             data-fade-source
           >
             {dossier ?? (
@@ -130,7 +136,7 @@ export function AtlasShell({
         {/* RIGHT: Provenance — floating sticky panel, vertically centered. */}
         {showProvenance && provenanceOpen && (
           <aside
-            className={`atlas-panel absolute ${rightPanelOffsetClass} top-1/2 -translate-y-1/2 w-[320px] max-h-[calc(100%-2rem)] overflow-y-auto pointer-events-auto z-10`}
+            className={`atlas-panel absolute ${rightPanelOffsetClass} ${provenancePanelPlacementClass} w-[320px] overflow-y-auto pointer-events-auto z-10`}
             data-fade-source
           >
             {provenance ?? (

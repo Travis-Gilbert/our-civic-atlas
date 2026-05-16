@@ -233,6 +233,57 @@ export type PlaceDossier = {
 };
 
 // ---------------------------------------------------------------------------
+// Fresh signals
+// ---------------------------------------------------------------------------
+
+export type FreshSignal = {
+  signal_id: string;
+  signal_kind: "public_record" | "candidate";
+  artifact_id: string | null;
+  source_id: string | null;
+  source_ids: string[];
+  source_label: string;
+  title: string;
+  summary: string;
+  published_at: string | null;
+  received_at: string | null;
+  event_type: string;
+  signal_type: string;
+  review_status: ReviewStatus;
+  status: ReviewStatus;
+  resolution_level: string;
+  visibility_level: "public" | "review_only";
+  confidence_label: string;
+  why_mapped_here: string;
+  place_id: string | null;
+  place_label: string | null;
+  geometry: GeoJSON.Geometry | null;
+  dossier_url: string | null;
+  expires_at: string | null;
+  warning_copy: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type FreshSignalsResponse = {
+  signals: FreshSignal[];
+  total: number;
+  telemetry?: Record<string, unknown> | null;
+};
+
+export type FreshSignalFilters = {
+  bbox?: string;
+  since?: string;
+  until?: string;
+  source_id?: string;
+  place_id?: string;
+  event_type?: string;
+  signal_type?: string;
+  review_status?: string;
+  candidate_visibility?: string;
+  limit?: number;
+};
+
+// ---------------------------------------------------------------------------
 // Capture types (admin)
 // ---------------------------------------------------------------------------
 
@@ -414,6 +465,18 @@ export function fetchDossierPayload(placeId: string) {
 
 export function fetchEvents(filters?: EventFilters) {
   return get<EventsResponse>(`/events/${qs(filters ?? {})}`);
+}
+
+export function fetchSignals(filters?: FreshSignalFilters) {
+  return get<FreshSignalsResponse>(`/signals/${qs(filters ?? {})}`);
+}
+
+export function fetchSignal(signalId: string) {
+  return get<FreshSignal>(`/signals/${encodeURIComponent(signalId)}/`);
+}
+
+export function fetchSignalsTelemetry() {
+  return get<Record<string, unknown>>("/signals/telemetry/");
 }
 
 export function fetchProvenance(filters?: ProvenanceFilters) {
