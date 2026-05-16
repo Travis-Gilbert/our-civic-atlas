@@ -13,7 +13,7 @@
     "confidence_score": 0.82,
     "confidence_reasons": [
       "The current fixture is grounded in the existing public read model and source registry.",
-      "Full boundary and static-package exports still need production export validation."
+      "The starter static package now includes a ward-derived Flint boundary asset while fuller export automation still needs production validation."
     ],
     "review_state": "accepted",
     "source_ids": [
@@ -47,8 +47,8 @@
     "current_status": "active",
     "confidence_score": 0.78,
     "confidence_reasons": [
-      "Boundary geometry is planned from public GIS sources.",
-      "This starter fixture uses a coarse bounding box until the boundary export is promoted."
+      "Boundary geometry is derived from the public Flint ward footprint.",
+      "A dedicated city export is still planned, but the starter fixture no longer falls back to a coarse bounding box."
     ],
     "review_state": "accepted",
     "source_ids": [
@@ -161,6 +161,108 @@
       "current_confirmed"
     ],
     "dossier_url": "/objects/dataset:flint-read-model-v0",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": "2026-05-13",
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "building_presence:saint-john-lost-block",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "building_presence",
+    "name": "Saint John Street lost block sample",
+    "description": "Lost Flint sample block used to exercise confirmed vanished-building rendering in the memory lens.",
+    "geometry_ref": null,
+    "time_start": "1920-01-01",
+    "time_end": "1975-01-01",
+    "temporal_status": "vanished",
+    "current_status": "not_currently_present",
+    "confidence_score": 0.64,
+    "confidence_reasons": [
+      "The block is modeled from reviewed local history notes and map references.",
+      "Parcel-precise footprint exports still need promotion into the static package."
+    ],
+    "review_state": "accepted",
+    "source_ids": [
+      "black_community_newspapers_flint",
+      "mapflint"
+    ],
+    "claim_ids": [
+      "claim:saint-john-lost-block"
+    ],
+    "render_modes": [
+      "vanished_confirmed",
+      "brush_reconstruction"
+    ],
+    "dossier_url": "/objects/building_presence:saint-john-lost-block",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": "2026-05-13",
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "building_presence:buick-city-edge-inference",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "building_presence",
+    "name": "Buick City edge inference sample",
+    "description": "Inferred former building-presence sample for testing uncertain Lost Flint rendering before parcel-level confirmation.",
+    "geometry_ref": null,
+    "time_start": "1945-01-01",
+    "time_end": "1983-01-01",
+    "temporal_status": "inferred",
+    "current_status": "not_currently_present",
+    "confidence_score": 0.41,
+    "confidence_reasons": [
+      "The record is intentionally kept as an inferred memory candidate.",
+      "It still needs promoted source packaging and review."
+    ],
+    "review_state": "needs_review",
+    "source_ids": [
+      "racer_buick_city_site",
+      "black_community_newspapers_flint"
+    ],
+    "claim_ids": [
+      "claim:buick-city-edge-inference"
+    ],
+    "render_modes": [
+      "vanished_inferred",
+      "disputed_claim"
+    ],
+    "dossier_url": "/objects/building_presence:buick-city-edge-inference",
+    "public_visibility": "public",
+    "privacy_class": "public_aggregate",
+    "last_checked_at": null,
+    "updated_at": "2026-05-13T00:00:00-04:00"
+  },
+  {
+    "id": "intervention:mlk-corridor-rebuild",
+    "atlas_node_id": "atlas:flint-mi",
+    "object_type": "intervention",
+    "name": "MLK corridor rebuild sample",
+    "description": "Sample intervention record used to keep public-project rendering visible while the intervention ledger grows.",
+    "geometry_ref": null,
+    "time_start": "2024-01-01",
+    "time_end": null,
+    "temporal_status": "current",
+    "current_status": "active",
+    "confidence_score": 0.58,
+    "confidence_reasons": [
+      "The intervention lane is intentionally represented in the scene fixture now.",
+      "Funding and outcome details still need fuller dossier wiring."
+    ],
+    "review_state": "accepted",
+    "source_ids": [
+      "city_of_flint_gis",
+      "mapflint"
+    ],
+    "claim_ids": [
+      "claim:mlk-corridor-rebuild"
+    ],
+    "render_modes": [
+      "public_intervention",
+      "community_observation_reviewed"
+    ],
+    "dossier_url": "/objects/intervention:mlk-corridor-rebuild",
     "public_visibility": "public",
     "privacy_class": "public_aggregate",
     "last_checked_at": "2026-05-13",

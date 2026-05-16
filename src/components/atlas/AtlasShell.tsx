@@ -11,8 +11,11 @@ import {
 /*  AtlasShell                                                         */
 /* ------------------------------------------------------------------ */
 
-export function AtlasShell({
+export function AtlasAppShell({
   children,
+  leftRail,
+  rightRail,
+  bottomRail,
   dossier,
   timeline,
   provenance,
@@ -23,12 +26,21 @@ export function AtlasShell({
   activeTabId: activeTabIdProp,
   onTabChange,
   showTabs = true,
+  showLeftRail = true,
+  showRightRail = true,
+  showBottomRail = true,
   showDossier = true,
   showTimeline = true,
   showProvenance = true,
 }: {
   /** Map/canvas area (deck.gl, MapLibre, etc.) */
   children: ReactNode;
+  /** Named left shell region. */
+  leftRail?: ReactNode;
+  /** Named right shell region. */
+  rightRail?: ReactNode;
+  /** Named bottom shell region. */
+  bottomRail?: ReactNode;
   /** Left dossier slot. */
   dossier?: ReactNode;
   /** Bottom timeline slot. */
@@ -49,6 +61,12 @@ export function AtlasShell({
   onTabChange?: (id: string) => void;
   /** Render the legacy saved-view tab strip. Atlas Scene can replace it. */
   showTabs?: boolean;
+  /** Render the named left rail region. */
+  showLeftRail?: boolean;
+  /** Render the named right rail region. */
+  showRightRail?: boolean;
+  /** Render the named bottom rail region. */
+  showBottomRail?: boolean;
   /** Render the dossier/control panel. */
   showDossier?: boolean;
   /** Render the timeline panel. */
@@ -56,15 +74,18 @@ export function AtlasShell({
   /** Render the provenance panel. */
   showProvenance?: boolean;
 }) {
-  const [dossierOpen] = useState(true);
-  const [timelineOpen] = useState(true);
-  const [provenanceOpen] = useState(true);
-  const [layersOpen] = useState(false);
   const [internalActiveTabId, setInternalActiveTabId] = useState<string>(
     tabs[0]?.id ?? "atlas",
   );
 
   const activeTabId = activeTabIdProp ?? internalActiveTabId;
+  const leftRailContent = leftRail ?? dossier;
+  const rightRailContent = rightRail ?? provenance;
+  const bottomRailContent = bottomRail ?? timeline;
+  const leftRailVisible = showLeftRail && showDossier;
+  const rightRailVisible = showRightRail && showProvenance;
+  const bottomRailVisible = showBottomRail && showTimeline;
+  const layersOpen = false;
   const leftPanelOffsetClass = showTabs ? "left-4" : "left-[76px]";
   const rightPanelOffsetClass = showTabs ? "right-4" : "right-4 xl:right-[320px]";
   const timelineOffsetClass = showTabs ? "bottom-4" : "bottom-[72px]";
@@ -83,7 +104,7 @@ export function AtlasShell({
   );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
+    <div className="atlas-app-shell relative flex h-full flex-col overflow-hidden">
       {/* -- Top chrome: tab strip. Each tab is a saved atlas view; v1
               switches the active indicator only, v2 will restore the
               full atlas state per tab (layers, time range, place,
@@ -103,65 +124,67 @@ export function AtlasShell({
         {/* Map fills the entire body. */}
         <div className="absolute inset-0">
           {children}
-          {layersOpen && layers}
+          {layersOpen ? layers : null}
           {captureOpenProp && capture}
         </div>
 
-        {/* LEFT: Dossier — floating sticky panel, vertically centered.
-            Width sizes to content (max 340 to keep map area legible). */}
-        {showDossier && dossierOpen && (
+        {/* LEFT: Signals, controls, and future receipt/review surface. */}
+        {leftRailVisible && (
           <aside
-            className={`atlas-panel absolute ${leftPanelOffsetClass} ${dossierPanelPlacementClass} w-fit max-w-[340px] overflow-y-auto pointer-events-auto z-10`}
+            className={`atlas-panel atlas-shell-left-rail absolute ${leftPanelOffsetClass} ${dossierPanelPlacementClass} w-fit max-w-[340px] overflow-y-auto pointer-events-auto z-10`}
+            data-atlas-shell-region="left-rail"
             data-fade-source
           >
-            {dossier ?? (
+            {leftRailContent ?? (
               <div className="px-5 py-6">
                 <p
                   className="font-mono text-[10px] uppercase tracking-[0.14em] mb-3"
                   style={{ color: "var(--ctx-ink-mute)" }}
                 >
-                  Dossier
+                  Atlas rail
                 </p>
                 <p
                   className="text-[13px] leading-[1.55]"
                   style={{ color: "var(--ctx-ink-soft)" }}
                 >
-                  Select a parcel or ward on the map to view its dossier.
+                  Signals, layers, and civic controls will appear here.
                 </p>
               </div>
             )}
           </aside>
         )}
 
-        {/* RIGHT: Provenance — floating sticky panel, vertically centered. */}
-        {showProvenance && provenanceOpen && (
+        {/* RIGHT: Dossier and source/support surface. */}
+        {rightRailVisible && (
           <aside
-            className={`atlas-panel absolute ${rightPanelOffsetClass} ${provenancePanelPlacementClass} w-[320px] overflow-y-auto pointer-events-auto z-10`}
+            className={`atlas-panel atlas-shell-right-rail absolute ${rightPanelOffsetClass} ${provenancePanelPlacementClass} w-[320px] overflow-y-auto pointer-events-auto z-10`}
+            data-atlas-shell-region="right-rail"
             data-fade-source
           >
-            {provenance ?? (
+            {rightRailContent ?? (
               <div className="px-5 py-6">
                 <p
                   className="font-mono text-[10px] uppercase tracking-[0.14em] mb-3"
                   style={{ color: "var(--ctx-ink-mute)" }}
                 >
-                  Provenance
+                  Sources
                 </p>
                 <p
                   className="text-[13px] leading-[1.55]"
                   style={{ color: "var(--ctx-ink-soft)" }}
                 >
-                  Data lineage and source graph will appear here.
+                  Source history and supporting records will appear here.
                 </p>
               </div>
             )}
           </aside>
         )}
 
-        {/* BOTTOM: Timeline — floating sticky strip, horizontally centered. */}
-        {showTimeline && timelineOpen && (
+        {/* BOTTOM: Timeline and mosaic controls. */}
+        {bottomRailVisible && (
           <div
-            className={`atlas-panel absolute left-1/2 -translate-x-1/2 ${timelineOffsetClass} w-[min(720px,80%)] max-h-[180px] overflow-hidden pointer-events-auto z-10`}
+            className={`atlas-panel atlas-shell-bottom-rail absolute left-1/2 -translate-x-1/2 ${timelineOffsetClass} w-[min(720px,80%)] max-h-[180px] overflow-hidden pointer-events-auto z-10`}
+            data-atlas-shell-region="bottom-rail"
             data-fade-source
           >
             <div className="px-4 py-2">
@@ -173,7 +196,7 @@ export function AtlasShell({
               </span>
             </div>
             <div className="atlas-scroll-hidden max-h-[140px] overflow-y-auto">
-              {timeline ?? (
+              {bottomRailContent ?? (
                 <div className="flex items-center justify-center h-[120px]">
                   <p
                     className="font-mono text-[11px] tracking-[0.04em]"
@@ -190,3 +213,5 @@ export function AtlasShell({
     </div>
   );
 }
+
+export const AtlasShell = AtlasAppShell;

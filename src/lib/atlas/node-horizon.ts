@@ -5,7 +5,7 @@ import type {
 } from "@/lib/atlas/contracts";
 import { getStaticAtlasPackage } from "@/lib/atlas/static-package";
 
-export type NodeHorizonEntry = {
+export type AtlasNodeSummary = {
   atlasId: string;
   name: string;
   detailHref: string;
@@ -22,7 +22,10 @@ export type NodeHorizonEntry = {
   capabilityLabels: string[];
   manifestAvailable: boolean;
   compareAvailable: boolean;
+  compareHref: string | null;
 };
+
+export type NodeHorizonEntry = AtlasNodeSummary;
 
 const CAPABILITY_LABELS: Record<AtlasCapability, string> = {
   static_only: "Static package",
@@ -77,46 +80,71 @@ function nodeHref(atlasId: string): string {
   return `/open-flint-atlas/node/${encodeURIComponent(atlasId)}`;
 }
 
+function sceneCompareHref(atlasId: string): string {
+  return `/open-flint-atlas?compare=${encodeURIComponent(atlasId)}#node-horizon`;
+}
+
+function buildNodeSummary(node: NodeCatalogEntry): AtlasNodeSummary | null {
+  const atlasId = node.atlas_id.trim();
+  if (atlasId.length === 0) return null;
+
+  const updatedAt = dateLabel(node.last_updated_at);
+  const capabilityLabels = node.capabilities
+    .slice(0, 3)
+    .map((capability) => CAPABILITY_LABELS[capability] ?? capability);
+  const compareAvailable = node.compare_available === true;
+
+  return {
+    atlasId,
+    name: node.name,
+    detailHref: nodeHref(atlasId),
+    relation: node.relation,
+    relationLabel: RELATION_LABELS[node.relation],
+    scopeLabel: SCOPE_LABELS[node.scope_type],
+    statusLabel: FEDERATION_STATUS_LABELS[node.federation_status],
+    description:
+      node.description ??
+      "Candidate atlas node awaiting a promoted public manifest.",
+    freshnessLabel:
+      node.freshness_label ??
+      (updatedAt ? `updated ${updatedAt}` : "manifest planned"),
+    directionLabel: [node.distance_label, node.direction_label]
+      .filter(Boolean)
+      .join(" ")
+      .trim(),
+    sourceCountLabel: sourceCountLabel(node.source_count),
+    contributionStatus:
+      node.contribution_status ?? "contribution policy planned",
+    maintainerLabel: node.maintainer_label ?? "maintainer planned",
+    capabilityLabels,
+    manifestAvailable: node.manifest_url !== null,
+    compareAvailable,
+    compareHref: compareAvailable ? sceneCompareHref(atlasId) : null,
+  };
+}
+
+export function getCurrentAtlasNodeSummary(): AtlasNodeSummary | null {
+  const { nodeCatalog } = getStaticAtlasPackage();
+  const currentNode =
+    nodeCatalog.nodes.find((node) => node.relation === "self") ??
+    nodeCatalog.nodes[0];
+
+  return currentNode ? buildNodeSummary(currentNode) : null;
+}
+
+export function getAtlasNodeSummary(atlasId: string): AtlasNodeSummary | null {
+  const { nodeCatalog } = getStaticAtlasPackage();
+  const match = nodeCatalog.nodes.find((node) => node.atlas_id === atlasId);
+  return match ? buildNodeSummary(match) : null;
+}
+
 export function getNodeHorizonEntries(): NodeHorizonEntry[] {
   const { nodeCatalog } = getStaticAtlasPackage();
 
   return nodeCatalog.nodes
     .flatMap((node) => {
-      const atlasId = node.atlas_id.trim();
-      if (node.relation === "self" || atlasId.length === 0) return [];
-
-      const updatedAt = dateLabel(node.last_updated_at);
-      const capabilityLabels = node.capabilities
-        .slice(0, 3)
-        .map((capability) => CAPABILITY_LABELS[capability] ?? capability);
-
-      return [
-        {
-          atlasId,
-          name: node.name,
-          detailHref: nodeHref(atlasId),
-          relation: node.relation,
-          relationLabel: RELATION_LABELS[node.relation],
-          scopeLabel: SCOPE_LABELS[node.scope_type],
-          statusLabel: FEDERATION_STATUS_LABELS[node.federation_status],
-          description:
-            node.description ??
-            "Candidate atlas node awaiting a promoted public manifest.",
-          freshnessLabel:
-            node.freshness_label ??
-            (updatedAt ? `updated ${updatedAt}` : "manifest planned"),
-          directionLabel: [node.distance_label, node.direction_label]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
-          sourceCountLabel: sourceCountLabel(node.source_count),
-          contributionStatus:
-            node.contribution_status ?? "contribution policy planned",
-          maintainerLabel: node.maintainer_label ?? "maintainer planned",
-          capabilityLabels,
-          manifestAvailable: node.manifest_url !== null,
-          compareAvailable: node.compare_available === true,
-        },
-      ];
+      if (node.relation === "self") return [];
+      const summary = buildNodeSummary(node);
+      return summary ? [summary] : [];
     });
 }

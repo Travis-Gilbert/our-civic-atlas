@@ -37,7 +37,7 @@
       "source_count": 0,
       "contribution_status": "not accepting contributions yet",
       "freshness_label": "manifest planned",
-      "compare_available": false,
+      "compare_available": true,
       "capabilities": [
         "static_only"
       ]
@@ -59,7 +59,7 @@
       "contribution_status": "source nominations planned",
       "freshness_label": "boundary review needed",
       "preview_place_id": "place:carriage-town",
-      "compare_available": false,
+      "compare_available": true,
       "capabilities": [
         "static_only",
         "has_lost_buildings"
@@ -81,7 +81,7 @@
       "source_count": 0,
       "contribution_status": "not accepting contributions yet",
       "freshness_label": "source package needed",
-      "compare_available": false,
+      "compare_available": true,
       "capabilities": [
         "static_only"
       ]
@@ -102,7 +102,7 @@
       "source_count": 0,
       "contribution_status": "not accepting contributions yet",
       "freshness_label": "source package needed",
-      "compare_available": false,
+      "compare_available": true,
       "capabilities": [
         "static_only"
       ]

@@ -54,6 +54,12 @@ import type {
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
 import {
+  getAtlasBoundaryMaskFeature,
+  getAtlasBoundaryOutlineFeature,
+  getAtlasContextBbox,
+  getAtlasViewCamera,
+} from "@/lib/atlas/atlas-boundary";
+import {
   getEventFillCss,
   getPlaceFillCss,
   getPlaceLineCss,
@@ -65,10 +71,6 @@ import "leaflet/dist/leaflet.css";
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
-
-const FLINT_CENTER: [number, number] = [43.0125, -83.6875];
-const DEFAULT_ZOOM = 11; // one level less than desktop to give the small
-// viewport more context
 
 const CARTO_POSITRON_TILE_URL =
   "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
@@ -161,6 +163,16 @@ export function MobileAtlasMap({
   const [mapInstanceKey] = useState(
     () => `mobile-atlas-${Math.random().toString(36).slice(2)}`,
   );
+  const camera = getAtlasViewCamera(viewMode);
+  const boundaryMask = useMemo(() => getAtlasBoundaryMaskFeature(), []);
+  const boundaryOutline = useMemo(() => getAtlasBoundaryOutlineFeature(), []);
+  const contextBounds = useMemo(() => {
+    const [west, south, east, north] = getAtlasContextBbox();
+    return [
+      [south, west],
+      [north, east],
+    ] as [[number, number], [number, number]];
+  }, []);
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
     return {
@@ -168,6 +180,22 @@ export function MobileAtlasMap({
       features: places.features.filter(hasGeometry),
     };
   }, [places]);
+
+  const visiblePlaces = useMemo<GeometricPlacesCollection | null>(() => {
+    if (!geometricPlaces) return null;
+
+    return {
+      ...geometricPlaces,
+      features: geometricPlaces.features.filter((feature) => {
+        const placeType = feature.properties.place_type;
+        if (placeType === "ward") return layerVisibility.wards !== false;
+        if (placeType === "corridor") {
+          return layerVisibility.infrastructure !== false;
+        }
+        return layerVisibility.places !== false;
+      }),
+    };
+  }, [geometricPlaces, layerVisibility]);
 
   /* Place centroid lookup so events render at their place's location. */
   const placeCentroids = useMemo(() => {
@@ -231,7 +259,7 @@ export function MobileAtlasMap({
   );
 
   /* Only render the GeoJSON layer when places are present AND visible. */
-  const showPlaces = !!geometricPlaces && layerVisibility.places !== false;
+  const showPlaces = !!visiblePlaces;
   const showEvents = layerVisibility.events !== false;
   const showSignals = layerVisibility.freshSignals !== false;
 
@@ -239,8 +267,8 @@ export function MobileAtlasMap({
      it by feature count so toggling layers actually rebuilds. */
   const placesKey = useMemo(
     () =>
-      `places-${geometricPlaces?.features.length ?? 0}-${selectedPlaceId ?? ""}`,
-    [geometricPlaces, selectedPlaceId],
+      `places-${visiblePlaces?.features.length ?? 0}-${selectedPlaceId ?? ""}`,
+    [visiblePlaces, selectedPlaceId],
   );
 
   return (
@@ -251,9 +279,11 @@ export function MobileAtlasMap({
       data-atlas-lens={activeLens}
     >
       <MapContainer
-        key={mapInstanceKey}
-        center={FLINT_CENTER}
-        zoom={DEFAULT_ZOOM}
+        key={`${mapInstanceKey}-${viewMode}`}
+        center={[camera.latitude, camera.longitude]}
+        zoom={camera.zoom}
+        maxBounds={contextBounds}
+        maxBoundsViscosity={0.9}
         scrollWheelZoom
         zoomControl={false}
         attributionControl
@@ -265,10 +295,20 @@ export function MobileAtlasMap({
           maxZoom={19}
         />
 
-        {showPlaces && geometricPlaces && (
+        <GeoJSON
+          data={boundaryMask}
+          interactive={false}
+          style={() => ({
+            stroke: false,
+            fillColor: "#f6f4ee",
+            fillOpacity: 0.56,
+          })}
+        />
+
+        {showPlaces && visiblePlaces && (
           <GeoJSON
             key={placesKey}
-            data={geometricPlaces as GeoJSON.FeatureCollection}
+            data={visiblePlaces as GeoJSON.FeatureCollection}
             style={(feature?: GeoJSON.Feature) =>
               styleForFeature(feature as PlaceFeature)
             }
@@ -276,6 +316,17 @@ export function MobileAtlasMap({
             pointToLayer={pointToLayer}
           />
         )}
+
+        <GeoJSON
+          data={boundaryOutline}
+          interactive={false}
+          style={() => ({
+            color: "#2a2419",
+            weight: 2.1,
+            opacity: 0.78,
+            fillOpacity: 0,
+          })}
+        />
 
         {showEvents &&
           events.map((event) => {

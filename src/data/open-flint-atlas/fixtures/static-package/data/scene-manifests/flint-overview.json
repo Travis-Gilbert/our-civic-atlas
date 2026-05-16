@@ -74,6 +74,60 @@
       "visibility": "public",
       "privacy_class": "public_aggregate",
       "asset_refs": []
+    },
+    {
+      "object_id": "building_presence:saint-john-lost-block",
+      "civic_object_id": "building_presence:saint-john-lost-block",
+      "geometry_ref": null,
+      "time_start": "1920-01-01",
+      "time_end": "1975-01-01",
+      "render_mode": "vanished_confirmed",
+      "style_token": "lost_flint_confirmed",
+      "visual_recipe_id": "recipe:lost-flint-memory-trace",
+      "source_ids": [
+        "black_community_newspapers_flint",
+        "mapflint"
+      ],
+      "dossier_url": "/open-flint-atlas/object/building_presence%3Asaint-john-lost-block",
+      "visibility": "public",
+      "privacy_class": "public_aggregate",
+      "asset_refs": []
+    },
+    {
+      "object_id": "building_presence:buick-city-edge-inference",
+      "civic_object_id": "building_presence:buick-city-edge-inference",
+      "geometry_ref": null,
+      "time_start": "1945-01-01",
+      "time_end": "1983-01-01",
+      "render_mode": "vanished_inferred",
+      "style_token": "lost_flint_inferred",
+      "visual_recipe_id": "recipe:lost-flint-memory-trace",
+      "source_ids": [
+        "racer_buick_city_site",
+        "black_community_newspapers_flint"
+      ],
+      "dossier_url": "/open-flint-atlas/object/building_presence%3Abuick-city-edge-inference",
+      "visibility": "public",
+      "privacy_class": "public_aggregate",
+      "asset_refs": []
+    },
+    {
+      "object_id": "intervention:mlk-corridor-rebuild",
+      "civic_object_id": "intervention:mlk-corridor-rebuild",
+      "geometry_ref": null,
+      "time_start": "2024-01-01",
+      "time_end": null,
+      "render_mode": "public_intervention",
+      "style_token": "civic_intervention_candidate",
+      "visual_recipe_id": "recipe:safe-routes-priority",
+      "source_ids": [
+        "city_of_flint_gis",
+        "mapflint"
+      ],
+      "dossier_url": "/open-flint-atlas/object/intervention%3Amlk-corridor-rebuild",
+      "visibility": "public",
+      "privacy_class": "public_aggregate",
+      "asset_refs": []
     }
   ],
   "source_ids": [
@@ -86,7 +140,7 @@
     "score": 0.68,
     "reasons": [
       "Scene objects are generated from reviewed starter contracts.",
-      "Final city boundary, child node geometry, and 3D assets remain planned outputs."
+      "The city footprint now ships as a ward-derived boundary asset while dedicated city exports and 3D assets remain planned outputs."
     ]
   },
   "assets": [

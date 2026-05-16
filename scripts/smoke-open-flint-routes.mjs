@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const DEFAULT_BASE_URL = "http://localhost:3000";
+const DEFAULT_BASE_URL =
+  process.env.ATLAS_BASE_URL?.trim() || "http://127.0.0.1:3000";
 
 const ROUTES = [
   { path: "/open-flint-atlas", expect: "Flint Atlas" },

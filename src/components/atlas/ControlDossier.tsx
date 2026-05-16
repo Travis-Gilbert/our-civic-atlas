@@ -44,6 +44,20 @@ const ChevronDown = (p: React.SVGProps<SVGSVGElement>) => (
     <path d="M3 5l4 4 4-4" />
   </svg>
 );
+const EyeIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" {...p}>
+    <path d="M1.5 7s2-4 5.5-4 5.5 4 5.5 4-2 4-5.5 4S1.5 7 1.5 7z" />
+    <circle cx="7" cy="7" r="1.5" />
+  </svg>
+);
+const EyeOffIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" {...p}>
+    <path d="M2 2l10 10" />
+    <path d="M5.5 5.5a1.5 1.5 0 002 2" />
+    <path d="M4 4C2.5 5 1.5 7 1.5 7s2 4 5.5 4c1 0 1.8-.3 2.5-.7" />
+    <path d="M10.5 9C11.8 8 12.5 7 12.5 7s-2-4-5.5-4c-.5 0-1 .06-1.5.2" />
+  </svg>
+);
 
 /**
  * File-extension icon glyphs. Mirrors the scheme used by the FileTree
@@ -93,6 +107,7 @@ export interface ControlDossierProps {
 export function ControlDossier({
   presets,
   visibility,
+  onToggle,
   defaultOpenId,
 }: ControlDossierProps) {
   const [openIds, setOpenIds] = useState<Set<string>>(() =>
@@ -108,6 +123,10 @@ export function ControlDossier({
     });
   }, []);
 
+  const toggleVisibility = useCallback((id: string) => {
+    onToggle(id, visibility[id] === false);
+  }, [onToggle, visibility]);
+
   return (
     <div
       className="control-dossier-card w-full"
@@ -121,14 +140,38 @@ export function ControlDossier({
           return (
             <li key={preset.id} className="m-0">
               {/* Row — chevron + glyph + name + extension. The eye toggle
-                  is gone (the preset opens to expose its own visibility
-                  control if needed). The whole row is one clickable target. */}
+                  stays separate from the row open/close control so layer
+                  visibility does not collide with preset editing. */}
               <div
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-[3px] hover:bg-[rgba(31,31,35,0.04)] transition-colors"
                 style={{
                   color: isVisible ? "var(--ctx-ink)" : "var(--ctx-ink-mute)",
                 }}
               >
+                <button
+                  type="button"
+                  onClick={() => toggleVisibility(preset.id)}
+                  className="flex items-center justify-center shrink-0 cursor-pointer rounded-[3px]"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    background: isVisible
+                      ? "rgba(193,74,44,0.10)"
+                      : "transparent",
+                    border: `1px solid ${isVisible ? "var(--ctx-accent)" : "var(--ctx-rule-soft)"}`,
+                    color: isVisible
+                      ? "var(--ctx-accent)"
+                      : "var(--ctx-ink-mute)",
+                  }}
+                  aria-label={isVisible ? `Hide ${preset.name} layer` : `Show ${preset.name} layer`}
+                >
+                  {isVisible ? (
+                    <EyeIcon className="w-[12px] h-[12px]" />
+                  ) : (
+                    <EyeOffIcon className="w-[12px] h-[12px]" />
+                  )}
+                </button>
+
                 {/* Chevron — opens preset editor inline. */}
                 <button
                   type="button"

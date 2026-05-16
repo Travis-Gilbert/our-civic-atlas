@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { AtlasShell } from "@/components/atlas/AtlasShell";
+import { usePathname, useRouter } from "next/navigation";
+import { AtlasAppShell } from "@/components/atlas/AtlasShell";
 import { LayerControls } from "@/components/atlas/LayerControls";
 import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
 import {
@@ -21,8 +22,16 @@ import type {
   AtlasLensId,
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
-import { DEFAULT_VIEW_MODE_BY_LENS } from "@/lib/atlas/scene-view";
-import { getNodeHorizonEntries } from "@/lib/atlas/node-horizon";
+import {
+  DEFAULT_VIEW_MODE_BY_LENS,
+  VISUAL_GRAMMAR_TOKENS,
+} from "@/lib/atlas/scene-view";
+import {
+  getAtlasNodeSummary,
+  getCurrentAtlasNodeSummary,
+  getNodeHorizonEntries,
+  type AtlasNodeSummary,
+} from "@/lib/atlas/node-horizon";
 
 const AtlasTimelineHistogram = dynamic(
   () =>
@@ -70,9 +79,12 @@ const DEFAULT_LAYERS: Record<string, boolean> = {
 
 export function OpenFlintAtlasScene({
   initialLens = "explore",
+  initialCompareAtlasId = null,
 }: {
   initialLens?: AtlasLensId;
+  initialCompareAtlasId?: string | null;
 }) {
+  const pathname = usePathname();
   const router = useRouter();
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
@@ -84,6 +96,9 @@ export function OpenFlintAtlasScene({
     useState<AtlasLensId>(initialLens);
   const [searchValue, setSearchValue] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [compareAtlasId, setCompareAtlasId] = useState<string | null>(
+    initialCompareAtlasId?.trim() || null,
+  );
   const [includeCandidateSignals, setIncludeCandidateSignals] = useState(false);
 
   const [places, setPlaces] = useState<PlacesCollection | null>(null);
@@ -99,11 +114,34 @@ export function OpenFlintAtlasScene({
     null,
   );
   const horizonNodes = useMemo(() => getNodeHorizonEntries(), []);
+  const currentNode = useMemo(() => getCurrentAtlasNodeSummary(), []);
+  const compareNode = useMemo(
+    () => (compareAtlasId ? getAtlasNodeSummary(compareAtlasId) : null),
+    [compareAtlasId],
+  );
+
+  const updateCompareSelection = useCallback(
+    (atlasId: string | null) => {
+      const params = new URLSearchParams(window.location.search);
+      if (atlasId) params.set("compare", atlasId);
+      else params.delete("compare");
+      setCompareAtlasId(atlasId);
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
 
   useEffect(() => {
     setActiveLens(initialLens);
     setViewMode(DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
   }, [initialLens]);
+
+  useEffect(() => {
+    setCompareAtlasId(initialCompareAtlasId?.trim() || null);
+  }, [initialCompareAtlasId]);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 767px)");
@@ -335,7 +373,10 @@ export function OpenFlintAtlasScene({
       events: lens !== "explore" || prev.events !== false,
       places: true,
     }));
-    router.push(lens === "explore" ? "/open-flint-atlas" : `/open-flint-atlas/${lens}`);
+    const params = new URLSearchParams(window.location.search).toString();
+    const targetPath =
+      lens === "explore" ? "/open-flint-atlas" : `/open-flint-atlas/${lens}`;
+    router.push(params ? `${targetPath}?${params}` : targetPath);
   }, [router]);
 
   const handleSignalSelect = useCallback(
@@ -538,15 +579,23 @@ export function OpenFlintAtlasScene({
       data-scene-view={viewMode}
       data-active-lens={activeLens}
     >
-      <AtlasShell
+      <AtlasAppShell
         showTabs={false}
-        showTimeline={activeLens === "memory"}
-        showProvenance={
+        showBottomRail={activeLens === "memory"}
+        showRightRail={
           !isMobileViewport &&
           (activeLens === "evidence" || !!selectedPlaceId)
         }
-        dossier={
+        leftRail={
           <div className="flex w-[320px] flex-col gap-3">
+            {compareAtlasId ? (
+              <NodeComparePanel
+                currentNode={currentNode}
+                compareNode={compareNode}
+                compareAtlasId={compareAtlasId}
+                onClearCompare={() => updateCompareSelection(null)}
+              />
+            ) : null}
             <FreshSignalsPanel
               signals={signals}
               sources={sources}
@@ -562,15 +611,16 @@ export function OpenFlintAtlasScene({
               onToggle={handleLayerChange}
               defaultOpenId={selectedPlaceId ? "places" : "freshSignals"}
             />
+            <SceneStateLegend activeLens={activeLens} />
           </div>
         }
-        timeline={
+        bottomRail={
           <AtlasTimelineHistogram
             mosaic={mosaic}
             dataVersion={atlasTablesVersion}
           />
         }
-        provenance={
+        rightRail={
           activeLens === "evidence" ? (
             evidencePanel
           ) : (
@@ -614,10 +664,14 @@ export function OpenFlintAtlasScene({
             selectedPlaceName={selectedPlaceName}
             placesCount={places?.features.length ?? 0}
             eventsCount={visibleEvents.length}
+            currentNode={currentNode}
+            compareNode={compareNode}
             horizonNodes={horizonNodes}
             isMobileViewport={isMobileViewport}
             selectedPlaceId={selectedPlaceId}
             onClearSelection={() => setSelectedPlaceId(null)}
+            onClearCompare={() => updateCompareSelection(null)}
+            onCompareNodeSelect={updateCompareSelection}
             dossierContent={islandDossierContent}
             timelineActive={activeLens === "memory" && !isMobileViewport}
             hideIsland={isMobileViewport && activeLens === "evidence"}
@@ -625,14 +679,226 @@ export function OpenFlintAtlasScene({
           {isMobileViewport && activeLens === "evidence" && (
             <aside
               className="atlas-mobile-dossier-sheet atlas-mobile-provenance-sheet"
-              aria-label="Source provenance"
+              aria-label="Sources and support"
               style={{ height: "54vh" }}
             >
               {evidencePanel}
             </aside>
           )}
         </div>
-      </AtlasShell>
+      </AtlasAppShell>
     </div>
+  );
+}
+
+function NodeComparePanel({
+  currentNode,
+  compareNode,
+  compareAtlasId,
+  onClearCompare,
+}: {
+  currentNode: AtlasNodeSummary | null;
+  compareNode: AtlasNodeSummary | null;
+  compareAtlasId: string;
+  onClearCompare: () => void;
+}) {
+  if (!compareNode) {
+    return (
+      <section className="rounded-[22px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.76)] px-4 py-4 shadow-[0_18px_32px_-24px_rgba(42,36,25,0.42)] backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+              Node compare
+            </p>
+            <p className="mt-1 text-[13px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+              The route asked for{" "}
+              <span className="font-medium text-[color:var(--ctx-ink)]">
+                {compareAtlasId}
+              </span>
+              , but that node is not in the current public catalog.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rounded-full border border-[rgba(42,36,25,0.08)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--ctx-ink)] transition hover:bg-[rgba(42,36,25,0.05)]"
+            onClick={onClearCompare}
+          >
+            Clear
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-[22px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.76)] px-4 py-4 shadow-[0_18px_32px_-24px_rgba(42,36,25,0.42)] backdrop-blur-md">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+            Node compare
+          </p>
+          <p className="mt-1 text-[13px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+            Flint stays primary while compare state travels in the route, so
+            residents can reopen this exact horizon without relying on browser
+            history.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-full border border-[rgba(42,36,25,0.08)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--ctx-ink)] transition hover:bg-[rgba(42,36,25,0.05)]"
+          onClick={onClearCompare}
+        >
+          Return to Flint
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        <CompareSummaryCard label="Current node" node={currentNode} />
+        <CompareSummaryCard label="Compare node" node={compareNode} />
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3 rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.44)] px-3 py-3">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+            Route-backed compare
+          </p>
+          <p className="mt-1 text-[12px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+            Open the node record for maintainers, capability notes, and return
+            links.
+          </p>
+        </div>
+        <Link
+          href={compareNode.detailHref}
+          className="rounded-full border border-[rgba(42,36,25,0.08)] px-3 py-1.5 text-[11px] font-medium text-[color:var(--ctx-ink)] transition hover:bg-[rgba(42,36,25,0.05)]"
+        >
+          View node
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function CompareSummaryCard({
+  label,
+  node,
+}: {
+  label: string;
+  node: AtlasNodeSummary | null;
+}) {
+  if (!node) {
+    return (
+      <div className="rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.44)] px-3 py-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+          {label}
+        </p>
+        <p className="mt-1 text-[12px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+          Node details are not available in the current fixture set.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.44)] px-3 py-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+        {label}
+      </p>
+      <p className="mt-1 text-[13px] font-medium leading-[1.35] text-[color:var(--ctx-ink)]">
+        {node.name}
+      </p>
+      <dl className="mt-3 space-y-2 text-[11px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
+            Scope
+          </dt>
+          <dd className="text-right">{node.scopeLabel}</dd>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
+            Freshness
+          </dt>
+          <dd className="text-right">{node.freshnessLabel}</dd>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
+            Package
+          </dt>
+          <dd className="text-right">
+            {node.manifestAvailable ? "public package ready" : "package planned"}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-[11px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+        {node.capabilityLabels.length > 0
+          ? node.capabilityLabels.join(" · ")
+          : "Capabilities are still being defined."}
+      </p>
+    </div>
+  );
+}
+
+const MEMORY_STATE_TOKEN_IDS = new Set([
+  "vanished_confirmed",
+  "vanished_inferred",
+  "historical_event",
+  "brush_reconstruction",
+  "disputed_claim",
+]);
+
+const SOURCE_STATE_TOKEN_IDS = new Set([
+  "current_low_confidence",
+  "community_observation_pending",
+  "community_observation_reviewed",
+  "source_stale",
+  "source_high_confidence",
+]);
+
+function SceneStateLegend({ activeLens }: { activeLens: AtlasLensId }) {
+  const visibleTokens = VISUAL_GRAMMAR_TOKENS.filter((token) => {
+    if (activeLens === "memory") return MEMORY_STATE_TOKEN_IDS.has(token.id);
+    if (activeLens === "evidence") return SOURCE_STATE_TOKEN_IDS.has(token.id);
+    return false;
+  });
+
+  if (visibleTokens.length === 0) return null;
+
+  const title =
+    activeLens === "memory" ? "Memory states" : "Source and review states";
+  const description =
+    activeLens === "memory"
+      ? "The memory lens keeps lost, inferred, and disputed city records legible before deeper Lost Flint rendering lands."
+      : "The source lens keeps public review and freshness states visible without asking residents to decode backend labels.";
+
+  return (
+    <section className="rounded-[22px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.76)] px-4 py-4 shadow-[0_18px_32px_-24px_rgba(42,36,25,0.42)] backdrop-blur-md">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+        {title}
+      </p>
+      <p className="mt-1 text-[13px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+        {description}
+      </p>
+      <div className="mt-4 grid gap-2.5">
+        {visibleTokens.map((token) => (
+          <div
+            key={token.id}
+            className="flex items-start gap-3 rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.44)] px-3 py-3"
+          >
+            <span
+              className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-white/60"
+              style={{ backgroundColor: token.color }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-[12px] font-medium leading-[1.35] text-[color:var(--ctx-ink)]">
+                {token.label}
+              </p>
+              <p className="mt-1 text-[11px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+                {token.detail}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

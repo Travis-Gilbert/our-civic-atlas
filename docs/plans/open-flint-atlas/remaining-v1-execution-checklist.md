@@ -21,13 +21,17 @@ This recovery session completed the immediate timed-out slice for the reusable p
 - Product gates rerun: `npm run typecheck`, `npm run lint`, `npm run build`, and `git diff --check`.
 - Visual gate rerun: Playwright MCP checked `/open-flint-atlas/evidence` at 1024 x 768 with no overlapping floating panels and 390 x 844 with a visible mobile provenance sheet.
 - Route envelope gate: OCA-003 now has routed pages for map/explore/lenses, sources, contribute, methodology, node, place, object, and scene; `npm run validate:routes:live` checks 13 public URLs.
-- Node Horizon gate: OCA-005/OCA-017B now exposes parent/child/neighbor `Open` actions as accessible links to `/open-flint-atlas/node/[atlasId]`; Playwright MCP clicked the first horizon link and confirmed the Michigan node detail route, no horizontal overflow, and named `Open {node}` actions. `Compare`, breadcrumbs, and spatial portal transitions remain partial.
-- Node Horizon return gate: node detail pages now expose a Federation path and `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node route has the return affordance and clicks back to the anchored map shell without horizontal overflow. `Compare` and spatial portal transitions remain partial.
+- Node Horizon gate: OCA-005/OCA-017B now exposes parent/child/neighbor `Open` actions as accessible links to `/open-flint-atlas/node/[atlasId]`; Playwright MCP clicked the first horizon link and confirmed the Michigan node detail route, no horizontal overflow, and named `Open {node}` actions.
+- Node Horizon return gate: node detail pages now expose a Federation path and `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node route has the return affordance and clicks back to the anchored map shell without horizontal overflow.
+- Compare gate: Playwright MCP confirmed `/open-flint-atlas?compare=atlas:detroit-mi#node-horizon` shows desktop compare state, return affordances, and a working node-detail jump on the built app.
+- Production proof gate: `npm run typecheck`, `npm run lint`, `npm run validate:atlas`, and `npm run build` now pass in `Open-Flint-Atlas-merge`; `node scripts/smoke-open-flint-routes.mjs --base-url http://127.0.0.1:3000` passes 13/13 public routes against the built app.
+- Phase D readiness gate: the memory lens now exposes a visible `Memory states` legend for vanished, inferred, disputed, and reconstruction states, and the static package now includes a ward-derived Flint boundary asset instead of a bbox-only boundary treatment.
 
 ## Immediate next slices
+- Implementation note: use `docs/plans/open-flint-atlas/oca-tranche-1-atlas-scene-design.md` as the build contract for the first Atlas Scene lane.
 - OCA-003A: finalize component map for the new Atlas Scene shell (`AtlasAppShell`, mode rail, Node Horizon, confidence receipt/review/source panels, mosaic/timeline controls).
 - OCA-004: finish bounded-world Atlas Scene treatment (custom boundary/camera presets/style and fallback consistency with mobile map).
-- OCA-005: continue Node Horizon interaction hardening with compare/breadcrumb behavior and spatial portal transitions now that neighboring/parent/child nodes are route-backed navigation affordances.
+- OCA-005: continue Node Horizon interaction hardening with spatial portal transitions now that open, compare, breadcrumb, and return behaviors are route-backed navigation affordances.
 - OCA-012 / OCA-012A / OCA-012B: move Lost Flint into the first active product tranche instead of leaving it in a later thematic bucket.
 
 ## Data / contract slices

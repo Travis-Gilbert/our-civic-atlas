@@ -18,7 +18,7 @@
     "validate:visual-grammar": "node scripts/validate-visual-grammar.mjs",
     "validate:dossier": "node scripts/validate-dossier-payload.mjs --fail-on-warning",
     "validate:dossier:live": "node scripts/validate-dossier-payload.mjs --fail-on-warning --base-url http://localhost:3000",
-    "validate:routes:live": "node scripts/smoke-open-flint-routes.mjs --base-url http://localhost:3000"
+    "validate:routes:live": "node scripts/smoke-open-flint-routes.mjs"
   },
   "dependencies": {
     "@cosmos.gl/graph": "^2.6.4",

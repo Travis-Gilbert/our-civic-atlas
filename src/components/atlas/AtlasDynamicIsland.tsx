@@ -30,7 +30,10 @@ import {
   type AtlasLensId,
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
-import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
+import type {
+  AtlasNodeSummary,
+  NodeHorizonEntry,
+} from "@/lib/atlas/node-horizon";
 import { cn } from "@/lib/utils";
 
 type IslandPanel = "search" | "focus" | "navigate" | "dossier" | "horizon";
@@ -45,6 +48,9 @@ type AtlasDynamicIslandProps = {
   placesCount: number;
   eventsCount: number;
   horizonNodes: NodeHorizonEntry[];
+  currentNode: AtlasNodeSummary | null;
+  compareNode: AtlasNodeSummary | null;
+  onCompareNodeSelect: (atlasId: string | null) => void;
   isMobileViewport: boolean;
   timelineActive?: boolean;
   dossierContent?: ReactNode;
@@ -101,6 +107,9 @@ export function AtlasDynamicIsland({
   placesCount,
   eventsCount,
   horizonNodes,
+  currentNode,
+  compareNode,
+  onCompareNodeSelect,
   isMobileViewport,
   timelineActive = false,
   dossierContent,
@@ -177,6 +186,7 @@ export function AtlasDynamicIsland({
     ? { duration: 0 }
     : islandTransition;
   const islandTitle = selectedPlaceName ?? focusHeadline(activeLensInfo.label);
+  const compareNodeName = compareNode?.name ?? null;
 
   const collapsedWidth = isMobileViewport ? 302 : 356;
   const expandedWidth = isMobileViewport ? 388 : 468;
@@ -272,6 +282,11 @@ export function AtlasDynamicIsland({
                 <p className="truncate text-[15px] font-medium leading-[1.2] text-[color:var(--ctx-ink)]">
                   {islandTitle}
                 </p>
+                {compareNodeName ? (
+                  <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
+                    Comparing with {compareNodeName}
+                  </p>
+                ) : null}
               </div>
             </button>
 
@@ -551,6 +566,32 @@ export function AtlasDynamicIsland({
                 <section className="space-y-3">
                   {selectedHorizonNode ? (
                     <>
+                      {compareNode && currentNode ? (
+                        <div className="rounded-[18px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.3)] p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                                Node compare
+                              </p>
+                              <p className="mt-1 text-[13px] leading-[1.45] text-[color:var(--ctx-ink-soft)]">
+                                Compare is anchored to the route, so this view can be reopened or shared without relying on browser history.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="atlas-horizon-action"
+                              onClick={() => onCompareNodeSelect(null)}
+                            >
+                              Return to Flint
+                            </button>
+                          </div>
+                          <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <CompareNodeCard label="Current node" node={currentNode} />
+                            <CompareNodeCard label="Compare node" node={compareNode} />
+                          </div>
+                        </div>
+                      ) : null}
+
                       <div className="atlas-horizon-shell rounded-[18px] border border-[rgba(42,36,25,0.08)] p-4">
                         <div className="mx-auto flex max-w-[180px] justify-center">
                           <div
@@ -613,10 +654,23 @@ export function AtlasDynamicIsland({
                               <button
                                 type="button"
                                 className="atlas-horizon-action"
-                                disabled={!selectedHorizonNode.compareAvailable}
+                                disabled={
+                                  !selectedHorizonNode.compareAvailable &&
+                                  compareNode?.atlasId !== selectedHorizonNode.atlasId
+                                }
+                                aria-pressed={compareNode?.atlasId === selectedHorizonNode.atlasId}
                                 aria-label={`Compare Flint Atlas with ${selectedHorizonNode.name}`}
+                                onClick={() =>
+                                  onCompareNodeSelect(
+                                    compareNode?.atlasId === selectedHorizonNode.atlasId
+                                      ? null
+                                      : selectedHorizonNode.atlasId,
+                                  )
+                                }
                               >
-                                Compare
+                                {compareNode?.atlasId === selectedHorizonNode.atlasId
+                                  ? "Comparing"
+                                  : "Compare"}
                               </button>
                             </div>
                           </div>
@@ -759,6 +813,52 @@ function horizonBadge(name: string): string {
     .map((word) => word[0]?.toUpperCase() ?? "")
     .join("")
     .slice(0, 2);
+}
+
+function CompareNodeCard({
+  label,
+  node,
+}: {
+  label: string;
+  node: AtlasNodeSummary;
+}) {
+  return (
+    <div className="rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+        {label}
+      </p>
+      <p className="mt-1 text-[13px] font-medium leading-[1.35] text-[color:var(--ctx-ink)]">
+        {node.name}
+      </p>
+      <dl className="mt-3 space-y-2 text-[11px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
+            Scope
+          </dt>
+          <dd className="text-right">{node.scopeLabel}</dd>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
+            Freshness
+          </dt>
+          <dd className="text-right">{node.freshnessLabel}</dd>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
+            Package
+          </dt>
+          <dd className="text-right">
+            {node.manifestAvailable ? "public package ready" : "package planned"}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-[11px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+        {node.capabilityLabels.length > 0
+          ? node.capabilityLabels.join(" · ")
+          : "Capabilities are still being defined."}
+      </p>
+    </div>
+  );
 }
 
 function compassPointStyle(node: NodeHorizonEntry): { left: string; top: string } {

@@ -1,3 +1,9 @@
+import {
+  getAtlasCameraPreset,
+  getAtlasViewCamera,
+  type AtlasCameraPresetId,
+} from "@/lib/atlas/atlas-boundary";
+
 export type AtlasSceneViewModeId = "atlas" | "oblique" | "street" | "section";
 
 export type AtlasLensId =
@@ -31,19 +37,25 @@ export type AtlasLens = {
   description: string;
 };
 
+export const ATLAS_CAMERA_PRESET_IDS: AtlasCameraPresetId[] = [
+  "county",
+  "city",
+  "neighborhood",
+  "corridor",
+  "parcel",
+];
+
+export const ATLAS_CAMERA_PRESETS = Object.fromEntries(
+  ATLAS_CAMERA_PRESET_IDS.map((id) => [id, getAtlasCameraPreset(id)]),
+) as Record<AtlasCameraPresetId, AtlasCameraState>;
+
 export const ATLAS_SCENE_VIEW_MODES: AtlasSceneViewMode[] = [
   {
     id: "atlas",
     label: "Atlas",
     shortLabel: "2D",
     description: "Flat civic map for scanning boundaries, layers, and source coverage.",
-    camera: {
-      longitude: -83.6875,
-      latitude: 43.0125,
-      zoom: 11.6,
-      bearing: 0,
-      pitch: 0,
-    },
+    camera: getAtlasViewCamera("atlas"),
     extrusionScale: 0,
   },
   {
@@ -51,13 +63,7 @@ export const ATLAS_SCENE_VIEW_MODES: AtlasSceneViewMode[] = [
     label: "Oblique",
     shortLabel: "3D",
     description: "Angled city model for civic objects, heat, and place relationships.",
-    camera: {
-      longitude: -83.6875,
-      latitude: 43.0125,
-      zoom: 12.35,
-      bearing: -24,
-      pitch: 58,
-    },
+    camera: getAtlasViewCamera("oblique"),
     extrusionScale: 1,
   },
   {
@@ -65,13 +71,7 @@ export const ATLAS_SCENE_VIEW_MODES: AtlasSceneViewMode[] = [
     label: "Street",
     shortLabel: "Street",
     description: "Low camera for corridor and street-level review.",
-    camera: {
-      longitude: -83.6917,
-      latitude: 43.0147,
-      zoom: 14.55,
-      bearing: -32,
-      pitch: 72,
-    },
+    camera: getAtlasViewCamera("street"),
     extrusionScale: 1.35,
   },
   {
@@ -79,13 +79,7 @@ export const ATLAS_SCENE_VIEW_MODES: AtlasSceneViewMode[] = [
     label: "Section",
     shortLabel: "Section",
     description: "Cutaway-like view for comparing layers, time, and source strata.",
-    camera: {
-      longitude: -83.697,
-      latitude: 43.025,
-      zoom: 12.85,
-      bearing: 32,
-      pitch: 46,
-    },
+    camera: getAtlasViewCamera("section"),
     extrusionScale: 0.72,
   },
 ];
@@ -150,10 +144,22 @@ export const VISUAL_GRAMMAR_TOKENS = [
     color: "#2f6f64",
   },
   {
-    id: "needs_review",
-    label: "Needs review",
-    detail: "candidate or low confidence",
+    id: "current_low_confidence",
+    label: "Low confidence",
+    detail: "current object still under review",
     color: "#c08a3a",
+  },
+  {
+    id: "vanished_confirmed",
+    label: "Vanished",
+    detail: "reviewed former place or building",
+    color: "#7d5b49",
+  },
+  {
+    id: "vanished_inferred",
+    label: "Inferred loss",
+    detail: "likely former place or building",
+    color: "#b88168",
   },
   {
     id: "historical_event",
@@ -162,9 +168,57 @@ export const VISUAL_GRAMMAR_TOKENS = [
     color: "#c14a2c",
   },
   {
+    id: "public_intervention",
+    label: "Intervention",
+    detail: "public project, promise, or funding record",
+    color: "#3e6f93",
+  },
+  {
+    id: "community_observation_pending",
+    label: "Pending observation",
+    detail: "community note awaiting review",
+    color: "#bf8d2b",
+  },
+  {
+    id: "community_observation_reviewed",
+    label: "Reviewed observation",
+    detail: "community note accepted into the atlas",
+    color: "#4f7f63",
+  },
+  {
+    id: "disputed_claim",
+    label: "Disputed",
+    detail: "public disagreement still unresolved",
+    color: "#8b5163",
+  },
+  {
+    id: "model_prediction",
+    label: "Proposal",
+    detail: "advisory model output, never public fact",
+    color: "#6d63a8",
+  },
+  {
+    id: "source_stale",
+    label: "Stale source",
+    detail: "source package needs a freshness check",
+    color: "#776f68",
+  },
+  {
     id: "source_high_confidence",
     label: "Source",
     detail: "high-support source",
     color: "#5f6fa3",
+  },
+  {
+    id: "brush_reconstruction",
+    label: "Reconstruction",
+    detail: "scene-factory or Brush reconstruction",
+    color: "#7d68a4",
+  },
+  {
+    id: "ifc_semantic_model",
+    label: "IFC model",
+    detail: "semantic building model import",
+    color: "#3f7180",
   },
 ] as const;

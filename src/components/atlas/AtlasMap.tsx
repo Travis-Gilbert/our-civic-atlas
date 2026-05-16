@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from "react";
 import { Map, NavigationControl, useControl } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
@@ -20,6 +20,12 @@ import {
   type AtlasLensId,
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import {
+  getAtlasBoundaryMaskFeature,
+  getAtlasBoundaryOutlineFeature,
+  getAtlasContextBbox,
+  getAtlasViewCamera,
+} from "@/lib/atlas/atlas-boundary";
 import {
   getEventFillColor,
   getPlaceFillColor,
@@ -71,6 +77,12 @@ type GeometricPlacesCollection = GeoJSON.FeatureCollection<
   PlaceProperties
 >;
 
+type AtlasLabelPoint = {
+  id: string;
+  label: string;
+  placeType: string;
+  position: [number, number];
+};
 /** Selected feature highlight. */
 const SELECTED_LINE: [number, number, number, number] = [193, 74, 44, 240];
 
@@ -181,7 +193,10 @@ export function AtlasMap({
   className,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
-  const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
+  const camera = getAtlasViewCamera(viewMode);
+  const contextBbox = getAtlasContextBbox();
+  const boundaryMask = useMemo(() => getAtlasBoundaryMaskFeature(), []);
+  const boundaryOutline = useMemo(() => getAtlasBoundaryOutlineFeature(), []);
 
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
@@ -190,6 +205,22 @@ export function AtlasMap({
       features: places.features.filter(hasGeometry),
     };
   }, [places]);
+
+  const visiblePlaces = useMemo<GeometricPlacesCollection | null>(() => {
+    if (!geometricPlaces) return null;
+
+    return {
+      ...geometricPlaces,
+      features: geometricPlaces.features.filter((feature) => {
+        const placeType = feature.properties.place_type;
+        if (placeType === "ward") return layerVisibility.wards !== false;
+        if (placeType === "corridor") {
+          return layerVisibility.infrastructure !== false;
+        }
+        return layerVisibility.places !== false;
+      }),
+    };
+  }, [geometricPlaces, layerVisibility]);
 
   /* ---- Build a place centroid lookup for positioning events -------- */
   const placeCentroids = useMemo(() => {
@@ -204,6 +235,33 @@ export function AtlasMap({
     }
     return lookup;
   }, [geometricPlaces]);
+
+  const localLabels = useMemo<AtlasLabelPoint[]>(() => {
+    if (!visiblePlaces) return [];
+
+    return visiblePlaces.features
+      .filter((feature) => {
+        const placeType = feature.properties.place_type;
+        if (placeType === "city" || placeType === "corridor") return true;
+        if (placeType === "ward") return viewMode !== "street";
+        return false;
+      })
+      .map((feature) => {
+        const position = geometryCentroid(feature.geometry);
+        if (!position) return null;
+
+        return {
+          id: feature.properties.place_id,
+          label:
+            feature.properties.place_type === "city"
+              ? "Flint civic boundary"
+              : feature.properties.name,
+          placeType: feature.properties.place_type,
+          position,
+        };
+      })
+      .filter((value): value is AtlasLabelPoint => value !== null);
+  }, [visiblePlaces, viewMode]);
 
   /* ---- Positioned events (only those whose place has geometry) ---- */
   const positionedEvents = useMemo(() => {
@@ -243,13 +301,13 @@ export function AtlasMap({
 
   /* ---- Selected feature (separate GeoJSON for highlight ring) ----- */
   const selectedFeatureCollection = useMemo<GeometricPlacesCollection | null>(() => {
-    if (!selectedPlaceId || !geometricPlaces) return null;
-    const feature = geometricPlaces.features.find(
+    if (!selectedPlaceId || !visiblePlaces) return null;
+    const feature = visiblePlaces.features.find(
       (f) => f.properties.place_id === selectedPlaceId,
     );
     if (!feature) return null;
     return { type: "FeatureCollection", features: [feature] };
-  }, [selectedPlaceId, geometricPlaces]);
+  }, [selectedPlaceId, visiblePlaces]);
 
   /* ---- Click handler ---------------------------------------------- */
   const handleClick = useCallback(
@@ -265,14 +323,25 @@ export function AtlasMap({
 
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
-    const result: (GeoJsonLayer | ScatterplotLayer)[] = [];
+    const result: (GeoJsonLayer | ScatterplotLayer | TextLayer<AtlasLabelPoint>)[] = [];
+
+    result.push(
+      new GeoJsonLayer({
+        id: "atlas-boundary-mask",
+        data: boundaryMask,
+        pickable: false,
+        stroked: false,
+        filled: true,
+        getFillColor: [246, 244, 238, 138],
+      }),
+    );
 
     /* Places polygons/points */
-    if (geometricPlaces && layerVisibility.places !== false) {
+    if (visiblePlaces && visiblePlaces.features.length > 0) {
       result.push(
         new GeoJsonLayer<GeometricPlaceFeature>({
           id: "atlas-places",
-          data: geometricPlaces,
+          data: visiblePlaces,
           pickable: true,
           stroked: true,
           filled: true,
@@ -311,11 +380,21 @@ export function AtlasMap({
       );
     }
 
+    result.push(
+      new GeoJsonLayer({
+        id: "atlas-boundary-outline",
+        data: boundaryOutline,
+        pickable: false,
+        stroked: true,
+        filled: false,
+        lineWidthMinPixels: viewMode === "atlas" ? 2.6 : 2.2,
+        getLineWidth: 2.6,
+        getLineColor: [42, 36, 25, 186],
+      }),
+    );
+
     /* Selected place highlight */
-    if (
-      selectedFeatureCollection &&
-      layerVisibility.places !== false
-    ) {
+    if (selectedFeatureCollection && layerVisibility.places !== false) {
       result.push(
         new GeoJsonLayer({
           id: "atlas-selected",
@@ -328,6 +407,38 @@ export function AtlasMap({
           getLineColor: SELECTED_LINE,
           getPointRadius: 10,
           pointRadiusMinPixels: 6,
+        }),
+      );
+    }
+
+    if (localLabels.length > 0) {
+      result.push(
+        new TextLayer<AtlasLabelPoint>({
+          id: "atlas-local-labels",
+          data: localLabels,
+          pickable: false,
+          billboard: false,
+          characterSet: "auto",
+          getPosition: (label) => label.position,
+          getText: (label) => label.label,
+          getSize: (label) => {
+            if (label.placeType === "city") return 18;
+            if (label.placeType === "corridor") return 14;
+            return 12;
+          },
+          getColor: (label) => {
+            if (label.placeType === "city") return [42, 36, 25, 220];
+            if (label.placeType === "corridor") return [193, 74, 44, 214];
+            return [90, 84, 72, 188];
+          },
+          getAngle: (label) => (label.placeType === "corridor" ? -12 : 0),
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "center",
+          fontFamily: "var(--font-sans), sans-serif",
+          fontWeight: 700,
+          sizeUnits: "pixels",
+          sizeMinPixels: 11,
+          sizeMaxPixels: 24,
         }),
       );
     }
@@ -407,10 +518,13 @@ export function AtlasMap({
 
     return result;
   }, [
-    geometricPlaces,
+    boundaryMask,
+    boundaryOutline,
+    visiblePlaces,
     positionedEvents,
     positionedSignals,
     selectedFeatureCollection,
+    localLabels,
     layerVisibility,
     handleClick,
     onPlaceSelect,
@@ -430,6 +544,12 @@ export function AtlasMap({
       <Map
         key={viewMode}
         initialViewState={camera}
+        maxBounds={[
+          [contextBbox[0], contextBbox[1]],
+          [contextBbox[2], contextBbox[3]],
+        ]}
+        minZoom={ATLAS_SCENE_VIEW_MODE_LOOKUP.atlas.camera.zoom - 1.15}
+        maxZoom={16.8}
         maxPitch={75}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}

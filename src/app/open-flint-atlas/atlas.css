@@ -144,6 +144,12 @@
     var(--atlas-map-land);
 }
 
+.civic-atlas .atlas-app-shell [data-atlas-shell-region="left-rail"],
+.civic-atlas .atlas-app-shell [data-atlas-shell-region="right-rail"],
+.civic-atlas .atlas-app-shell [data-atlas-shell-region="bottom-rail"] {
+  isolation: isolate;
+}
+
 .civic-atlas .atlas-scene-map::before {
   content: "";
   position: absolute;
@@ -163,6 +169,11 @@
 
 .civic-atlas .atlas-scene-map .maplibregl-canvas {
   filter: saturate(0.92) contrast(1.04) sepia(0.08);
+}
+
+.civic-atlas .atlas-scene-map .maplibregl-ctrl-bottom-right,
+.civic-atlas .atlas-scene-map .leaflet-bottom.leaflet-right {
+  transform: translate(-18px, -12px);
 }
 
 .civic-atlas [data-scene-view="street"] .atlas-scene-map .maplibregl-canvas {
