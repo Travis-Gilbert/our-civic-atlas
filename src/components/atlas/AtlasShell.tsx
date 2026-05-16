@@ -166,7 +166,7 @@ export function AtlasShell({
                 Timeline
               </span>
             </div>
-            <div className="max-h-[140px] overflow-y-auto">
+            <div className="atlas-scroll-hidden max-h-[140px] overflow-y-auto">
               {timeline ?? (
                 <div className="flex items-center justify-center h-[120px]">
                   <p
