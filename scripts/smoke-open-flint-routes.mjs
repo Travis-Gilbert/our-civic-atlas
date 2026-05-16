@@ -24,6 +24,56 @@ const ROUTES = [
   },
 ];
 
+const API_ROUTES = [
+  {
+    path: "/api/v2/theseus/open-flint-atlas/scene-manifests/",
+    expectKey: "scene_manifests",
+  },
+  {
+    path: "/api/v2/theseus/open-flint-atlas/scenario-manifests/",
+    expectKey: "scenario_manifests",
+  },
+  {
+    path: "/api/v2/theseus/open-flint-atlas/primitive-library/",
+    expectKey: "primitives",
+  },
+  {
+    path: "/api/v2/theseus/open-flint-atlas/geo-comments/",
+    expectKey: "comments",
+  },
+  {
+    path: "/api/v2/theseus/open-flint-atlas/layer-recipes/",
+    expectKey: "layer_recipes",
+  },
+  {
+    path: "/api/v2/theseus/open-flint-atlas/renderer-boundaries/",
+    expectKey: "renderer_boundaries",
+  },
+];
+
+const CATALOG_ROUTE_EXPECTATIONS = [
+  {
+    id: "scene-manifests",
+    url: "/api/v2/theseus/open-flint-atlas/scene-manifests/",
+  },
+  {
+    id: "scenario-manifests",
+    url: "/api/v2/theseus/open-flint-atlas/scenario-manifests/",
+  },
+  {
+    id: "primitive-library",
+    url: "/api/v2/theseus/open-flint-atlas/primitive-library/",
+  },
+  {
+    id: "geo-comments",
+    url: "/api/v2/theseus/open-flint-atlas/geo-comments/",
+  },
+  {
+    id: "layer-recipes",
+    url: "/api/v2/theseus/open-flint-atlas/layer-recipes/",
+  },
+];
+
 function parseOptions(argv) {
   const options = { baseUrl: DEFAULT_BASE_URL };
   for (let index = 0; index < argv.length; index += 1) {
@@ -47,15 +97,53 @@ function routeUrl(baseUrl, path) {
 }
 
 async function smokeRoute(baseUrl, route) {
-  const response = await fetch(routeUrl(baseUrl, route.path), {
-    redirect: "manual",
-  });
+  const response = await fetch(routeUrl(baseUrl, route.path));
   if (response.status < 200 || response.status >= 400) {
     throw new Error(`${route.path} returned ${response.status}`);
   }
   const text = await response.text();
   if (!text.includes(route.expect)) {
     throw new Error(`${route.path} did not include expected text: ${route.expect}`);
+  }
+}
+
+async function smokeApiRoute(baseUrl, route) {
+  const response = await fetch(routeUrl(baseUrl, route.path));
+  if (response.status < 200 || response.status >= 400) {
+    throw new Error(`${route.path} returned ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!(route.expectKey in payload)) {
+    throw new Error(`${route.path} did not include expected key: ${route.expectKey}`);
+  }
+}
+
+async function smokeReadModelCatalog(baseUrl) {
+  const response = await fetch(
+    routeUrl(baseUrl, "/api/v2/theseus/open-flint-atlas/read-model-catalog"),
+  );
+  if (response.status < 200 || response.status >= 400) {
+    throw new Error(`/api/v2/theseus/open-flint-atlas/read-model-catalog returned ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const files = Array.isArray(payload.files) ? payload.files : [];
+
+  for (const expectation of CATALOG_ROUTE_EXPECTATIONS) {
+    const entry = files.find((file) => file?.id === expectation.id);
+    if (!entry) {
+      throw new Error(`read-model-catalog is missing ${expectation.id}`);
+    }
+    if (entry.url !== expectation.url) {
+      throw new Error(
+        `read-model-catalog ${expectation.id} url mismatch: expected ${expectation.url}, received ${entry.url}`,
+      );
+    }
+
+    const entryResponse = await fetch(routeUrl(baseUrl, entry.url));
+    if (entryResponse.status < 200 || entryResponse.status >= 400) {
+      throw new Error(`${entry.url} returned ${entryResponse.status}`);
+    }
   }
 }
 
@@ -66,7 +154,13 @@ async function main() {
     await smokeRoute(options.baseUrl, route);
     passed += 1;
   }
-  console.log(`Open Flint route smoke complete: ${passed}/${ROUTES.length} routes passed.`);
+  for (const route of API_ROUTES) {
+    await smokeApiRoute(options.baseUrl, route);
+    passed += 1;
+  }
+  await smokeReadModelCatalog(options.baseUrl);
+  passed += CATALOG_ROUTE_EXPECTATIONS.length + 1;
+  console.log(`Open Flint route smoke complete: ${passed}/${ROUTES.length + API_ROUTES.length + CATALOG_ROUTE_EXPECTATIONS.length + 1} checks passed.`);
 }
 
 main().catch((error) => {

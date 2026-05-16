@@ -61,9 +61,44 @@
     {
       "id": "scene-manifests",
       "name": "Scene manifests",
-      "url": "/data/scene-manifests/*.json",
+      "url": "/api/v2/theseus/open-flint-atlas/scene-manifests/",
       "media_type": "application/json",
       "description": "Renderable scene contracts for Atlas Scene and Scene Foundry."
+    },
+    {
+      "id": "scenario-manifests",
+      "name": "Scenario manifests",
+      "url": "/api/v2/theseus/open-flint-atlas/scenario-manifests/",
+      "media_type": "application/json",
+      "description": "Forkable civic scenarios with metrics, permissions, and export formats."
+    },
+    {
+      "id": "primitive-library",
+      "name": "Civic design primitive library",
+      "url": "/api/v2/theseus/open-flint-atlas/primitive-library/",
+      "media_type": "application/json",
+      "description": "Reviewed intervention primitives with geometry rules, render recipes, and accessibility copy."
+    },
+    {
+      "id": "geo-comments",
+      "name": "Geo comments",
+      "url": "/api/v2/theseus/open-flint-atlas/geo-comments/",
+      "media_type": "application/json",
+      "description": "Public and review-only geo-anchored comments, document notes, and moderation examples."
+    },
+    {
+      "id": "layer-recipes",
+      "name": "Layer recipes",
+      "url": "/api/v2/theseus/open-flint-atlas/layer-recipes/",
+      "media_type": "application/json",
+      "description": "Recipe-driven layer definitions for Data Lab and future Kepler-compatible exploration."
+    },
+    {
+      "id": "renderer-boundaries",
+      "name": "Renderer boundaries",
+      "url": "/api/v2/theseus/open-flint-atlas/renderer-boundaries/",
+      "media_type": "application/json",
+      "description": "Executable renderer ownership registry for MapLibre, deck.gl, R3F, analytics, Data Lab, and Foundry."
     }
   ]
 }

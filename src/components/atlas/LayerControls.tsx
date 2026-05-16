@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { ATLAS_STATE_LEGEND_ITEMS, rgbaCss } from "@/lib/atlas/visual-grammar";
 
 /* ------------------------------------------------------------------ */
 /*  Icons                                                              */
@@ -126,6 +127,57 @@ export function LayerControls({
           </button>
         );
       })}
+
+      <div
+        className="mt-2 rounded-[5px] px-2 py-2"
+        style={{
+          background: "rgba(255, 255, 255, 0.34)",
+          border: "1px solid var(--ctx-rule-soft)",
+        }}
+      >
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.14em]"
+          style={{ color: "var(--ctx-ink-mute)" }}
+        >
+          State Grammar
+        </span>
+        <div className="mt-2 grid gap-1.5">
+          {ATLAS_STATE_LEGEND_ITEMS.map((state) => (
+            <div key={state.id} className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="flex h-5 w-5 items-center justify-center rounded-full text-[11px]"
+                style={{
+                  color: state.outline_hex,
+                  background: rgbaCss(state.color_hex, state.fill_alpha / 255),
+                  border:
+                    state.stroke_style === "dashed"
+                      ? `1px dashed ${state.outline_hex}`
+                      : state.stroke_style === "dotted"
+                        ? `1px dotted ${state.outline_hex}`
+                        : `1px solid ${state.outline_hex}`,
+                }}
+              >
+                {state.icon}
+              </span>
+              <div className="min-w-0">
+                <p
+                  className="m-0 text-[11px] leading-[1.35]"
+                  style={{ color: "var(--ctx-ink)" }}
+                >
+                  {state.label}
+                </p>
+                <p
+                  className="m-0 text-[10px] leading-[1.35]"
+                  style={{ color: "var(--ctx-ink-mute)" }}
+                >
+                  {state.note}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

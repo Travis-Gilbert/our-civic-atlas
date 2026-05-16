@@ -20,6 +20,12 @@ import {
   type AtlasLensId,
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import {
+  getEventFillColor,
+  getPlaceFillColor,
+  getPlaceLineColor,
+  getSignalFillColor,
+} from "@/lib/atlas/visual-grammar";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -65,58 +71,8 @@ type GeometricPlacesCollection = GeoJSON.FeatureCollection<
   PlaceProperties
 >;
 
-/* ------------------------------------------------------------------ */
-/*  Color palettes                                                     */
-/* ------------------------------------------------------------------ */
-
-/** RGBA tuples for place_type fill colors. */
-const PLACE_TYPE_FILL: Record<string, [number, number, number, number]> = {
-  ward: [59, 130, 246, 100], // blue
-  parcel: [217, 162, 59, 80], // amber
-  building: [140, 140, 150, 80], // gray
-  infrastructure: [45, 166, 153, 90], // teal
-};
-const PLACE_TYPE_FILL_DEFAULT: [number, number, number, number] = [
-  120, 120, 130, 60,
-];
-
-/** RGBA tuples for place_type line colors (stronger alpha). */
-const PLACE_TYPE_LINE: Record<string, [number, number, number, number]> = {
-  ward: [59, 130, 246, 180],
-  parcel: [217, 162, 59, 160],
-  building: [140, 140, 150, 140],
-  infrastructure: [45, 166, 153, 160],
-};
-const PLACE_TYPE_LINE_DEFAULT: [number, number, number, number] = [
-  120, 120, 130, 120,
-];
-
 /** Selected feature highlight. */
 const SELECTED_LINE: [number, number, number, number] = [193, 74, 44, 240];
-
-/** RGBA tuples for event_type dot colors. */
-const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
-  infrastructure_change: [59, 130, 246],
-  environmental: [45, 166, 153],
-  policy: [217, 162, 59],
-  health: [220, 80, 80],
-  community: [160, 100, 220],
-};
-const EVENT_TYPE_COLOR_DEFAULT: [number, number, number] = [140, 140, 150];
-
-const SIGNAL_KIND_COLOR: Record<string, [number, number, number]> = {
-  public_record: [74, 138, 90],
-  candidate: [184, 81, 58],
-};
-const SIGNAL_KIND_COLOR_DEFAULT: [number, number, number] = [58, 79, 92];
-
-const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
-  explore: [193, 132, 58, 34],
-  memory: [193, 74, 44, 44],
-  safety: [56, 132, 128, 44],
-  interventions: [82, 126, 82, 46],
-  evidence: [92, 106, 160, 42],
-};
 
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
@@ -175,20 +131,6 @@ function placeElevation(placeType: string, viewMode: AtlasSceneViewModeId) {
     }[placeType] ?? 26;
 
   return baseElevation * mode.extrusionScale;
-}
-
-function lensFillColor(
-  placeType: string,
-  activeLens: AtlasLensId,
-): [number, number, number, number] {
-  const base = PLACE_TYPE_FILL[placeType] ?? PLACE_TYPE_FILL_DEFAULT;
-  const tint = LENS_FILL_TINT[activeLens];
-  return [
-    Math.round(base[0] * 0.72 + tint[0] * 0.28),
-    Math.round(base[1] * 0.72 + tint[1] * 0.28),
-    Math.round(base[2] * 0.72 + tint[2] * 0.28),
-    Math.max(base[3], tint[3]),
-  ];
 }
 
 /* ------------------------------------------------------------------ */
@@ -344,14 +286,11 @@ export function AtlasMap({
           },
           getFillColor: (feature) => {
             const place = feature as unknown as PlaceFeature;
-            return lensFillColor(place.properties.place_type, activeLens);
+            return getPlaceFillColor(place.properties.place_type, activeLens);
           },
           getLineColor: (feature) => {
             const place = feature as unknown as PlaceFeature;
-            return (
-              PLACE_TYPE_LINE[place.properties.place_type] ??
-              PLACE_TYPE_LINE_DEFAULT
-            );
+            return getPlaceLineColor(place.properties.place_type);
           },
           getPointRadius: 6,
           pointRadiusMinPixels: 4,
@@ -410,7 +349,7 @@ export function AtlasMap({
           getPosition: (event) => event._position,
           getRadius: 5,
           getFillColor: (event) =>
-            EVENT_TYPE_COLOR[event.event_type] ?? EVENT_TYPE_COLOR_DEFAULT,
+            getEventFillColor(event.event_type),
           getLineColor: [255, 255, 255],
           getLineWidth: 1,
           lineWidthMinPixels: 1,
@@ -448,8 +387,7 @@ export function AtlasMap({
           getRadius: (signal) =>
             signal.signal_id === selectedSignalId ? 9 : 7,
           getFillColor: (signal) =>
-            SIGNAL_KIND_COLOR[signal.signal_kind] ??
-            SIGNAL_KIND_COLOR_DEFAULT,
+            getSignalFillColor(signal.signal_kind),
           getLineColor: [255, 255, 255],
           getLineWidth: (signal) =>
             signal.signal_id === selectedSignalId ? 2 : 1,

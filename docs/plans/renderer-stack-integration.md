@@ -23,6 +23,14 @@ This repo should build from existing public primitives first, then add custom ci
 - Public route rendering must not depend on live LLM/tool sessions, local authoring software, or unreviewed generated assets.
 - Every rendered object needs a CivicObject id, source/confidence state, review state, and dossier link.
 
+## North-Star Floor
+
+- Keep MapLibre and deck.gl as the public atlas base for the main route.
+- Use R3F only for selected object or scene-specific layers until it beats the baseline on visual gates.
+- Add fixture-backed `ScenarioManifest`, civic design primitive, geo-comment, and layer-recipe contracts before broad UI replacement.
+- Keep renderer ownership explicit through `renderer-boundaries` so basemap, dense overlays, scene assets, analytics, Data Lab, and Foundry do not collapse into one runtime.
+- Route public state colors and badges through the shared OCA visual grammar instead of per-component ad hoc palettes.
+
 ## Accessibility Rules
 
 - Reuse atlas-native components before adding new ones.

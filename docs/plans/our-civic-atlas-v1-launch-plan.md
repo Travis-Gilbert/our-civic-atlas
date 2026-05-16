@@ -173,6 +173,7 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 - Node Horizon `Open` actions now route from the map shell into node detail pages with accessible `Open {node}` names; Playwright MCP clicked the first horizon link to `/open-flint-atlas/node/atlas%3Amichigan` and confirmed the Michigan node detail page with no horizontal overflow. Compare, breadcrumbs, and spatial portal transitions remain partial.
 - Production deployment now targets Vercel project `travis-gilberts-projects/our-civic-atlas`; `flint.ourcivicatlas.org` is attached to the ready production deployment and verified in Vercel project-domain records.
 - Node detail pages now include Federation path metadata and a `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node path and back-navigation anchor without horizontal overflow. Compare and spatial portal transitions remain partial.
+- North-star floor work on `main` now adds typed `SceneManifest` v1 objects plus starter `ScenarioManifest`, civic design primitive, geo-comment, layer-recipe, and renderer-boundary read surfaces. The baseline public map remains MapLibre/deck.gl/Leaflet while the shared OCA visual grammar starts replacing component-local color drift.
 
 ## Production Gates
 

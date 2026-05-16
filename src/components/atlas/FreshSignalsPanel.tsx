@@ -2,6 +2,12 @@
 
 import { Tag } from "antd";
 import type { AtlasSource, FreshSignal } from "@/lib/api/openFlintAtlas";
+import {
+  getConfidenceTagColor,
+  getReviewTagColor,
+  getSignalFillCss,
+  getSignalOutlineCss,
+} from "@/lib/atlas/visual-grammar";
 
 function relativeTime(iso: string | null): string {
   if (!iso) return "time unknown";
@@ -23,23 +29,6 @@ function formatStamp(iso: string | null): string {
   if (!iso) return "Unknown";
   return new Date(iso).toLocaleString();
 }
-
-const REVIEW_TAG: Record<string, string> = {
-  accepted: "green",
-  candidate: "gold",
-  needs_review: "gold",
-  reviewable_proposal: "gold",
-  needs_more_evidence: "orange",
-  rejected: "red",
-};
-
-const CONFIDENCE_TAG: Record<string, string> = {
-  reviewed: "green",
-  high: "blue",
-  moderate: "gold",
-  medium: "gold",
-  low: "default",
-};
 
 type FreshSignalsPanelProps = {
   signals: FreshSignal[];
@@ -125,10 +114,10 @@ export function FreshSignalsPanel({
                 className="rounded-[5px] px-3 py-3 text-left transition-colors"
                 style={{
                   border: active
-                    ? "1.5px solid var(--ctx-accent)"
+                    ? `1.5px solid ${getSignalOutlineCss(signal.signal_kind)}`
                     : "1px solid var(--ctx-rule-soft)",
                   background: active
-                    ? "rgba(58, 79, 92, 0.08)"
+                    ? `${getSignalFillCss(signal.signal_kind)}14`
                     : "rgba(255, 255, 255, 0.34)",
                 }}
               >
@@ -147,7 +136,7 @@ export function FreshSignalsPanel({
                       {signal.source_label} · {relativeTime(signal.received_at)}
                     </p>
                   </div>
-                  <Tag color={REVIEW_TAG[signal.review_status] ?? "default"}>
+                  <Tag color={getReviewTagColor(signal.review_status)}>
                     {signal.review_status.replaceAll("_", " ")}
                   </Tag>
                 </div>
@@ -194,10 +183,10 @@ export function FreshSignalsPanel({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <Tag color={REVIEW_TAG[selected.review_status] ?? "default"}>
+            <Tag color={getReviewTagColor(selected.review_status)}>
               {selected.review_status.replaceAll("_", " ")}
             </Tag>
-            <Tag color={CONFIDENCE_TAG[selected.confidence_label] ?? "default"}>
+            <Tag color={getConfidenceTagColor(selected.confidence_label)}>
               {selected.confidence_label}
             </Tag>
             <Tag>{selected.resolution_level.replaceAll("_", " ")}</Tag>

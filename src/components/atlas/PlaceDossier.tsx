@@ -19,36 +19,16 @@ import {
   type DossierTabId,
   type DossierTimelineItem,
 } from "@/lib/atlas/dossier-payload";
+import {
+  getConfidenceTagColor,
+  getPlaceTypeTagColor,
+  getTrustTierTagColor,
+} from "@/lib/atlas/visual-grammar";
 
 type DossierLoadState = {
   dossier: PlaceDossier | null;
   loading: boolean;
   error: string | null;
-};
-
-const PLACE_TYPE_TAG_COLOR: Record<string, string> = {
-  city: "blue",
-  corridor: "cyan",
-  ward: "blue",
-  parcel: "gold",
-  building: "default",
-  infrastructure: "cyan",
-};
-
-const CONFIDENCE_TAG_COLOR: Record<string, string> = {
-  high: "green",
-  medium: "gold",
-  low: "orange",
-  unknown: "default",
-};
-
-const TRUST_TIER_TAG_COLOR: Record<string, string> = {
-  official: "green",
-  official_spatial: "green",
-  official_statistical: "green",
-  curated_public_reference: "blue",
-  community: "gold",
-  automated: "default",
 };
 
 const MOBILE_SNAP_HEIGHTS = {
@@ -210,7 +190,7 @@ function TimelineCard({ item }: { item: DossierTimelineItem }) {
         >
           {item.title}
         </span>
-        <Tag color={CONFIDENCE_TAG_COLOR[item.confidence_label] ?? "default"}>
+        <Tag color={getConfidenceTagColor(item.confidence_label)}>
           {item.confidence_label}
         </Tag>
       </div>
@@ -259,7 +239,7 @@ function SourceCard({ source }: { source: DossierSourceCard }) {
         >
           {source.name}
         </a>
-        <Tag color={TRUST_TIER_TAG_COLOR[source.trust_tier] ?? "default"}>
+        <Tag color={getTrustTierTagColor(source.trust_tier)}>
           {source.trust_tier.replace(/_/g, " ")}
         </Tag>
       </div>
@@ -360,7 +340,7 @@ function OverviewTab({ payload }: { payload: DossierPayload }) {
       </DossierSection>
       <DossierSection label="Confidence">
         <div className="flex items-center gap-3 mb-2">
-          <Tag color={CONFIDENCE_TAG_COLOR[payload.confidence.label] ?? "default"}>
+          <Tag color={getConfidenceTagColor(payload.confidence.label)}>
             {payload.confidence.label}
           </Tag>
           <span
@@ -606,10 +586,10 @@ function DossierContent({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Tag color={PLACE_TYPE_TAG_COLOR[payload.subject.type] ?? "default"}>
+          <Tag color={getPlaceTypeTagColor(payload.subject.type)}>
             {subjectType}
           </Tag>
-          <Tag color={CONFIDENCE_TAG_COLOR[payload.confidence.label] ?? "default"}>
+          <Tag color={getConfidenceTagColor(payload.confidence.label)}>
             {payload.confidence.label} confidence
           </Tag>
           <span

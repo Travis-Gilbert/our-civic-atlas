@@ -53,6 +53,12 @@ import type {
   AtlasLensId,
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import {
+  getEventFillCss,
+  getPlaceFillCss,
+  getPlaceLineCss,
+  getSignalFillCss,
+} from "@/lib/atlas/visual-grammar";
 import { cn } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
 
@@ -78,42 +84,7 @@ type GeometricPlacesCollection = GeoJSON.FeatureCollection<
   PlaceProperties
 >;
 
-/* ------------------------------------------------------------------ */
-/*  Color palettes (mirror the desktop ones; the same brand tokens)   */
-/* ------------------------------------------------------------------ */
-
-const PLACE_TYPE_STROKE: Record<string, string> = {
-  ward: "#3b82f6",
-  parcel: "#d9a23b",
-  building: "#8c8c96",
-  infrastructure: "#2da699",
-};
-const PLACE_TYPE_STROKE_DEFAULT = "#787882";
-
-const PLACE_TYPE_FILL: Record<string, string> = {
-  ward: "rgba(59,130,246,0.18)",
-  parcel: "rgba(217,162,59,0.18)",
-  building: "rgba(140,140,150,0.18)",
-  infrastructure: "rgba(45,166,153,0.20)",
-};
-const PLACE_TYPE_FILL_DEFAULT = "rgba(120,120,130,0.16)";
-
 const SELECTED_STROKE = "#c14a2c";
-
-const EVENT_TYPE_COLOR: Record<string, string> = {
-  infrastructure_change: "#3b82f6",
-  environmental: "#2da699",
-  policy: "#d9a23b",
-  health: "#dc5050",
-  community: "#a064dc",
-};
-const EVENT_TYPE_COLOR_DEFAULT = "#8c8c96";
-
-const SIGNAL_KIND_COLOR: Record<string, string> = {
-  public_record: "#4a8a5a",
-  candidate: "#b8513a",
-};
-const SIGNAL_KIND_COLOR_DEFAULT = "#3a4f5c";
 
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
@@ -219,15 +190,14 @@ export function MobileAtlasMap({
       return {
         color: isSelected
           ? SELECTED_STROKE
-          : PLACE_TYPE_STROKE[placeType] ?? PLACE_TYPE_STROKE_DEFAULT,
+          : getPlaceLineCss(placeType),
         weight: isSelected ? 2.4 : 1.2,
-        fillColor:
-          PLACE_TYPE_FILL[placeType] ?? PLACE_TYPE_FILL_DEFAULT,
+        fillColor: getPlaceFillCss(placeType, activeLens),
         fillOpacity: 1, // the rgba already encodes the alpha
         opacity: 1,
       };
     },
-    [selectedPlaceId],
+    [activeLens, selectedPlaceId],
   );
 
   /* Attach a click handler per feature without rebuilding the whole
@@ -313,8 +283,7 @@ export function MobileAtlasMap({
             const center = placeId ? placeCentroids.get(placeId) : null;
             if (!center) return null;
             const fill =
-              EVENT_TYPE_COLOR[event.event_type ?? ""] ??
-              EVENT_TYPE_COLOR_DEFAULT;
+              getEventFillCss(event.event_type ?? "");
             return (
               <CircleMarker
                 key={event.event_id}
@@ -355,8 +324,7 @@ export function MobileAtlasMap({
             if (!center) return null;
 
             const stroke =
-              SIGNAL_KIND_COLOR[signal.signal_kind] ??
-              SIGNAL_KIND_COLOR_DEFAULT;
+              getSignalFillCss(signal.signal_kind);
 
             return (
               <CircleMarker

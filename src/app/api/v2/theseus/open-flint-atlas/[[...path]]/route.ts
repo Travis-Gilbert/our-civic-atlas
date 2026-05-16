@@ -469,6 +469,36 @@ export async function GET(request: Request, { params }: RouteContext) {
       total: staticPackage.sceneManifests.length,
     });
   }
+  if (segment === "scenario-manifests") {
+    return json({
+      scenario_manifests: staticPackage.scenarioManifests,
+      total: staticPackage.scenarioManifests.length,
+    });
+  }
+  if (segment === "primitive-library") {
+    return json({
+      primitives: staticPackage.civicDesignPrimitives,
+      total: staticPackage.civicDesignPrimitives.length,
+    });
+  }
+  if (segment === "geo-comments") {
+    return json({
+      comments: staticPackage.geoComments,
+      total: staticPackage.geoComments.length,
+    });
+  }
+  if (segment === "layer-recipes") {
+    return json({
+      layer_recipes: staticPackage.layerRecipes,
+      total: staticPackage.layerRecipes.length,
+    });
+  }
+  if (segment === "renderer-boundaries") {
+    return json({
+      renderer_boundaries: staticPackage.rendererBoundaries,
+      total: staticPackage.rendererBoundaries.length,
+    });
+  }
   if (segment === "static-package") {
     const validationIssues = validateStaticAtlasPackageFixture();
     return json({

@@ -59,8 +59,17 @@
   --card:                 var(--ctx-paper-soft);
   --card-foreground:      var(--ctx-ink);
 
-  /* Atlas-specific semantic tokens. Kept distinct from civic-blue
-     family so map layers stay readable. */
+  /* Atlas-specific semantic tokens. */
+  --atlas-paper:          var(--ctx-paper);
+  --atlas-paper-soft:     var(--ctx-paper-soft);
+  --atlas-paper-deep:     var(--ctx-paper-deep);
+  --atlas-ink:            var(--ctx-ink);
+  --atlas-ink-soft:       var(--ctx-ink-soft);
+  --atlas-ink-mute:       var(--ctx-ink-mute);
+  --atlas-map-land:       #ede8dd;
+  --atlas-map-water:      #d7e4e6;
+  --atlas-map-road:       #d3c7b3;
+  --atlas-map-building:   #d9d1c2;
   --atlas-ward:           #6b7d8c;
   --atlas-parcel:         #b8893f;
   --atlas-infrastructure: #4a8a82;
@@ -70,6 +79,25 @@
   --atlas-success:        #4a8a5a;
   --atlas-warning:        #c08a3a;
   --atlas-danger:         var(--ctx-accent);
+  --atlas-source-lineage: #4a8a5a;
+  --atlas-state-current:  #5471b7;
+  --atlas-state-review:   #ba8333;
+  --atlas-state-historical:#7a6294;
+  --atlas-state-proposed: #4a8a82;
+  --atlas-state-comment:  #8a6f42;
+  --atlas-state-poll:     #5c6aa0;
+  --atlas-state-safety:   #bf5f52;
+  --atlas-state-live:     #c14a2c;
+  --atlas-surface-1:      rgba(255, 255, 255, 0.34);
+  --atlas-surface-2:      rgba(246, 244, 238, 0.68);
+  --atlas-surface-3:      rgba(239, 236, 228, 0.92);
+  --atlas-motion-fast:    140ms;
+  --atlas-motion-medium:  220ms;
+  --atlas-mode-explore:   rgba(193, 132, 58, 0.14);
+  --atlas-mode-memory:    rgba(193, 74, 44, 0.12);
+  --atlas-mode-safety:    rgba(56, 132, 128, 0.14);
+  --atlas-mode-interventions: rgba(82, 126, 82, 0.14);
+  --atlas-mode-evidence:  rgba(92, 106, 160, 0.14);
 
   background: var(--ctx-paper);
   color: var(--ctx-ink);
@@ -113,7 +141,7 @@
   background:
     radial-gradient(circle at 58% 24%, rgba(193, 74, 44, 0.16), transparent 31%),
     radial-gradient(circle at 22% 74%, rgba(74, 138, 130, 0.16), transparent 28%),
-    var(--ctx-paper);
+    var(--atlas-map-land);
 }
 
 .civic-atlas .atlas-scene-map::before {
@@ -130,7 +158,7 @@
 
 .civic-atlas .atlas-scene-map .maplibregl-map,
 .civic-atlas .atlas-scene-map .leaflet-container {
-  background: var(--ctx-paper-soft);
+  background: var(--atlas-paper-soft);
 }
 
 .civic-atlas .atlas-scene-map .maplibregl-canvas {
@@ -144,13 +172,13 @@
 .civic-atlas [data-active-lens="memory"] .atlas-scene-map::before {
   background:
     linear-gradient(90deg, rgba(246, 244, 238, 0.5), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
-    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 22%, rgba(193, 74, 44, 0.1) 72%, rgba(42, 36, 25, 0.12));
+    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 22%, var(--atlas-mode-memory) 72%, rgba(42, 36, 25, 0.12));
 }
 
 .civic-atlas [data-active-lens="evidence"] .atlas-scene-map::before {
   background:
     linear-gradient(90deg, rgba(246, 244, 238, 0.46), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
-    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 24%, rgba(92, 106, 160, 0.12) 72%, rgba(42, 36, 25, 0.12));
+    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 24%, var(--atlas-mode-evidence) 72%, rgba(42, 36, 25, 0.12));
 }
 
 .civic-atlas .atlas-scene-glass,

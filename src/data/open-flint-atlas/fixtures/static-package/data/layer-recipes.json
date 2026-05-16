@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "atlas_node_id": "atlas:flint-mi",
+  "recipes": [
+    {
+      "recipe_id": "recipe:safe-routes-priority",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Safe routes priority",
+      "description": "Combines school frontage, crash history, transit stops, and reviewed comments into a safety-planning overlay.",
+      "layer_ids": ["street-safety", "interventions", "places"],
+      "geometry_type": "mixed",
+      "legend_label": "Safe routes priority corridor",
+      "default_renderer": "deck.gl",
+      "compatible_renderers": ["deck.gl", "kepler"],
+      "field_mappings": [
+        { "source_field": "place_id", "target_field": "corridor_id", "required": true },
+        { "source_field": "confidence_score", "target_field": "priority_score", "required": true },
+        { "source_field": "event_count", "target_field": "support_count", "required": false }
+      ],
+      "source_ids": ["michigan_traffic_crash_facts", "city_of_flint_gis", "census_acs_tiger"],
+      "default_visible": true,
+      "export_formats": ["json", "geojson", "csv"],
+      "updated_at": "2026-05-15T00:00:00-04:00"
+    },
+    {
+      "recipe_id": "recipe:lost-flint-memory-trace",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Lost Flint memory trace",
+      "description": "Bundles historical events, vanished buildings, and source-backed memory objects into a reviewable memory layer.",
+      "layer_ids": ["historical-memory", "evidence"],
+      "geometry_type": "mixed",
+      "legend_label": "Lost Flint memory trace",
+      "default_renderer": "deck.gl",
+      "compatible_renderers": ["deck.gl", "kepler"],
+      "field_mappings": [
+        { "source_field": "object_id", "target_field": "memory_id", "required": true },
+        { "source_field": "render_mode", "target_field": "visual_state", "required": true },
+        { "source_field": "source_ids", "target_field": "support_ids", "required": false }
+      ],
+      "source_ids": ["mapflint"],
+      "default_visible": false,
+      "export_formats": ["json", "geojson"],
+      "updated_at": "2026-05-15T00:00:00-04:00"
+    },
+    {
+      "recipe_id": "recipe:signal-watch",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Signal watch",
+      "description": "Projects reviewed and candidate signals into a compact monitor surface for atlas maintainers and public readers.",
+      "layer_ids": ["evidence", "interventions"],
+      "geometry_type": "point",
+      "legend_label": "Fresh signal watch",
+      "default_renderer": "kepler",
+      "compatible_renderers": ["kepler", "deck.gl"],
+      "field_mappings": [
+        { "source_field": "signal_id", "target_field": "artifact_id", "required": true },
+        { "source_field": "review_status", "target_field": "status", "required": true },
+        { "source_field": "place_id", "target_field": "anchor_place_id", "required": false }
+      ],
+      "source_ids": ["city_of_flint_gis", "mapflint"],
+      "default_visible": false,
+      "export_formats": ["json", "csv"],
+      "updated_at": "2026-05-15T00:00:00-04:00"
+    }
+  ]
+}

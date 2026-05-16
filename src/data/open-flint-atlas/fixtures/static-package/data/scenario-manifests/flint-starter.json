@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "scenario_id": "scenario:flint-safe-routes-starter",
+  "atlas_node_id": "atlas:flint-mi",
+  "name": "Safe routes starter",
+  "slug": "safe-routes-starter",
+  "description": "A public starter scenario that layers reviewed crosswalk, bus-stop, and corridor improvements onto the current Flint overview scene.",
+  "base_scene_id": "scene:flint-overview",
+  "base_snapshot_at": "2026-05-13T00:00:00-04:00",
+  "proposed_object_ids": [
+    "intervention:crosswalk-daylighting:ward-1",
+    "intervention:bus-shelter:mlk-corridor",
+    "intervention:signal-priority:south-saginaw"
+  ],
+  "comparison_object_ids": [
+    "place:flint-city",
+    "place:carriage-town"
+  ],
+  "metrics": [
+    {
+      "key": "walking_injury_risk_delta",
+      "label": "Walking injury risk delta",
+      "value": -12,
+      "unit": "percent",
+      "source_ids": [
+        "michigan_traffic_crash_facts",
+        "city_of_flint_gis"
+      ],
+      "confidence_score": 0.62
+    },
+    {
+      "key": "transit_access_gain",
+      "label": "Transit access gain",
+      "value": 420,
+      "unit": "people within 5 minute walk",
+      "source_ids": [
+        "census_acs_tiger",
+        "city_of_flint_gis"
+      ],
+      "confidence_score": 0.58
+    }
+  ],
+  "visibility": "public",
+  "forked_from_scenario_id": null,
+  "lineage_ids": [
+    "scene:flint-overview"
+  ],
+  "permissions": [
+    "view_public",
+    "fork_public",
+    "export_geojson",
+    "export_json"
+  ],
+  "export_formats": [
+    "json",
+    "geojson",
+    "csv"
+  ],
+  "source_ids": [
+    "michigan_traffic_crash_facts",
+    "city_of_flint_gis",
+    "census_acs_tiger"
+  ],
+  "review_state": "needs_review",
+  "updated_at": "2026-05-15T00:00:00-04:00"
+}

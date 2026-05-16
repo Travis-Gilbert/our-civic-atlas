@@ -1,0 +1,468 @@
+{
+  "schema_version": "1.0.0",
+  "atlas_node_id": "atlas:flint-mi",
+  "primitives": [
+    {
+      "primitive_id": "primitive:crosswalk-daylighting",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Crosswalk daylighting",
+      "category": "mobility",
+      "description": "Reclaim curb space near crossings to improve sight lines and shorten pedestrian exposure.",
+      "geometry_rule": "Line-based crossing anchor with curb-corner polygon buffers.",
+      "parameters": [
+        { "key": "clear_length_ft", "label": "Clear length", "type": "number", "required": true, "unit": "ft", "default_value": 20 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "polygon", "style_token": "proposed_crosswalk_buffer", "label": "Proposed daylighting zone" }
+      ],
+      "accessibility_text": "Shortens crossing distance and improves visibility for walkers and wheelchair users.",
+      "metrics": [
+        { "key": "conflict_reduction", "label": "Conflict reduction", "unit": "percent", "direction": "decrease" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["city_of_flint_gis", "michigan_traffic_crash_facts"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:bus-shelter-upgrade",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Bus shelter upgrade",
+      "category": "mobility",
+      "description": "Adds shelter, lighting, and seating to an existing bus stop node.",
+      "geometry_rule": "Point anchor snapped to transit stop with optional setback polygon.",
+      "parameters": [
+        { "key": "bench_count", "label": "Bench count", "type": "number", "required": true, "default_value": 1 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "transit_shelter_proposed", "label": "Shelter volume" }
+      ],
+      "accessibility_text": "Provides sheltered waiting space and seating close to the curb.",
+      "metrics": [
+        { "key": "covered_riders", "label": "Covered riders", "unit": "people/day", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:protected-bike-segment",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Protected bike segment",
+      "category": "mobility",
+      "description": "Creates a buffered bike segment along a corridor with bollard spacing guidance.",
+      "geometry_rule": "Line segment with directional offset and regular protection markers.",
+      "parameters": [
+        { "key": "bollard_spacing_ft", "label": "Bollard spacing", "type": "number", "required": true, "unit": "ft", "default_value": 25 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "line", "style_token": "bike_lane_proposed", "label": "Protected lane stripe" }
+      ],
+      "accessibility_text": "Clarifies bike travel space and reduces unexpected vehicle encroachment.",
+      "metrics": [
+        { "key": "bike_network_gap", "label": "Network gap closed", "unit": "ft", "direction": "decrease" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:corner-ramp-repair",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Corner ramp repair",
+      "category": "accessibility",
+      "description": "Targets ADA ramp repairs with tactile warning and slope checks.",
+      "geometry_rule": "Point or small polygon at intersection corner with repair extent.",
+      "parameters": [
+        { "key": "slope_percent", "label": "Target slope", "type": "number", "required": true, "unit": "percent", "default_value": 8 }
+      ],
+      "render_recipes": [
+        { "renderer": "maplibre", "geometry_type": "point", "style_token": "accessibility_ramp_target", "label": "Ramp repair marker" }
+      ],
+      "accessibility_text": "Improves wheelchair and stroller access at an intersection corner.",
+      "metrics": [
+        { "key": "corner_access_score", "label": "Corner access score", "unit": null, "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:traffic-calming-chicane",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Traffic calming chicane",
+      "category": "safety",
+      "description": "Introduces alternating curb extensions to slow vehicles on a local street.",
+      "geometry_rule": "Alternating polygon protrusions along a street centerline.",
+      "parameters": [
+        { "key": "target_speed_mph", "label": "Target speed", "type": "number", "required": true, "unit": "mph", "default_value": 20 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "polygon", "style_token": "traffic_calming_proposed", "label": "Chicane geometry" }
+      ],
+      "accessibility_text": "Slows turning and through vehicles while preserving emergency access.",
+      "metrics": [
+        { "key": "speed_reduction", "label": "Speed reduction", "unit": "mph", "direction": "decrease" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["michigan_traffic_crash_facts", "city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:school-slow-zone",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "School slow zone",
+      "category": "safety",
+      "description": "Packages beacon, signage, and paint treatment around a school frontage.",
+      "geometry_rule": "Corridor buffer centered on school frontage line.",
+      "parameters": [
+        { "key": "zone_length_ft", "label": "Zone length", "type": "number", "required": true, "unit": "ft", "default_value": 450 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "polygon", "style_token": "school_zone_safety", "label": "School frontage safety zone" }
+      ],
+      "accessibility_text": "Signals a slower and more predictable school arrival environment.",
+      "metrics": [
+        { "key": "arrival_conflicts", "label": "Arrival conflicts", "unit": "count", "direction": "decrease" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:stormwater-bioswale",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Stormwater bioswale",
+      "category": "water",
+      "description": "Captures runoff along a curb edge or parcel frontage with planted filtration.",
+      "geometry_rule": "Linear polygon inset along curb or parcel frontage.",
+      "parameters": [
+        { "key": "storage_cuft", "label": "Storage volume", "type": "number", "required": true, "unit": "cuft", "default_value": 250 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "polygon", "style_token": "bioswale_current_or_proposed", "label": "Bioswale planting area" }
+      ],
+      "accessibility_text": "Uses curb breaks and planting areas while keeping a clear walking edge.",
+      "metrics": [
+        { "key": "runoff_capture", "label": "Runoff capture", "unit": "gallons", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:lead-service-line-cluster",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Lead service line cluster",
+      "category": "water",
+      "description": "Groups adjacent service replacements into a reviewable construction package.",
+      "geometry_rule": "Line collection snapped to service connections within a block.",
+      "parameters": [
+        { "key": "homes_served", "label": "Homes served", "type": "number", "required": true, "default_value": 12 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "line", "style_token": "water_service_priority", "label": "Priority replacement lines" }
+      ],
+      "accessibility_text": "Bundles street and service work to reduce repeated disruption.",
+      "metrics": [
+        { "key": "lead_risk_households", "label": "Lead risk households", "unit": "households", "direction": "decrease" }
+      ],
+      "export_formats": ["json", "geojson", "csv"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:vacant-lot-garden",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Vacant lot garden",
+      "category": "public_space",
+      "description": "Turns a maintained vacant lot into a food or pollinator garden with public stewardship.",
+      "geometry_rule": "Parcel polygon with interior planting beds and access path.",
+      "parameters": [
+        { "key": "bed_count", "label": "Bed count", "type": "number", "required": true, "default_value": 8 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "garden_plot_proposed", "label": "Garden beds and canopy" }
+      ],
+      "accessibility_text": "Keeps a clear entry path and seating edge while supporting stewardship.",
+      "metrics": [
+        { "key": "productive_lots", "label": "Productive lots", "unit": "lots", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["city_of_flint_gis", "mapflint"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:play-street-kit",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Play street kit",
+      "category": "public_space",
+      "description": "Temporary closure kit for recurring neighborhood play streets and small events.",
+      "geometry_rule": "Street segment with closure nodes and activity zones.",
+      "parameters": [
+        { "key": "hours_active", "label": "Hours active", "type": "number", "required": true, "unit": "hours", "default_value": 4 }
+      ],
+      "render_recipes": [
+        { "renderer": "maplibre", "geometry_type": "line", "style_token": "play_street_active", "label": "Temporary play street edge" }
+      ],
+      "accessibility_text": "Uses removable barriers with accessible crossing openings and seating zones.",
+      "metrics": [
+        { "key": "active_hours", "label": "Active hours", "unit": "hours", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:cooling-canopy-pair",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Cooling canopy pair",
+      "category": "climate",
+      "description": "Pairs shade tree plantings with seating or waiting areas.",
+      "geometry_rule": "Point anchors with canopy circles and shade overlap target.",
+      "parameters": [
+        { "key": "canopy_diameter_ft", "label": "Canopy diameter", "type": "number", "required": true, "unit": "ft", "default_value": 22 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "point", "style_token": "tree_canopy_proposed", "label": "Cooling canopy marker" }
+      ],
+      "accessibility_text": "Improves thermal comfort where people wait or gather.",
+      "metrics": [
+        { "key": "shade_coverage", "label": "Shade coverage", "unit": "sqft", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:vacant-building-wrap",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Vacant building wrap",
+      "category": "memory",
+      "description": "Secure wrap and interpretive surface for a landmark building awaiting restoration.",
+      "geometry_rule": "Building footprint with facade annotation surfaces.",
+      "parameters": [
+        { "key": "story_count", "label": "Story count", "type": "number", "required": true, "default_value": 2 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "historic_wrap_ghost", "label": "Wrapped facade massing" }
+      ],
+      "accessibility_text": "Keeps safety perimeter clear while providing legible historical context.",
+      "metrics": [
+        { "key": "stabilized_landmarks", "label": "Stabilized landmarks", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["mapflint"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:ghost-building-outline",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Ghost building outline",
+      "category": "memory",
+      "description": "A lightweight historical-memory primitive for vanished buildings or lost blocks.",
+      "geometry_rule": "Historical building footprint with low-opacity extrusion or outline.",
+      "parameters": [
+        { "key": "memory_opacity", "label": "Memory opacity", "type": "number", "required": true, "default_value": 55 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "vanished_building_ghost", "label": "Ghosted building mass" }
+      ],
+      "accessibility_text": "Shows a remembered building without implying present-day occupancy or access.",
+      "metrics": [
+        { "key": "memory_sites_visible", "label": "Memory sites visible", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["mapflint"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:food-truck-court",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Food truck court",
+      "category": "economic",
+      "description": "Configures a temporary curb or lot-based public market space.",
+      "geometry_rule": "Polygon with service edge, queue zone, and seating field.",
+      "parameters": [
+        { "key": "vendor_capacity", "label": "Vendor capacity", "type": "number", "required": true, "default_value": 6 }
+      ],
+      "render_recipes": [
+        { "renderer": "maplibre", "geometry_type": "polygon", "style_token": "market_activation", "label": "Activation field" }
+      ],
+      "accessibility_text": "Requires aisle widths and wheelchair seating clearances.",
+      "metrics": [
+        { "key": "vendor_slots", "label": "Vendor slots", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:library-learning-yard",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Library learning yard",
+      "category": "education",
+      "description": "Outdoor learning and reading area adjacent to a library or school.",
+      "geometry_rule": "Polygon courtyard with entry path and seating clusters.",
+      "parameters": [
+        { "key": "seat_count", "label": "Seat count", "type": "number", "required": true, "default_value": 18 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "learning_yard", "label": "Learning yard furniture and canopy" }
+      ],
+      "accessibility_text": "Keeps circulation routes level and accessible with distributed shade.",
+      "metrics": [
+        { "key": "outdoor_seats", "label": "Outdoor seats", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:neighborhood-wayfinding",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Neighborhood wayfinding",
+      "category": "governance",
+      "description": "Installs a shared wayfinding kit for neighborhood identity and civic destinations.",
+      "geometry_rule": "Point anchors along a walking route or node sequence.",
+      "parameters": [
+        { "key": "sign_count", "label": "Sign count", "type": "number", "required": true, "default_value": 10 }
+      ],
+      "render_recipes": [
+        { "renderer": "maplibre", "geometry_type": "point", "style_token": "wayfinding_marker", "label": "Wayfinding marker" }
+      ],
+      "accessibility_text": "Uses high-contrast legible text and accessible mounting heights.",
+      "metrics": [
+        { "key": "destinations_labeled", "label": "Destinations labeled", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:street-light-cluster",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Street light cluster",
+      "category": "safety",
+      "description": "Targets a block face or corridor for lighting improvements tied to public routes.",
+      "geometry_rule": "Point sequence along a line segment with spacing targets.",
+      "parameters": [
+        { "key": "pole_spacing_ft", "label": "Pole spacing", "type": "number", "required": true, "unit": "ft", "default_value": 110 }
+      ],
+      "render_recipes": [
+        { "renderer": "deck.gl", "geometry_type": "point", "style_token": "lighting_priority", "label": "Lighting cluster markers" }
+      ],
+      "accessibility_text": "Improves nighttime route legibility without relying on glare-heavy fixtures.",
+      "metrics": [
+        { "key": "lit_route_length", "label": "Lit route length", "unit": "ft", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:community-notice-wall",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Community notice wall",
+      "category": "governance",
+      "description": "Creates a physical and digital notice anchor for neighborhood updates and events.",
+      "geometry_rule": "Point anchor with small wall or kiosk footprint.",
+      "parameters": [
+        { "key": "panel_count", "label": "Panel count", "type": "number", "required": true, "default_value": 3 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "notice_wall_public", "label": "Notice wall kiosk" }
+      ],
+      "accessibility_text": "Supports seated and standing readers with clear contrast and reach ranges.",
+      "metrics": [
+        { "key": "posted_updates", "label": "Posted updates", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["mapflint"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:storm-shelter-node",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Storm shelter node",
+      "category": "resilience",
+      "description": "Marks a reviewed cooling or storm refuge location with access metadata.",
+      "geometry_rule": "Point anchor tied to a civic building or campus entry.",
+      "parameters": [
+        { "key": "capacity", "label": "Capacity", "type": "number", "required": true, "default_value": 80 }
+      ],
+      "render_recipes": [
+        { "renderer": "maplibre", "geometry_type": "point", "style_token": "shelter_node", "label": "Shelter node marker" }
+      ],
+      "accessibility_text": "Highlights accessible refuge entry and hours of operation.",
+      "metrics": [
+        { "key": "refuge_capacity", "label": "Refuge capacity", "unit": "people", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:river-trail-overlook",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "River trail overlook",
+      "category": "public_space",
+      "description": "Creates a small overlook or rest node along a river or creek-adjacent path.",
+      "geometry_rule": "Point or polygon anchored to trail edge with seating arc.",
+      "parameters": [
+        { "key": "view_radius_ft", "label": "View radius", "type": "number", "required": true, "unit": "ft", "default_value": 45 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "overlook_node", "label": "Overlook node" }
+      ],
+      "accessibility_text": "Requires turning radius, resting surface, and barrier edge where needed.",
+      "metrics": [
+        { "key": "river_access_points", "label": "River access points", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:market-corridor-banner-kit",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Market corridor banner kit",
+      "category": "economic",
+      "description": "Adds repeatable identity, lighting hooks, and event banners to a corridor.",
+      "geometry_rule": "Point sequence aligned to poles or facade anchors.",
+      "parameters": [
+        { "key": "banner_count", "label": "Banner count", "type": "number", "required": true, "default_value": 14 }
+      ],
+      "render_recipes": [
+        { "renderer": "maplibre", "geometry_type": "point", "style_token": "corridor_banner_marker", "label": "Banner anchor marker" }
+      ],
+      "accessibility_text": "Adds identity cues without blocking sidewalks or sight lines.",
+      "metrics": [
+        { "key": "activated_frontages", "label": "Activated frontages", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson"],
+      "source_ids": ["city_of_flint_gis"],
+      "status": "reviewed"
+    },
+    {
+      "primitive_id": "primitive:repair-cafe-pavilion",
+      "atlas_node_id": "atlas:flint-mi",
+      "name": "Repair cafe pavilion",
+      "category": "circular-economy",
+      "description": "Temporary or semi-permanent pavilion for repair events and tool sharing.",
+      "geometry_rule": "Polygon event footprint with optional canopy volume.",
+      "parameters": [
+        { "key": "table_count", "label": "Table count", "type": "number", "required": true, "default_value": 10 }
+      ],
+      "render_recipes": [
+        { "renderer": "r3f", "geometry_type": "volume", "style_token": "repair_pavilion", "label": "Repair pavilion massing" }
+      ],
+      "accessibility_text": "Maintains clear circulation aisles and seated work positions.",
+      "metrics": [
+        { "key": "items_repaired", "label": "Items repaired", "unit": "count", "direction": "increase" }
+      ],
+      "export_formats": ["json", "geojson", "glb"],
+      "source_ids": ["mapflint"],
+      "status": "reviewed"
+    }
+  ]
+}

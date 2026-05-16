@@ -8,10 +8,16 @@
 
 import type {
   AtlasNodeManifest,
+  CivicDesignPrimitive,
   CivicObject,
+  GeoComment,
   LayerCatalog,
+  LayerRecipe,
   NodeCatalog,
   ReadModelCatalog,
+  RendererBoundary,
+  ScenarioManifest,
+  SceneManifest,
   StaticAtlasPackage,
   WellKnownAtlasManifest,
 } from "@/lib/atlas/contracts";
@@ -205,7 +211,32 @@ export type CivicObjectsResponse = {
 };
 
 export type SceneManifestsResponse = {
-  scene_manifests: unknown[];
+  scene_manifests: SceneManifest[];
+  total: number;
+};
+
+export type ScenarioManifestsResponse = {
+  scenario_manifests: ScenarioManifest[];
+  total: number;
+};
+
+export type PrimitiveLibraryResponse = {
+  primitives: CivicDesignPrimitive[];
+  total: number;
+};
+
+export type GeoCommentsResponse = {
+  comments: GeoComment[];
+  total: number;
+};
+
+export type LayerRecipesResponse = {
+  layer_recipes: LayerRecipe[];
+  total: number;
+};
+
+export type RendererBoundariesResponse = {
+  renderer_boundaries: RendererBoundary[];
   total: number;
 };
 
@@ -445,6 +476,26 @@ export function fetchCivicObjects() {
 
 export function fetchSceneManifests() {
   return get<SceneManifestsResponse>("/scene-manifests/");
+}
+
+export function fetchScenarioManifests() {
+  return get<ScenarioManifestsResponse>("/scenario-manifests/");
+}
+
+export function fetchPrimitiveLibrary() {
+  return get<PrimitiveLibraryResponse>("/primitive-library/");
+}
+
+export function fetchGeoComments() {
+  return get<GeoCommentsResponse>("/geo-comments/");
+}
+
+export function fetchLayerRecipes() {
+  return get<LayerRecipesResponse>("/layer-recipes/");
+}
+
+export function fetchRendererBoundaries() {
+  return get<RendererBoundariesResponse>("/renderer-boundaries/");
 }
 
 export function fetchStaticAtlasPackage() {

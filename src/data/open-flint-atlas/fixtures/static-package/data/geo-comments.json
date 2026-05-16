@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0.0",
+  "atlas_node_id": "atlas:flint-mi",
+  "comments": [
+    {
+      "comment_id": "comment:ward-1-crossing-near-school",
+      "atlas_node_id": "atlas:flint-mi",
+      "title": "Crossing visibility is still poor at school dismissal",
+      "body": "Parents report that parked cars and turning traffic still hide children at dismissal time. This should remain public because it explains why daylighting is being proposed here.",
+      "author_role": "resident steward",
+      "anchor": {
+        "target_type": "street",
+        "target_id": "street:ward-1-school-crossing",
+        "geometry_type": "line",
+        "geometry_ref": "/data/comments/ward-1-school-crossing.geojson"
+      },
+      "moderation_state": "public_reviewed",
+      "privacy_class": "public_reviewed",
+      "visibility": "public",
+      "source_ids": ["mapflint", "michigan_traffic_crash_facts"],
+      "review_notes": "Reviewed for public safety relevance and stripped of personally identifying details.",
+      "created_at": "2026-05-14T09:30:00-04:00",
+      "updated_at": "2026-05-15T08:00:00-04:00"
+    },
+    {
+      "comment_id": "comment:carriage-town-memory-photo",
+      "atlas_node_id": "atlas:flint-mi",
+      "title": "Photo location needs stronger source support before publication",
+      "body": "The memory photo set is valuable, but the street-facing orientation still needs a second source before the precise building outline is public.",
+      "author_role": "maintainer review",
+      "anchor": {
+        "target_type": "building",
+        "target_id": "place:carriage-town",
+        "geometry_type": "polygon",
+        "geometry_ref": null
+      },
+      "moderation_state": "review_only",
+      "privacy_class": "private_pending",
+      "visibility": "review_only",
+      "source_ids": ["mapflint"],
+      "review_notes": "Keep inside review queue until corroborated imagery or parcel evidence is attached.",
+      "created_at": "2026-05-13T15:20:00-04:00",
+      "updated_at": "2026-05-15T07:45:00-04:00"
+    },
+    {
+      "comment_id": "comment:lead-line-cluster-note",
+      "atlas_node_id": "atlas:flint-mi",
+      "title": "Residents asked for block-level phasing explanation",
+      "body": "A grouped note should explain why this service-line replacement package is sequenced as one cluster instead of one home at a time.",
+      "author_role": "public works liaison",
+      "anchor": {
+        "target_type": "line",
+        "target_id": "intervention:lead-service-line-cluster",
+        "geometry_type": "line",
+        "geometry_ref": "/data/comments/lead-service-line-cluster.geojson"
+      },
+      "moderation_state": "candidate",
+      "privacy_class": "public_aggregate",
+      "visibility": "review_only",
+      "source_ids": ["city_of_flint_gis"],
+      "review_notes": "Candidate explanatory note; public after copy review.",
+      "created_at": "2026-05-15T06:15:00-04:00",
+      "updated_at": "2026-05-15T06:15:00-04:00"
+    },
+    {
+      "comment_id": "comment:scenario-safe-routes-poll",
+      "atlas_node_id": "atlas:flint-mi",
+      "title": "Safe routes scenario should expose a parent-friendly summary",
+      "body": "If the scenario goes public, pair the technical metrics with a short summary explaining school dismissal changes in plain language.",
+      "author_role": "scenario editor",
+      "anchor": {
+        "target_type": "scenario",
+        "target_id": "scenario:flint-safe-routes-starter",
+        "geometry_type": "none",
+        "geometry_ref": null
+      },
+      "moderation_state": "public_reviewed",
+      "privacy_class": "public_reviewed",
+      "visibility": "public",
+      "source_ids": ["city_of_flint_gis", "census_acs_tiger"],
+      "review_notes": "Public-facing comment on scenario readability.",
+      "created_at": "2026-05-15T10:10:00-04:00",
+      "updated_at": "2026-05-15T10:10:00-04:00"
+    }
+  ]
+}

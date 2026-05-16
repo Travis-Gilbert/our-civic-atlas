@@ -1,9 +1,9 @@
 {
-  "schema_version": "0.1.0",
+  "schema_version": "1.0.0",
   "scene_id": "scene:flint-overview",
   "atlas_node_id": "atlas:flint-mi",
   "name": "Flint overview scene",
-  "description": "Seed SceneManifest connecting the Flint Atlas node to current city geometry, candidate child nodes, source cards, and public read-model layers.",
+  "description": "North-star floor scene tying Flint civic objects to public geography, source support, and reversible renderer boundaries.",
   "bbox": [
     -83.83,
     42.94,
@@ -18,21 +18,62 @@
   "objects": [
     {
       "object_id": "atlas:flint-mi",
-      "render_mode": "current_confirmed",
+      "civic_object_id": "atlas:flint-mi",
       "geometry_ref": "/data/boundaries/flint-city.geojson",
-      "style_token": "atlas_boundary_confirmed"
+      "time_start": null,
+      "time_end": null,
+      "render_mode": "current_confirmed",
+      "style_token": "atlas_boundary_confirmed",
+      "visual_recipe_id": "recipe:atlas-boundary-current",
+      "source_ids": [
+        "city_of_flint_gis",
+        "census_acs_tiger"
+      ],
+      "dossier_url": "/open-flint-atlas/node/atlas%3Aflint-mi",
+      "visibility": "public",
+      "privacy_class": "public_aggregate",
+      "asset_refs": []
     },
     {
       "object_id": "place:carriage-town",
-      "render_mode": "current_low_confidence",
+      "civic_object_id": "place:carriage-town",
       "geometry_ref": null,
-      "style_token": "node_horizon_child_candidate"
+      "time_start": null,
+      "time_end": null,
+      "render_mode": "current_low_confidence",
+      "style_token": "node_horizon_child_candidate",
+      "visual_recipe_id": "recipe:child-node-review",
+      "source_ids": [
+        "mapflint"
+      ],
+      "dossier_url": "/open-flint-atlas/place/place%3Acarriage-town",
+      "visibility": "public",
+      "privacy_class": "public_aggregate",
+      "asset_refs": [
+        "asset:carriage-town-brush-placeholder"
+      ],
+      "fallback_render_mode": "source_stale",
+      "support_state": "placeholder"
     },
     {
       "object_id": "dataset:flint-read-model-v0",
-      "render_mode": "source_high_confidence",
+      "civic_object_id": "dataset:flint-read-model-v0",
       "geometry_ref": null,
-      "style_token": "evidence_package"
+      "time_start": "2026-05-12",
+      "time_end": null,
+      "render_mode": "source_high_confidence",
+      "style_token": "evidence_package",
+      "visual_recipe_id": "recipe:evidence-package",
+      "source_ids": [
+        "city_of_flint_gis",
+        "um_flint_gis_center",
+        "mapflint",
+        "census_acs_tiger"
+      ],
+      "dossier_url": "/open-flint-atlas/object/dataset%3Aflint-read-model-v0",
+      "visibility": "public",
+      "privacy_class": "public_aggregate",
+      "asset_refs": []
     }
   ],
   "source_ids": [
@@ -48,10 +89,31 @@
       "Final city boundary, child node geometry, and 3D assets remain planned outputs."
     ]
   },
-  "assets": [],
+  "assets": [
+    {
+      "asset_id": "asset:carriage-town-brush-placeholder",
+      "object_id": "place:carriage-town",
+      "kind": "brush_splat_placeholder",
+      "renderer": "r3f",
+      "href": null,
+      "fallback_render_mode": "source_stale",
+      "support_state": "placeholder",
+      "source_ids": [
+        "mapflint"
+      ],
+      "review_state": "needs_review",
+      "notes": "Placeholder lane for reviewed Scene Foundry outputs; MapLibre/deck.gl remains the public default."
+    }
+  ],
   "dossier_links": [
-    "/nodes/atlas:flint-mi",
-    "/objects/dataset:flint-read-model-v0"
+    "/open-flint-atlas/node/atlas%3Aflint-mi",
+    "/open-flint-atlas/object/dataset%3Aflint-read-model-v0",
+    "/open-flint-atlas/place/place%3Acarriage-town"
+  ],
+  "renderer_boundary_ids": [
+    "geospatial_base",
+    "data_overlay",
+    "object_scene"
   ],
   "review_state": "accepted",
   "updated_at": "2026-05-13T00:00:00-04:00"
