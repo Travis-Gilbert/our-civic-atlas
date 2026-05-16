@@ -229,6 +229,67 @@ export type WellKnownAtlasManifest = {
   generated_at: string;
 };
 
+export type SceneAssetKind =
+  | "brush_splat"
+  | "brush_splat_placeholder"
+  | "ifc_model"
+  | "glb_model"
+  | "raster_reference"
+  | "vector_reference";
+
+export type SceneAssetSupportState =
+  | "reviewed"
+  | "candidate"
+  | "placeholder"
+  | "unavailable";
+
+export type SceneManifestObject = {
+  object_id: string;
+  render_mode: RenderMode;
+  geometry_ref: string | null;
+  style_token: string;
+  asset_refs?: string[];
+  fallback_render_mode?: RenderMode;
+  support_state?: SceneAssetSupportState;
+};
+
+export type SceneManifestAsset = {
+  asset_id: string;
+  object_id: string;
+  kind: SceneAssetKind;
+  renderer: "r3f" | "brush" | "ifc" | "deck.gl" | "maplibre";
+  href: string | null;
+  fallback_render_mode: RenderMode;
+  support_state: SceneAssetSupportState;
+  source_ids: string[];
+  review_state: ReviewState;
+  notes?: string;
+};
+
+export type SceneManifest = {
+  schema_version: string;
+  scene_id: string;
+  atlas_node_id: string;
+  name: string;
+  description: string;
+  bbox: [number, number, number, number];
+  time: {
+    start: string | null;
+    end: string | null;
+    mode: string;
+  };
+  objects: SceneManifestObject[];
+  source_ids: string[];
+  confidence: {
+    score: number;
+    reasons: string[];
+  };
+  assets: SceneManifestAsset[];
+  dossier_links: string[];
+  review_state: ReviewState;
+  updated_at: string;
+};
+
 export type StaticAtlasPackage = {
   discoveryManifest: WellKnownAtlasManifest;
   atlasNode: AtlasNodeManifest;
@@ -236,7 +297,7 @@ export type StaticAtlasPackage = {
   layerCatalog: LayerCatalog;
   readModelCatalog: ReadModelCatalog;
   civicObjects: CivicObject[];
-  sceneManifests: unknown[];
+  sceneManifests: SceneManifest[];
 };
 
 export type ValidationIssue = {
@@ -360,6 +421,72 @@ export function validateCivicObject(value: unknown, path = "civicObject"): Valid
   return issues;
 }
 
+export function validateSceneManifest(value: unknown, path = "sceneManifest"): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(value)) {
+    return [{ path, message: "Scene manifest must be an object." }];
+  }
+
+  for (const key of [
+    "schema_version",
+    "scene_id",
+    "atlas_node_id",
+    "name",
+    "description",
+    "review_state",
+    "updated_at",
+  ]) {
+    pushMissingString(issues, value, path, key);
+  }
+
+  for (const key of ["source_ids", "dossier_links"]) {
+    pushMissingStringArray(issues, value, path, key);
+  }
+
+  if (!Array.isArray(value.bbox) || value.bbox.length !== 4) {
+    issues.push({ path: `${path}.bbox`, message: "Scene bbox must contain four numbers." });
+  }
+
+  if (!Array.isArray(value.objects) || value.objects.length === 0) {
+    issues.push({ path: `${path}.objects`, message: "At least one scene object is required." });
+  } else {
+    value.objects.forEach((object, index) => {
+      if (!isRecord(object)) {
+        issues.push({ path: `${path}.objects.${index}`, message: "Scene object must be an object." });
+        return;
+      }
+      for (const key of ["object_id", "render_mode", "style_token"]) {
+        pushMissingString(issues, object, `${path}.objects.${index}`, key);
+      }
+    });
+  }
+
+  if (!Array.isArray(value.assets)) {
+    issues.push({ path: `${path}.assets`, message: "Scene assets must be an array." });
+  } else {
+    value.assets.forEach((asset, index) => {
+      if (!isRecord(asset)) {
+        issues.push({ path: `${path}.assets.${index}`, message: "Scene asset must be an object." });
+        return;
+      }
+      for (const key of [
+        "asset_id",
+        "object_id",
+        "kind",
+        "renderer",
+        "fallback_render_mode",
+        "support_state",
+        "review_state",
+      ]) {
+        pushMissingString(issues, asset, `${path}.assets.${index}`, key);
+      }
+      pushMissingStringArray(issues, asset, `${path}.assets.${index}`, "source_ids");
+    });
+  }
+
+  return issues;
+}
+
 export function validateStaticAtlasPackage(pkg: StaticAtlasPackage): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   issues.push(...validateAtlasNodeManifest(pkg.atlasNode));
@@ -404,6 +531,14 @@ export function validateStaticAtlasPackage(pkg: StaticAtlasPackage): ValidationI
 
   if (!Array.isArray(pkg.readModelCatalog.files) || pkg.readModelCatalog.files.length === 0) {
     issues.push({ path: "readModelCatalog.files", message: "At least one read-model file entry is required." });
+  }
+
+  if (!Array.isArray(pkg.sceneManifests) || pkg.sceneManifests.length === 0) {
+    issues.push({ path: "sceneManifests", message: "At least one scene manifest is required." });
+  } else {
+    pkg.sceneManifests.forEach((manifest, index) => {
+      issues.push(...validateSceneManifest(manifest, `sceneManifests.${index}`));
+    });
   }
 
   return issues;

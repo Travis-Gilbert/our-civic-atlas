@@ -11,7 +11,6 @@ const ROUTED_LENSES = [
   "memory",
   "safety",
   "interventions",
-  "evidence",
 ] as const satisfies readonly AtlasLensId[];
 
 type RoutedLens = (typeof ROUTED_LENSES)[number];

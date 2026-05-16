@@ -13,6 +13,7 @@ import {
   type LayerCatalog,
   type NodeCatalog,
   type ReadModelCatalog,
+  type SceneManifest,
   type StaticAtlasPackage,
   type ValidationIssue,
   type WellKnownAtlasManifest,
@@ -26,7 +27,7 @@ export function getStaticAtlasPackage(): StaticAtlasPackage {
     layerCatalog: layerCatalog as LayerCatalog,
     readModelCatalog: readModelCatalog as ReadModelCatalog,
     civicObjects: civicObjects as CivicObject[],
-    sceneManifests: [flintOverviewScene],
+    sceneManifests: [flintOverviewScene as unknown as SceneManifest],
   };
 }
 

@@ -20,19 +20,26 @@
       "object_id": "atlas:flint-mi",
       "render_mode": "current_confirmed",
       "geometry_ref": "/data/boundaries/flint-city.geojson",
-      "style_token": "atlas_boundary_confirmed"
+      "style_token": "atlas_boundary_confirmed",
+      "support_state": "reviewed"
     },
     {
       "object_id": "place:carriage-town",
       "render_mode": "current_low_confidence",
       "geometry_ref": null,
-      "style_token": "node_horizon_child_candidate"
+      "style_token": "node_horizon_child_candidate",
+      "asset_refs": [
+        "asset:brush:carriage-town-placeholder"
+      ],
+      "fallback_render_mode": "current_low_confidence",
+      "support_state": "placeholder"
     },
     {
       "object_id": "dataset:flint-read-model-v0",
       "render_mode": "source_high_confidence",
       "geometry_ref": null,
-      "style_token": "evidence_package"
+      "style_token": "evidence_package",
+      "support_state": "reviewed"
     }
   ],
   "source_ids": [
@@ -48,7 +55,22 @@
       "Final city boundary, child node geometry, and 3D assets remain planned outputs."
     ]
   },
-  "assets": [],
+  "assets": [
+    {
+      "asset_id": "asset:brush:carriage-town-placeholder",
+      "object_id": "place:carriage-town",
+      "kind": "brush_splat_placeholder",
+      "renderer": "brush",
+      "href": null,
+      "fallback_render_mode": "current_low_confidence",
+      "support_state": "placeholder",
+      "source_ids": [
+        "mapflint"
+      ],
+      "review_state": "needs_more_evidence",
+      "notes": "Placeholder lane for a future source-reviewed Brush reconstruction. Public renderer must fall back to R3F/deck geometry until a reviewed asset exists."
+    }
+  ],
   "dossier_links": [
     "/nodes/atlas:flint-mi",
     "/objects/dataset:flint-read-model-v0"

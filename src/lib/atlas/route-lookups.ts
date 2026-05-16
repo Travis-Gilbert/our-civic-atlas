@@ -1,4 +1,5 @@
 import places from "@/data/open-flint-atlas/fixtures/read-model/places.json";
+import seedEvents from "@/data/open-flint-atlas/fixtures/spatial-event-index/seed-events.json";
 import sources from "@/data/open-flint-atlas/fixtures/read-model/sources.json";
 import sourceRegistry from "@/data/open-flint-atlas/source-registry.json";
 import type {
@@ -9,6 +10,7 @@ import type {
 import type {
   CivicObject,
   NodeCatalogEntry,
+  SceneManifest,
 } from "@/lib/atlas/contracts";
 import { getStaticAtlasPackage } from "@/lib/atlas/static-package";
 
@@ -18,12 +20,28 @@ export type SourceRegistryEntry = {
   homepage_url: string;
   source_type: string;
   steward: string;
+  geography: string;
   current_status: string;
   update_cadence: string;
   trust_tier: string;
   public_use: string;
   contains_personal_data: boolean;
+  ingestion_priority: number;
+  initial_layers: string[];
   known_limits: string[];
+  first_checks: string[];
+};
+
+export type AtlasEventFixture = {
+  event_id: string;
+  event_type: string;
+  title: string;
+  source: {
+    source_ids: string[];
+  };
+  review: {
+    status: string | null;
+  };
 };
 
 export function getAtlasSources(): AtlasSource[] {
@@ -38,6 +56,10 @@ export function getAtlasPlaces(): PlaceFeature[] {
   return (places as PlacesCollection).features;
 }
 
+export function getAtlasEventFixtures(): AtlasEventFixture[] {
+  return (seedEvents as { events: AtlasEventFixture[] }).events;
+}
+
 export function getNodeCatalogEntries(): NodeCatalogEntry[] {
   return getStaticAtlasPackage().nodeCatalog.nodes;
 }
@@ -46,28 +68,8 @@ export function getCivicObjects(): CivicObject[] {
   return getStaticAtlasPackage().civicObjects;
 }
 
-export function getSceneManifests() {
-  return getStaticAtlasPackage().sceneManifests as Array<{
-    scene_id: string;
-    atlas_node_id: string;
-    name: string;
-    description: string;
-    bbox: number[];
-    objects: Array<{
-      object_id: string;
-      render_mode: string;
-      geometry_ref: string | null;
-      style_token: string;
-    }>;
-    source_ids: string[];
-    confidence: {
-      score: number;
-      reasons: string[];
-    };
-    dossier_links: string[];
-    review_state: string;
-    updated_at: string;
-  }>;
+export function getSceneManifests(): SceneManifest[] {
+  return getStaticAtlasPackage().sceneManifests;
 }
 
 export function findAtlasNode(atlasId: string) {

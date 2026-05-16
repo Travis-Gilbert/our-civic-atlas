@@ -130,6 +130,72 @@
   filter: saturate(0.92) contrast(1.04) sepia(0.08);
 }
 
+.civic-atlas .atlas-three-scene canvas {
+  position: relative;
+  z-index: 0;
+  display: block;
+  outline: none;
+  touch-action: none;
+  filter: saturate(0.96) contrast(1.03) sepia(0.06);
+}
+
+.civic-atlas .atlas-three-scene {
+  cursor: crosshair;
+}
+
+.civic-atlas .atlas-three-fallback {
+  display: grid;
+  height: 100%;
+  width: 100%;
+  place-items: center;
+  background: var(--ctx-paper-soft);
+  color: var(--ctx-ink-mute);
+  font-size: 13px;
+}
+
+.civic-atlas .atlas-three-label {
+  position: relative;
+  z-index: 10;
+  pointer-events: none;
+  white-space: nowrap;
+  border: 1px solid rgba(88, 118, 191, 0.42);
+  border-radius: 4px;
+  background: rgba(248, 246, 241, 0.94);
+  color: rgba(42, 36, 25, 0.94);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.68) inset,
+    0 9px 22px -12px rgba(42, 36, 25, 0.62),
+    0 0 0 2px rgba(246, 244, 238, 0.32);
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  backdrop-filter: blur(5px) saturate(108%);
+  -webkit-backdrop-filter: blur(5px) saturate(108%);
+}
+
+.civic-atlas .atlas-three-label.is-selected {
+  border-color: rgba(193, 74, 44, 0.46);
+  color: var(--ctx-ink);
+}
+
+.civic-atlas .atlas-three-label-anchor {
+  max-width: 128px;
+  white-space: normal;
+  border-color: rgba(169, 121, 66, 0.24);
+  background: rgba(246, 244, 238, 0.74);
+  color: rgba(74, 64, 50, 0.76);
+  text-align: center;
+  text-transform: none;
+}
+
+@media (max-width: 767px) {
+  .civic-atlas .atlas-three-label:not(.is-selected) {
+    display: none;
+  }
+}
+
 .civic-atlas [data-scene-view="street"] .atlas-scene-map .maplibregl-canvas {
   filter: saturate(0.96) contrast(1.08) sepia(0.1);
 }
@@ -138,12 +204,6 @@
   background:
     linear-gradient(90deg, rgba(246, 244, 238, 0.5), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
     linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 22%, rgba(193, 74, 44, 0.1) 72%, rgba(42, 36, 25, 0.12));
-}
-
-.civic-atlas [data-active-lens="evidence"] .atlas-scene-map::before {
-  background:
-    linear-gradient(90deg, rgba(246, 244, 238, 0.46), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
-    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 24%, rgba(92, 106, 160, 0.12) 72%, rgba(42, 36, 25, 0.12));
 }
 
 .civic-atlas .atlas-scene-glass,
@@ -256,6 +316,220 @@
   font-size: 9px;
   line-height: 1;
   padding: 4px 6px;
+}
+
+.civic-atlas .atlas-horizon-shell {
+  background:
+    linear-gradient(180deg, rgba(246, 244, 238, 0.82), rgba(239, 236, 228, 0.72)),
+    rgba(246, 244, 238, 0.72);
+}
+
+.civic-atlas .atlas-horizon-toggle {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  color: var(--ctx-ink-soft);
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(42, 36, 25, 0.1);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 10px;
+}
+
+.civic-atlas .atlas-horizon-toggle:hover,
+.civic-atlas .atlas-horizon-toggle:focus-visible {
+  color: var(--ctx-ink);
+  border-color: rgba(42, 36, 25, 0.18);
+  outline: none;
+}
+
+.civic-atlas .atlas-horizon-compass {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at center, rgba(193, 74, 44, 0.08), transparent 28%),
+    radial-gradient(circle at center, rgba(42, 36, 25, 0.06) 0, rgba(42, 36, 25, 0.06) 1px, transparent 1px),
+    rgba(255, 255, 255, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+.civic-atlas .atlas-horizon-compass-desktop {
+  width: 148px;
+}
+
+.civic-atlas .atlas-horizon-compass::before,
+.civic-atlas .atlas-horizon-compass::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  background: rgba(42, 36, 25, 0.08);
+  transform: translate(-50%, -50%);
+}
+
+.civic-atlas .atlas-horizon-compass::before {
+  width: 1px;
+  height: calc(100% - 28px);
+}
+
+.civic-atlas .atlas-horizon-compass::after {
+  width: calc(100% - 28px);
+  height: 1px;
+}
+
+.civic-atlas .atlas-horizon-axis {
+  position: absolute;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ctx-ink-faint);
+}
+
+.civic-atlas .atlas-horizon-axis-n {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.civic-atlas .atlas-horizon-axis-e {
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.civic-atlas .atlas-horizon-axis-s {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.civic-atlas .atlas-horizon-axis-w {
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+}
+
+.civic-atlas .atlas-horizon-origin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(42, 36, 25, 0.12);
+  border-radius: 999px;
+  background: rgba(246, 244, 238, 0.92);
+  color: var(--ctx-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.52) inset,
+    0 8px 16px -14px rgba(42, 36, 25, 0.48);
+}
+
+.civic-atlas .atlas-horizon-point {
+  position: absolute;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid rgba(42, 36, 25, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ctx-ink-soft);
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+  box-shadow: 0 8px 18px -16px rgba(42, 36, 25, 0.6);
+}
+
+.civic-atlas .atlas-horizon-point[data-relation="parent"] {
+  background: rgba(92, 106, 160, 0.16);
+  color: #42518a;
+}
+
+.civic-atlas .atlas-horizon-point[data-relation="child"] {
+  background: rgba(193, 74, 44, 0.14);
+  color: #8b412c;
+}
+
+.civic-atlas .atlas-horizon-point.is-active,
+.civic-atlas .atlas-horizon-point:hover,
+.civic-atlas .atlas-horizon-point:focus-visible {
+  color: var(--ctx-paper);
+  background: var(--ctx-ink);
+  border-color: rgba(42, 36, 25, 0.74);
+  outline: none;
+  box-shadow: 0 12px 22px -16px rgba(42, 36, 25, 0.76);
+}
+
+.civic-atlas .atlas-horizon-list-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.26);
+  padding: 9px 10px;
+}
+
+.civic-atlas .atlas-horizon-list-item[data-active="true"] {
+  border-color: color-mix(in srgb, var(--ctx-accent) 34%, transparent);
+  background: rgba(193, 74, 44, 0.08);
+}
+
+.civic-atlas .atlas-horizon-list-item:hover,
+.civic-atlas .atlas-horizon-list-item:focus-visible {
+  border-color: rgba(42, 36, 25, 0.16);
+  outline: none;
+}
+
+.civic-atlas .atlas-horizon-list-badge {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(42, 36, 25, 0.06);
+  color: var(--ctx-ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.civic-atlas .atlas-horizon-mobile-trigger {
+  z-index: 12;
+}
+
+.civic-atlas .atlas-horizon-mobile-sheet {
+  z-index: 12;
+  max-height: calc(100vh - 240px);
+  overflow: hidden;
 }
 
 .civic-atlas .atlas-horizon-action {

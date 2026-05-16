@@ -46,9 +46,10 @@ The map is the primary surface. Moderation, review, and confidence UI should exp
 ## System Lanes
 
 1. Atlas reader
-   - MapLibre/deck.gl remains the desktop geographic canvas.
-   - Leaflet remains the mobile fallback until a lighter WebGL mobile path is justified.
-   - Timeline, source trail, place dossier, and provenance graph cross-filter the same selected `Place`, `Event`, `Source`, and `Claim` ids.
+   - Three/R3F is the V1 target for the primary full-canvas civic scene.
+   - MapLibre/deck.gl remain the working baseline, fallback, and geospatial/data overlay path until the Three/R3F scene is equal-or-better.
+   - Leaflet remains the mobile fallback until a lighter WebGL mobile path or responsive Three/R3F path is justified by visual gates.
+   - Timeline, source trail, place dossier, provenance graph, and scene objects cross-filter the same selected `Place`, `Event`, `Source`, and `Claim` ids.
 
 2. Public contribution
    - First public inputs are observation, correction, source link, document upload, and comment.

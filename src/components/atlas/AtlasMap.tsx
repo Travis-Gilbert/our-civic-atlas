@@ -19,6 +19,7 @@ import {
   type AtlasLensId,
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -108,7 +109,6 @@ const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   memory: [193, 74, 44, 44],
   safety: [56, 132, 128, 44],
   interventions: [82, 126, 82, 46],
-  evidence: [92, 106, 160, 42],
 };
 
 /* ------------------------------------------------------------------ */
@@ -294,7 +294,7 @@ export function AtlasMap({
     if (geometricPlaces && layerVisibility.places !== false) {
       result.push(
         new GeoJsonLayer({
-          id: "atlas-places",
+          id: ATLAS_DECK_LAYER_IDS.places,
           data: geometricPlaces,
           pickable: true,
           stroked: true,
@@ -344,7 +344,7 @@ export function AtlasMap({
     ) {
       result.push(
         new GeoJsonLayer({
-          id: "atlas-selected",
+          id: ATLAS_DECK_LAYER_IDS.selected,
           data: selectedFeatureCollection,
           pickable: false,
           stroked: true,
@@ -364,7 +364,7 @@ export function AtlasMap({
         new ScatterplotLayer<
           SpatialEvent & { _position: [number, number] }
         >({
-          id: "atlas-events",
+          id: ATLAS_DECK_LAYER_IDS.events,
           data: positionedEvents,
           pickable: true,
           opacity: 0.8,

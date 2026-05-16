@@ -57,7 +57,18 @@ const MOBILE_SNAP_HEIGHTS = {
   full: "calc(100vh - 86px)",
 } as const;
 
+const SUPPORT_LABEL: Record<string, string> = {
+  high: "strong support",
+  medium: "some support",
+  low: "needs review",
+  unknown: "support pending",
+};
+
 type MobileSnap = keyof typeof MOBILE_SNAP_HEIGHTS;
+
+function supportLabel(value: string): string {
+  return SUPPORT_LABEL[value] ?? value.replace(/_/g, " ");
+}
 
 function usePlaceDossier(placeId: string | null): DossierLoadState {
   const [dossier, setDossier] = useState<PlaceDossier | null>(null);
@@ -211,7 +222,7 @@ function TimelineCard({ item }: { item: DossierTimelineItem }) {
           {item.title}
         </span>
         <Tag color={CONFIDENCE_TAG_COLOR[item.confidence_label] ?? "default"}>
-          {item.confidence_label}
+          {supportLabel(item.confidence_label)}
         </Tag>
       </div>
       <p className="text-[12px] leading-[1.5] mb-1" style={{ color: "var(--ctx-ink-soft)" }}>
@@ -358,10 +369,10 @@ function OverviewTab({ payload }: { payload: DossierPayload }) {
           </p>
         )}
       </DossierSection>
-      <DossierSection label="Confidence">
+      <DossierSection label="Support progress">
         <div className="flex items-center gap-3 mb-2">
           <Tag color={CONFIDENCE_TAG_COLOR[payload.confidence.label] ?? "default"}>
-            {payload.confidence.label}
+            {supportLabel(payload.confidence.label)}
           </Tag>
           <span
             className="font-mono text-[10px] uppercase tracking-[0.14em]"
@@ -491,7 +502,7 @@ function DossierTabContent({
 
   if (activeTab === "evidence") {
     return (
-      <DossierSection label="Evidence">
+      <DossierSection label="Source support">
         <p className="text-[13px] leading-[1.55] mb-3" style={{ color: "var(--ctx-ink-soft)" }}>
           {payload.evidence_graph_ref.panel_label} is available for this subject
           through the public provenance endpoint.
@@ -540,10 +551,12 @@ function DossierTabContent({
 function DossierContent({
   dossier,
   onClose,
+  showCloseButton = true,
   variant,
 }: {
   dossier: PlaceDossier;
   onClose: () => void;
+  showCloseButton?: boolean;
   variant: "panel" | "sheet";
 }) {
   const [activeTab, setActiveTab] = useState<DossierTabId>("overview");
@@ -587,22 +600,24 @@ function DossierContent({
               {payload.summary.status_label}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close dossier"
-            className="atlas-dossier-close"
-          >
-            <svg
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              className="w-3 h-3"
+          {showCloseButton ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close dossier"
+              className="atlas-dossier-close"
             >
-              <path d="M3 3l8 8M11 3l-8 8" />
-            </svg>
-          </button>
+              <svg
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                className="w-3 h-3"
+              >
+                <path d="M3 3l8 8M11 3l-8 8" />
+              </svg>
+            </button>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -610,7 +625,7 @@ function DossierContent({
             {subjectType}
           </Tag>
           <Tag color={CONFIDENCE_TAG_COLOR[payload.confidence.label] ?? "default"}>
-            {payload.confidence.label} confidence
+            {supportLabel(payload.confidence.label)}
           </Tag>
           <span
             className="font-mono text-[10px] uppercase tracking-[0.14em]"
@@ -644,9 +659,14 @@ function DossierContent({
 export type PlaceDossierProps = {
   placeId: string | null;
   onClose: () => void;
+  showCloseButton?: boolean;
 };
 
-export function PlaceDossierPanel({ placeId, onClose }: PlaceDossierProps) {
+export function PlaceDossierPanel({
+  placeId,
+  onClose,
+  showCloseButton = true,
+}: PlaceDossierProps) {
   const { dossier, loading, error } = usePlaceDossier(placeId);
 
   if (placeId === null) return <DossierEmptyState />;
@@ -654,7 +674,14 @@ export function PlaceDossierPanel({ placeId, onClose }: PlaceDossierProps) {
   if (error) return <DossierErrorState error={error} />;
   if (dossier === null) return null;
 
-  return <DossierContent dossier={dossier} onClose={onClose} variant="panel" />;
+  return (
+    <DossierContent
+      dossier={dossier}
+      onClose={onClose}
+      showCloseButton={showCloseButton}
+      variant="panel"
+    />
+  );
 }
 
 export function MobileDossierSheet({ placeId, onClose }: PlaceDossierProps) {

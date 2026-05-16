@@ -8,7 +8,6 @@ const ROUTES = [
   { path: "/open-flint-atlas/memory", expect: "Flint Atlas" },
   { path: "/open-flint-atlas/safety", expect: "Flint Atlas" },
   { path: "/open-flint-atlas/interventions", expect: "Flint Atlas" },
-  { path: "/open-flint-atlas/evidence", expect: "Flint Atlas" },
   { path: "/open-flint-atlas/sources", expect: "Sources" },
   { path: "/open-flint-atlas/contribute", expect: "Contribute" },
   { path: "/open-flint-atlas/methodology", expect: "Methodology" },

@@ -5,22 +5,30 @@ Source of truth for this note:
 - `docs/plans/renderer-stack-integration.md` (Atlas runtime/renderer contract)
 
 Scope note: local UI/API/code work in this recovery stream includes active Atlas Scene / Node Horizon / dossier path edits.
-This recovery session completed the immediate timed-out slice for the reusable place dossier contract, strict dossier validation, source-card linkage cleanup, tablet evidence panel spacing, and mobile evidence provenance access. The launch plan still shows broader product work as partial or planned, especially non-place dossier subjects, contribution/review, full Evidence Constellation interactions, and public launch governance.
+This recovery session completed the immediate timed-out slice for the reusable place dossier contract, strict dossier validation, source-card linkage cleanup, tablet source-panel spacing, and mobile source-history access. The launch plan still shows broader product work as partial or planned, especially non-place dossier subjects, contribution/review, full source/connection view interactions, and public launch governance.
+
+## Scope update: 2026-05-15
+- Treat `r3f-atlas-scene-quality` as a parked experiment and not the release lane.
+- Prioritize the remaining OCA delivery path from OCA-003 through OCA-027.
+- Lost Flint is now a high-priority product lane, not a late backlog item.
+- Public surface copy should avoid `evidence`, `provenance`, and `epistemic`; any source/graph explainer should use resident-friendly civic language.
+- The old Evidence Constellation naming is retired from the public surface. If the graph lane ships, it should ship as a source/connection view instead.
 
 ## Current recovery evidence
 - Strict fixture dossier contract: `node scripts/validate-dossier-payload.mjs --fail-on-warning` validates 222/222 dossiers with no warnings.
 - Static atlas gate: `npm run validate:atlas` validates the static atlas package and the strict dossier payload contract.
 - Live API contract: `npm run validate:dossier:live` validates 222/222 live `/api/v2/theseus/open-flint-atlas/dossiers/*` payloads against `localhost:3000`.
 - Product gates rerun: `npm run typecheck`, `npm run lint`, `npm run build`, and `git diff --check`.
-- Visual gate rerun: Playwright MCP checked `/open-flint-atlas/evidence` at 1024 x 768 with no overlapping floating panels and 390 x 844 with a visible mobile provenance sheet.
+- Visual gate rerun should use `/open-flint-atlas` plus selected-place source-support/dossier states. The old public Evidence lens is no longer a launch surface.
 - Route envelope gate: OCA-003 now has routed pages for map/explore/lenses, sources, contribute, methodology, node, place, object, and scene; `npm run validate:routes:live` checks 13 public URLs.
 - Node Horizon gate: OCA-005/OCA-017B now exposes parent/child/neighbor `Open` actions as accessible links to `/open-flint-atlas/node/[atlasId]`; Playwright MCP clicked the first horizon link and confirmed the Michigan node detail route, no horizontal overflow, and named `Open {node}` actions. `Compare`, breadcrumbs, and spatial portal transitions remain partial.
 - Node Horizon return gate: node detail pages now expose a Federation path and `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node route has the return affordance and clicks back to the anchored map shell without horizontal overflow. `Compare` and spatial portal transitions remain partial.
 
 ## Immediate next slices
-- OCA-003A: finalize component map for the new Atlas Scene shell (`AtlasAppShell`, mode rail, Node Horizon, confidence receipt/review/evidence panels, mosaic/timeline controls).
+- OCA-003A: finalize component map for the new Atlas Scene shell (`AtlasAppShell`, mode rail, Node Horizon, confidence receipt/review/source panels, mosaic/timeline controls).
 - OCA-004: finish bounded-world Atlas Scene treatment (custom boundary/camera presets/style and fallback consistency with mobile map).
 - OCA-005: continue Node Horizon interaction hardening with compare/breadcrumb behavior and spatial portal transitions now that neighboring/parent/child nodes are route-backed navigation affordances.
+- OCA-012 / OCA-012A / OCA-012B: move Lost Flint into the first active product tranche instead of leaving it in a later thematic bucket.
 
 ## Data / contract slices
 - OCA-002, OCA-002A, OCA-002B: finish manifest-first federation schema and AtlasNode/CivicObject contracts.
@@ -43,7 +51,7 @@ This recovery session completed the immediate timed-out slice for the reusable p
 - OCA-012, OCA-012A, OCA-012B: build Lost Flint foundations, Temporal Building Registry schema, and historical article/event layer without implying false certainty.
 - OCA-013: add Civic Intervention Ledger v0.1 so place/corridor/ward dossiers show promises, funding, actors, documents, and outcomes.
 - OCA-014: build Street Safety Lab foundations from crash history, road/corridor aggregates, trend cards, and caveat copy before forecasts.
-- OCA-015: add Evidence Constellation so a selected dossier can open the source/dataset/claim/event/place graph.
+- OCA-015: add a source/connection view so a selected dossier can open the source/dataset/event/place relationship map without academic graph language on the public surface.
 
 ## Renderer / SceneManifest slices
 - OCA-016: finalize SceneManifest v0 schema (objects, bbox/time, render styles, sources, dossiers, assets).

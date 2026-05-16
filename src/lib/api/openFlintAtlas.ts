@@ -128,6 +128,50 @@ export type EventsResponse = {
   total: number;
 };
 
+export type AtlasSignal = {
+  signal_id: string;
+  signal_kind: "public_record" | "candidate";
+  artifact_id: string | null;
+  source_id: string | null;
+  source_label: string;
+  title: string;
+  summary: string;
+  published_at: string | null;
+  received_at: string | null;
+  event_type: string;
+  signal_type: string;
+  review_status: ReviewStatus;
+  status: ReviewStatus;
+  resolution_level: string;
+  visibility_level: "public" | "review_only";
+  confidence_label: string;
+  why_mapped_here: string;
+  place_id: string;
+  place_label: string;
+  geometry: GeoJSON.Geometry | null;
+  source_ids: string[];
+  dossier_url: string | null;
+  expires_at: string | null;
+  warning_copy: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type SignalTelemetry = {
+  generated_from: string;
+  total_signals: number;
+  public_signals: number;
+  candidate_signals: number;
+  source_count: number;
+  review_status_counts: Record<string, number>;
+  signal_type_counts: Record<string, number>;
+};
+
+export type SignalsResponse = {
+  signals: AtlasSignal[];
+  total: number;
+  telemetry: SignalTelemetry;
+};
+
 export type AtlasMetric = {
   metric_id: string;
   metric_key?: string;
@@ -147,6 +191,16 @@ export type EventFilters = {
   place_id?: string;
   source_id?: string;
   status?: string;
+};
+
+export type SignalFilters = {
+  event_type?: string;
+  signal_type?: string;
+  place_id?: string;
+  source_id?: string;
+  review_status?: string;
+  candidate_visibility?: "with_candidates" | "include_candidates" | "all";
+  limit?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -414,6 +468,18 @@ export function fetchDossierPayload(placeId: string) {
 
 export function fetchEvents(filters?: EventFilters) {
   return get<EventsResponse>(`/events/${qs(filters ?? {})}`);
+}
+
+export function fetchSignals(filters?: SignalFilters) {
+  return get<SignalsResponse>(`/signals/${qs(filters ?? {})}`);
+}
+
+export function fetchSignal(signalId: string) {
+  return get<AtlasSignal>(`/signals/${encodeURIComponent(signalId)}/`);
+}
+
+export function fetchSignalTelemetry() {
+  return get<SignalTelemetry>("/signals/telemetry/");
 }
 
 export function fetchProvenance(filters?: ProvenanceFilters) {

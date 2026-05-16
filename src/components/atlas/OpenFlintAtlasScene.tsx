@@ -3,25 +3,44 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { AtlasShell } from "@/components/atlas/AtlasShell";
-import { LayerControls } from "@/components/atlas/LayerControls";
-import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
 import {
   AtlasSceneChrome,
   type AtlasSceneSearchResult,
 } from "@/components/atlas/AtlasSceneChrome";
+import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
+import { LayerControls } from "@/components/atlas/LayerControls";
+import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
+import { AtlasShell } from "@/components/atlas/AtlasShell";
 import {
-  MobileDossierSheet,
-  PlaceDossierPanel,
-} from "@/components/atlas/PlaceDossier";
-import { getAtlasMosaic, type AtlasMosaic } from "@/lib/atlas/mosaic";
+  fetchPlaces,
+  fetchEvents,
+  fetchProvenance,
+  type PlacesCollection,
+  type ProvenanceEdge,
+  type ProvenanceNode,
+  type SpatialEvent,
+} from "@/lib/api/openFlintAtlas";
 import { loadAtlasTables, eventStartIso } from "@/lib/atlas/atlas-data";
+import { getAtlasMosaic, type AtlasMosaic } from "@/lib/atlas/mosaic";
+import { getNodeHorizonEntries } from "@/lib/atlas/node-horizon";
+import {
+  getAtlasRendererBridge,
+  type AtlasRendererMode,
+} from "@/lib/atlas/renderer-bridge";
+import { getAtlasSceneDetailPolicy } from "@/lib/atlas/scene-detail-policy";
 import type {
   AtlasLensId,
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
 import { DEFAULT_VIEW_MODE_BY_LENS } from "@/lib/atlas/scene-view";
-import { getNodeHorizonEntries } from "@/lib/atlas/node-horizon";
+
+const ProvenancePanel = dynamic(
+  () =>
+    import("@/components/atlas/CosmosProvenancePanel").then(
+      (m) => m.CosmosProvenancePanel,
+    ),
+  { ssr: false },
+);
 
 const AtlasTimelineHistogram = dynamic(
   () =>
@@ -38,22 +57,13 @@ const AtlasMap = dynamic(
     ),
   { ssr: false },
 );
-const ProvenancePanel = dynamic(
+const AtlasThreeScene = dynamic(
   () =>
-    import("@/components/atlas/CosmosProvenancePanel").then(
-      (m) => m.CosmosProvenancePanel,
+    import("@/components/atlas/AtlasThreeScene").then(
+      (m) => m.AtlasThreeScene,
     ),
   { ssr: false },
 );
-import {
-  fetchPlaces,
-  fetchEvents,
-  fetchProvenance,
-  type PlacesCollection,
-  type SpatialEvent,
-  type ProvenanceNode,
-  type ProvenanceEdge,
-} from "@/lib/api/openFlintAtlas";
 
 const DEFAULT_LAYERS: Record<string, boolean> = {
   places: true,
@@ -61,6 +71,12 @@ const DEFAULT_LAYERS: Record<string, boolean> = {
   wards: true,
   infrastructure: true,
 };
+
+function initialRendererMode(): AtlasRendererMode {
+  if (typeof window === "undefined") return "baseline";
+  const renderer = new URLSearchParams(window.location.search).get("renderer");
+  return renderer === "scene" || renderer === "r3f" ? "scene" : "baseline";
+}
 
 export function OpenFlintAtlasScene({
   initialLens = "explore",
@@ -76,6 +92,11 @@ export function OpenFlintAtlasScene({
     useState<AtlasLensId>(initialLens);
   const [searchValue, setSearchValue] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [rendererMode, setRendererMode] =
+    useState<AtlasRendererMode>("baseline");
+  const [sceneCameraDistance, setSceneCameraDistance] = useState<number | null>(
+    null,
+  );
 
   const [places, setPlaces] = useState<PlacesCollection | null>(null);
   const [events, setEvents] = useState<SpatialEvent[]>([]);
@@ -88,11 +109,29 @@ export function OpenFlintAtlasScene({
     null,
   );
   const horizonNodes = useMemo(() => getNodeHorizonEntries(), []);
+  const rendererBridge = useMemo(
+    () => getAtlasRendererBridge(rendererMode),
+    [rendererMode],
+  );
+  const focusPolicy = useMemo(
+    () =>
+      getAtlasSceneDetailPolicy({
+        activeLens,
+        cameraDistance: rendererMode === "scene" ? sceneCameraDistance : null,
+        isMobileViewport,
+        viewMode,
+      }),
+    [activeLens, isMobileViewport, rendererMode, sceneCameraDistance, viewMode],
+  );
 
   useEffect(() => {
     setActiveLens(initialLens);
     setViewMode(DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
   }, [initialLens]);
+
+  useEffect(() => {
+    setRendererMode(initialRendererMode());
+  }, []);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 767px)");
@@ -245,34 +284,6 @@ export function OpenFlintAtlasScene({
       }));
   }, [places, searchValue]);
 
-  useEffect(() => {
-    if (!selectedPlaceId) {
-      setProvNodes([]);
-      setProvEdges([]);
-      return;
-    }
-
-    let cancelled = false;
-    setProvLoading(true);
-
-    fetchProvenance({ place_id: selectedPlaceId })
-      .then((res) => {
-        if (cancelled) return;
-        if (res.ok) {
-          setProvNodes(res.data.nodes);
-          setProvEdges(res.data.edges);
-        } else {
-          setProvNodes([]);
-          setProvEdges([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setProvLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [selectedPlaceId]);
-
   const handlePlaceSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
   }, []);
@@ -297,13 +308,50 @@ export function OpenFlintAtlasScene({
     setSearchValue("");
   }, []);
 
+  useEffect(() => {
+    if (!selectedPlaceId) {
+      setProvNodes([]);
+      setProvEdges([]);
+      setProvLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setProvLoading(true);
+
+    fetchProvenance(selectedPlaceId ? { place_id: selectedPlaceId } : undefined)
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          setProvNodes(result.data.nodes);
+          setProvEdges(result.data.edges);
+        } else {
+          setProvNodes([]);
+          setProvEdges([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProvLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlaceId]);
+
   const handleProvenanceNodeSelect = useCallback(
     (nodeId: string) => {
-      const node = provNodes.find((n) => n.id === nodeId);
+      const node = provNodes.find((candidate) => candidate.id === nodeId);
       if (!node) return;
       if (node.labels.includes("Place")) {
         setSelectedPlaceId(nodeId);
+        return;
       }
+      const linkedPlaceId =
+        typeof node.properties.place_id === "string"
+          ? node.properties.place_id
+          : null;
+      if (linkedPlaceId) setSelectedPlaceId(linkedPlaceId);
     },
     [provNodes],
   );
@@ -433,14 +481,15 @@ export function OpenFlintAtlasScene({
       className="h-screen w-full overflow-hidden"
       data-scene-view={viewMode}
       data-active-lens={activeLens}
+      data-renderer-mode={rendererMode}
+      data-analytical-renderer={rendererBridge.analyticalLayerRenderer}
+      data-dense-layer-fallback={rendererBridge.denseLayerFallback}
+      data-selection-key={rendererBridge.selectionKey}
     >
       <AtlasShell
         showTabs={false}
         showTimeline={activeLens === "memory"}
-        showProvenance={
-          !isMobileViewport &&
-          (activeLens === "evidence" || !!selectedPlaceId)
-        }
+        showProvenance={!isMobileViewport && !!selectedPlaceId}
         dossier={
           <ControlDossier
             presets={controlDossierPresets}
@@ -455,16 +504,7 @@ export function OpenFlintAtlasScene({
             dataVersion={atlasTablesVersion}
           />
         }
-        provenance={
-          activeLens === "evidence" ? (
-            provenancePanel
-          ) : (
-            <PlaceDossierPanel
-              placeId={selectedPlaceId}
-              onClose={() => setSelectedPlaceId(null)}
-            />
-          )
-        }
+        provenance={provenancePanel}
         layers={
           <LayerControls
             visibility={layerVisibility}
@@ -474,16 +514,32 @@ export function OpenFlintAtlasScene({
         }
       >
         <div className="relative h-full w-full">
-          <AtlasMap
-            places={places}
-            events={visibleEvents}
-            onPlaceSelect={handlePlaceSelect}
-            selectedPlaceId={selectedPlaceId}
-            layerVisibility={layerVisibility}
-            viewMode={viewMode}
-            activeLens={activeLens}
-            className="w-full h-full"
-          />
+          {rendererMode === "baseline" ? (
+            <AtlasMap
+              places={places}
+              events={visibleEvents}
+              onPlaceSelect={handlePlaceSelect}
+              selectedPlaceId={selectedPlaceId}
+              layerVisibility={layerVisibility}
+              viewMode={viewMode}
+              activeLens={activeLens}
+              className="w-full h-full"
+            />
+          ) : (
+            <AtlasThreeScene
+              places={places}
+              events={visibleEvents}
+              onPlaceSelect={handlePlaceSelect}
+              selectedPlaceId={selectedPlaceId}
+              layerVisibility={layerVisibility}
+              isMobileViewport={isMobileViewport}
+              viewMode={viewMode}
+              activeLens={activeLens}
+              horizonNodes={horizonNodes}
+              onSceneCameraDistanceChange={setSceneCameraDistance}
+              className="w-full h-full"
+            />
+          )}
           <AtlasSceneChrome
             activeLens={activeLens}
             onLensChange={handleLensChange}
@@ -497,23 +553,19 @@ export function OpenFlintAtlasScene({
             placesCount={places?.features.length ?? 0}
             eventsCount={visibleEvents.length}
             horizonNodes={horizonNodes}
-            mobileDossierOpen={isMobileViewport && !!selectedPlaceId}
+            isMobileViewport={isMobileViewport}
+            selectedPlaceId={selectedPlaceId}
+            focusCameraBand={focusPolicy.cameraDistanceBand}
+            focusDetailLevel={focusPolicy.detailLevel}
+            onClearSelection={() => setSelectedPlaceId(null)}
+            dossierContent={
+              <PlaceDossierPanel
+                placeId={selectedPlaceId}
+                onClose={() => setSelectedPlaceId(null)}
+                showCloseButton={false}
+              />
+            }
           />
-          {isMobileViewport && activeLens === "evidence" && (
-            <aside
-              className="atlas-mobile-dossier-sheet atlas-mobile-provenance-sheet"
-              aria-label="Evidence provenance"
-              style={{ height: "54vh" }}
-            >
-              {provenancePanel}
-            </aside>
-          )}
-          {isMobileViewport && activeLens !== "evidence" && (
-            <MobileDossierSheet
-              placeId={selectedPlaceId}
-              onClose={() => setSelectedPlaceId(null)}
-            />
-          )}
         </div>
       </AtlasShell>
     </div>

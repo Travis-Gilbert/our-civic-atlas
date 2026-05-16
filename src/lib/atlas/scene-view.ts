@@ -4,8 +4,7 @@ export type AtlasLensId =
   | "explore"
   | "memory"
   | "safety"
-  | "interventions"
-  | "evidence";
+  | "interventions";
 
 export type AtlasCameraState = {
   longitude: number;
@@ -78,7 +77,7 @@ export const ATLAS_SCENE_VIEW_MODES: AtlasSceneViewMode[] = [
     id: "section",
     label: "Section",
     shortLabel: "Slice",
-    description: "Cutaway-like view for comparing layers, time, and evidence strata.",
+    description: "Cutaway-like view for comparing layers, time, and source-support strata.",
     camera: {
       longitude: -83.697,
       latitude: 43.025,
@@ -105,7 +104,7 @@ export const ATLAS_LENSES: AtlasLens[] = [
     id: "memory",
     label: "Memory",
     shortLabel: "Time",
-    description: "Historical events, vanished places, and temporal building evidence.",
+    description: "Historical events, vanished places, and temporal building support.",
   },
   {
     id: "safety",
@@ -118,12 +117,6 @@ export const ATLAS_LENSES: AtlasLens[] = [
     label: "Interventions",
     shortLabel: "Work",
     description: "Public projects, promises, funding, actors, and outcomes.",
-  },
-  {
-    id: "evidence",
-    label: "Evidence",
-    shortLabel: "Graph",
-    description: "Sources, claims, confidence, provenance, and review state.",
   },
 ];
 
@@ -139,7 +132,6 @@ export const DEFAULT_VIEW_MODE_BY_LENS: Record<
   memory: "section",
   safety: "street",
   interventions: "oblique",
-  evidence: "section",
 };
 
 export const VISUAL_GRAMMAR_TOKENS = [
@@ -152,7 +144,7 @@ export const VISUAL_GRAMMAR_TOKENS = [
   {
     id: "needs_review",
     label: "Needs review",
-    detail: "candidate or low confidence",
+    detail: "candidate or incomplete support",
     color: "#c08a3a",
   },
   {
@@ -164,7 +156,7 @@ export const VISUAL_GRAMMAR_TOKENS = [
   {
     id: "source_high_confidence",
     label: "Source",
-    detail: "high-support evidence",
+    detail: "source-backed support",
     color: "#5f6fa3",
   },
 ] as const;
