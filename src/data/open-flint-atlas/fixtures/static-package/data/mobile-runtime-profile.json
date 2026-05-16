@@ -1,0 +1,102 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "default_mobile_surface": "leaflet_baseline",
+  "candidate_mobile_surface": "deck_mobile_candidate",
+  "current_status": "candidate_available",
+  "promotion_summary": "Leaflet remains the default mobile renderer until the deck-backed candidate route passes runtime, product, and throttled-device budget gates.",
+  "baseline_reference_route": "/open-flint-atlas",
+  "reversible_boundary": "ResponsiveAtlasMap keeps the phone-class baseline on Leaflet while the deck-backed candidate is exposed separately at /open-flint-atlas/mobile-candidate.",
+  "dynamic_viewport_contracts_url": "/data/viewport-vector-contracts.json",
+  "scene_packet_compiler_url": "/data/scene-packet-compiler.json",
+  "scene_packet_index_url": "/data/scene-packets/index.json",
+  "binary_read_model_defaults": {
+    "preferred_formats": [
+      "geoparquet",
+      "parquet",
+      "arrow",
+      "pmtiles",
+      "flatgeobuf"
+    ],
+    "json_allowed_for": [
+      "small control payloads",
+      "fallback place and event payloads",
+      "manifest and catalog metadata"
+    ],
+    "notes": [
+      "Binary analytical and map payloads should be lazy-loaded and prepared off the main thread.",
+      "JSON remains acceptable for compact manifests, confidence cards, and reversible fallback payloads."
+    ]
+  },
+  "tile_publication": {
+    "default_archive_format": "pmtiles",
+    "basemap_archive_url": "/tiles/basemap.pmtiles",
+    "overlay_archive_pattern": "/tiles/layers/{layer_id}.pmtiles",
+    "metadata_url": null,
+    "cache_strategy": "Host PMTiles archives on static storage with immutable caching and HTTP range support.",
+    "rebuild_trigger": "Rebuild PMTiles archives when the reviewed basemap style or large mostly-static overlay data changes.",
+    "status": "planned"
+  },
+  "worker_boundaries": [
+    {
+      "boundary_id": "duckdb-query-worker",
+      "label": "DuckDB analytical queries",
+      "stage": "query",
+      "owner": "mosaic",
+      "runtime": "duckdb-wasm",
+      "required_on_mobile": true,
+      "fallback_behavior": "If worker bootstrap fails, keep dossier and place interactions available and degrade atlas analytics gracefully.",
+      "status": "current"
+    },
+    {
+      "boundary_id": "binary-parse-worker",
+      "label": "Binary read-model parsing",
+      "stage": "parse",
+      "owner": "loaders.gl",
+      "runtime": "worker",
+      "required_on_mobile": true,
+      "fallback_behavior": "Fall back to smaller JSON or GeoJSON payloads when binary parsing is unavailable.",
+      "status": "planned"
+    },
+    {
+      "boundary_id": "scene-packet-assembly-worker",
+      "label": "Scene packet assembly",
+      "stage": "packet_assembly",
+      "owner": "atlas-runtime",
+      "runtime": "worker",
+      "required_on_mobile": true,
+      "fallback_behavior": "Use smaller layer sets and direct feature rendering until packet compilers land.",
+      "status": "planned"
+    }
+  ],
+  "promotion_gates": [
+    {
+      "gate_id": "runtime-complete",
+      "label": "Runtime complete",
+      "requirement": "The candidate mobile runtime loads, pans, and opens dossiers with the new data path.",
+      "validator": "Route smoke, worker smoke, and populated mobile atlas load checks.",
+      "pass_condition": "No route or worker bootstrap failures on the candidate surface.",
+      "status": "planned"
+    },
+    {
+      "gate_id": "product-complete",
+      "label": "Product complete",
+      "requirement": "The mobile atlas remains equal-or-better than the Leaflet baseline for readability, touch affordances, and source/confidence clarity.",
+      "validator": "Before/after screenshot review, constrained viewport review, and dossier flow smoke.",
+      "pass_condition": "The Do Not Downgrade gate passes for a populated mobile state.",
+      "status": "planned"
+    },
+    {
+      "gate_id": "budget-complete",
+      "label": "Budget complete",
+      "requirement": "The candidate respects mobile budgets for JS weight, main-thread blocking, worker start-up, and first interaction.",
+      "validator": "Throttled mobile profile smoke with explicit performance budgets.",
+      "pass_condition": "The candidate stays within agreed device-tier budgets without deleting the Leaflet fallback first.",
+      "status": "planned"
+    }
+  ],
+  "notes": [
+    "This profile executes the mobile promotion boundary as machine-readable repo state instead of plan prose only.",
+    "Rusty Red remains a hot scene hydrator and cache lane only; it is not the canonical source of atlas truth."
+  ]
+}

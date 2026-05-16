@@ -33,6 +33,14 @@ type AtlasDynamicIslandProps = {
   onLensChange: (lens: AtlasLensId) => void;
   viewMode: AtlasSceneViewModeId;
   onViewModeChange: (mode: AtlasSceneViewModeId) => void;
+  searchValue: string;
+  onSearchValueChange: (value: string) => void;
+  searchResults: Array<{
+    id: string;
+    name: string;
+    type: string;
+  }>;
+  onSearchResultSelect: (placeId: string) => void;
   selectedPlaceId: string | null;
   selectedPlaceName: string | null;
   focusDetailLevel: AtlasSceneDetailLevel;
@@ -81,6 +89,10 @@ export function AtlasDynamicIsland({
   onLensChange,
   viewMode,
   onViewModeChange,
+  searchValue,
+  onSearchValueChange,
+  searchResults,
+  onSearchResultSelect,
   selectedPlaceId,
   selectedPlaceName,
   focusDetailLevel,
@@ -134,6 +146,9 @@ export function AtlasDynamicIsland({
   const activeLensInfo = ATLAS_LENS_LOOKUP[activeLens];
   const islandTitle = selectedPlaceName ?? focusHeadline(focusDetailLevel, activeLensInfo.label);
   const islandSubtitle = `${focusDetailLabel(focusDetailLevel)} · ${focusBandLabel(focusCameraBand)} · ${activeView.shortLabel}`;
+  const collapsedIslandWidth = isMobileViewport ? 316 : 318;
+  const expandedIslandWidth = isMobileViewport ? 354 : 392;
+  const mobileSearchActive = isMobileViewport && !isExpanded && searchValue.trim().length > 0;
 
   function openIsland(panel?: IslandPanel) {
     if (panel && availablePanels.includes(panel)) {
@@ -162,11 +177,44 @@ export function AtlasDynamicIsland({
         ) : null}
       </AnimatePresence>
 
-      <div className="pointer-events-none absolute bottom-5 left-1/2 z-[1420] -translate-x-1/2">
+      <div
+        className="pointer-events-none absolute bottom-5 left-1/2 z-[1420] -translate-x-1/2"
+        style={{ width: isExpanded ? expandedIslandWidth : collapsedIslandWidth }}
+      >
+        {mobileSearchActive ? (
+          <div
+            className="atlas-scene-search-results pointer-events-auto absolute bottom-[calc(100%+10px)] left-0 right-0"
+            role="listbox"
+            aria-label="Place search results"
+          >
+            {searchResults.length > 0 ? (
+              searchResults.map((result) => (
+                <button
+                  key={result.id}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 px-3 py-2 text-left text-[13px]"
+                  onClick={() => onSearchResultSelect(result.id)}
+                  role="option"
+                  aria-selected={false}
+                >
+                  <span className="truncate text-[color:var(--ctx-ink)]">{result.name}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
+                    {result.type}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-[13px] text-[color:var(--ctx-ink-mute)]">
+                No matching places in the current read model.
+              </p>
+            )}
+          </div>
+        ) : null}
+
         <motion.div
           initial={false}
           animate={{
-            width: isExpanded ? (isMobileViewport ? 354 : 392) : (isMobileViewport ? 290 : 318),
+            width: isExpanded ? expandedIslandWidth : collapsedIslandWidth,
             height: isExpanded ? (isMobileViewport ? 436 : 394) : 58,
             borderRadius: isExpanded ? 24 : 999,
           }}
@@ -178,37 +226,83 @@ export function AtlasDynamicIsland({
               : "0 18px 30px -24px rgba(42,36,25,0.44)",
           }}
         >
-          <motion.button
-            type="button"
-            initial={false}
-            animate={{
-              opacity: isExpanded ? 0 : 1,
-              pointerEvents: isExpanded ? "none" : "auto",
-            }}
-            transition={islandTransition}
-            className="absolute inset-0 flex w-full items-center gap-4 px-4 text-left"
-            onClick={() => openIsland()}
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)]">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ background: lensAccent(activeLens) }}
+          {isMobileViewport ? (
+            <motion.div
+              initial={false}
+              animate={{
+                opacity: isExpanded ? 0 : 1,
+                pointerEvents: isExpanded ? "none" : "auto",
+              }}
+              transition={islandTransition}
+              className="absolute inset-0"
+            >
+              <div className="relative h-full w-full">
+                <button
+                  type="button"
+                  className="absolute inset-0 flex items-center justify-center px-[88px] text-center"
+                  onClick={() => openIsland()}
+                >
+                  <span className="truncate text-[15px] font-medium leading-none text-[color:var(--ctx-ink)]">
+                    {activeLensInfo.label}
+                  </span>
+                </button>
+
+                <div className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)]">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: lensAccent(activeLens) }}
+                  />
+                </div>
+
+                <label
+                  className="absolute right-3 top-1/2 z-10 flex h-10 w-[104px] -translate-y-1/2 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.36)] px-3 shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
+                  aria-label="Search Flint Atlas places"
+                >
+                  <Search className="h-4 w-4 shrink-0 text-[color:var(--ctx-ink-mute)]" />
+                  <input
+                    value={searchValue}
+                    onChange={(event) => onSearchValueChange(event.target.value)}
+                    suppressHydrationWarning
+                    className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
+                    placeholder=""
+                    type="search"
+                  />
+                </label>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.button
+              type="button"
+              initial={false}
+              animate={{
+                opacity: isExpanded ? 0 : 1,
+                pointerEvents: isExpanded ? "none" : "auto",
+              }}
+              transition={islandTransition}
+              className="absolute inset-0 flex w-full items-center gap-4 px-4 text-left"
+              onClick={() => openIsland()}
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)]">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: lensAccent(activeLens) }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[14px] font-medium leading-[1.2] text-[color:var(--ctx-ink)]">
+                  {islandTitle}
+                </p>
+                <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                  {islandSubtitle}
+                </p>
+              </div>
+              <SceneFocusIndicator
+                cameraBand={focusCameraBand}
+                detailLevel={focusDetailLevel}
+                hasSelection={selectedPlaceId !== null}
               />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] font-medium leading-[1.2] text-[color:var(--ctx-ink)]">
-                {islandTitle}
-              </p>
-              <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                {islandSubtitle}
-              </p>
-            </div>
-            <SceneFocusIndicator
-              cameraBand={focusCameraBand}
-              detailLevel={focusDetailLevel}
-              hasSelection={selectedPlaceId !== null}
-            />
-          </motion.button>
+            </motion.button>
+          )}
 
           <motion.div
             initial={false}

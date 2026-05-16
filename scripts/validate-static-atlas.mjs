@@ -173,7 +173,6 @@ function validateSceneManifest(sceneManifest) {
   assertStringArray(sceneManifest.renderer_boundary_ids, "scene-manifest.renderer_boundary_ids");
   assertScore(sceneManifest.confidence?.score, "scene-manifest.confidence.score");
   assertStringArray(sceneManifest.confidence?.reasons, "scene-manifest.confidence.reasons");
-
   assert(Array.isArray(sceneManifest.objects) && sceneManifest.objects.length > 0, "scene-manifest.objects must be a non-empty array");
   sceneManifest.objects.forEach((object, index) => {
     for (const key of [
@@ -240,7 +239,6 @@ function validateScenarioManifest(scenarioManifest) {
   ]) {
     assertStringArray(scenarioManifest[key], `scenario-manifest.${key}`);
   }
-
   assert(Array.isArray(scenarioManifest.metrics) && scenarioManifest.metrics.length > 0, "scenario-manifest.metrics must not be empty");
   scenarioManifest.metrics.forEach((metric, index) => {
     assertString(metric.key, `scenario-manifest.metrics.${index}.key`);
@@ -345,6 +343,120 @@ function validateLayerRecipes(recipesFixture) {
   });
 }
 
+function validateViewportVectorContracts(contracts) {
+  assertString(
+    contracts.schema_version,
+    "viewport-vector-contracts.schema_version",
+  );
+  assertString(
+    contracts.atlas_node_id,
+    "viewport-vector-contracts.atlas_node_id",
+  );
+  assert(
+    Array.isArray(contracts.contracts) && contracts.contracts.length > 0,
+    "viewport-vector-contracts.contracts must not be empty",
+  );
+}
+
+function validateScenePacketCompiler(compiler) {
+  for (const key of [
+    "schema_version",
+    "atlas_node_id",
+    "compiler_id",
+    "packet_schema_version",
+    "preferred_transport",
+    "worker_boundary_id",
+  ]) {
+    assertString(compiler[key], `scene-packet-compiler.${key}`);
+  }
+
+  for (const key of [
+    "supports_renderers",
+    "viewport_parameters",
+    "example_packet_urls",
+    "notes",
+  ]) {
+    assertStringArray(compiler[key], `scene-packet-compiler.${key}`);
+  }
+
+  assert(
+    Array.isArray(compiler.stages) && compiler.stages.length > 0,
+    "scene-packet-compiler.stages must not be empty",
+  );
+}
+
+function validateScenePacketIndex(index) {
+  assertString(index.schema_version, "scene-packets.index.schema_version");
+  assertString(index.atlas_node_id, "scene-packets.index.atlas_node_id");
+  assertString(
+    index.compiler_contract_url,
+    "scene-packets.index.compiler_contract_url",
+  );
+  assertStringArray(index.notes, "scene-packets.index.notes");
+  assert(
+    Array.isArray(index.packets) && index.packets.length > 0,
+    "scene-packets.index.packets must not be empty",
+  );
+}
+
+function validateScenePacket(packet) {
+  for (const key of [
+    "schema_version",
+    "packet_id",
+    "atlas_node_id",
+    "scene_id",
+    "viewport_key",
+  ]) {
+    assertString(packet[key], `scene-packet.${key}`);
+  }
+
+  assert(
+    Array.isArray(packet.zoom_range) && packet.zoom_range.length === 2,
+    "scene-packet.zoom_range must contain two numbers",
+  );
+  assertStringArray(packet.cache_tags, "scene-packet.cache_tags");
+  assertStringArray(packet.notes, "scene-packet.notes");
+  assert(
+    Array.isArray(packet.layer_packets) && packet.layer_packets.length > 0,
+    "scene-packet.layer_packets must not be empty",
+  );
+}
+
+function validateMobileRuntimeProfile(profile) {
+  for (const key of [
+    "schema_version",
+    "atlas_id",
+    "default_mobile_surface",
+    "candidate_mobile_surface",
+    "current_status",
+    "promotion_summary",
+    "baseline_reference_route",
+    "reversible_boundary",
+    "dynamic_viewport_contracts_url",
+    "scene_packet_compiler_url",
+    "scene_packet_index_url",
+  ]) {
+    assertString(profile[key], `mobile-runtime-profile.${key}`);
+  }
+
+  assertStringArray(profile.notes, "mobile-runtime-profile.notes");
+  assert(
+    Array.isArray(profile.worker_boundaries) &&
+      profile.worker_boundaries.length > 0,
+    "mobile-runtime-profile.worker_boundaries must not be empty",
+  );
+  assert(
+    Array.isArray(profile.promotion_gates) &&
+      profile.promotion_gates.length > 0,
+    "mobile-runtime-profile.promotion_gates must not be empty",
+  );
+  assert(
+    typeof profile.binary_read_model_defaults === "object" &&
+      profile.binary_read_model_defaults !== null,
+    "mobile-runtime-profile.binary_read_model_defaults must be an object",
+  );
+}
+
 async function main() {
   const options = parseOptions(process.argv.slice(2));
   const target = options.target;
@@ -362,6 +474,11 @@ async function main() {
       primitiveLibrary,
       geoComments,
       layerRecipes,
+      viewportVectorContracts,
+      scenePacketCompiler,
+      scenePacketIndex,
+      scenePacket,
+      mobileRuntimeProfile,
     ] = await Promise.all([
       readJson("well-known/our-civic-atlas.json"),
       readJson("data/atlas-node.json"),
@@ -374,6 +491,11 @@ async function main() {
       readJson("data/primitive-library.json"),
       readJson("data/geo-comments.json"),
       readJson("data/layer-recipes.json"),
+      readJson("data/viewport-vector-contracts.json"),
+      readJson("data/scene-packet-compiler.json"),
+      readJson("data/scene-packets/index.json"),
+      readJson("data/scene-packets/flint-overview-mobile.json"),
+      readJson("data/mobile-runtime-profile.json"),
     ]);
 
     assertString(discoveryManifest.atlas_id, "well-known.atlas_id");
@@ -381,30 +503,59 @@ async function main() {
     assertStringArray(discoveryManifest.capabilities, "well-known.capabilities");
     validateAtlasNode(atlasNode);
     validateNodeCatalog(nodeCatalog);
-    assert(Array.isArray(layerCatalog.layers) && layerCatalog.layers.length > 0, "layer-catalog.layers must not be empty");
-    assert(Array.isArray(readModelCatalog.files) && readModelCatalog.files.length > 0, "read-model-catalog.files must not be empty");
+    assert(
+      Array.isArray(layerCatalog.layers) && layerCatalog.layers.length > 0,
+      "layer-catalog.layers must not be empty",
+    );
+    assert(
+      Array.isArray(readModelCatalog.files) && readModelCatalog.files.length > 0,
+      "read-model-catalog.files must not be empty",
+    );
+    const readModelIds = new Set(readModelCatalog.files.map((file) => file.id));
+    for (const id of [
+      "scenario-manifests",
+      "primitive-library",
+      "geo-comments",
+      "layer-recipes",
+      "renderer-boundaries",
+      "mobile-runtime-profile",
+      "viewport-vector-contracts",
+      "scene-packet-compiler",
+      "scene-packets",
+    ]) {
+      assert(readModelIds.has(id), `read-model-catalog must include ${id}`);
+    }
     validateCivicObjects(civicObjects);
     validateSceneManifest(sceneManifest);
     validateScenarioManifest(scenarioManifest);
     validatePrimitiveLibrary(primitiveLibrary);
     validateGeoComments(geoComments);
     validateLayerRecipes(layerRecipes);
+    validateViewportVectorContracts(viewportVectorContracts);
+    validateScenePacketCompiler(scenePacketCompiler);
+    validateScenePacketIndex(scenePacketIndex);
+    validateScenePacket(scenePacket);
+    validateMobileRuntimeProfile(mobileRuntimeProfile);
 
     console.log(
-      `Validated static atlas package: ${atlasNode.name}, ${civicObjects.length} civic objects, ${layerCatalog.layers.length} layers, ${nodeCatalog.nodes.length} nodes, ${primitiveLibrary.primitives.length} primitives.`,
+      `Validated static atlas package: ${atlasNode.name}, ${civicObjects.length} civic objects, ${layerCatalog.layers.length} layers, ${nodeCatalog.nodes.length} nodes, ${primitiveLibrary.primitives.length} primitives, ${scenePacketIndex.packets.length} packet sketch.`,
     );
     return;
   }
 
   if (target === "scene-manifest") {
-    const sceneManifest = await readJson("data/scene-manifests/flint-overview.json");
+    const sceneManifest = await readJson(
+      "data/scene-manifests/flint-overview.json",
+    );
     validateSceneManifest(sceneManifest);
     console.log(`Validated scene manifest: ${sceneManifest.scene_id}`);
     return;
   }
 
   if (target === "scenario-manifest") {
-    const scenarioManifest = await readJson("data/scenario-manifests/flint-starter.json");
+    const scenarioManifest = await readJson(
+      "data/scenario-manifests/flint-starter.json",
+    );
     validateScenarioManifest(scenarioManifest);
     console.log(`Validated scenario manifest: ${scenarioManifest.scenario_id}`);
     return;
@@ -413,7 +564,9 @@ async function main() {
   if (target === "primitive-library") {
     const primitiveLibrary = await readJson("data/primitive-library.json");
     validatePrimitiveLibrary(primitiveLibrary);
-    console.log(`Validated primitive library: ${primitiveLibrary.primitives.length} primitives`);
+    console.log(
+      `Validated primitive library: ${primitiveLibrary.primitives.length} primitives`,
+    );
     return;
   }
 
@@ -427,7 +580,51 @@ async function main() {
   if (target === "layer-recipes") {
     const layerRecipes = await readJson("data/layer-recipes.json");
     validateLayerRecipes(layerRecipes);
-    console.log(`Validated layer recipes: ${layerRecipes.recipes.length} recipes`);
+    console.log(
+      `Validated layer recipes: ${layerRecipes.recipes.length} recipes`,
+    );
+    return;
+  }
+
+  if (target === "viewport-vector-contracts") {
+    const viewportVectorContracts = await readJson(
+      "data/viewport-vector-contracts.json",
+    );
+    validateViewportVectorContracts(viewportVectorContracts);
+    console.log(
+      `Validated viewport vector contracts: ${viewportVectorContracts.contracts.length} contracts`,
+    );
+    return;
+  }
+
+  if (target === "scene-packet-compiler") {
+    const scenePacketCompiler = await readJson("data/scene-packet-compiler.json");
+    validateScenePacketCompiler(scenePacketCompiler);
+    console.log(
+      `Validated scene packet compiler: ${scenePacketCompiler.compiler_id}`,
+    );
+    return;
+  }
+
+  if (target === "scene-packets") {
+    const [scenePacketIndex, scenePacket] = await Promise.all([
+      readJson("data/scene-packets/index.json"),
+      readJson("data/scene-packets/flint-overview-mobile.json"),
+    ]);
+    validateScenePacketIndex(scenePacketIndex);
+    validateScenePacket(scenePacket);
+    console.log(
+      `Validated scene packets: ${scenePacketIndex.packets.length} published packet(s)`,
+    );
+    return;
+  }
+
+  if (target === "mobile-runtime-profile") {
+    const mobileRuntimeProfile = await readJson("data/mobile-runtime-profile.json");
+    validateMobileRuntimeProfile(mobileRuntimeProfile);
+    console.log(
+      `Validated mobile runtime profile: ${mobileRuntimeProfile.current_status}`,
+    );
     return;
   }
 

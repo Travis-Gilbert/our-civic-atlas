@@ -461,17 +461,43 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (segment === "node-catalog") return json(staticPackage.nodeCatalog);
   if (segment === "layer-catalog") return json(staticPackage.layerCatalog);
   if (segment === "read-model-catalog") return json(staticPackage.readModelCatalog);
+  if (segment === "source-registry") return json(sourceRegistry);
   if (segment === "civic-objects") {
     return json({
       civic_objects: staticPackage.civicObjects,
       total: staticPackage.civicObjects.length,
     });
   }
+  if (segment === "mobile-runtime-profile") {
+    return json(staticPackage.mobileRuntimeProfile);
+  }
   if (segment === "scene-manifests") {
     return json({
       scene_manifests: staticPackage.sceneManifests,
       total: staticPackage.sceneManifests.length,
     });
+  }
+  if (segment === "scenario-manifests") {
+    return json({
+      scenario_manifests: staticPackage.scenarioManifests,
+      total: staticPackage.scenarioManifests.length,
+    });
+  }
+  if (segment === "viewport-vector-contracts") {
+    return json(staticPackage.viewportVectorContracts);
+  }
+  if (segment === "scene-packet-compiler") {
+    return json(staticPackage.scenePacketCompiler);
+  }
+  if (segment === "scene-packets" && !id) {
+    return json(staticPackage.scenePacketIndex);
+  }
+  if (segment === "scene-packets" && id) {
+    const packet = staticPackage.scenePackets.find(
+      (candidate) => candidate.packet_id === decodeURIComponent(id),
+    );
+    if (!packet) return notFound("Scene packet not found");
+    return json(packet);
   }
   if (segment === "static-package") {
     const validationIssues = validateStaticAtlasPackageFixture();

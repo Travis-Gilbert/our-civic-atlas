@@ -1,0 +1,115 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_node_id": "atlas:flint-mi",
+  "contracts": [
+    {
+      "contract_id": "viewport-vector:places-review-window",
+      "layer_id": "places",
+      "label": "Places review window",
+      "description": "Preferred dynamic slice for viewport-bounded place geometry once binary publication is enabled.",
+      "preferred_format": "flatgeobuf",
+      "endpoint_pattern": "/data/viewport-vectors/places.fgb",
+      "query_parameters": [
+        "bbox",
+        "zoom",
+        "limit"
+      ],
+      "range_request_capable": true,
+      "cache_strategy": "Cache by bbox and zoom bucket in the client for five minutes and publish immutable FlatGeobuf objects once the package build lands.",
+      "fallback_url": "/data/places.geojson",
+      "selection_rule": {
+        "min_zoom": 11,
+        "max_zoom": 16,
+        "packet_handoff_zoom": 13,
+        "max_feature_count_hint": 500,
+        "geometry_granularity": "simplified_geometry",
+        "reasons": [
+          "Neighborhood and ward review need geometry fidelity without shipping whole-city GeoJSON to phones.",
+          "FlatGeobuf keeps the viewport contract range-request friendly before full scene packets are assembled."
+        ]
+      },
+      "source_ids": [
+        "city_of_flint_gis",
+        "um_flint_gis_center",
+        "census_acs_tiger"
+      ],
+      "status": "planned",
+      "notes": [
+        "The JSON fallback remains valid for baseline and low-bandwidth modes.",
+        "This contract becomes the preferred input to scene packet assembly for map-facing place layers."
+      ]
+    },
+    {
+      "contract_id": "viewport-vector:street-safety-corridors",
+      "layer_id": "street-safety",
+      "label": "Street safety corridor slices",
+      "description": "Corridor-level safety review uses FlatGeobuf slices keyed to the current viewport and zoom bucket.",
+      "preferred_format": "flatgeobuf",
+      "endpoint_pattern": "/data/viewport-vectors/street-safety.fgb",
+      "query_parameters": [
+        "bbox",
+        "zoom",
+        "since"
+      ],
+      "range_request_capable": true,
+      "cache_strategy": "Cache corridor slices per bbox, zoom bucket, and event recency window; prefer immutable object URLs with HTTP range support when published.",
+      "fallback_url": "/data/events.json",
+      "selection_rule": {
+        "min_zoom": 12,
+        "max_zoom": 16,
+        "packet_handoff_zoom": 13,
+        "max_feature_count_hint": 600,
+        "geometry_granularity": "simplified_geometry",
+        "reasons": [
+          "Street-level safety review needs medium-sized dynamic subsets that are too heavy for eager GeoJSON on phones.",
+          "The packet compiler can reuse the same viewport slice without re-scanning full event payloads."
+        ]
+      },
+      "source_ids": [
+        "michigan_traffic_crash_facts",
+        "census_acs_tiger"
+      ],
+      "status": "planned",
+      "notes": [
+        "This is the primary dynamic review-oriented vector lane for the first mobile packet work.",
+        "The selection rule hands off to scene packets once the client requests denser overlays."
+      ]
+    },
+    {
+      "contract_id": "viewport-vector:intervention-review-slices",
+      "layer_id": "interventions",
+      "label": "Intervention review slices",
+      "description": "Intervention and public-commitment review windows publish bounded feature slices instead of full-city fallback payloads.",
+      "preferred_format": "flatgeobuf",
+      "endpoint_pattern": "/data/viewport-vectors/interventions.fgb",
+      "query_parameters": [
+        "bbox",
+        "zoom",
+        "review_state"
+      ],
+      "range_request_capable": true,
+      "cache_strategy": "Cache by bbox, zoom bucket, and review state so community review flows stay warm without making Rusty Red canonical.",
+      "fallback_url": "/data/civic-objects.json",
+      "selection_rule": {
+        "min_zoom": 12,
+        "max_zoom": 16,
+        "packet_handoff_zoom": 14,
+        "max_feature_count_hint": 350,
+        "geometry_granularity": "full_geometry",
+        "reasons": [
+          "Intervention review favors smaller, shape-accurate subsets that are still too large for always-on JSON.",
+          "Review-only slices should stay renderer-agnostic so the same packet inputs can map to future native clients."
+        ]
+      },
+      "source_ids": [
+        "city_of_flint_gis",
+        "mapflint"
+      ],
+      "status": "planned",
+      "notes": [
+        "This rule keeps review-oriented overlays on the same binary lane as map-facing packets.",
+        "Fallback remains civic-objects JSON until the publication build emits the FlatGeobuf artifact."
+      ]
+    }
+  ]
+}

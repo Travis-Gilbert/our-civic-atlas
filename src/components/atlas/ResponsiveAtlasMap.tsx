@@ -5,7 +5,8 @@
  * AtlasMap and the mobile Leaflet MobileAtlasMap based on viewport.
  *
  * Behavior:
- *   - `<768px` (Tailwind ``md`` breakpoint): MobileAtlasMap (Leaflet).
+ *   - `<768px` (Tailwind ``md`` breakpoint): MobileAtlasMap (Leaflet) by
+ *     default, or AtlasMap when the deck-backed mobile candidate is enabled.
  *   - `>=768px`: AtlasMap (MapLibre + deck.gl).
  *   - SSR / first paint: renders nothing until viewport is known, to
  *     avoid hydration mismatch between the server (no window) and the
@@ -30,6 +31,7 @@ import type {
   PlacesCollection,
   SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
+import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import type {
   AtlasLensId,
   AtlasSceneViewModeId,
@@ -58,6 +60,8 @@ export type ResponsiveAtlasMapProps = {
   selectedPlaceId: string | null;
   selectedSignalId: string | null;
   layerVisibility: Record<string, boolean>;
+  mobileSurface?: MobileRuntimeSurfaceId;
+  initialBounds?: [[number, number], [number, number]] | null;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
   className?: string;
@@ -88,6 +92,7 @@ function useIsMobileViewport(): boolean | null {
 
 export function ResponsiveAtlasMap(props: ResponsiveAtlasMapProps) {
   const isMobile = useIsMobileViewport();
+  const mobileSurface = props.mobileSurface ?? "leaflet_baseline";
 
   // Before the viewport is known (SSR + initial hydration), render an
   // empty container at the same size so layout doesn't reflow when the
@@ -96,5 +101,11 @@ export function ResponsiveAtlasMap(props: ResponsiveAtlasMapProps) {
     return <div className={props.className} />;
   }
 
-  return isMobile ? <MobileAtlasMap {...props} /> : <AtlasMap {...props} />;
+  if (!isMobile) {
+    return <AtlasMap {...props} />;
+  }
+
+  return mobileSurface === "deck_mobile_candidate"
+    ? <AtlasMap {...props} />
+    : <MobileAtlasMap {...props} />;
 }

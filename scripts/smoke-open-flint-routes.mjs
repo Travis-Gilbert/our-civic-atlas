@@ -12,6 +12,7 @@ const ROUTES = [
   { path: "/open-flint-atlas/sources", expect: "Sources" },
   { path: "/open-flint-atlas/contribute", expect: "Contribute" },
   { path: "/open-flint-atlas/methodology", expect: "Methodology" },
+  { path: "/open-flint-atlas/mobile-candidate", expect: "Flint Atlas" },
   { path: "/open-flint-atlas/node/atlas%3Aflint-mi", expect: "Flint Atlas" },
   { path: "/open-flint-atlas/place/ward%3A1", expect: "Ward 1" },
   {

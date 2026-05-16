@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
-import { Map, NavigationControl, useControl } from "react-map-gl/maplibre";
+import { useMemo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Map,
+  NavigationControl,
+  useControl,
+  type MapRef,
+} from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
@@ -19,6 +24,7 @@ import {
   type AtlasLensId,
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -152,6 +158,83 @@ function geometryCentroid(
   return null;
 }
 
+type BoundsAccumulator = {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+};
+
+function extendBounds(bounds: BoundsAccumulator, lng: number, lat: number) {
+  bounds.minLng = Math.min(bounds.minLng, lng);
+  bounds.minLat = Math.min(bounds.minLat, lat);
+  bounds.maxLng = Math.max(bounds.maxLng, lng);
+  bounds.maxLat = Math.max(bounds.maxLat, lat);
+}
+
+function collectCoordinateBounds(value: unknown, bounds: BoundsAccumulator) {
+  if (!Array.isArray(value) || value.length === 0) return;
+  if (typeof value[0] === "number" && typeof value[1] === "number") {
+    extendBounds(bounds, Number(value[0]), Number(value[1]));
+    return;
+  }
+  for (const entry of value) {
+    collectCoordinateBounds(entry, bounds);
+  }
+}
+
+function geometryBounds(
+  geometry: GeoJSON.Geometry | null | undefined,
+): [[number, number], [number, number]] | null {
+  if (!geometry) return null;
+  const bounds: BoundsAccumulator = {
+    minLng: Number.POSITIVE_INFINITY,
+    minLat: Number.POSITIVE_INFINITY,
+    maxLng: Number.NEGATIVE_INFINITY,
+    maxLat: Number.NEGATIVE_INFINITY,
+  };
+
+  if (geometry.type === "GeometryCollection") {
+    for (const entry of geometry.geometries) {
+      const entryBounds = geometryBounds(entry);
+      if (!entryBounds) continue;
+      extendBounds(bounds, entryBounds[0][0], entryBounds[0][1]);
+      extendBounds(bounds, entryBounds[1][0], entryBounds[1][1]);
+    }
+  } else {
+    collectCoordinateBounds(geometry.coordinates, bounds);
+  }
+
+  if (
+    !Number.isFinite(bounds.minLng) ||
+    !Number.isFinite(bounds.minLat) ||
+    !Number.isFinite(bounds.maxLng) ||
+    !Number.isFinite(bounds.maxLat)
+  ) {
+    return null;
+  }
+
+  return [
+    [bounds.minLng, bounds.minLat],
+    [bounds.maxLng, bounds.maxLat],
+  ];
+}
+
+function inflateBounds(
+  bounds: [[number, number], [number, number]],
+  lngRatio: number,
+  latRatio: number,
+): [[number, number], [number, number]] {
+  const [[minLng, minLat], [maxLng, maxLat]] = bounds;
+  const lngPad = (maxLng - minLng || 0.01) * lngRatio;
+  const latPad = (maxLat - minLat || 0.01) * latRatio;
+
+  return [
+    [minLng - lngPad, minLat - latPad],
+    [maxLng + lngPad, maxLat + latPad],
+  ];
+}
+
 function hasGeometry(feature: PlaceFeature): feature is GeometricPlaceFeature {
   return feature.geometry !== null;
 }
@@ -207,6 +290,8 @@ export type AtlasMapProps = {
   onPlaceSelect: (placeId: string) => void;
   selectedPlaceId: string | null;
   layerVisibility: Record<string, boolean>;
+  mobileSurface?: MobileRuntimeSurfaceId;
+  initialBounds?: [[number, number], [number, number]] | null;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
   className?: string;
@@ -222,12 +307,17 @@ export function AtlasMap({
   onPlaceSelect,
   selectedPlaceId,
   layerVisibility,
+  mobileSurface = "leaflet_baseline",
+  initialBounds = null,
   viewMode = "oblique",
   activeLens = "explore",
   className,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
+  const mapRef = useRef<MapRef | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const appliedMobileFitKeyRef = useRef<string | null>(null);
 
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
@@ -236,6 +326,74 @@ export function AtlasMap({
       features: places.features.filter(hasGeometry),
     };
   }, [places]);
+
+  const computedBounds = useMemo(() => {
+    if (!geometricPlaces) return null;
+    const bounds: BoundsAccumulator = {
+      minLng: Number.POSITIVE_INFINITY,
+      minLat: Number.POSITIVE_INFINITY,
+      maxLng: Number.NEGATIVE_INFINITY,
+      maxLat: Number.NEGATIVE_INFINITY,
+    };
+
+    for (const feature of geometricPlaces.features) {
+      const featureBounds = geometryBounds(feature.geometry);
+      if (!featureBounds) continue;
+      extendBounds(bounds, featureBounds[0][0], featureBounds[0][1]);
+      extendBounds(bounds, featureBounds[1][0], featureBounds[1][1]);
+    }
+
+    if (
+      !Number.isFinite(bounds.minLng) ||
+      !Number.isFinite(bounds.minLat) ||
+      !Number.isFinite(bounds.maxLng) ||
+      !Number.isFinite(bounds.maxLat)
+    ) {
+      return null;
+    }
+
+    return [
+      [bounds.minLng, bounds.minLat],
+      [bounds.maxLng, bounds.maxLat],
+    ] as [[number, number], [number, number]];
+  }, [geometricPlaces]);
+
+  const mobileContextBounds = initialBounds ?? computedBounds;
+
+  useEffect(() => {
+    setMapLoaded(false);
+    appliedMobileFitKeyRef.current = null;
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    if (mobileSurface !== "deck_mobile_candidate") return;
+    if (viewMode !== "atlas") return;
+    if (!mobileContextBounds) return;
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+
+    const fitKey = [
+      viewMode,
+      mobileContextBounds[0][0],
+      mobileContextBounds[0][1],
+      mobileContextBounds[1][0],
+      mobileContextBounds[1][1],
+    ].join(":");
+
+    if (appliedMobileFitKeyRef.current === fitKey) {
+      return;
+    }
+
+    mapRef.current.fitBounds(inflateBounds(mobileContextBounds, 0.08, 0.12), {
+      padding: { top: 92, bottom: 112, left: 20, right: 20 },
+      duration: 0,
+      pitch: 0,
+      bearing: 0,
+      maxZoom: 10.75,
+    });
+    appliedMobileFitKeyRef.current = fitKey;
+  }, [mapLoaded, mobileContextBounds, mobileSurface, viewMode]);
 
   /* ---- Build a place centroid lookup for positioning events -------- */
   const placeCentroids = useMemo(() => {
@@ -413,14 +571,17 @@ export function AtlasMap({
       className={cn("atlas-scene-map relative w-full h-full", className)}
       data-atlas-view-mode={viewMode}
       data-atlas-lens={activeLens}
+      data-mobile-surface={mobileSurface}
     >
       <Map
+        ref={mapRef}
         key={viewMode}
         initialViewState={camera}
         maxPitch={75}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}
         attributionControl={false}
+        onLoad={() => setMapLoaded(true)}
         reuseMaps
       >
         <DeckGLOverlay layers={layers} />

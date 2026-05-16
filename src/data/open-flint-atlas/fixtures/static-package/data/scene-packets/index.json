@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_node_id": "atlas:flint-mi",
+  "compiler_contract_url": "/data/scene-packet-compiler.json",
+  "packets": [
+    {
+      "packet_id": "packet:scene-flint-overview-mobile",
+      "scene_id": "scene:flint-overview",
+      "label": "Flint overview mobile packet sketch",
+      "packet_url": "/data/scene-packets/flint-overview-mobile.json",
+      "min_zoom": 12,
+      "max_zoom": 15,
+      "status": "example"
+    }
+  ],
+  "notes": [
+    "The packet index publishes one reviewed sketch before binary packet artifacts exist.",
+    "Future packet compilers should add multiple viewport and lens variants without changing the index contract."
+  ]
+}

@@ -10,9 +10,18 @@ import type {
   AtlasNodeManifest,
   CivicObject,
   LayerCatalog,
+  MobileRuntimeProfile,
   NodeCatalog,
+  ReadModelFormat,
   ReadModelCatalog,
+  ScenePacket,
+  ScenePacketLayer,
+  ScenePacketCompiler,
+  ScenePacketIndex,
+  ScenarioManifest,
+  SceneManifest,
   StaticAtlasPackage,
+  ViewportVectorContracts,
   WellKnownAtlasManifest,
 } from "@/lib/atlas/contracts";
 import type { DossierPayload } from "@/lib/atlas/dossier-payload";
@@ -269,8 +278,66 @@ export type CivicObjectsResponse = {
 };
 
 export type SceneManifestsResponse = {
-  scene_manifests: unknown[];
+  scene_manifests: SceneManifest[];
   total: number;
+};
+
+export type ScenarioManifestsResponse = {
+  scenario_manifests: ScenarioManifest[];
+  total: number;
+};
+
+export type ViewportVectorContractsResponse = ViewportVectorContracts;
+
+export type ScenePacketCompilerResponse = ScenePacketCompiler;
+
+export type ScenePacketIndexResponse = ScenePacketIndex;
+
+export type ScenePacketResponse = ScenePacket;
+
+export type MobileRuntimeProfileResponse = MobileRuntimeProfile;
+
+export type AtlasLngLatBounds = [[number, number], [number, number]];
+
+export type MobileCandidateLayerSource = {
+  layer_id: string;
+  source_contract_id: string;
+  url: string;
+  format: ReadModelFormat;
+  availability: "available" | "fallback";
+  semantic_role: string;
+};
+
+export type MobileCandidateSceneRuntime = {
+  runtimeProfile: MobileRuntimeProfile;
+  scenePacketIndex: ScenePacketIndex;
+  scenePacket: ScenePacket;
+  places: PlacesCollection;
+  events: SpatialEvent[];
+  layerSources: MobileCandidateLayerSource[];
+  viewportBounds: AtlasLngLatBounds | null;
+};
+
+export type SourceRegistryEntry = {
+  id: string;
+  name: string;
+  homepage_url: string;
+  source_type: string;
+  steward: string;
+  geography: string;
+  current_status: string;
+  update_cadence: string;
+  trust_tier: string;
+  public_use: string;
+  contains_personal_data: boolean;
+  ingestion_priority: number;
+  initial_layers: string[];
+  known_limits: string[];
+  first_checks: string[];
+};
+
+export type SourceRegistryResponse = {
+  sources: SourceRegistryEntry[];
 };
 
 export type StaticAtlasPackageResponse = StaticAtlasPackage & {
@@ -388,6 +455,95 @@ function qs(params: Record<string, string | number | undefined>): string {
   return "?" + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
 }
 
+function normalizeArtifactUrl(url: string): string {
+  if (/^https?:\/\//.test(url)) return url;
+  return url.startsWith("/") ? url : `/${url}`;
+}
+
+async function getDirect<T>(url: string): Promise<AtlasResult<T>> {
+  try {
+    const res = await fetch(normalizeArtifactUrl(url));
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      return { ok: false, status: res.status, error: body.error ?? res.statusText };
+    }
+    const data = (await res.json()) as T;
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, status: 0, error: (e as Error).message };
+  }
+}
+
+function parsePacketViewportBounds(viewportKey: string): AtlasLngLatBounds | null {
+  const bboxPart = viewportKey
+    .split("|")
+    .find((part) => part.startsWith("bbox:"));
+  if (!bboxPart) return null;
+
+  const numbers = bboxPart
+    .slice("bbox:".length)
+    .split(",")
+    .map((value) => Number(value.trim()));
+
+  if (numbers.length !== 4 || numbers.some((value) => !Number.isFinite(value))) {
+    return null;
+  }
+
+  const [minLng, minLat, maxLng, maxLat] = numbers;
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+}
+
+function isJsonCompatibleFormat(format: ReadModelFormat) {
+  return format === "json" || format === "geojson";
+}
+
+function resolveScenePacketLayerSource(
+  layer: ScenePacketLayer,
+  preferredFormats: ReadModelFormat[],
+): MobileCandidateLayerSource {
+  const preferredArtifact = preferredFormats
+    .flatMap((format) =>
+      layer.artifacts.filter(
+        (artifact) =>
+          artifact.format === format &&
+          artifact.availability === "available" &&
+          isJsonCompatibleFormat(artifact.format),
+      ),
+    )[0];
+  const availableArtifact =
+    preferredArtifact ??
+    layer.artifacts.find(
+      (artifact) =>
+        artifact.availability === "available" &&
+        isJsonCompatibleFormat(artifact.format),
+    ) ??
+    layer.artifacts.find((artifact) => artifact.availability === "fallback");
+
+  if (availableArtifact) {
+    return {
+      layer_id: layer.layer_id,
+      source_contract_id: layer.source_contract_id,
+      url: normalizeArtifactUrl(availableArtifact.url),
+      format: availableArtifact.format,
+      availability:
+        availableArtifact.availability === "available" ? "available" : "fallback",
+      semantic_role: availableArtifact.semantic_role,
+    };
+  }
+
+  return {
+    layer_id: layer.layer_id,
+    source_contract_id: layer.source_contract_id,
+    url: normalizeArtifactUrl(layer.fallback_url),
+    format: layer.fallback_url.endsWith(".geojson") ? "geojson" : "json",
+    availability: "fallback",
+    semantic_role: "fallback_features",
+  };
+}
+
 async function get<T>(path: string): Promise<AtlasResult<T>> {
   try {
     const res = await fetch(`${BASE}${path}`);
@@ -452,12 +608,109 @@ export function fetchReadModelCatalog() {
   return get<ReadModelCatalog>("/read-model-catalog/");
 }
 
+export function fetchSourceRegistry() {
+  return get<SourceRegistryResponse>("/source-registry/");
+}
+
 export function fetchCivicObjects() {
   return get<CivicObjectsResponse>("/civic-objects/");
 }
 
 export function fetchSceneManifests() {
   return get<SceneManifestsResponse>("/scene-manifests/");
+}
+
+export function fetchScenarioManifests() {
+  return get<ScenarioManifestsResponse>("/scenario-manifests/");
+}
+
+export function fetchViewportVectorContracts() {
+  return get<ViewportVectorContractsResponse>("/viewport-vector-contracts/");
+}
+
+export function fetchScenePacketCompiler() {
+  return get<ScenePacketCompilerResponse>("/scene-packet-compiler/");
+}
+
+export function fetchScenePackets() {
+  return get<ScenePacketIndexResponse>("/scene-packets/");
+}
+
+export function fetchScenePacket(packetId: string) {
+  return get<ScenePacketResponse>(`/scene-packets/${encodeURIComponent(packetId)}/`);
+}
+
+export function fetchMobileRuntimeProfile() {
+  return get<MobileRuntimeProfileResponse>("/mobile-runtime-profile/");
+}
+
+export async function fetchMobileCandidateSceneRuntime() {
+  const runtimeProfile = await fetchMobileRuntimeProfile();
+  if (!runtimeProfile.ok) return runtimeProfile as AtlasResult<MobileCandidateSceneRuntime>;
+
+  const packetIndex = await getDirect<ScenePacketIndex>(
+    runtimeProfile.data.scene_packet_index_url,
+  );
+  if (!packetIndex.ok) return packetIndex as AtlasResult<MobileCandidateSceneRuntime>;
+
+  const packetEntry =
+    packetIndex.data.packets.find(
+      (packet) => packet.scene_id === "scene:flint-overview",
+    ) ?? packetIndex.data.packets[0];
+
+  if (!packetEntry) {
+    return {
+      ok: false,
+      status: 0,
+      error: "No scene packet entries were published for the mobile candidate.",
+    };
+  }
+
+  const scenePacket = await getDirect<ScenePacket>(packetEntry.packet_url);
+  if (!scenePacket.ok) return scenePacket as AtlasResult<MobileCandidateSceneRuntime>;
+
+  const preferredFormats =
+    runtimeProfile.data.binary_read_model_defaults.preferred_formats;
+  const placesLayer = scenePacket.data.layer_packets.find(
+    (layer) => layer.layer_id === "places",
+  );
+  const eventsLayer =
+    scenePacket.data.layer_packets.find(
+      (layer) => layer.layer_id === "street-safety",
+    ) ??
+    scenePacket.data.layer_packets.find((layer) => layer.layer_id === "events");
+
+  if (!placesLayer || !eventsLayer) {
+    return {
+      ok: false,
+      status: 0,
+      error:
+        "The mobile candidate scene packet is missing the places or events layer fallback.",
+    };
+  }
+
+  const placeSource = resolveScenePacketLayerSource(placesLayer, preferredFormats);
+  const eventSource = resolveScenePacketLayerSource(eventsLayer, preferredFormats);
+  const [places, events] = await Promise.all([
+    getDirect<PlacesCollection>(placeSource.url),
+    getDirect<SpatialEvent[]>(eventSource.url),
+  ]);
+
+  if (!places.ok) return places as AtlasResult<MobileCandidateSceneRuntime>;
+  if (!events.ok) return events as AtlasResult<MobileCandidateSceneRuntime>;
+
+  return {
+    ok: true,
+    data: {
+      runtimeProfile: runtimeProfile.data,
+      scenePacketIndex: packetIndex.data,
+      scenePacket: scenePacket.data,
+      places: places.data,
+      events: events.data,
+      layerSources: [placeSource, eventSource],
+      viewportBounds: parsePacketViewportBounds(scenePacket.data.viewport_key),
+    },
+  };
 }
 
 export function fetchStaticAtlasPackage() {

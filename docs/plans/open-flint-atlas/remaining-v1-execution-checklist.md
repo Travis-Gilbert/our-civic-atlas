@@ -1,8 +1,13 @@
 # Remaining V1 Execution Checklist
 
 Source of truth for this note:
-- `docs/plans/our-civic-atlas-v1-launch-plan.md` (OCA checklist + production gates)
-- `docs/plans/renderer-stack-integration.md` (Atlas runtime/renderer contract)
+- Active execution plan: `docs/plans/our-civic-atlas-north-star-execution-plan.md`
+- Historical grounding: `docs/plans/our-civic-atlas-v1-launch-plan.md`
+- Supporting renderer contract: `docs/plans/renderer-stack-integration.md`
+
+Historical note:
+- This file remains a recovery ledger for the earlier v1 launch stream.
+- Do not extend it as the primary roadmap now that the unified north-star execution plan exists.
 
 Scope note: local UI/API/code work in this recovery stream includes active Atlas Scene / Node Horizon / dossier path edits.
 This recovery session completed the immediate timed-out slice for the reusable place dossier contract, strict dossier validation, source-card linkage cleanup, tablet source-panel spacing, and mobile source-history access. The launch plan still shows broader product work as partial or planned, especially non-place dossier subjects, contribution/review, full source/connection view interactions, and public launch governance.

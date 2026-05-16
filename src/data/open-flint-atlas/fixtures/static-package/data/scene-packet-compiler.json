@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_node_id": "atlas:flint-mi",
+  "compiler_id": "scene-packet-compiler:v0",
+  "packet_schema_version": "0.1.0",
+  "preferred_transport": "typed-array-packet",
+  "supports_renderers": [
+    "deck.gl",
+    "maplibre",
+    "r3f"
+  ],
+  "viewport_parameters": [
+    "bbox",
+    "zoom",
+    "lens",
+    "time_window"
+  ],
+  "worker_boundary_id": "scene-packet-assembly-worker",
+  "example_packet_urls": [
+    "/data/scene-packets/flint-overview-mobile.json"
+  ],
+  "stages": [
+    {
+      "stage_id": "select-viewport-sources",
+      "label": "Select viewport source slices",
+      "worker_boundary_id": "binary-parse-worker",
+      "inputs": [
+        "/data/viewport-vector-contracts.json",
+        "/data/read-model-catalog.json"
+      ],
+      "output": "Viewport-bounded layer inputs chosen from FlatGeobuf, PMTiles metadata, or JSON fallback contracts.",
+      "fallback_behavior": "Use the JSON and GeoJSON fallback payloads declared in the read-model catalog when binary slices are unavailable.",
+      "status": "planned"
+    },
+    {
+      "stage_id": "hydrate-scene-context",
+      "label": "Hydrate scene context",
+      "worker_boundary_id": "duckdb-query-worker",
+      "inputs": [
+        "/data/scene-manifests/index.json",
+        "/data/scenario-manifests/index.json",
+        "/data/mobile-runtime-profile.json"
+      ],
+      "output": "Scene metadata, scenario deltas, and runtime gates narrowed to the requested viewport, lens, and time window.",
+      "fallback_behavior": "Use the accepted scene manifest directly when Mosaic or DuckDB worker bootstrap is unavailable.",
+      "status": "current"
+    },
+    {
+      "stage_id": "assemble-typed-packet",
+      "label": "Assemble typed packet",
+      "worker_boundary_id": "scene-packet-assembly-worker",
+      "inputs": [
+        "viewport source slices",
+        "scene context"
+      ],
+      "output": "Typed attribute buffers plus packet metadata for renderer-specific adapters.",
+      "fallback_behavior": "Render the smaller fallback feature payloads directly until packet artifacts are published.",
+      "status": "planned"
+    }
+  ],
+  "notes": [
+    "This contract makes the scene packet compiler a fixture-backed runtime boundary before the packet builder exists.",
+    "The output contract stays renderer-agnostic so a later native client can reuse the same scene packet model."
+  ]
+}

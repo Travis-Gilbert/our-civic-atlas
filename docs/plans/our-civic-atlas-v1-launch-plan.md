@@ -1,5 +1,8 @@
 # Planning-Theorem Artifact: Our Civic Atlas / Flint Atlas v1 Launch
 
+> Superseded as the active execution checklist on 2026-05-16 by `docs/plans/our-civic-atlas-north-star-execution-plan.md`.
+> Keep this file for historical OCA-001 through OCA-028 grounding, launch recovery evidence, and prior validator context.
+
 ## Executive Summary
 
 - Goal: make Flint Atlas the first launchable node in Our Civic Atlas, a federated public-good civic atlas network.

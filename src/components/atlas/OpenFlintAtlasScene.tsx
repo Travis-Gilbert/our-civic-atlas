@@ -14,9 +14,12 @@ import { AtlasShell } from "@/components/atlas/AtlasShell";
 import {
   fetchPlaces,
   fetchEvents,
+  fetchMobileCandidateSceneRuntime,
   fetchProvenance,
   fetchSignals,
   type FreshSignal,
+  type AtlasLngLatBounds,
+  type MobileCandidateSceneRuntime,
   type PlacesCollection,
   type ProvenanceEdge,
   type ProvenanceNode,
@@ -25,6 +28,7 @@ import {
 import { loadAtlasTables, eventStartIso } from "@/lib/atlas/atlas-data";
 import { getAtlasMosaic, type AtlasMosaic } from "@/lib/atlas/mosaic";
 import { getNodeHorizonEntries } from "@/lib/atlas/node-horizon";
+import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import {
   getAtlasRendererBridge,
   type AtlasRendererMode,
@@ -80,23 +84,49 @@ function initialRendererMode(): AtlasRendererMode {
   return renderer === "scene" || renderer === "r3f" ? "scene" : "baseline";
 }
 
+function initialMobileSurface(
+  defaultSurface: MobileRuntimeSurfaceId,
+): MobileRuntimeSurfaceId {
+  if (typeof window === "undefined") return defaultSurface;
+  const value = new URLSearchParams(window.location.search).get("mobile");
+  if (value === "deck" || value === "deck_mobile_candidate") {
+    return "deck_mobile_candidate";
+  }
+  if (value === "leaflet" || value === "leaflet_baseline") {
+    return "leaflet_baseline";
+  }
+  return defaultSurface;
+}
+
 export function OpenFlintAtlasScene(props: {
   initialLens?: AtlasLensId;
   initialCompareAtlasId?: string | null;
+  preferredMobileSurface?: MobileRuntimeSurfaceId;
+  initialViewMode?: AtlasSceneViewModeId;
 }) {
-  const { initialLens = "explore" } = props;
+  const {
+    initialLens = "explore",
+    preferredMobileSurface = "leaflet_baseline",
+    initialViewMode,
+  } = props;
   const router = useRouter();
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const [layerVisibility, setLayerVisibility] = useState(DEFAULT_LAYERS);
   const [viewMode, setViewMode] =
-    useState<AtlasSceneViewModeId>(DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
+    useState<AtlasSceneViewModeId>(
+      initialViewMode ?? DEFAULT_VIEW_MODE_BY_LENS[initialLens],
+    );
   const [activeLens, setActiveLens] =
     useState<AtlasLensId>(initialLens);
   const [searchValue, setSearchValue] = useState("");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [rendererMode, setRendererMode] =
     useState<AtlasRendererMode>("baseline");
+  const [mobileSurface, setMobileSurface] =
+    useState<MobileRuntimeSurfaceId>(() =>
+      initialMobileSurface(preferredMobileSurface),
+    );
   const [sceneCameraDistance, setSceneCameraDistance] = useState<number | null>(
     null,
   );
@@ -104,6 +134,14 @@ export function OpenFlintAtlasScene(props: {
   const [places, setPlaces] = useState<PlacesCollection | null>(null);
   const [events, setEvents] = useState<SpatialEvent[]>([]);
   const [signals, setSignals] = useState<FreshSignal[]>([]);
+  const [mobileCandidateRuntime, setMobileCandidateRuntime] =
+    useState<MobileCandidateSceneRuntime | null>(null);
+  const [mobileCandidateBounds, setMobileCandidateBounds] =
+    useState<AtlasLngLatBounds | null>(null);
+  const [mobileRuntimePath, setMobileRuntimePath] =
+    useState<"baseline" | "scene-packet-runtime" | "baseline-fallback">(
+      "baseline",
+    );
   const [provNodes, setProvNodes] = useState<ProvenanceNode[]>([]);
   const [provEdges, setProvEdges] = useState<ProvenanceEdge[]>([]);
   const [provLoading, setProvLoading] = useState(false);
@@ -117,6 +155,7 @@ export function OpenFlintAtlasScene(props: {
     () => getAtlasRendererBridge(rendererMode),
     [rendererMode],
   );
+  const usesPacketCandidate = mobileSurface === "deck_mobile_candidate";
   const focusPolicy = useMemo(
     () =>
       getAtlasSceneDetailPolicy({
@@ -130,12 +169,16 @@ export function OpenFlintAtlasScene(props: {
 
   useEffect(() => {
     setActiveLens(initialLens);
-    setViewMode(DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
-  }, [initialLens]);
+    setViewMode(initialViewMode ?? DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
+  }, [initialLens, initialViewMode]);
 
   useEffect(() => {
     setRendererMode(initialRendererMode());
   }, []);
+
+  useEffect(() => {
+    setMobileSurface(initialMobileSurface(preferredMobileSurface));
+  }, [preferredMobileSurface]);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 767px)");
@@ -148,7 +191,9 @@ export function OpenFlintAtlasScene(props: {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadBaseline(
+      runtimePath: "baseline" | "baseline-fallback" = "baseline",
+    ) {
       const [placesRes, eventsRes, signalsRes] = await Promise.all([
         fetchPlaces(),
         fetchEvents(),
@@ -156,17 +201,51 @@ export function OpenFlintAtlasScene(props: {
       ]);
 
       if (cancelled) return;
-      if (placesRes.ok) setPlaces(placesRes.data);
-      if (eventsRes.ok) setEvents(eventsRes.data.events);
+      setPlaces(placesRes.ok ? placesRes.data : null);
+      setEvents(eventsRes.ok ? eventsRes.data.events : []);
       if (signalsRes.ok) {
         setSignals(signalsRes.data.signals);
         setSelectedSignalId((current) => current ?? signalsRes.data.signals[0]?.signal_id ?? null);
       }
+      setMobileCandidateRuntime(null);
+      setMobileCandidateBounds(null);
+      setMobileRuntimePath(runtimePath);
+    }
+
+    async function load() {
+      setPlaces(null);
+      setEvents([]);
+      setMobileCandidateRuntime(null);
+      setMobileCandidateBounds(null);
+
+      if (usesPacketCandidate) {
+        const candidateRuntime = await fetchMobileCandidateSceneRuntime();
+        if (cancelled) return;
+
+        if (!candidateRuntime.ok) {
+          console.warn(
+            "Mobile candidate runtime fell back to baseline data loading.",
+            candidateRuntime.error,
+          );
+          await loadBaseline("baseline-fallback");
+          return;
+        } else {
+          const runtimeData = candidateRuntime.data as MobileCandidateSceneRuntime;
+          setPlaces(runtimeData.places);
+          setEvents(runtimeData.events);
+          setMobileCandidateRuntime(runtimeData);
+          setMobileCandidateBounds(runtimeData.viewportBounds);
+          setMobileRuntimePath("scene-packet-runtime");
+          return;
+        }
+      }
+
+      await loadBaseline();
     }
 
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [usesPacketCandidate]);
 
   /* Initialize Mosaic + DuckDB-WASM once on mount. The singleton in
      getAtlasMosaic guards against double-init under React strict mode. */
@@ -313,8 +392,12 @@ export function OpenFlintAtlasScene(props: {
       events: lens !== "explore" || prev.events !== false,
       places: true,
     }));
-    router.push(lens === "explore" ? "/open-flint-atlas" : `/open-flint-atlas/${lens}`);
-  }, [router]);
+    const pathname =
+      lens === "explore" ? "/open-flint-atlas" : `/open-flint-atlas/${lens}`;
+    const suffix =
+      mobileSurface === "deck_mobile_candidate" ? "?mobile=deck" : "";
+    router.push(`${pathname}${suffix}`);
+  }, [mobileSurface, router]);
 
   const handleSearchResultSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
@@ -495,9 +578,12 @@ export function OpenFlintAtlasScene(props: {
       data-scene-view={viewMode}
       data-active-lens={activeLens}
       data-renderer-mode={rendererMode}
+      data-mobile-surface={mobileSurface}
       data-analytical-renderer={rendererBridge.analyticalLayerRenderer}
       data-dense-layer-fallback={rendererBridge.denseLayerFallback}
       data-selection-key={rendererBridge.selectionKey}
+      data-mobile-runtime-path={mobileRuntimePath}
+      data-mobile-packet-id={mobileCandidateRuntime?.scenePacket.packet_id ?? ""}
     >
       <AtlasShell
         showTabs={false}
@@ -537,6 +623,8 @@ export function OpenFlintAtlasScene(props: {
               selectedPlaceId={selectedPlaceId}
               selectedSignalId={selectedSignalId}
               layerVisibility={layerVisibility}
+              mobileSurface={mobileSurface}
+              initialBounds={mobileCandidateBounds}
               viewMode={viewMode}
               activeLens={activeLens}
               className="w-full h-full"

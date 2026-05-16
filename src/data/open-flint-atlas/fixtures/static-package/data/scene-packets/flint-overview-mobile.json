@@ -1,0 +1,178 @@
+{
+  "schema_version": "0.1.0",
+  "packet_id": "packet:scene-flint-overview-mobile",
+  "atlas_node_id": "atlas:flint-mi",
+  "scene_id": "scene:flint-overview",
+  "viewport_key": "bbox:-83.75,42.98,-83.62,43.05|zoom:12-15|lens:explore",
+  "zoom_range": [
+    12,
+    15
+  ],
+  "derived_from": {
+    "scene_manifest_id": "scene:flint-overview",
+    "contract_ids": [
+      "viewport-vector:places-review-window",
+      "viewport-vector:street-safety-corridors",
+      "viewport-vector:intervention-review-slices"
+    ],
+    "worker_boundary_id": "scene-packet-assembly-worker"
+  },
+  "layer_packets": [
+    {
+      "layer_id": "places",
+      "label": "Places and civic geographies",
+      "renderer_role": "anchor-polygons",
+      "geometry_encoding": "positions+indices",
+      "object_count": 18,
+      "attribute_buffers": [
+        {
+          "buffer_id": "places-position",
+          "source_field": "geometry",
+          "semantic_role": "position",
+          "scalar_type": "float32",
+          "components": 2,
+          "item_count": 96,
+          "normalized": false
+        },
+        {
+          "buffer_id": "places-fill-color",
+          "source_field": "style_token",
+          "semantic_role": "fill_color",
+          "scalar_type": "uint8",
+          "components": 4,
+          "item_count": 18,
+          "normalized": true
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "packet-places-arrow",
+          "url": "/data/scene-packets/flint-overview-mobile.arrow",
+          "media_type": "application/vnd.apache.arrow.file",
+          "format": "arrow",
+          "availability": "planned",
+          "range_request_capable": true,
+          "semantic_role": "typed_attribute_table"
+        },
+        {
+          "artifact_id": "packet-places-geojson-fallback",
+          "url": "/data/places.geojson",
+          "media_type": "application/geo+json",
+          "format": "geojson",
+          "availability": "fallback",
+          "range_request_capable": false,
+          "semantic_role": "fallback_features"
+        }
+      ],
+      "fallback_url": "/data/places.geojson",
+      "source_contract_id": "viewport-vector:places-review-window"
+    },
+    {
+      "layer_id": "street-safety",
+      "label": "Street safety corridor aggregates",
+      "renderer_role": "corridor-overlays",
+      "geometry_encoding": "positions+indices",
+      "object_count": 42,
+      "attribute_buffers": [
+        {
+          "buffer_id": "street-safety-position",
+          "source_field": "geometry",
+          "semantic_role": "position",
+          "scalar_type": "float32",
+          "components": 2,
+          "item_count": 210,
+          "normalized": false
+        },
+        {
+          "buffer_id": "street-safety-severity",
+          "source_field": "severity_bucket",
+          "semantic_role": "stroke_width",
+          "scalar_type": "uint16",
+          "components": 1,
+          "item_count": 42,
+          "normalized": false
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "packet-street-safety-arrow",
+          "url": "/data/scene-packets/flint-overview-mobile.arrow",
+          "media_type": "application/vnd.apache.arrow.file",
+          "format": "arrow",
+          "availability": "planned",
+          "range_request_capable": true,
+          "semantic_role": "typed_attribute_table"
+        },
+        {
+          "artifact_id": "packet-street-safety-json-fallback",
+          "url": "/data/events.json",
+          "media_type": "application/json",
+          "format": "json",
+          "availability": "fallback",
+          "range_request_capable": false,
+          "semantic_role": "fallback_features"
+        }
+      ],
+      "fallback_url": "/data/events.json",
+      "source_contract_id": "viewport-vector:street-safety-corridors"
+    },
+    {
+      "layer_id": "interventions",
+      "label": "Intervention review overlays",
+      "renderer_role": "review-polygons",
+      "geometry_encoding": "positions-only",
+      "object_count": 12,
+      "attribute_buffers": [
+        {
+          "buffer_id": "interventions-position",
+          "source_field": "geometry",
+          "semantic_role": "position",
+          "scalar_type": "float32",
+          "components": 2,
+          "item_count": 72,
+          "normalized": false
+        },
+        {
+          "buffer_id": "interventions-status",
+          "source_field": "review_state",
+          "semantic_role": "fill_pattern",
+          "scalar_type": "uint8",
+          "components": 1,
+          "item_count": 12,
+          "normalized": false
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "packet-interventions-arrow",
+          "url": "/data/scene-packets/flint-overview-mobile.arrow",
+          "media_type": "application/vnd.apache.arrow.file",
+          "format": "arrow",
+          "availability": "planned",
+          "range_request_capable": true,
+          "semantic_role": "typed_attribute_table"
+        },
+        {
+          "artifact_id": "packet-interventions-json-fallback",
+          "url": "/data/civic-objects.json",
+          "media_type": "application/json",
+          "format": "json",
+          "availability": "fallback",
+          "range_request_capable": false,
+          "semantic_role": "fallback_features"
+        }
+      ],
+      "fallback_url": "/data/civic-objects.json",
+      "source_contract_id": "viewport-vector:intervention-review-slices"
+    }
+  ],
+  "cache_tags": [
+    "scene:flint-overview",
+    "lens:explore",
+    "zoom:12-15"
+  ],
+  "notes": [
+    "This is a packet sketch, not a production binary artifact. The buffer counts describe intended shape rather than final byte lengths.",
+    "The same packet contract can map to deck.gl binary attributes today and future native adapters later."
+  ]
+}
