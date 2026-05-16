@@ -10,7 +10,7 @@ import { getStaticAtlasPackage } from "@/lib/atlas/static-package";
 export const metadata: Metadata = {
   title: "Methodology | Flint Atlas | Our Civic Atlas",
   description:
-    "How Flint Atlas separates public read models, source evidence, review state, and contribution boundaries.",
+    "How Flint Atlas separates public read models, source support, review state, and contribution boundaries.",
 };
 
 const METHOD_STEPS = [
@@ -42,7 +42,7 @@ export default function MethodologyPage() {
         </AtlasMetaGrid>
       </AtlasSection>
 
-      <AtlasSection title="Evidence flow">
+      <AtlasSection title="Provenance flow">
         <ol
           className="grid gap-3 text-[14px] leading-[1.65]"
           style={{ color: "var(--ctx-ink-soft)" }}

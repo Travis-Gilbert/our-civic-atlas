@@ -11,7 +11,6 @@ import {
   type AtlasSceneSearchResult,
 } from "@/components/atlas/AtlasSceneChrome";
 import {
-  MobileDossierSheet,
   PlaceDossierPanel,
 } from "@/components/atlas/PlaceDossier";
 import { FreshSignalsPanel } from "@/components/atlas/FreshSignalsPanel";
@@ -514,6 +513,13 @@ export function OpenFlintAtlasScene({
       onNodeSelect={handleProvenanceNodeSelect}
     />
   );
+  const islandDossierContent =
+    isMobileViewport && activeLens !== "evidence" && selectedPlaceId ? (
+      <PlaceDossierPanel
+        placeId={selectedPlaceId}
+        onClose={() => setSelectedPlaceId(null)}
+      />
+    ) : undefined;
 
   const evidencePanel = (
     <div className="flex flex-col gap-3">
@@ -609,22 +615,21 @@ export function OpenFlintAtlasScene({
             placesCount={places?.features.length ?? 0}
             eventsCount={visibleEvents.length}
             horizonNodes={horizonNodes}
-            mobileDossierOpen={isMobileViewport && !!selectedPlaceId}
+            isMobileViewport={isMobileViewport}
+            selectedPlaceId={selectedPlaceId}
+            onClearSelection={() => setSelectedPlaceId(null)}
+            dossierContent={islandDossierContent}
+            timelineActive={activeLens === "memory" && !isMobileViewport}
+            hideIsland={isMobileViewport && activeLens === "evidence"}
           />
           {isMobileViewport && activeLens === "evidence" && (
             <aside
               className="atlas-mobile-dossier-sheet atlas-mobile-provenance-sheet"
-              aria-label="Evidence provenance"
+              aria-label="Source provenance"
               style={{ height: "54vh" }}
             >
               {evidencePanel}
             </aside>
-          )}
-          {isMobileViewport && activeLens !== "evidence" && (
-            <MobileDossierSheet
-              placeId={selectedPlaceId}
-              onClose={() => setSelectedPlaceId(null)}
-            />
           )}
         </div>
       </AtlasShell>

@@ -491,7 +491,7 @@ function DossierTabContent({
 
   if (activeTab === "evidence") {
     return (
-      <DossierSection label="Evidence">
+      <DossierSection label="Provenance">
         <p className="text-[13px] leading-[1.55] mb-3" style={{ color: "var(--ctx-ink-soft)" }}>
           {payload.evidence_graph_ref.panel_label} is available for this subject
           through the public provenance endpoint.

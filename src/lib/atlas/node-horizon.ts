@@ -28,7 +28,7 @@ const CAPABILITY_LABELS: Record<AtlasCapability, string> = {
   static_only: "Static package",
   accepts_contributions: "Contributions",
   has_review_queue: "Review queue",
-  has_provenance_graph: "Evidence graph",
+  has_provenance_graph: "Provenance graph",
   has_scene_manifests: "Scene manifests",
   has_lost_buildings: "Lost Flint",
   has_safety_lab: "Safety lab",

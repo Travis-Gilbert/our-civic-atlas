@@ -77,8 +77,8 @@ export const ATLAS_SCENE_VIEW_MODES: AtlasSceneViewMode[] = [
   {
     id: "section",
     label: "Section",
-    shortLabel: "Slice",
-    description: "Cutaway-like view for comparing layers, time, and evidence strata.",
+    shortLabel: "Section",
+    description: "Cutaway-like view for comparing layers, time, and source strata.",
     camera: {
       longitude: -83.697,
       latitude: 43.025,
@@ -105,7 +105,7 @@ export const ATLAS_LENSES: AtlasLens[] = [
     id: "memory",
     label: "Memory",
     shortLabel: "Time",
-    description: "Historical events, vanished places, and temporal building evidence.",
+    description: "Historical events, vanished places, and temporal building records.",
   },
   {
     id: "safety",
@@ -121,8 +121,8 @@ export const ATLAS_LENSES: AtlasLens[] = [
   },
   {
     id: "evidence",
-    label: "Evidence",
-    shortLabel: "Graph",
+    label: "Sources",
+    shortLabel: "Source",
     description: "Sources, claims, confidence, provenance, and review state.",
   },
 ];
@@ -164,7 +164,7 @@ export const VISUAL_GRAMMAR_TOKENS = [
   {
     id: "source_high_confidence",
     label: "Source",
-    detail: "high-support evidence",
+    detail: "high-support source",
     color: "#5f6fa3",
   },
 ] as const;
