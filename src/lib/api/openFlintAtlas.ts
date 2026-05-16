@@ -8,16 +8,10 @@
 
 import type {
   AtlasNodeManifest,
-  CivicDesignPrimitive,
   CivicObject,
-  GeoComment,
   LayerCatalog,
-  LayerRecipe,
   NodeCatalog,
   ReadModelCatalog,
-  RendererBoundary,
-  ScenarioManifest,
-  SceneManifest,
   StaticAtlasPackage,
   WellKnownAtlasManifest,
 } from "@/lib/atlas/contracts";
@@ -134,6 +128,54 @@ export type EventsResponse = {
   total: number;
 };
 
+export type AtlasSignal = {
+  signal_id: string;
+  signal_kind: "public_record" | "candidate";
+  artifact_id: string | null;
+  source_id: string | null;
+  source_label: string;
+  title: string;
+  summary: string;
+  published_at: string | null;
+  received_at: string | null;
+  event_type: string;
+  signal_type: string;
+  review_status: ReviewStatus;
+  status: ReviewStatus;
+  resolution_level: string;
+  visibility_level: "public" | "review_only";
+  confidence_label: string;
+  why_mapped_here: string;
+  place_id: string;
+  place_label: string;
+  geometry: GeoJSON.Geometry | null;
+  source_ids: string[];
+  dossier_url: string | null;
+  expires_at: string | null;
+  warning_copy: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type SignalTelemetry = {
+  generated_from: string;
+  total_signals: number;
+  public_signals: number;
+  candidate_signals: number;
+  source_count: number;
+  review_status_counts: Record<string, number>;
+  signal_type_counts: Record<string, number>;
+};
+
+export type SignalsResponse = {
+  signals: AtlasSignal[];
+  total: number;
+  telemetry: SignalTelemetry;
+};
+
+export type FreshSignal = AtlasSignal;
+
+export type FreshSignalsResponse = SignalsResponse;
+
 export type AtlasMetric = {
   metric_id: string;
   metric_key?: string;
@@ -153,6 +195,22 @@ export type EventFilters = {
   place_id?: string;
   source_id?: string;
   status?: string;
+};
+
+export type SignalFilters = {
+  event_type?: string;
+  signal_type?: string;
+  place_id?: string;
+  source_id?: string;
+  review_status?: string;
+  candidate_visibility?: "with_candidates" | "include_candidates" | "all";
+  limit?: number;
+};
+
+export type FreshSignalFilters = SignalFilters & {
+  bbox?: string;
+  since?: string;
+  until?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -211,32 +269,7 @@ export type CivicObjectsResponse = {
 };
 
 export type SceneManifestsResponse = {
-  scene_manifests: SceneManifest[];
-  total: number;
-};
-
-export type ScenarioManifestsResponse = {
-  scenario_manifests: ScenarioManifest[];
-  total: number;
-};
-
-export type PrimitiveLibraryResponse = {
-  primitives: CivicDesignPrimitive[];
-  total: number;
-};
-
-export type GeoCommentsResponse = {
-  comments: GeoComment[];
-  total: number;
-};
-
-export type LayerRecipesResponse = {
-  layer_recipes: LayerRecipe[];
-  total: number;
-};
-
-export type RendererBoundariesResponse = {
-  renderer_boundaries: RendererBoundary[];
+  scene_manifests: unknown[];
   total: number;
 };
 
@@ -261,57 +294,6 @@ export type PlaceDossier = {
   source_count: number;
   metric_count: number;
   observation_count: number;
-};
-
-// ---------------------------------------------------------------------------
-// Fresh signals
-// ---------------------------------------------------------------------------
-
-export type FreshSignal = {
-  signal_id: string;
-  signal_kind: "public_record" | "candidate";
-  artifact_id: string | null;
-  source_id: string | null;
-  source_ids: string[];
-  source_label: string;
-  title: string;
-  summary: string;
-  published_at: string | null;
-  received_at: string | null;
-  event_type: string;
-  signal_type: string;
-  review_status: ReviewStatus;
-  status: ReviewStatus;
-  resolution_level: string;
-  visibility_level: "public" | "review_only";
-  confidence_label: string;
-  why_mapped_here: string;
-  place_id: string | null;
-  place_label: string | null;
-  geometry: GeoJSON.Geometry | null;
-  dossier_url: string | null;
-  expires_at: string | null;
-  warning_copy: string | null;
-  metadata: Record<string, unknown>;
-};
-
-export type FreshSignalsResponse = {
-  signals: FreshSignal[];
-  total: number;
-  telemetry?: Record<string, unknown> | null;
-};
-
-export type FreshSignalFilters = {
-  bbox?: string;
-  since?: string;
-  until?: string;
-  source_id?: string;
-  place_id?: string;
-  event_type?: string;
-  signal_type?: string;
-  review_status?: string;
-  candidate_visibility?: string;
-  limit?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -478,26 +460,6 @@ export function fetchSceneManifests() {
   return get<SceneManifestsResponse>("/scene-manifests/");
 }
 
-export function fetchScenarioManifests() {
-  return get<ScenarioManifestsResponse>("/scenario-manifests/");
-}
-
-export function fetchPrimitiveLibrary() {
-  return get<PrimitiveLibraryResponse>("/primitive-library/");
-}
-
-export function fetchGeoComments() {
-  return get<GeoCommentsResponse>("/geo-comments/");
-}
-
-export function fetchLayerRecipes() {
-  return get<LayerRecipesResponse>("/layer-recipes/");
-}
-
-export function fetchRendererBoundaries() {
-  return get<RendererBoundariesResponse>("/renderer-boundaries/");
-}
-
 export function fetchStaticAtlasPackage() {
   return get<StaticAtlasPackageResponse>("/static-package/");
 }
@@ -518,16 +480,16 @@ export function fetchEvents(filters?: EventFilters) {
   return get<EventsResponse>(`/events/${qs(filters ?? {})}`);
 }
 
-export function fetchSignals(filters?: FreshSignalFilters) {
-  return get<FreshSignalsResponse>(`/signals/${qs(filters ?? {})}`);
+export function fetchSignals(filters?: SignalFilters) {
+  return get<SignalsResponse>(`/signals/${qs(filters ?? {})}`);
 }
 
 export function fetchSignal(signalId: string) {
-  return get<FreshSignal>(`/signals/${encodeURIComponent(signalId)}/`);
+  return get<AtlasSignal>(`/signals/${encodeURIComponent(signalId)}/`);
 }
 
-export function fetchSignalsTelemetry() {
-  return get<Record<string, unknown>>("/signals/telemetry/");
+export function fetchSignalTelemetry() {
+  return get<SignalTelemetry>("/signals/telemetry/");
 }
 
 export function fetchProvenance(filters?: ProvenanceFilters) {

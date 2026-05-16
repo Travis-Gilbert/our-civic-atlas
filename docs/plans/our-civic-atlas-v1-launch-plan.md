@@ -39,7 +39,7 @@ The launch repo should stay `/Users/travisgilbert/Tech Dev Local/Creative/Websit
 - System behavior: manifests and static read models define public federation; hosted services add contribution intake, review queues, ACC/ACT scoring, TF.js preflight, provenance, and source refresh.
 - Data/model changes: add AtlasNode, CivicObject, Claim, Observation, SceneManifest, ContributionReceipt, ReviewDecision, RawArtifact, ExtractionCandidate, public read packages, federation manifests, source catalogs, and public read-model contracts.
 - Operational impact: support static-only atlas nodes first, then hosted and graph-backed nodes. Keep public exports cheap, inspectable, and privacy-safe.
-- What must not regress: do not bury Flint work in core Theseus, do not publish uploads automatically, do not use models as truth, do not depend on Revit/licensed tools, do not replace the map with a heavier runtime before visual gates pass, and do not let the current reader stagnate as the final product.
+- What must not regress: do not bury Flint work in core Theseus, do not publish uploads automatically, do not use models as truth, do not depend on Revit/licensed tools, keep MapLibre/deck.gl available as baseline/fallback until the Three/R3F Atlas Scene passes visual gates, and do not let the current reader stagnate as the final product.
 
 ## UI Visual Milestone
 
@@ -58,8 +58,8 @@ The launch repo should stay `/Users/travisgilbert/Tech Dev Local/Creative/Websit
 - Current visual condition: the standalone reader is useful but still feels like a map with panels. It has some source-linked explanation behavior, but not the immersive civic-world feeling, contribution workflows, or launch routes.
 - This plan makes true: the frontend backlog becomes launch-scoped with stable checklist IDs, a product identity transition, route model, visual gates, implementation order, and contract-first schema work before the major UI build.
 - This plan does not make true: it does not implement public uploads, real PostGIS, live Memgraph writes, 3D asset generation, or ML training.
-- Visual downgrade risks: generic basemap feel, excessive dashboard chrome, map layers disconnected from dossiers, 3D spectacle overwhelming civic legibility, and mobile controls crowding the map.
-- Remaining renderer/data/interaction/design gaps: custom bounded basemap, Node Horizon, Atlas Scene camera presets, contribution receipt UI, dossier tabs, Lost Flint ghost grammar, intervention ledger views, source-connection map, and SceneManifest renderer.
+- Visual downgrade risks: generic basemap feel, excessive dashboard chrome, scene objects disconnected from dossiers, 3D spectacle overwhelming civic legibility, and mobile controls crowding the scene.
+- Remaining renderer/data/interaction/design gaps: Three/R3F SceneHost, custom bounded basemap/fallback, Node Horizon, Atlas Scene camera presets, contribution receipt UI, dossier tabs, Lost Flint ghost grammar, intervention ledger views, source-connection map, SceneManifest renderer, and hot geocache/hash contract.
 
 ## Codebase Grounding
 
@@ -98,8 +98,8 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 |---|---|---|
 | Frontend/product planning | `production-theorem:orchestrate` and `planning-theorem` | Checklist and visual gates are required. |
 | Visual design implementation | Build Web Apps / frontend visual QA | UI launch readiness depends on screenshot evidence. |
-| Map/scene renderer | MapLibre, deck.gl, Three/R3F, PMTiles | Atlas Scene is the primary product surface. |
-| Analytics panels | Mosaic, vgplot, DuckDB-WASM | Crossfiltering and time analysis should be data-native. |
+| Map/scene renderer | Three/R3F primary, MapLibre/deck.gl baseline/fallback, PMTiles | Atlas Scene is the primary product surface and should become a full-canvas civic scene. |
+| Analytics/data plane | Mosaic, vgplot, DuckDB-WASM | Crossfiltering, fast public read-model slicing, and time analysis should be data-native. |
 | Source/relationship map | Cosmograph / graph view | Explain how places, sources, and records connect without academic graph jargon on the public surface. |
 | Contribution/review | security/privacy route | Upload is evidence intake, not publication. |
 | ACC/TF.js moderation | Theseus/ACT plus client preflight route | Automation aids review but does not promote facts. |
@@ -116,7 +116,7 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 | OCA-002B | Define AtlasNode manifest schema v0. | Plan addendum, Node Horizon spec | data/docs | Node schema covers identity, scope, boundary, parent/child/neighbor links, capabilities, maintainers, licenses, and public read-model URLs. | Flint, Carriage Town, Grand Blanc, Michigan fixture validation. | Federation remains decorative instead of discoverable. | partial |
 | OCA-002C | Build minimal static atlas starter v0. | low-friction creation goal | docs/tooling | A backend-free atlas starter emits well-known manifest, node/source/layer catalogs, public read models, about/sources/methodology/contribute pages, and validator output. | Starter generation smoke and schema validation. | "Start an atlas" remains too hard for civic users. | partial |
 | OCA-003 | Build public root and city route structure. | README, current `/open-flint-atlas` route | frontend | Routes exist for home/explore/memory/safety/interventions/sources/contribute/methodology/node/place/object/scene. | Typecheck/build, route smoke, accessibility snapshot. | Launch still feels like prototype route. | done |
-| OCA-003A | Define UI component map. | `src/components/atlas/*`, `docs/plans/open-flint-atlas/oca-tranche-1-atlas-scene-design.md` | frontend/docs | App shell names `AtlasAppShell`, `AtlasScene`, `AtlasModeRail`, search header, dossier panels/sheets, layer stack, Node Horizon, confidence, receipt/review/source panels, Mosaic drawer, scene preview, and timeline scrubber. | Component inventory review and implementation tickets. | UI work drifts into duplicate ad hoc panels. | partial |
+| OCA-003A | Define UI component map. | `src/components/atlas/*`, Plan addendum | frontend/docs | App shell names `AtlasAppShell`, `AtlasScene`, `AtlasModeRail`, search header, dossier panels/sheets, layer stack, Node Horizon, confidence, receipt/review/source panels, Mosaic drawer, scene preview, and timeline scrubber. | Component inventory review and implementation tickets. | UI work drifts into duplicate ad hoc panels. | partial |
 | OCA-004 | Create Atlas Scene bounded-world shell. | `AtlasMap.tsx`, `MobileAtlasMap.tsx`, `AtlasCanvasBackdrop.tsx`, UI Upgrade notes | frontend/map | Flint/Genesee opens as bounded civic world with mask, custom style, local labels, and camera presets. | Desktop/mobile screenshots, Do Not Downgrade review. | Generic basemap continues to set weak product tone. | partial |
 | OCA-005 | Add Node Horizon UI. | v0.2 spec Node Horizon | frontend/federation | Parent, child, and neighbor atlas nodes render as spatial portals or horizon markers with preview, open-node transition, breadcrumbs, compare state, stale badges, and source/contribution/capability metadata. | Manifest fixtures plus visual smoke. | Federation remains invisible to users. | partial |
 | OCA-006 | Build reusable Place/Object Dossier v1. | `PlaceDossier.tsx`, contribution/privacy docs | frontend | Dossier supports overview, sources, history, nearby, interventions, safety, metrics, connections, and contribute. | Component tests or story fixtures, mobile screenshot. | Dossier remains a thin side panel. | partial |
@@ -127,7 +127,7 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 | OCA-009 | Add maintainer review queue. | review state machine docs | frontend/backend/security | Reviewer can promote/reject/ask for more evidence/supersede with public-safe reason. | API tests, permission tests, UI smoke. | Staff-only/admin lane replaces public trust UX. | planned |
 | OCA-010 | Wire TF.js preflight. | `docs/SYSTEM-BLUEPRINT.md`, vault moderation notes | frontend/model | Client warns on toxicity, unsafe image, face/license plate, geolocation precision, private contact/address, duplicate upload, URL safety, and person-targeting risk before submit, but cannot publish or reject finally. | Unit tests with fixtures and manual form smoke. | Model score treated as moderation truth. | planned |
 | OCA-011 | Wire ACC/ACT review snapshots. | ACT Evidence Cockpit plan | backend/frontend | Server-side scoring writes stable, auditable snapshots connected to contribution/review state. | Contract fixtures and explanation panel smoke. | Scores drift or become non-reproducible. | planned |
-| OCA-012 | Build Lost Flint v0.1. | temporal building registry note, v0.2 spec | frontend/data | Bounded area shows building-presence intervals, ghost render grammar, and historical dossier evidence. | Fixture validation, map screenshot, dossier review. | Historical uncertainty displayed with false precision. | planned |
+| OCA-012 | Build Lost Flint v0.1. | temporal building registry note, v0.2 spec | frontend/data | Bounded area shows building-presence intervals, ghost render grammar, and historical dossier support. | Fixture validation, map screenshot, dossier review. | Historical uncertainty displayed with false precision. | planned |
 | OCA-012A | Define Temporal Building Registry schema. | `temporal building registry..md`, Plan addendum | data/docs | Building presence schema models historical existence, absence, demolition uncertainty, footprints, height/archetype/render style, source evidence, confidence, articles, review state, and places with no current object. | Schema fixtures for present, vanished, inferred, disputed, and current-absence cases. | Lost buildings get forced into current-place records. | planned |
 | OCA-012B | Add Historical Article/Event layer v0. | Plan addendum, Memory route | data/frontend | HistoricalArticle, HistoricalEvent, PlaceMention, ArticlePlaceLink, and ArticleDossier objects support archive URL, OCR hash, excerpt, extracted people/orgs/place mentions, candidate coordinates, confidence, time range, and review state. | Fixture ingestion and article dossier smoke. | The most emotionally compelling memory layer stays vague. | planned |
 | OCA-013 | Add Civic Intervention Ledger v0.1. | Base UI, v0.2 spec | frontend/data | Place/corridor/ward dossiers show promises, funding, actors, documents, and outcomes. | Fixture review and dossier visual smoke. | Accountability layer becomes disconnected list. | planned |
@@ -161,22 +161,18 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 - Integration tests: route smoke for all launch routes, fixture-backed search/dossier/provenance, contribution receipt and review promotion flow, source retrieval artifact-to-public-read-model projection smoke.
 - Regression tests: current `/open-flint-atlas` map/timeline/provenance behavior must stay available until replacement passes visual gates.
 - Type/lint/static checks: TypeScript, ESLint, JSON schema checks, markdown link/copy review where practical.
-- Manual smoke checks: desktop and mobile for Explore, place dossier, Node Horizon, contribution receipt, Lost Flint, interventions, safety, evidence graph, static atlas starter, and low-bandwidth mode.
+- Manual smoke checks: desktop and mobile for Explore, place dossier, Node Horizon, contribution receipt, Lost Flint, interventions, safety, source connection map, static atlas starter, and low-bandwidth mode.
 - Performance/security checks: bundle/load budget, lazy-loading DuckDB/Cosmograph/3D assets, privacy threat model, no public raw uploads or private metadata, robots/terms-aware retrieval, and observability coverage for review/source-refresh failures.
 
 ## Latest Recovery Evidence
 
 - Dossier payload validator is now wired into `npm run validate:atlas` with strict warning failure, plus `npm run validate:dossier` and `npm run validate:dossier:live` for focused fixture/live API checks.
 - Current strict fixture and live API checks validate 222/222 dossier payloads without unresolved source-card warnings.
-- Current visual smoke covers `/open-flint-atlas/evidence` at 1024 x 768 for panel overlap and at 390 x 844 for mobile evidence provenance access.
+- Current visual smoke should cover `/open-flint-atlas` plus selected-place source-support/dossier states at desktop and 390 x 844; the old public Evidence lens should not be treated as a launch surface.
 - Public route smoke now covers 13 URLs across map/explore/lenses, sources, contribute, methodology, node, place, object, and scene routes with `npm run validate:routes:live`.
-- Node Horizon `Open` actions now route from the map shell into node detail pages with accessible `Open {node}` names; Playwright MCP clicked the first horizon link to `/open-flint-atlas/node/atlas%3Amichigan` and confirmed the Michigan node detail page with no horizontal overflow.
+- Node Horizon `Open` actions now route from the map shell into node detail pages with accessible `Open {node}` names; Playwright MCP clicked the first horizon link to `/open-flint-atlas/node/atlas%3Amichigan` and confirmed the Michigan node detail page with no horizontal overflow. Compare, breadcrumbs, and spatial portal transitions remain partial.
 - Production deployment now targets Vercel project `travis-gilberts-projects/our-civic-atlas`; `flint.ourcivicatlas.org` is attached to the ready production deployment and verified in Vercel project-domain records.
-- Node detail pages now include Federation path metadata and a `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node path and back-navigation anchor without horizontal overflow.
-- Compare behavior is now route-addressable on the built app: Playwright MCP confirmed `/open-flint-atlas?compare=atlas:detroit-mi#node-horizon` shows compare state, return affordances, and a working node-detail jump for Detroit. Spatial portal transitions remain partial.
-- Production proof now includes `npm run typecheck`, `npm run lint`, `npm run validate:atlas`, and `npm run build`, plus `npm run validate:routes:live` passing 13/13 atlas routes against the built app with the smoke validator defaulting to `127.0.0.1` or `ATLAS_BASE_URL`.
-- Phase D readiness is now visible in the atlas shell: the memory lens shows a `Memory states` legend for vanished, inferred, disputed, and reconstruction states, and the boundary treatment now reads from a ward-derived Flint footprint asset instead of a bbox-only fallback.
-- North-star floor work on `main` now adds typed `SceneManifest` v1 objects plus starter `ScenarioManifest`, civic design primitive, geo-comment, layer-recipe, and renderer-boundary read surfaces. The baseline public map remains MapLibre/deck.gl/Leaflet while the shared OCA visual grammar starts replacing component-local color drift.
+- Node detail pages now include Federation path metadata and a `Node Horizon` return action anchored to `/open-flint-atlas#node-horizon`; Playwright MCP confirmed the Michigan node path and back-navigation anchor without horizontal overflow. Compare and spatial portal transitions remain partial.
 
 ## Production Gates
 
@@ -197,7 +193,7 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 |---|---|---|---|---|
 | Claim | Our Civic Atlas should be manifest-first and federated before protocol-heavy. | v0.2 spec and Our Civic Atlas note | high | Start with static manifests and node catalog. |
 | Claim | Flint-specific geography should live in a bounded project/app, not core Theseus. | UI Upgrade 3 and repo separation | high | Keep standalone repo and generic abstractions. |
-| Claim | Atlas Scene should deepen MapLibre/deck.gl with bounded world, PMTiles, and selected Three/R3F effects, not jump to a game engine default. | UI Upgrade notes | high | Implement Atlas Scene shell first. |
+| Claim | Atlas Scene should move toward a Three/R3F-first civic scene while preserving MapLibre/deck.gl as baseline/fallback and geospatial helpers. | User correction and UI Upgrade notes | high | Implement R3F SceneHost behind a reversible renderer boundary. |
 | Claim | Contribution upload is evidence intake, not publication. | privacy workflow and vault notes | high | Build receipt/review before public publication. |
 | Claim | Scene Foundry should render from reviewed SceneManifests, not live LLM/MCP. | UI Upgrade 2/3 | high | Build deterministic manifest and renderer path. |
 | Tension | Immersive 3D can make Flint feel closer but can also bury source clarity. | visual upgrade notes | medium | Require evidence/dossier links on every render object. |
@@ -207,12 +203,12 @@ Atlas Scene, SceneManifest, and Scene Foundry must remain distinct: Atlas Scene 
 
 | Item | Why deferred | Risk of deferral | Follow-up |
 |---|---|---|---|
-| Full game engine as default public UI | Too heavy for mobile, text, deep links, and civic source workflows. | Atlas may still feel less immersive initially. | Atlas Scene first, optional immersive route later. |
+| Monolithic game engine with no civic/read-model fallback | Too brittle for text, deep links, source workflows, and public read-model reproducibility. | More renderer integration work lands in the app. | Build Three/R3F Atlas Scene with MapLibre/deck.gl fallback and SceneManifest contracts. |
 | Revit as required dependency | Licensing and workflow friction conflict with public-good reuse. | Some BIM semantics arrive later. | Use IfcOpenShell/Bonsai/FreeCAD/web-ifc first; keep Revit optional. |
 | Live Blender/Revit MCP for page rendering | Public site should not need live LLM/tool sessions. | Rich assets require background jobs. | Scene Foundry job queue. |
 | Public uploads immediately visible | Privacy and rumor risk. | Contribution UX launches in stages. | Receipt + review queue first. |
 | TimesFM/ST-GNN/DyGFormer in launch path | Requires data sufficiency, baselines, labels, and careful copy. | Advanced ML waits. | Street Safety Lab data and baseline gates first. |
-| Rusty Red Graph as canonical store | Hot graph/cache is not spatial/provenance canon. | Some performance gains delayed. | Use as hot nearby/session/queue accelerator after truth stores are clear. |
+| Rusty Red Graph as canonical store | Hot graph/cache is not spatial/provenance canon. | Some performance gains delayed if the cache contract lags. | Use as hot geocache/hash, nearby/session, source-crawl, and viewport acceleration after truth stores are clear. |
 | ActivityPub-style event federation | Static federation is enough for v1. | Live cross-atlas events come later. | Add after manifest discovery is real. |
 
 ## Execution Instructions

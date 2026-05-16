@@ -1,42 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Boxes,
   Building2,
   Footprints,
   Layers3,
   Map,
-  Network,
   Route,
   Search,
   ShieldAlert,
   X,
 } from "lucide-react";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-  type ReactNode,
-} from "react";
-import {
-  ATLAS_LENSES,
-  ATLAS_LENS_LOOKUP,
-  ATLAS_SCENE_VIEW_MODES,
-  ATLAS_SCENE_VIEW_MODE_LOOKUP,
-  type AtlasLensId,
-  type AtlasSceneViewModeId,
-} from "@/lib/atlas/scene-view";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import type {
-  AtlasNodeSummary,
-  NodeHorizonEntry,
-} from "@/lib/atlas/node-horizon";
+  AtlasSceneCameraBand,
+  AtlasSceneDetailLevel,
+} from "@/lib/atlas/scene-detail-policy";
+import type { AtlasLensId, AtlasSceneViewModeId } from "@/lib/atlas/scene-view";
+import {
+  ATLAS_LENS_LOOKUP,
+  ATLAS_SCENE_VIEW_MODE_LOOKUP,
+} from "@/lib/atlas/scene-view";
+import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
 import { cn } from "@/lib/utils";
 
-type IslandPanel = "search" | "focus" | "navigate" | "dossier" | "horizon";
+type IslandPanel = "focus" | "navigate" | "dossier" | "horizon";
 
 type AtlasDynamicIslandProps = {
   activeLens: AtlasLensId;
@@ -45,32 +35,14 @@ type AtlasDynamicIslandProps = {
   onViewModeChange: (mode: AtlasSceneViewModeId) => void;
   selectedPlaceId: string | null;
   selectedPlaceName: string | null;
+  focusDetailLevel: AtlasSceneDetailLevel;
+  focusCameraBand: AtlasSceneCameraBand;
   placesCount: number;
   eventsCount: number;
   horizonNodes: NodeHorizonEntry[];
-  currentNode: AtlasNodeSummary | null;
-  compareNode: AtlasNodeSummary | null;
-  onCompareNodeSelect: (atlasId: string | null) => void;
   isMobileViewport: boolean;
-  timelineActive?: boolean;
   dossierContent?: ReactNode;
-  searchValue: string;
-  onSearchValueChange: (value: string) => void;
-  searchResults: Array<{
-    id: string;
-    name: string;
-    type: string;
-  }>;
-  onSearchResultSelect: (placeId: string) => void;
   onClearSelection: () => void;
-};
-
-const PANEL_LABELS: Record<IslandPanel, string> = {
-  search: "Search",
-  focus: "Focus",
-  navigate: "Navigate",
-  dossier: "Dossier",
-  horizon: "Horizon",
 };
 
 const lensIcons: Record<AtlasLensId, ComponentType<{ className?: string }>> = {
@@ -78,7 +50,7 @@ const lensIcons: Record<AtlasLensId, ComponentType<{ className?: string }>> = {
   memory: Building2,
   safety: ShieldAlert,
   interventions: Route,
-  evidence: Network,
+  evidence: Search,
 };
 
 const viewModeIcons: Record<
@@ -94,8 +66,15 @@ const viewModeIcons: Record<
 const islandTransition = {
   type: "tween",
   ease: [0.22, 1, 0.36, 1],
-  duration: 0.3,
+  duration: 0.34,
 } as const;
+
+const PANEL_LABELS: Record<IslandPanel, string> = {
+  focus: "Focus",
+  navigate: "Navigate",
+  dossier: "Dossier",
+  horizon: "Horizon",
+};
 
 export function AtlasDynamicIsland({
   activeLens,
@@ -104,43 +83,26 @@ export function AtlasDynamicIsland({
   onViewModeChange,
   selectedPlaceId,
   selectedPlaceName,
+  focusDetailLevel,
+  focusCameraBand,
   placesCount,
   eventsCount,
   horizonNodes,
-  currentNode,
-  compareNode,
-  onCompareNodeSelect,
   isMobileViewport,
-  timelineActive = false,
   dossierContent,
-  searchValue,
-  onSearchValueChange,
-  searchResults,
-  onSearchResultSelect,
   onClearSelection,
 }: AtlasDynamicIslandProps) {
-  const prefersReducedMotion = Boolean(useReducedMotion());
   const [isExpanded, setIsExpanded] = useState(false);
   const [activePanel, setActivePanel] = useState<IslandPanel>("focus");
   const [selectedHorizonId, setSelectedHorizonId] = useState<string | null>(
     horizonNodes[0]?.atlasId ?? null,
   );
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-
-  const hasDossierPanel = Boolean(selectedPlaceId && dossierContent);
-
-  const availablePanels = useMemo<IslandPanel[]>(() => {
-    const panels: IslandPanel[] = ["search", "focus", "navigate"];
-    if (hasDossierPanel) panels.push("dossier");
-    if (horizonNodes.length > 0) panels.push("horizon");
-    return panels;
-  }, [hasDossierPanel, horizonNodes.length]);
 
   useEffect(() => {
-    if (!hasDossierPanel && activePanel === "dossier") {
+    if (!selectedPlaceId && activePanel === "dossier") {
       setActivePanel("focus");
     }
-  }, [activePanel, hasDossierPanel]);
+  }, [activePanel, selectedPlaceId]);
 
   useEffect(() => {
     if (horizonNodes.length === 0) {
@@ -148,29 +110,17 @@ export function AtlasDynamicIsland({
       if (activePanel === "horizon") setActivePanel("focus");
       return;
     }
-
     if (!selectedHorizonId || !horizonNodes.some((node) => node.atlasId === selectedHorizonId)) {
       setSelectedHorizonId(horizonNodes[0]?.atlasId ?? null);
     }
   }, [activePanel, horizonNodes, selectedHorizonId]);
 
-  useEffect(() => {
-    if (!isMobileViewport || !hasDossierPanel) return;
-
-    setActivePanel("dossier");
-    setIsExpanded(true);
-  }, [hasDossierPanel, isMobileViewport, selectedPlaceId]);
-
-  useEffect(() => {
-    if (!isExpanded || activePanel !== "search") return;
-
-    const frame = window.requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-      searchInputRef.current?.select();
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [activePanel, isExpanded]);
+  const availablePanels = useMemo<IslandPanel[]>(() => {
+    const panels: IslandPanel[] = ["focus", "navigate"];
+    if (selectedPlaceId) panels.push("dossier");
+    if (horizonNodes.length > 0) panels.push("horizon");
+    return panels;
+  }, [horizonNodes.length, selectedPlaceId]);
 
   const selectedHorizonNode = useMemo(
     () =>
@@ -182,42 +132,17 @@ export function AtlasDynamicIsland({
 
   const activeView = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
   const activeLensInfo = ATLAS_LENS_LOOKUP[activeLens];
-  const transition = prefersReducedMotion
-    ? { duration: 0 }
-    : islandTransition;
-  const islandTitle = selectedPlaceName ?? focusHeadline(activeLensInfo.label);
-  const compareNodeName = compareNode?.name ?? null;
-
-  const collapsedWidth = isMobileViewport ? 302 : 356;
-  const expandedWidth = isMobileViewport ? 388 : 468;
-  const collapsedHeight = isMobileViewport ? 74 : 68;
-  const expandedHeight =
-    activePanel === "dossier"
-      ? isMobileViewport
-        ? 552
-        : 452
-      : activePanel === "search"
-        ? isMobileViewport
-          ? 408
-          : 392
-      : isMobileViewport
-        ? 486
-        : 430;
-  const bottomOffset = isMobileViewport
-    ? "calc(env(safe-area-inset-bottom, 0px) + 14px)"
-    : timelineActive
-      ? "214px"
-      : "20px";
+  const islandTitle = selectedPlaceName ?? focusHeadline(focusDetailLevel, activeLensInfo.label);
+  const islandSubtitle = `${focusDetailLabel(focusDetailLevel)} · ${focusBandLabel(focusCameraBand)} · ${activeView.shortLabel}`;
 
   function openIsland(panel?: IslandPanel) {
     if (panel && availablePanels.includes(panel)) {
       setActivePanel(panel);
-    } else if (isMobileViewport && hasDossierPanel && availablePanels.includes("dossier")) {
+    } else if (selectedPlaceId && availablePanels.includes("dossier")) {
       setActivePanel("dossier");
     } else {
       setActivePanel("focus");
     }
-
     setIsExpanded(true);
   }
 
@@ -225,80 +150,65 @@ export function AtlasDynamicIsland({
     <>
       <AnimatePresence>
         {isExpanded ? (
-          <motion.button
+          <motion.div
             key="atlas-island-backdrop"
-            type="button"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={transition}
-            className="pointer-events-auto absolute inset-0 z-[1410] bg-[rgba(246,244,238,0.12)] backdrop-blur-[3px]"
-            aria-label="Close Atlas controls"
+            transition={islandTransition}
+            className="pointer-events-auto absolute inset-0 z-[1410] bg-[rgba(246,244,238,0.08)] backdrop-blur-[3px]"
             onClick={() => setIsExpanded(false)}
           />
         ) : null}
       </AnimatePresence>
 
-      <div
-        className="pointer-events-none absolute left-1/2 z-[1420] -translate-x-1/2"
-        style={{ bottom: bottomOffset }}
-      >
+      <div className="pointer-events-none absolute bottom-5 left-1/2 z-[1420] -translate-x-1/2">
         <motion.div
           initial={false}
           animate={{
-            width: isExpanded ? expandedWidth : collapsedWidth,
-            height: isExpanded ? expandedHeight : collapsedHeight,
-            borderRadius: isExpanded ? 28 : 999,
+            width: isExpanded ? (isMobileViewport ? 354 : 392) : (isMobileViewport ? 290 : 318),
+            height: isExpanded ? (isMobileViewport ? 436 : 394) : 58,
+            borderRadius: isExpanded ? 24 : 999,
           }}
-          transition={transition}
+          transition={islandTransition}
           className="atlas-scene-glass pointer-events-auto relative overflow-hidden"
           style={{
             boxShadow: isExpanded
-              ? "0 30px 56px -34px rgba(42,36,25,0.62)"
-              : "0 16px 28px -20px rgba(42,36,25,0.42)",
+              ? "0 26px 54px -32px rgba(42,36,25,0.6)"
+              : "0 18px 30px -24px rgba(42,36,25,0.44)",
           }}
         >
-          <motion.div
+          <motion.button
+            type="button"
             initial={false}
             animate={{
               opacity: isExpanded ? 0 : 1,
               pointerEvents: isExpanded ? "none" : "auto",
             }}
-            transition={transition}
-            className="absolute inset-0 flex w-full items-center gap-3 px-4"
+            transition={islandTransition}
+            className="absolute inset-0 flex w-full items-center gap-4 px-4 text-left"
+            onClick={() => openIsland()}
           >
-            <button
-              type="button"
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-full px-1 text-left"
-              onClick={() => openIsland("focus")}
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.46)]">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: lensAccent(activeLens) }}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium leading-[1.2] text-[color:var(--ctx-ink)]">
-                  {islandTitle}
-                </p>
-                {compareNodeName ? (
-                  <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
-                    Comparing with {compareNodeName}
-                  </p>
-                ) : null}
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className="atlas-island-search-trigger"
-              aria-label="Search Flint Atlas places"
-              onClick={() => openIsland("search")}
-            >
-              <Search className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </motion.div>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)]">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ background: lensAccent(activeLens) }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[14px] font-medium leading-[1.2] text-[color:var(--ctx-ink)]">
+                {islandTitle}
+              </p>
+              <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                {islandSubtitle}
+              </p>
+            </div>
+            <SceneFocusIndicator
+              cameraBand={focusCameraBand}
+              detailLevel={focusDetailLevel}
+              hasSelection={selectedPlaceId !== null}
+            />
+          </motion.button>
 
           <motion.div
             initial={false}
@@ -306,15 +216,15 @@ export function AtlasDynamicIsland({
               opacity: isExpanded ? 1 : 0,
               pointerEvents: isExpanded ? "auto" : "none",
             }}
-            transition={transition}
+            transition={islandTransition}
             className="absolute inset-0 flex flex-col"
           >
-            <div className="flex items-center justify-between gap-3 px-6 pb-4 pt-5">
+            <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4">
               <div className="min-w-0">
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--ctx-ink-mute)]">
-                  Atlas controls
+                  Atlas focus
                 </p>
-                <p className="truncate text-[15px] font-medium leading-[1.25] text-[color:var(--ctx-ink)]">
+                <p className="truncate text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
                   {islandTitle}
                 </p>
               </div>
@@ -324,12 +234,12 @@ export function AtlasDynamicIsland({
                 aria-label="Close Atlas controls"
                 onClick={() => setIsExpanded(false)}
               >
-                <X className="h-4 w-4" aria-hidden="true" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="px-5 pb-4">
-              <div className="atlas-scroll-hidden flex gap-2 overflow-x-auto pb-1">
+            <div className="px-4 pb-3">
+              <div className="flex gap-2 overflow-x-auto pb-1">
                 {availablePanels.map((panel) => (
                   <button
                     key={panel}
@@ -344,112 +254,51 @@ export function AtlasDynamicIsland({
               </div>
             </div>
 
-            <div className="atlas-island-scroll min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-              {activePanel === "search" ? (
-                <section className="space-y-4">
-                  <div className="rounded-[18px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.3)] p-4">
-                    <label
-                      className="atlas-island-search-field"
-                      aria-label="Search Flint Atlas places"
-                    >
-                      <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <input
-                        ref={searchInputRef}
-                        value={searchValue}
-                        onChange={(event) => onSearchValueChange(event.target.value)}
-                        className="min-w-0 flex-1 bg-transparent text-[15px] leading-none outline-none placeholder:text-[color:var(--ctx-ink-faint)]"
-                        placeholder="Search places, wards, landmarks…"
-                        type="search"
-                        name="atlas-island-search"
-                        autoComplete="off"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="rounded-[18px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.22)] p-2">
-                    {searchValue.trim().length > 0 ? (
-                      searchResults.length > 0 ? (
-                        <div className="space-y-1">
-                          {searchResults.map((result) => (
-                            <button
-                              key={result.id}
-                              type="button"
-                              className="atlas-island-search-result"
-                              onClick={() => {
-                                onSearchResultSelect(result.id);
-                                setActivePanel("focus");
-                                setIsExpanded(false);
-                              }}
-                            >
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[13px] font-medium text-[color:var(--ctx-ink)]">
-                                  {result.name}
-                                </span>
-                                <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
-                                  {result.type}
-                                </span>
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="px-3 py-3 text-[13px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
-                          No matching places in the current read model.
-                        </p>
-                      )
-                    ) : (
-                      <p className="px-3 py-3 text-[13px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
-                        Search Flint places, wards, and landmarks from the island without leaving the map.
-                      </p>
-                    )}
-                  </div>
-                </section>
-              ) : null}
-
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
               {activePanel === "focus" ? (
-                <section className="space-y-4">
-                  <div className="rounded-[18px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.3)] p-5">
-                    <div className="flex items-start justify-between gap-3">
+                <section className="space-y-3">
+                  <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
                           On screen now
                         </p>
-                        <p className="mt-1 text-[15px] font-medium leading-[1.25] text-[color:var(--ctx-ink)]">
+                        <p className="mt-1 text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
                           {selectedPlaceName ?? "Flint civic field"}
                         </p>
                       </div>
                       <SceneFocusIndicator
-                        viewMode={viewMode}
-                        activeLens={activeLens}
+                        cameraBand={focusCameraBand}
+                        detailLevel={focusDetailLevel}
                         hasSelection={selectedPlaceId !== null}
-                        reducedMotion={prefersReducedMotion}
                       />
                     </div>
-                    <p className="mt-4 text-[13px] leading-[1.6] text-[color:var(--ctx-ink-soft)]">
-                      {selectedPlaceName
-                        ? `${selectedPlaceName} is the current focus. The island keeps lens, view, and neighboring atlas context within reach.`
-                        : focusSummary(activeLensInfo.label, activeView.label)}
+                    <p className="mt-3 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+                      The island reflects what the current view is emphasizing as you switch camera modes and move between city, ward, and object focus.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <MetaPill label="Lens" value={activeLensInfo.label} />
                     <MetaPill label="View" value={activeView.label} />
+                    <MetaPill label="Focus" value={focusDetailLabel(focusDetailLevel)} />
+                    <MetaPill label="Band" value={focusBandLabel(focusCameraBand)} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
                     <MetaPill label="Places" value={String(placesCount)} />
                     <MetaPill label="Events" value={String(eventsCount)} />
                   </div>
 
                   {selectedPlaceId ? (
                     <div className="flex items-center gap-2">
-                      {hasDossierPanel ? (
-                        <button
-                          type="button"
-                          className="atlas-horizon-action"
-                          onClick={() => setActivePanel("dossier")}
-                        >
-                          Inspect dossier
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        className="atlas-horizon-action"
+                        onClick={() => setActivePanel("dossier")}
+                      >
+                        Inspect dossier
+                      </button>
                       <button
                         type="button"
                         className="atlas-horizon-action"
@@ -463,42 +312,32 @@ export function AtlasDynamicIsland({
               ) : null}
 
               {activePanel === "navigate" ? (
-                <section className="space-y-5">
+                <section className="space-y-4">
                   <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
                       Civic lenses
                     </p>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      {ATLAS_LENSES.map((lens) => {
-                        const Icon = lensIcons[lens.id];
-                        const selected = lens.id === activeLens;
-
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {Object.entries(lensIcons).map(([lensId, Icon]) => {
+                        const selected = lensId === activeLens;
                         return (
                           <button
-                            key={lens.id}
+                            key={lensId}
                             type="button"
-                            className="atlas-island-option"
-                            data-active={selected ? "true" : "false"}
+                            className={cn(
+                              "flex items-center gap-2 rounded-[12px] border px-3 py-3 text-left",
+                              selected && "bg-[color:var(--ctx-ink)] text-[color:var(--ctx-paper)]",
+                            )}
                             style={{
-                              color: selected ? "var(--ctx-paper)" : "var(--ctx-ink)",
+                              borderColor: selected
+                                ? "rgba(42,36,25,0.8)"
+                                : "rgba(42,36,25,0.1)",
                             }}
-                            onClick={() => onLensChange(lens.id)}
+                            onClick={() => onLensChange(lensId as AtlasLensId)}
                           >
-                            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[13px] font-medium leading-[1.2]">
-                                {lens.label}
-                              </span>
-                              <span
-                                className="mt-1 block font-mono text-[10px] uppercase tracking-[0.1em]"
-                                style={{
-                                  color: selected
-                                    ? "color-mix(in srgb, var(--ctx-paper) 74%, transparent)"
-                                    : "var(--ctx-ink-mute)",
-                                }}
-                              >
-                                {lens.shortLabel}
-                              </span>
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="text-[12px] font-medium">
+                              {ATLAS_LENS_LOOKUP[lensId as AtlasLensId].label}
                             </span>
                           </button>
                         );
@@ -510,37 +349,27 @@ export function AtlasDynamicIsland({
                     <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
                       Camera views
                     </p>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      {ATLAS_SCENE_VIEW_MODES.map((mode) => {
-                        const Icon = viewModeIcons[mode.id];
-                        const selected = mode.id === viewMode;
-
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {Object.entries(viewModeIcons).map(([modeId, Icon]) => {
+                        const selected = modeId === viewMode;
                         return (
                           <button
-                            key={mode.id}
+                            key={modeId}
                             type="button"
-                            className="atlas-island-option"
-                            data-active={selected ? "true" : "false"}
+                            className={cn(
+                              "flex items-center gap-2 rounded-[12px] border px-3 py-3 text-left",
+                              selected && "bg-[color:var(--ctx-ink)] text-[color:var(--ctx-paper)]",
+                            )}
                             style={{
-                              color: selected ? "var(--ctx-paper)" : "var(--ctx-ink)",
+                              borderColor: selected
+                                ? "rgba(42,36,25,0.8)"
+                                : "rgba(42,36,25,0.1)",
                             }}
-                            onClick={() => onViewModeChange(mode.id)}
+                            onClick={() => onViewModeChange(modeId as AtlasSceneViewModeId)}
                           >
-                            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[13px] font-medium leading-[1.2]">
-                                {mode.label}
-                              </span>
-                              <span
-                                className="mt-1 block font-mono text-[10px] uppercase tracking-[0.1em]"
-                                style={{
-                                  color: selected
-                                    ? "color-mix(in srgb, var(--ctx-paper) 74%, transparent)"
-                                    : "var(--ctx-ink-mute)",
-                                }}
-                              >
-                                {mode.shortLabel}
-                              </span>
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="text-[12px] font-medium">
+                              {ATLAS_SCENE_VIEW_MODE_LOOKUP[modeId as AtlasSceneViewModeId].label}
                             </span>
                           </button>
                         );
@@ -551,11 +380,11 @@ export function AtlasDynamicIsland({
               ) : null}
 
               {activePanel === "dossier" ? (
-                <section className="rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)]">
-                  {hasDossierPanel ? (
+                <section className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.24)]">
+                  {selectedPlaceId && dossierContent ? (
                     dossierContent
                   ) : (
-                    <div className="px-4 py-4 text-[12px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+                    <div className="px-4 py-4 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
                       Select a place to open its support, history, and nearby context here.
                     </div>
                   )}
@@ -566,143 +395,60 @@ export function AtlasDynamicIsland({
                 <section className="space-y-3">
                   {selectedHorizonNode ? (
                     <>
-                      {compareNode && currentNode ? (
-                        <div className="rounded-[18px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.3)] p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                                Node compare
-                              </p>
-                              <p className="mt-1 text-[13px] leading-[1.45] text-[color:var(--ctx-ink-soft)]">
-                                Compare is anchored to the route, so this view can be reopened or shared without relying on browser history.
-                              </p>
-                            </div>
+                      <div className="flex justify-center">
+                        <div
+                          className="atlas-horizon-compass atlas-horizon-compass-desktop"
+                          role="list"
+                          aria-label="Node Horizon bearings"
+                        >
+                          <span className="atlas-horizon-axis atlas-horizon-axis-n">N</span>
+                          <span className="atlas-horizon-axis atlas-horizon-axis-e">E</span>
+                          <span className="atlas-horizon-axis atlas-horizon-axis-s">S</span>
+                          <span className="atlas-horizon-axis atlas-horizon-axis-w">W</span>
+                          <span className="atlas-horizon-origin">Flint</span>
+                          {horizonNodes.map((node) => (
                             <button
+                              key={node.atlasId}
                               type="button"
-                              className="atlas-horizon-action"
-                              onClick={() => onCompareNodeSelect(null)}
+                              role="listitem"
+                              className={cn(
+                                "atlas-horizon-point",
+                                node.atlasId === selectedHorizonNode.atlasId && "is-active",
+                              )}
+                              data-relation={node.relation}
+                              style={compassPointStyle(node)}
+                              onClick={() => setSelectedHorizonId(node.atlasId)}
+                              aria-label={`${node.name}, ${node.directionLabel || node.scopeLabel}`}
                             >
-                              Return to Flint
+                              <span aria-hidden="true">{horizonBadge(node.name)}</span>
                             </button>
-                          </div>
-                          <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <CompareNodeCard label="Current node" node={currentNode} />
-                            <CompareNodeCard label="Compare node" node={compareNode} />
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="atlas-horizon-shell rounded-[18px] border border-[rgba(42,36,25,0.08)] p-4">
-                        <div className="mx-auto flex max-w-[180px] justify-center">
-                          <div
-                            className={cn(
-                              "atlas-horizon-compass",
-                              !isMobileViewport && "atlas-horizon-compass-desktop",
-                            )}
-                            role="list"
-                            aria-label="Node Horizon bearings"
-                          >
-                            <span className="atlas-horizon-axis atlas-horizon-axis-n">N</span>
-                            <span className="atlas-horizon-axis atlas-horizon-axis-e">E</span>
-                            <span className="atlas-horizon-axis atlas-horizon-axis-s">S</span>
-                            <span className="atlas-horizon-axis atlas-horizon-axis-w">W</span>
-                            <span className="atlas-horizon-origin">Flint</span>
-                            {horizonNodes.map((node) => (
-                              <button
-                                key={node.atlasId}
-                                type="button"
-                                role="listitem"
-                                className={cn(
-                                  "atlas-horizon-point",
-                                  node.atlasId === selectedHorizonNode.atlasId && "is-active",
-                                )}
-                                data-relation={node.relation}
-                                style={compassPointStyle(node)}
-                                onClick={() => setSelectedHorizonId(node.atlasId)}
-                                aria-label={`${node.name}, ${node.directionLabel || node.scopeLabel}`}
-                              >
-                                <span aria-hidden="true">{horizonBadge(node.name)}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.32)] p-3">
-                          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                            {selectedHorizonNode.relationLabel}
-                          </p>
-                          <p className="mt-1 text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
-                            {selectedHorizonNode.name}
-                          </p>
-                          <p className="mt-1 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
-                            {selectedHorizonNode.description}
-                          </p>
-                          <div className="mt-3 flex items-center justify-between gap-3">
-                            <span className="text-[10px] leading-[1.4] text-[color:var(--ctx-ink-mute)]">
-                              {selectedHorizonNode.directionLabel || selectedHorizonNode.scopeLabel}
-                              <br />
-                              {selectedHorizonNode.sourceCountLabel}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <Link
-                                href={selectedHorizonNode.detailHref}
-                                className="atlas-horizon-action"
-                                aria-label={`Open ${selectedHorizonNode.name}`}
-                              >
-                                Open
-                              </Link>
-                              <button
-                                type="button"
-                                className="atlas-horizon-action"
-                                disabled={
-                                  !selectedHorizonNode.compareAvailable &&
-                                  compareNode?.atlasId !== selectedHorizonNode.atlasId
-                                }
-                                aria-pressed={compareNode?.atlasId === selectedHorizonNode.atlasId}
-                                aria-label={`Compare Flint Atlas with ${selectedHorizonNode.name}`}
-                                onClick={() =>
-                                  onCompareNodeSelect(
-                                    compareNode?.atlasId === selectedHorizonNode.atlasId
-                                      ? null
-                                      : selectedHorizonNode.atlasId,
-                                  )
-                                }
-                              >
-                                {compareNode?.atlasId === selectedHorizonNode.atlasId
-                                  ? "Comparing"
-                                  : "Compare"}
-                              </button>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
-
-                      <div className="space-y-2">
-                        {horizonNodes.map((node) => (
-                          <button
-                            key={node.atlasId}
-                            type="button"
-                            className="atlas-horizon-list-item"
-                            data-active={node.atlasId === selectedHorizonNode.atlasId ? "true" : "false"}
-                            onClick={() => setSelectedHorizonId(node.atlasId)}
-                          >
-                            <span className="atlas-horizon-list-badge" aria-hidden="true">
-                              {horizonBadge(node.name)}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[12px] font-medium text-[color:var(--ctx-ink)]">
-                                {node.name}
-                              </span>
-                              <span className="mt-1 block truncate text-[11px] text-[color:var(--ctx-ink-soft)]">
-                                {node.directionLabel || node.scopeLabel}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
+                      <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                          {selectedHorizonNode.relationLabel}
+                        </p>
+                        <p className="mt-1 text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
+                          {selectedHorizonNode.name}
+                        </p>
+                        <p className="mt-1 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+                          {selectedHorizonNode.directionLabel || selectedHorizonNode.scopeLabel}
+                        </p>
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <span className="text-[10px] leading-[1.35] text-[color:var(--ctx-ink-mute)]">
+                            {selectedHorizonNode.sourceCountLabel}
+                            <br />
+                            {selectedHorizonNode.freshnessLabel}
+                          </span>
+                          <Link href={selectedHorizonNode.detailHref} className="atlas-horizon-action">
+                            Open atlas
+                          </Link>
+                        </div>
                       </div>
                     </>
                   ) : (
-                    <div className="text-[12px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
+                    <div className="text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
                       No neighboring atlas nodes are published yet.
                     </div>
                   )}
@@ -718,11 +464,11 @@ export function AtlasDynamicIsland({
 
 function MetaPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] px-4 py-3">
+    <div className="rounded-[12px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] px-3 py-2">
       <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
         {label}
       </p>
-      <p className="mt-1.5 text-[13px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
+      <p className="mt-1 text-[12px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
         {value}
       </p>
     </div>
@@ -730,72 +476,87 @@ function MetaPill({ label, value }: { label: string; value: string }) {
 }
 
 function SceneFocusIndicator({
-  viewMode,
-  activeLens,
+  cameraBand,
+  detailLevel,
   hasSelection,
-  reducedMotion,
 }: {
-  viewMode: AtlasSceneViewModeId;
-  activeLens: AtlasLensId;
+  cameraBand: AtlasSceneCameraBand;
+  detailLevel: AtlasSceneDetailLevel;
   hasSelection: boolean;
-  reducedMotion: boolean;
 }) {
-  const activeIndex = ATLAS_SCENE_VIEW_MODES.findIndex((mode) => mode.id === viewMode);
-  const glyph = hasSelection ? "S" : ATLAS_LENS_LOOKUP[activeLens].label.slice(0, 1).toUpperCase();
+  const bandIndex = {
+    far: 0,
+    mid: 1,
+    near: 2,
+  }[cameraBand];
+  const detailOpacity = {
+    city: 0.55,
+    ward: 0.72,
+    object: 0.94,
+  }[detailLevel];
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <div className="flex items-end gap-1">
-        {ATLAS_SCENE_VIEW_MODES.map((mode, index) => (
+        {[0, 1, 2].map((index) => (
           <motion.span
-            key={mode.id}
+            key={index}
             initial={false}
             animate={{
-              height: index === activeIndex ? 18 : 10,
-              opacity: index === activeIndex ? 1 : 0.32,
-              backgroundColor:
-                index === activeIndex ? "var(--ctx-ink)" : "rgba(42,36,25,0.38)",
+              height: index === bandIndex ? 18 : 10,
+              opacity: index === bandIndex ? 1 : 0.34,
             }}
-            transition={reducedMotion ? { duration: 0 } : { duration: 0.18, ease: "easeOut" }}
-            className="w-[4px] rounded-full"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-[4px] rounded-full bg-[color:var(--ctx-ink)]"
           />
         ))}
       </div>
       <motion.span
         initial={false}
         animate={{
-          scale: hasSelection ? 1 : 0.92,
-          opacity: hasSelection ? 1 : 0.78,
+          scale: hasSelection ? 1 : 0.88,
+          opacity: detailOpacity,
         }}
-        transition={reducedMotion ? { duration: 0 } : { duration: 0.18, ease: "easeOut" }}
-        className="grid h-9 w-9 place-items-center rounded-full border border-[rgba(42,36,25,0.1)] bg-[rgba(255,255,255,0.48)] font-mono text-[10px] font-semibold uppercase text-[color:var(--ctx-ink)]"
-        style={{
-          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.62), 0 8px 16px -14px ${lensAccent(activeLens)}`,
-        }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="grid h-7 w-7 place-items-center rounded-full border border-[rgba(42,36,25,0.1)] bg-[rgba(255,255,255,0.46)] font-mono text-[9px] font-semibold uppercase text-[color:var(--ctx-ink)]"
       >
-        {glyph}
+        {detailLevel.slice(0, 1)}
       </motion.span>
     </div>
   );
 }
 
-function focusHeadline(lensLabel: string): string {
-  return `${lensLabel} civic field`;
+function focusHeadline(detailLevel: AtlasSceneDetailLevel, lensLabel: string): string {
+  if (detailLevel === "object") return "Focused civic object";
+  if (detailLevel === "ward") return `${lensLabel} ward field`;
+  return "Flint civic field";
 }
 
-function focusSummary(lensLabel: string, viewLabel: string): string {
-  return `${lensLabel} is the active civic lens. ${viewLabel} keeps the current atlas reading mode in focus while the main map stays primary.`;
+function focusDetailLabel(detailLevel: AtlasSceneDetailLevel): string {
+  return {
+    city: "city field",
+    ward: "ward field",
+    object: "object focus",
+  }[detailLevel];
+}
+
+function focusBandLabel(cameraBand: AtlasSceneCameraBand): string {
+  return {
+    far: "far band",
+    mid: "mid band",
+    near: "near band",
+  }[cameraBand];
 }
 
 function lensAccent(lens: AtlasLensId): string {
   return (
     {
-      explore: "rgba(47,127,120,0.38)",
-      memory: "rgba(193,74,44,0.38)",
-      safety: "rgba(157,94,38,0.38)",
-      interventions: "rgba(92,106,160,0.38)",
-      evidence: "rgba(88,118,191,0.38)",
-    }[lens] ?? "rgba(42,36,25,0.3)"
+      explore: "#2f7f78",
+      memory: "#c14a2c",
+      safety: "#9d5e26",
+      interventions: "#5c6aa0",
+      evidence: "#6a63a8",
+    }[lens] ?? "#2a2419"
   );
 }
 
@@ -805,9 +566,7 @@ function horizonBadge(name: string): string {
     .split(/\s+/)
     .map((word) => word.trim())
     .filter(Boolean);
-
   if (words.length === 0) return "AT";
-
   return words
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? "")
@@ -815,94 +574,14 @@ function horizonBadge(name: string): string {
     .slice(0, 2);
 }
 
-function CompareNodeCard({
-  label,
-  node,
-}: {
-  label: string;
-  node: AtlasNodeSummary;
-}) {
-  return (
-    <div className="rounded-[16px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-        {label}
-      </p>
-      <p className="mt-1 text-[13px] font-medium leading-[1.35] text-[color:var(--ctx-ink)]">
-        {node.name}
-      </p>
-      <dl className="mt-3 space-y-2 text-[11px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
-        <div className="flex items-start justify-between gap-3">
-          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
-            Scope
-          </dt>
-          <dd className="text-right">{node.scopeLabel}</dd>
-        </div>
-        <div className="flex items-start justify-between gap-3">
-          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
-            Freshness
-          </dt>
-          <dd className="text-right">{node.freshnessLabel}</dd>
-        </div>
-        <div className="flex items-start justify-between gap-3">
-          <dt className="font-mono uppercase tracking-[0.08em] text-[color:var(--ctx-ink-mute)]">
-            Package
-          </dt>
-          <dd className="text-right">
-            {node.manifestAvailable ? "public package ready" : "package planned"}
-          </dd>
-        </div>
-      </dl>
-      <p className="mt-3 text-[11px] leading-[1.55] text-[color:var(--ctx-ink-soft)]">
-        {node.capabilityLabels.length > 0
-          ? node.capabilityLabels.join(" · ")
-          : "Capabilities are still being defined."}
-      </p>
-    </div>
-  );
-}
-
 function compassPointStyle(node: NodeHorizonEntry): { left: string; top: string } {
-  const degrees = directionDegreesFromLabel(node.directionLabel);
+  const degrees = node.directionDegrees ?? 0;
   const angle = ((degrees - 90) * Math.PI) / 180;
-  const orbit = normalizedOrbit(node);
+  const orbit = node.normalizedDistance * 34;
   const x = 50 + Math.cos(angle) * orbit;
   const y = 50 + Math.sin(angle) * orbit;
-
   return {
     left: `${x}%`,
     top: `${y}%`,
   };
-}
-
-function directionDegreesFromLabel(label: string): number {
-  const normalized = label.toLowerCase();
-
-  if (normalized.includes("northeast")) return 45;
-  if (normalized.includes("southeast")) return 135;
-  if (normalized.includes("southwest")) return 225;
-  if (normalized.includes("northwest")) return 315;
-  if (normalized.includes("north")) return 0;
-  if (normalized.includes("east")) return 90;
-  if (normalized.includes("south")) return 180;
-  if (normalized.includes("west")) return 270;
-
-  return 0;
-}
-
-function normalizedOrbit(node: NodeHorizonEntry): number {
-  const distanceMatch = node.directionLabel.match(/(\d+(?:\.\d+)?)\s*(?:mi|miles?)/i);
-  const distanceValue = distanceMatch ? Number(distanceMatch[1]) : null;
-
-  if (distanceValue !== null && Number.isFinite(distanceValue)) {
-    return Math.max(16, Math.min(34, 12 + distanceValue * 0.34));
-  }
-
-  return (
-    {
-      parent: 18,
-      child: 22,
-      neighbor: 30,
-      self: 16,
-    }[node.relation] ?? 24
-  );
 }

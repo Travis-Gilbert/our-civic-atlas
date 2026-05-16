@@ -51,11 +51,11 @@ export default async function ObjectPage({ params }: PageProps) {
           <AtlasMetaItem label="Review" value={object.review_state.replace(/_/g, " ")} />
           <AtlasMetaItem label="Temporal" value={object.temporal_status.replace(/_/g, " ")} />
           <AtlasMetaItem label="Current" value={object.current_status.replace(/_/g, " ")} />
-          <AtlasMetaItem label="Confidence" value={`${Math.round(object.confidence_score * 100)}% support`} />
+          <AtlasMetaItem label="Support" value={`${Math.round(object.confidence_score * 100)}% reviewed`} />
         </AtlasMetaGrid>
       </AtlasSection>
 
-      <AtlasSection title="Confidence reasons">
+      <AtlasSection title="Support reasons">
         <ul
           className="list-disc space-y-2 pl-5 text-[14px] leading-[1.65]"
           style={{ color: "var(--ctx-ink-soft)" }}

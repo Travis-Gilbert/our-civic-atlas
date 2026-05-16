@@ -3,13 +3,12 @@
 import { useMemo, useCallback } from "react";
 import { Map, NavigationControl, useControl } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import { GeoJsonLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import type {
-  FreshSignal,
   PlacesCollection,
   PlaceFeature,
   PlaceProperties,
@@ -20,18 +19,7 @@ import {
   type AtlasLensId,
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
-import {
-  getAtlasBoundaryMaskFeature,
-  getAtlasBoundaryOutlineFeature,
-  getAtlasContextBbox,
-  getAtlasViewCamera,
-} from "@/lib/atlas/atlas-boundary";
-import {
-  getEventFillColor,
-  getPlaceFillColor,
-  getPlaceLineColor,
-  getSignalFillColor,
-} from "@/lib/atlas/visual-grammar";
+import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -77,14 +65,52 @@ type GeometricPlacesCollection = GeoJSON.FeatureCollection<
   PlaceProperties
 >;
 
-type AtlasLabelPoint = {
-  id: string;
-  label: string;
-  placeType: string;
-  position: [number, number];
+/* ------------------------------------------------------------------ */
+/*  Color palettes                                                     */
+/* ------------------------------------------------------------------ */
+
+/** RGBA tuples for place_type fill colors. */
+const PLACE_TYPE_FILL: Record<string, [number, number, number, number]> = {
+  ward: [59, 130, 246, 100], // blue
+  parcel: [217, 162, 59, 80], // amber
+  building: [140, 140, 150, 80], // gray
+  infrastructure: [45, 166, 153, 90], // teal
 };
+const PLACE_TYPE_FILL_DEFAULT: [number, number, number, number] = [
+  120, 120, 130, 60,
+];
+
+/** RGBA tuples for place_type line colors (stronger alpha). */
+const PLACE_TYPE_LINE: Record<string, [number, number, number, number]> = {
+  ward: [59, 130, 246, 180],
+  parcel: [217, 162, 59, 160],
+  building: [140, 140, 150, 140],
+  infrastructure: [45, 166, 153, 160],
+};
+const PLACE_TYPE_LINE_DEFAULT: [number, number, number, number] = [
+  120, 120, 130, 120,
+];
+
 /** Selected feature highlight. */
 const SELECTED_LINE: [number, number, number, number] = [193, 74, 44, 240];
+
+/** RGBA tuples for event_type dot colors. */
+const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
+  infrastructure_change: [59, 130, 246],
+  environmental: [45, 166, 153],
+  policy: [217, 162, 59],
+  health: [220, 80, 80],
+  community: [160, 100, 220],
+};
+const EVENT_TYPE_COLOR_DEFAULT: [number, number, number] = [140, 140, 150];
+
+const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
+  explore: [193, 132, 58, 34],
+  memory: [193, 74, 44, 44],
+  safety: [56, 132, 128, 44],
+  interventions: [82, 126, 82, 46],
+  evidence: [95, 111, 163, 42],
+};
 
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
@@ -145,6 +171,20 @@ function placeElevation(placeType: string, viewMode: AtlasSceneViewModeId) {
   return baseElevation * mode.extrusionScale;
 }
 
+function lensFillColor(
+  placeType: string,
+  activeLens: AtlasLensId,
+): [number, number, number, number] {
+  const base = PLACE_TYPE_FILL[placeType] ?? PLACE_TYPE_FILL_DEFAULT;
+  const tint = LENS_FILL_TINT[activeLens];
+  return [
+    Math.round(base[0] * 0.72 + tint[0] * 0.28),
+    Math.round(base[1] * 0.72 + tint[1] * 0.28),
+    Math.round(base[2] * 0.72 + tint[2] * 0.28),
+    Math.max(base[3], tint[3]),
+  ];
+}
+
 /* ------------------------------------------------------------------ */
 /*  DeckGL overlay hook                                                */
 /* ------------------------------------------------------------------ */
@@ -164,11 +204,8 @@ function DeckGLOverlay(props: MapboxOverlayProps) {
 export type AtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
-  signals: FreshSignal[];
   onPlaceSelect: (placeId: string) => void;
-  onSignalSelect: (signalId: string) => void;
   selectedPlaceId: string | null;
-  selectedSignalId: string | null;
   layerVisibility: Record<string, boolean>;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
@@ -182,21 +219,15 @@ export type AtlasMapProps = {
 export function AtlasMap({
   places,
   events,
-  signals,
   onPlaceSelect,
-  onSignalSelect,
   selectedPlaceId,
-  selectedSignalId,
   layerVisibility,
   viewMode = "oblique",
   activeLens = "explore",
   className,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
-  const camera = getAtlasViewCamera(viewMode);
-  const contextBbox = getAtlasContextBbox();
-  const boundaryMask = useMemo(() => getAtlasBoundaryMaskFeature(), []);
-  const boundaryOutline = useMemo(() => getAtlasBoundaryOutlineFeature(), []);
+  const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
 
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
@@ -205,22 +236,6 @@ export function AtlasMap({
       features: places.features.filter(hasGeometry),
     };
   }, [places]);
-
-  const visiblePlaces = useMemo<GeometricPlacesCollection | null>(() => {
-    if (!geometricPlaces) return null;
-
-    return {
-      ...geometricPlaces,
-      features: geometricPlaces.features.filter((feature) => {
-        const placeType = feature.properties.place_type;
-        if (placeType === "ward") return layerVisibility.wards !== false;
-        if (placeType === "corridor") {
-          return layerVisibility.infrastructure !== false;
-        }
-        return layerVisibility.places !== false;
-      }),
-    };
-  }, [geometricPlaces, layerVisibility]);
 
   /* ---- Build a place centroid lookup for positioning events -------- */
   const placeCentroids = useMemo(() => {
@@ -236,33 +251,6 @@ export function AtlasMap({
     return lookup;
   }, [geometricPlaces]);
 
-  const localLabels = useMemo<AtlasLabelPoint[]>(() => {
-    if (!visiblePlaces) return [];
-
-    return visiblePlaces.features
-      .filter((feature) => {
-        const placeType = feature.properties.place_type;
-        if (placeType === "city" || placeType === "corridor") return true;
-        if (placeType === "ward") return viewMode !== "street";
-        return false;
-      })
-      .map((feature) => {
-        const position = geometryCentroid(feature.geometry);
-        if (!position) return null;
-
-        return {
-          id: feature.properties.place_id,
-          label:
-            feature.properties.place_type === "city"
-              ? "Flint civic boundary"
-              : feature.properties.name,
-          placeType: feature.properties.place_type,
-          position,
-        };
-      })
-      .filter((value): value is AtlasLabelPoint => value !== null);
-  }, [visiblePlaces, viewMode]);
-
   /* ---- Positioned events (only those whose place has geometry) ---- */
   const positionedEvents = useMemo(() => {
     return events
@@ -277,37 +265,15 @@ export function AtlasMap({
       );
   }, [events, placeCentroids]);
 
-  const positionedSignals = useMemo(() => {
-    return signals
-      .map((signal) => {
-        if (
-          signal.geometry?.type === "Point" &&
-          Array.isArray(signal.geometry.coordinates)
-        ) {
-          const [lng, lat] = signal.geometry.coordinates as [number, number];
-          return { ...signal, _position: [lng, lat] as [number, number] };
-        }
-
-        if (!signal.place_id) return null;
-        const position = placeCentroids.get(signal.place_id);
-        if (!position) return null;
-        return { ...signal, _position: position };
-      })
-      .filter(
-        (signal): signal is FreshSignal & { _position: [number, number] } =>
-          signal !== null,
-      );
-  }, [signals, placeCentroids]);
-
   /* ---- Selected feature (separate GeoJSON for highlight ring) ----- */
   const selectedFeatureCollection = useMemo<GeometricPlacesCollection | null>(() => {
-    if (!selectedPlaceId || !visiblePlaces) return null;
-    const feature = visiblePlaces.features.find(
+    if (!selectedPlaceId || !geometricPlaces) return null;
+    const feature = geometricPlaces.features.find(
       (f) => f.properties.place_id === selectedPlaceId,
     );
     if (!feature) return null;
     return { type: "FeatureCollection", features: [feature] };
-  }, [selectedPlaceId, visiblePlaces]);
+  }, [selectedPlaceId, geometricPlaces]);
 
   /* ---- Click handler ---------------------------------------------- */
   const handleClick = useCallback(
@@ -323,25 +289,14 @@ export function AtlasMap({
 
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
-    const result: (GeoJsonLayer | ScatterplotLayer | TextLayer<AtlasLabelPoint>)[] = [];
-
-    result.push(
-      new GeoJsonLayer({
-        id: "atlas-boundary-mask",
-        data: boundaryMask,
-        pickable: false,
-        stroked: false,
-        filled: true,
-        getFillColor: [246, 244, 238, 138],
-      }),
-    );
+    const result: (GeoJsonLayer | ScatterplotLayer)[] = [];
 
     /* Places polygons/points */
-    if (visiblePlaces && visiblePlaces.features.length > 0) {
+    if (geometricPlaces && layerVisibility.places !== false) {
       result.push(
-        new GeoJsonLayer<GeometricPlaceFeature>({
-          id: "atlas-places",
-          data: visiblePlaces,
+        new GeoJsonLayer({
+          id: ATLAS_DECK_LAYER_IDS.places,
+          data: geometricPlaces,
           pickable: true,
           stroked: true,
           filled: true,
@@ -349,17 +304,20 @@ export function AtlasMap({
           wireframe: viewMode !== "atlas",
           lineWidthMinPixels: viewMode === "atlas" ? 1 : 0.7,
           getLineWidth: 1,
-          getElevation: (feature) => {
-            const place = feature as unknown as PlaceFeature;
-            return placeElevation(place.properties.place_type, viewMode);
+          getElevation: (f) => {
+            const ft = f as PlaceFeature;
+            return placeElevation(ft.properties.place_type, viewMode);
           },
-          getFillColor: (feature) => {
-            const place = feature as unknown as PlaceFeature;
-            return getPlaceFillColor(place.properties.place_type, activeLens);
+          getFillColor: (f) => {
+            const ft = f as PlaceFeature;
+            return lensFillColor(ft.properties.place_type, activeLens);
           },
-          getLineColor: (feature) => {
-            const place = feature as unknown as PlaceFeature;
-            return getPlaceLineColor(place.properties.place_type);
+          getLineColor: (f) => {
+            const ft = f as PlaceFeature;
+            return (
+              PLACE_TYPE_LINE[ft.properties.place_type] ??
+              PLACE_TYPE_LINE_DEFAULT
+            );
           },
           getPointRadius: 6,
           pointRadiusMinPixels: 4,
@@ -380,24 +338,14 @@ export function AtlasMap({
       );
     }
 
-    result.push(
-      new GeoJsonLayer({
-        id: "atlas-boundary-outline",
-        data: boundaryOutline,
-        pickable: false,
-        stroked: true,
-        filled: false,
-        lineWidthMinPixels: viewMode === "atlas" ? 2.6 : 2.2,
-        getLineWidth: 2.6,
-        getLineColor: [42, 36, 25, 186],
-      }),
-    );
-
     /* Selected place highlight */
-    if (selectedFeatureCollection && layerVisibility.places !== false) {
+    if (
+      selectedFeatureCollection &&
+      layerVisibility.places !== false
+    ) {
       result.push(
         new GeoJsonLayer({
-          id: "atlas-selected",
+          id: ATLAS_DECK_LAYER_IDS.selected,
           data: selectedFeatureCollection,
           pickable: false,
           stroked: true,
@@ -411,45 +359,13 @@ export function AtlasMap({
       );
     }
 
-    if (localLabels.length > 0) {
-      result.push(
-        new TextLayer<AtlasLabelPoint>({
-          id: "atlas-local-labels",
-          data: localLabels,
-          pickable: false,
-          billboard: false,
-          characterSet: "auto",
-          getPosition: (label) => label.position,
-          getText: (label) => label.label,
-          getSize: (label) => {
-            if (label.placeType === "city") return 18;
-            if (label.placeType === "corridor") return 14;
-            return 12;
-          },
-          getColor: (label) => {
-            if (label.placeType === "city") return [42, 36, 25, 220];
-            if (label.placeType === "corridor") return [193, 74, 44, 214];
-            return [90, 84, 72, 188];
-          },
-          getAngle: (label) => (label.placeType === "corridor" ? -12 : 0),
-          getTextAnchor: "middle",
-          getAlignmentBaseline: "center",
-          fontFamily: "var(--font-sans), sans-serif",
-          fontWeight: 700,
-          sizeUnits: "pixels",
-          sizeMinPixels: 11,
-          sizeMaxPixels: 24,
-        }),
-      );
-    }
-
     /* Events as scatter dots */
     if (positionedEvents.length > 0 && layerVisibility.events !== false) {
       result.push(
         new ScatterplotLayer<
           SpatialEvent & { _position: [number, number] }
         >({
-          id: "atlas-events",
+          id: ATLAS_DECK_LAYER_IDS.events,
           data: positionedEvents,
           pickable: true,
           opacity: 0.8,
@@ -457,16 +373,14 @@ export function AtlasMap({
           filled: true,
           radiusMinPixels: 4,
           radiusMaxPixels: 14,
-          getPosition: (event) => event._position,
+          getPosition: (d) => d._position,
           getRadius: 5,
-          getFillColor: (event) =>
-            getEventFillColor(event.event_type),
+          getFillColor: (d) =>
+            EVENT_TYPE_COLOR[d.event_type] ?? EVENT_TYPE_COLOR_DEFAULT,
           getLineColor: [255, 255, 255],
           getLineWidth: 1,
           lineWidthMinPixels: 1,
-          onClick: (
-            info: PickingInfo<SpatialEvent & { _position: [number, number] }>,
-          ) => {
+          onClick: (info) => {
             const ev = info.object as
               | (SpatialEvent & { _position: [number, number] })
               | undefined;
@@ -481,55 +395,14 @@ export function AtlasMap({
       );
     }
 
-    if (positionedSignals.length > 0 && layerVisibility.freshSignals !== false) {
-      result.push(
-        new ScatterplotLayer<
-          FreshSignal & { _position: [number, number] }
-        >({
-          id: "atlas-fresh-signals",
-          data: positionedSignals,
-          pickable: true,
-          opacity: 0.92,
-          stroked: true,
-          filled: true,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 18,
-          getPosition: (signal) => signal._position,
-          getRadius: (signal) =>
-            signal.signal_id === selectedSignalId ? 9 : 7,
-          getFillColor: (signal) =>
-            getSignalFillColor(signal.signal_kind),
-          getLineColor: [255, 255, 255],
-          getLineWidth: (signal) =>
-            signal.signal_id === selectedSignalId ? 2 : 1,
-          lineWidthMinPixels: 1,
-          onClick: (
-            info: PickingInfo<FreshSignal & { _position: [number, number] }>,
-          ) => {
-            const signal = info.object as
-              | (FreshSignal & { _position: [number, number] })
-              | undefined;
-            if (!signal) return;
-            onSignalSelect(signal.signal_id);
-          },
-        }),
-      );
-    }
-
     return result;
   }, [
-    boundaryMask,
-    boundaryOutline,
-    visiblePlaces,
+    geometricPlaces,
     positionedEvents,
-    positionedSignals,
     selectedFeatureCollection,
-    localLabels,
     layerVisibility,
     handleClick,
     onPlaceSelect,
-    onSignalSelect,
-    selectedSignalId,
     viewMode,
     activeLens,
   ]);
@@ -544,12 +417,6 @@ export function AtlasMap({
       <Map
         key={viewMode}
         initialViewState={camera}
-        maxBounds={[
-          [contextBbox[0], contextBbox[1]],
-          [contextBbox[2], contextBbox[3]],
-        ]}
-        minZoom={ATLAS_SCENE_VIEW_MODE_LOOKUP.atlas.camera.zoom - 1.15}
-        maxZoom={16.8}
         maxPitch={75}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}

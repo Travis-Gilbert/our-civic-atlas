@@ -292,7 +292,7 @@ function allSignals() {
   return allRawEvents().map(signalFromEvent);
 }
 
-function signalsPayload(params: URLSearchParams) {
+function filteredSignals(params: URLSearchParams) {
   const sourceId = params.get("source_id");
   const placeId = params.get("place_id");
   const signalType = params.get("signal_type") ?? params.get("event_type");
@@ -302,9 +302,8 @@ function signalsPayload(params: URLSearchParams) {
     candidateVisibility === "with_candidates" ||
     candidateVisibility === "include_candidates" ||
     candidateVisibility === "all";
-  const limit = readLimit(params, 100);
 
-  const signals = allSignals().filter((signal) => {
+  return allSignals().filter((signal) => {
     if (!includeCandidates && signal.visibility_level !== "public") return false;
     if (sourceId && !signal.source_ids.includes(sourceId)) return false;
     if (placeId && signal.place_id !== placeId) return false;
@@ -312,11 +311,16 @@ function signalsPayload(params: URLSearchParams) {
     if (reviewStatus && signal.review_status !== reviewStatus) return false;
     return true;
   });
+}
+
+function signalsPayload(params: URLSearchParams) {
+  const limit = readLimit(params, 100);
+  const signals = filteredSignals(params);
 
   return {
     signals: signals.slice(0, limit),
     total: signals.length,
-    telemetry: signalTelemetry(allSignals()),
+    telemetry: signalTelemetry(signals),
   };
 }
 
@@ -469,36 +473,6 @@ export async function GET(request: Request, { params }: RouteContext) {
       total: staticPackage.sceneManifests.length,
     });
   }
-  if (segment === "scenario-manifests") {
-    return json({
-      scenario_manifests: staticPackage.scenarioManifests,
-      total: staticPackage.scenarioManifests.length,
-    });
-  }
-  if (segment === "primitive-library") {
-    return json({
-      primitives: staticPackage.civicDesignPrimitives,
-      total: staticPackage.civicDesignPrimitives.length,
-    });
-  }
-  if (segment === "geo-comments") {
-    return json({
-      comments: staticPackage.geoComments,
-      total: staticPackage.geoComments.length,
-    });
-  }
-  if (segment === "layer-recipes") {
-    return json({
-      layer_recipes: staticPackage.layerRecipes,
-      total: staticPackage.layerRecipes.length,
-    });
-  }
-  if (segment === "renderer-boundaries") {
-    return json({
-      renderer_boundaries: staticPackage.rendererBoundaries,
-      total: staticPackage.rendererBoundaries.length,
-    });
-  }
   if (segment === "static-package") {
     const validationIssues = validateStaticAtlasPackageFixture();
     return json({
@@ -539,7 +513,8 @@ export async function GET(request: Request, { params }: RouteContext) {
   }
 
   if (segment === "signals" && id) {
-    const signal = allSignals().find((item) => item.signal_id === decodeURIComponent(id));
+    const signalId = decodeURIComponent(id);
+    const signal = allSignals().find((item) => item.signal_id === signalId);
     if (!signal) return notFound("Signal not found");
     return json(signal);
   }

@@ -25,13 +25,18 @@ export type AtlasNodeSummary = {
   compareHref: string | null;
 };
 
-export type NodeHorizonEntry = AtlasNodeSummary;
+export type NodeHorizonEntry = AtlasNodeSummary & {
+  distanceLabel: string | null;
+  bearingLabel: string | null;
+  directionDegrees: number | null;
+  normalizedDistance: number;
+};
 
 const CAPABILITY_LABELS: Record<AtlasCapability, string> = {
   static_only: "Static package",
   accepts_contributions: "Contributions",
   has_review_queue: "Review queue",
-  has_provenance_graph: "Provenance graph",
+  has_provenance_graph: "Evidence graph",
   has_scene_manifests: "Scene manifests",
   has_lost_buildings: "Lost Flint",
   has_safety_lab: "Safety lab",
@@ -84,11 +89,72 @@ function sceneCompareHref(atlasId: string): string {
   return `/open-flint-atlas?compare=${encodeURIComponent(atlasId)}#node-horizon`;
 }
 
-function buildNodeSummary(node: NodeCatalogEntry): AtlasNodeSummary | null {
+function parseDirectionDegrees(
+  directionLabel: string | null,
+  relation: NodeCatalogEntry["relation"],
+): number | null {
+  const value = directionLabel?.trim().toLowerCase() ?? "";
+  if (value.length === 0) {
+    return relation === "parent" ? 0 : null;
+  }
+
+  const compassMap: Array<[string, number]> = [
+    ["northwest", 315],
+    ["northeast", 45],
+    ["southwest", 225],
+    ["southeast", 135],
+    ["north", 0],
+    ["east", 90],
+    ["south", 180],
+    ["west", 270],
+  ];
+
+  for (const [token, degrees] of compassMap) {
+    if (value.includes(token)) {
+      return degrees;
+    }
+  }
+
+  if (value.includes("parent")) {
+    return 0;
+  }
+
+  return relation === "child" ? 270 : null;
+}
+
+function parseDistanceMiles(distanceLabel: string | null): number | null {
+  if (!distanceLabel) return null;
+  const match = distanceLabel.match(/(\d+(?:\.\d+)?)\s*mi\b/i);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeDistance(
+  distanceLabel: string | null,
+  relation: NodeCatalogEntry["relation"],
+): number {
+  const miles = parseDistanceMiles(distanceLabel);
+  if (miles !== null) {
+    const scaled = 0.46 + (Math.log1p(miles) / Math.log1p(80)) * 0.42;
+    return Math.max(0.44, Math.min(0.9, scaled));
+  }
+
+  const lower = distanceLabel?.toLowerCase() ?? "";
+  if (lower.includes("inside flint")) return 0.4;
+  if (lower.includes("statewide")) return 0.9;
+  if (relation === "child") return 0.46;
+  if (relation === "parent") return 0.82;
+  return 0.62;
+}
+
+function buildNodeHorizonEntry(node: NodeCatalogEntry): NodeHorizonEntry | null {
   const atlasId = node.atlas_id.trim();
   if (atlasId.length === 0) return null;
 
   const updatedAt = dateLabel(node.last_updated_at);
+  const distanceLabel = node.distance_label ?? null;
+  const bearingLabel = node.direction_label ?? null;
   const capabilityLabels = node.capabilities
     .slice(0, 3)
     .map((capability) => CAPABILITY_LABELS[capability] ?? capability);
@@ -108,10 +174,14 @@ function buildNodeSummary(node: NodeCatalogEntry): AtlasNodeSummary | null {
     freshnessLabel:
       node.freshness_label ??
       (updatedAt ? `updated ${updatedAt}` : "manifest planned"),
-    directionLabel: [node.distance_label, node.direction_label]
+    directionLabel: [distanceLabel, bearingLabel]
       .filter(Boolean)
       .join(" ")
       .trim(),
+    distanceLabel,
+    bearingLabel,
+    directionDegrees: parseDirectionDegrees(bearingLabel, node.relation),
+    normalizedDistance: normalizeDistance(distanceLabel, node.relation),
     sourceCountLabel: sourceCountLabel(node.source_count),
     contributionStatus:
       node.contribution_status ?? "contribution policy planned",
@@ -128,23 +198,61 @@ export function getCurrentAtlasNodeSummary(): AtlasNodeSummary | null {
   const currentNode =
     nodeCatalog.nodes.find((node) => node.relation === "self") ??
     nodeCatalog.nodes[0];
-
-  return currentNode ? buildNodeSummary(currentNode) : null;
+  const entry = currentNode ? buildNodeHorizonEntry(currentNode) : null;
+  if (!entry) return null;
+  return {
+    atlasId: entry.atlasId,
+    name: entry.name,
+    detailHref: entry.detailHref,
+    relation: entry.relation,
+    relationLabel: entry.relationLabel,
+    scopeLabel: entry.scopeLabel,
+    statusLabel: entry.statusLabel,
+    description: entry.description,
+    freshnessLabel: entry.freshnessLabel,
+    directionLabel: entry.directionLabel,
+    sourceCountLabel: entry.sourceCountLabel,
+    contributionStatus: entry.contributionStatus,
+    maintainerLabel: entry.maintainerLabel,
+    capabilityLabels: entry.capabilityLabels,
+    manifestAvailable: entry.manifestAvailable,
+    compareAvailable: entry.compareAvailable,
+    compareHref: entry.compareHref,
+  };
 }
 
 export function getAtlasNodeSummary(atlasId: string): AtlasNodeSummary | null {
   const { nodeCatalog } = getStaticAtlasPackage();
   const match = nodeCatalog.nodes.find((node) => node.atlas_id === atlasId);
-  return match ? buildNodeSummary(match) : null;
+  const entry = match ? buildNodeHorizonEntry(match) : null;
+  if (!entry) return null;
+  return {
+    atlasId: entry.atlasId,
+    name: entry.name,
+    detailHref: entry.detailHref,
+    relation: entry.relation,
+    relationLabel: entry.relationLabel,
+    scopeLabel: entry.scopeLabel,
+    statusLabel: entry.statusLabel,
+    description: entry.description,
+    freshnessLabel: entry.freshnessLabel,
+    directionLabel: entry.directionLabel,
+    sourceCountLabel: entry.sourceCountLabel,
+    contributionStatus: entry.contributionStatus,
+    maintainerLabel: entry.maintainerLabel,
+    capabilityLabels: entry.capabilityLabels,
+    manifestAvailable: entry.manifestAvailable,
+    compareAvailable: entry.compareAvailable,
+    compareHref: entry.compareHref,
+  };
 }
 
 export function getNodeHorizonEntries(): NodeHorizonEntry[] {
   const { nodeCatalog } = getStaticAtlasPackage();
 
-  return nodeCatalog.nodes
-    .flatMap((node) => {
-      if (node.relation === "self") return [];
-      const summary = buildNodeSummary(node);
-      return summary ? [summary] : [];
-    });
+  return nodeCatalog.nodes.flatMap((node) => {
+    if (node.relation === "self") return [];
+    const entry = buildNodeHorizonEntry(node);
+    return entry ? [entry] : [];
+  });
 }

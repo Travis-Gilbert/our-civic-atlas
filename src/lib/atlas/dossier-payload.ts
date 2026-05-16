@@ -189,7 +189,7 @@ const TAB_LABELS: Record<DossierTabId, string> = {
   interventions: "Interventions",
   safety: "Safety",
   metrics: "Metrics",
-  evidence: "Provenance",
+  evidence: "Support",
   contribute: "Contribute",
 };
 
@@ -437,7 +437,7 @@ export function buildPlaceDossierPayload({
       api_url: `/api/v2/theseus/open-flint-atlas/provenance/?place_id=${encodeURIComponent(
         props.place_id,
       )}`,
-      panel_label: "Provenance constellation",
+      panel_label: "Source support graph",
     },
     scene_manifest_refs: [
       {

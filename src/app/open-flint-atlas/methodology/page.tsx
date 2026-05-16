@@ -10,13 +10,13 @@ import { getStaticAtlasPackage } from "@/lib/atlas/static-package";
 export const metadata: Metadata = {
   title: "Methodology | Flint Atlas | Our Civic Atlas",
   description:
-    "How Flint Atlas separates public read models, source support, review state, and contribution boundaries.",
+    "How Flint Atlas separates public read models, source evidence, review state, and contribution boundaries.",
 };
 
 const METHOD_STEPS = [
   "Source registry entries define public use, privacy limits, and freshness expectations.",
   "Reviewed fixtures project into public read models for places, events, metrics, sources, and provenance previews.",
-  "Dossiers expose summary, source cards, confidence reasons, timelines, metrics, privacy flags, and citation downloads.",
+  "Dossiers expose summary, source cards, support reasons, timelines, metrics, privacy flags, and citation downloads.",
   "Scene manifests describe renderable civic objects without requiring live generation in the public route.",
   "Contribution writes remain separate from publication until receipts and maintainer review are shipped.",
 ];
@@ -28,7 +28,7 @@ export default function MethodologyPage() {
     <AtlasRouteShell
       eyebrow="Review Method"
       title="Methodology"
-      description="Flint Atlas treats source visibility, privacy class, confidence explanation, and review state as part of the public product surface."
+      description="Flint Atlas treats source visibility, privacy class, support explanation, and review state as part of the public product surface."
       actions={[{ href: "/open-flint-atlas/contribute", label: "Contribution boundary" }]}
     >
       <AtlasSection title="Static package status">
@@ -42,7 +42,7 @@ export default function MethodologyPage() {
         </AtlasMetaGrid>
       </AtlasSection>
 
-      <AtlasSection title="Provenance flow">
+      <AtlasSection title="Support flow">
         <ol
           className="grid gap-3 text-[14px] leading-[1.65]"
           style={{ color: "var(--ctx-ink-soft)" }}

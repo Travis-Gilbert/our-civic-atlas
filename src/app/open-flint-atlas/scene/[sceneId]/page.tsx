@@ -51,7 +51,7 @@ export default async function ScenePage({ params }: PageProps) {
           <AtlasMetaItem label="Review" value={scene.review_state.replace(/_/g, " ")} />
           <AtlasMetaItem label="Objects" value={scene.objects.length} />
           <AtlasMetaItem label="Sources" value={scene.source_ids.length} />
-          <AtlasMetaItem label="Confidence" value={`${Math.round(scene.confidence.score * 100)}% support`} />
+          <AtlasMetaItem label="Support" value={`${Math.round(scene.confidence.score * 100)}% reviewed`} />
         </AtlasMetaGrid>
       </AtlasSection>
 

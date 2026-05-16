@@ -29,7 +29,7 @@ const TAB_LABELS = {
   interventions: "Interventions",
   safety: "Safety",
   metrics: "Metrics",
-  evidence: "Evidence",
+    evidence: "Support",
   contribute: "Contribute",
 };
 
@@ -430,7 +430,7 @@ function buildDossierPayload({ place, allPlaces, allEvents, allSources, allMetri
     evidence_graph_ref: {
       node_id: place.properties.place_id,
       api_url: `/api/v2/theseus/open-flint-atlas/provenance/?place_id=${encodeURIComponent(place.properties.place_id)}`,
-      panel_label: "Evidence constellation",
+        panel_label: "Source support graph",
     },
     scene_manifest_refs: [
       {
