@@ -13,10 +13,16 @@ Current posture:
 - Do not add staff-only/admin capture UI to the public route unless it is clearly separated from public contribution flows.
 - ACC/ACT and TF.js scoring are advisory moderation aids, not final verdicts.
 - Trust UI should read as progress and explanation, not a hard truth meter.
-- V1 renderer intent is Three/R3F-first Atlas Scene. MapLibre/deck.gl are
-  baseline/fallback and geospatial helper paths, not the ceiling of the product.
-- Treat `r3f-atlas-scene-quality` as a parked experiment unless the user
-  explicitly revives it as an active delivery lane.
+- V1 renderer is `MapLibre + deck.gl` for both desktop and mobile. Leaflet
+  remains only as a mobile fallback until the deck.gl mobile candidate passes
+  the promotion gates in `docs/plans/our-civic-atlas-north-star-execution-plan.md`.
+- Three.js / R3F is parked. The `r3f-atlas-scene-quality` branch is the
+  parked experiment. Do not commit to it as an active delivery lane unless
+  the user explicitly revives it.
+- The unified execution plan
+  (`docs/plans/our-civic-atlas-north-star-execution-plan.md`) is the active
+  source of truth. Older plan files exist for grounding only and should not
+  be extended.
 - Lost Flint is a high-priority remaining product slice, not a late polish item.
 - Mosaic/DuckDB-WASM, Brush/IFC/OpenBIM, and Rusty Red style geocache/hash
   lanes are part of the intended architecture when grounded by SceneManifest
