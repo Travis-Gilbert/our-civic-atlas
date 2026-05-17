@@ -11,6 +11,9 @@ import viewportVectorContracts from "@/data/open-flint-atlas/fixtures/static-pac
 import scenePacketCompiler from "@/data/open-flint-atlas/fixtures/static-package/data/scene-packet-compiler.json";
 import scenePacketIndex from "@/data/open-flint-atlas/fixtures/static-package/data/scene-packets/index.json";
 import flintOverviewMobilePacket from "@/data/open-flint-atlas/fixtures/static-package/data/scene-packets/flint-overview-mobile.json";
+import readModelFormats from "@/data/open-flint-atlas/fixtures/static-package/data/read-model-formats.json";
+import sceneFoundryExports from "@/data/open-flint-atlas/fixtures/static-package/data/scene-foundry-export-manifest.json";
+import spatialRuntime from "@/data/open-flint-atlas/fixtures/static-package/data/spatial-runtime-contract.json";
 
 import {
   validateStaticAtlasPackage,
@@ -20,11 +23,14 @@ import {
   type MobileRuntimeProfile,
   type NodeCatalog,
   type ReadModelCatalog,
+  type ReadModelFormatsManifest,
+  type SceneFoundryExportManifest,
   type ScenePacket,
   type ScenePacketCompiler,
   type ScenePacketIndex,
   type SceneManifest,
   type ScenarioManifest,
+  type SpatialRuntimeContract,
   type StaticAtlasPackage,
   type ValidationIssue,
   type ViewportVectorContracts,
@@ -70,6 +76,9 @@ export function getStaticAtlasPackage(): StaticAtlasPackage {
     scenePacketIndex: getScenePacketIndex(),
     scenePackets: getScenePackets(),
     mobileRuntimeProfile: mobileRuntimeProfile as MobileRuntimeProfile,
+    readModelFormats: readModelFormats as ReadModelFormatsManifest,
+    sceneFoundryExports: sceneFoundryExports as SceneFoundryExportManifest,
+    spatialRuntime: spatialRuntime as SpatialRuntimeContract,
   };
 }
 

@@ -90,3 +90,23 @@ python3 scripts/build_open_flint_prototype.py
 This package is now kept as public launch context in the standalone repository.
 Preserve old artifact paths or publish a migration map when paths are retired so
 the original extraction history remains understandable.
+
+## Documents
+
+| Document | Purpose |
+|---|---|
+| `GOVERNANCE.md` | Roles, decision rules, update cadence, issue triage. |
+| `METHODOLOGY.md` | Source registry, probes, public read model, confidence, community observations. |
+| `CONTRIBUTING.md` | How to contribute and what not to submit. |
+| `PRIVACY.md` | Private fields, redaction rules, conflict handling. |
+| `DISPUTES.md` | Dispute states, who acts, what public dispute notes must include. |
+| `CREATOR-FLOW.md` | How to start a new atlas node from this package. |
+| `OBSERVABILITY.md` | Events the system should emit and the private fields it must not. |
+| `RELEASE-CHECKLIST.md` | Runtime, Product, and Vision completion gates for every release. |
+| `READ-MODELS.md` | Role assignments for GeoParquet, Arrow, PMTiles, FlatGeobuf, and JSON. |
+| `SCENE-FOUNDRY.md` | Offline pipeline producing USD/GLB/PLY/splat outputs from reviewed scenes. |
+| `SPATIAL-RUNTIME.md` | Indexing family, viewport cache key, Rusty Red hot-state boundaries, Rust lanes. |
+| `CONTRIBUTION-BACKEND.md` | Typed contracts for submission, receipt, review queue, and the advisory boundary. |
+| `DEPLOYMENT.md` | Static serve and routed app deployment notes. |
+| `CHANGELOG.md` | Plain-language release log. |
+| `LICENSE.md` | License. |

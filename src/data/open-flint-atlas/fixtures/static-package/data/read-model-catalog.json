@@ -127,6 +127,27 @@
       "url": "/data/scene-packets/index.json",
       "media_type": "application/json",
       "description": "Published example packet sketches for viewport-aware atlas rendering."
+    },
+    {
+      "id": "read-model-formats",
+      "name": "Read model formats",
+      "url": "/data/read-model-formats.json",
+      "media_type": "application/json",
+      "description": "Role assignments for GeoParquet, Arrow, PMTiles, FlatGeobuf, and JSON across the public read models."
+    },
+    {
+      "id": "scene-foundry-export-manifest",
+      "name": "Scene Foundry export manifest",
+      "url": "/data/scene-foundry-export-manifest.json",
+      "media_type": "application/json",
+      "description": "Offline-only manifest describing how reviewed scenes produce USD/GLB/Brush outputs and where their metadata lives."
+    },
+    {
+      "id": "spatial-runtime-contract",
+      "name": "Spatial runtime contract",
+      "url": "/data/spatial-runtime-contract.json",
+      "media_type": "application/json",
+      "description": "Indexing family, viewport cache key strategy, Rusty Red hot-state boundaries, and Rust preprocessing lanes."
     }
   ]
 }

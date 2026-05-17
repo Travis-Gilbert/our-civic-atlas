@@ -58,6 +58,134 @@ export type ReviewState =
   | "superseded"
   | "withdrawn";
 
+export type ContributionObservationType =
+  | "condition_update"
+  | "resource_update"
+  | "access_issue"
+  | "source_correction"
+  | "near_miss"
+  | "other";
+
+export type ContributionConfidenceLabel =
+  | "unreviewed"
+  | "reviewed"
+  | "corroborated"
+  | "conflicting"
+  | "accepted"
+  | "stale";
+
+export type ContributionRejectionReason =
+  | "privacy_risk"
+  | "out_of_scope"
+  | "duplicate"
+  | "unverifiable"
+  | "superseded"
+  | "other";
+
+export type ContributionAdvisoryKind = "tfjs_score" | "act_score" | "manual_flag";
+
+export type ContributionAdvisorySignal = {
+  signal_id: string;
+  kind: ContributionAdvisoryKind;
+  score: number | null;
+  threshold: number | null;
+  generated_at: string;
+  notes: string[];
+};
+
+export type ContributionPrivateFields = {
+  contributor_handle: string | null;
+  contributor_email: string | null;
+  contributor_phone: string | null;
+  ip_address: string | null;
+  raw_text: string;
+  photo_originals: string[];
+  exif_metadata: Record<string, string> | null;
+  exact_submitted_at: string;
+  private_reviewer_notes: string[];
+  moderation_reason_internal: string | null;
+};
+
+export type ContributionPublicSummary = {
+  observation_id: string;
+  place_id: string | null;
+  object_id: string | null;
+  observation_type: ContributionObservationType;
+  summary: string;
+  status: ReviewState;
+  confidence_label: ContributionConfidenceLabel;
+  source_ids: string[];
+  reviewed_at: string | null;
+  caveat: string;
+};
+
+export type ContributionSubmission = {
+  submission_id: string;
+  atlas_node_id: string;
+  observation_type: ContributionObservationType;
+  submitted_for_place_id: string | null;
+  submitted_for_object_id: string | null;
+  submitted_at_date: string;
+  source_ids: string[];
+  status: ReviewState;
+  advisory_signals: ContributionAdvisorySignal[];
+  private_fields: ContributionPrivateFields;
+};
+
+export type ContributionReceipt = {
+  receipt_id: string;
+  submission_id: string;
+  acknowledged_at: string;
+  status: ReviewState;
+  next_review_window_label: string;
+  contributor_visible_notes: string[];
+};
+
+export type ReviewQueueEntry = {
+  queue_entry_id: string;
+  submission_id: string;
+  observation_type: ContributionObservationType;
+  status: ReviewState;
+  priority: "high" | "normal" | "low";
+  enqueued_at: string;
+  advisory_summary: {
+    has_privacy_risk_flag: boolean;
+    advisory_scores: ContributionAdvisorySignal[];
+  };
+  notes: string[];
+};
+
+export type ContributionAdvisoryBoundary = {
+  advisory_only: true;
+  forbidden_promotions: ("auto_accept" | "auto_publish" | "auto_corroborate")[];
+  required_human_review_states: ReviewState[];
+  rationale: string;
+  notes: string[];
+};
+
+export const FLINT_CONTRIBUTION_ADVISORY_BOUNDARY: ContributionAdvisoryBoundary = {
+  advisory_only: true,
+  forbidden_promotions: ["auto_accept", "auto_publish", "auto_corroborate"],
+  required_human_review_states: [
+    "submitted",
+    "needs_review",
+    "needs_more_evidence",
+    "corroborated",
+    "conflicting",
+    "accepted",
+    "rejected",
+    "superseded",
+    "withdrawn",
+  ],
+  rationale:
+    "TF.js scoring and ACT advisory output are signals, not verdicts. Every state transition that affects public reading must be recorded by a human reviewer.",
+  notes: [
+    "Even a high-confidence advisory signal must not flip a submission to accepted.",
+    "Advisory signals stay private to the review queue. Only reviewer-written summaries reach public read models.",
+    "If an advisory signal is added that is not in ContributionAdvisoryKind, the type must be updated first.",
+  ],
+};
+
 export type TemporalStatus =
   | "current"
   | "historical"
@@ -111,6 +239,31 @@ export type ReadModelFormat =
   | "arrow"
   | "flatgeobuf"
   | "pmtiles";
+
+export type BinaryReadModelRole =
+  | "basemap_archive"
+  | "bulk_query"
+  | "viewport_packet"
+  | "runtime_transfer"
+  | "fixture_fallback"
+  | "dossier_record";
+
+export type ReadModelFormatRoleAssignment = {
+  role: BinaryReadModelRole;
+  label: string;
+  description: string;
+  default_format: ReadModelFormat;
+  acceptable_fallbacks: ReadModelFormat[];
+  fallback_url: string | null;
+  notes: string[];
+};
+
+export type ReadModelFormatsManifest = {
+  schema_version: string;
+  atlas_id: string;
+  assignments: ReadModelFormatRoleAssignment[];
+  notes: string[];
+};
 
 export type MobileRuntimeSurfaceId =
   | "leaflet_baseline"
@@ -441,6 +594,58 @@ export type ScenePacketIndex = {
   notes: string[];
 };
 
+export type SpatialIndexFamily = "h3" | "s2" | "geohash";
+
+export type SpatialContractStatus = "proposed" | "current" | "deprecated";
+
+export type RustyRedHotStateKind =
+  | "viewport_cache"
+  | "session"
+  | "scene_hydration"
+  | "nearby_lookup";
+
+export type RustyRedHotStateBoundary = {
+  boundary_id: string;
+  label: string;
+  hot_state_kind: RustyRedHotStateKind;
+  canonical_source: string;
+  rebuild_on: string[];
+  ttl_seconds: number | null;
+  status: SpatialContractStatus;
+  notes: string[];
+};
+
+export type RustPreprocessingLane = {
+  lane_id: string;
+  label: string;
+  input_format: ReadModelFormat;
+  output_format: ReadModelFormat;
+  runtime: "rust_cli" | "rust_wasm";
+  status: SpatialContractStatus;
+  notes: string[];
+};
+
+export type SpatialRuntimeContract = {
+  schema_version: string;
+  atlas_id: string;
+  indexing_family: {
+    name: SpatialIndexFamily;
+    library: string;
+    resolutions: number[];
+    rationale: string;
+    status: SpatialContractStatus;
+  };
+  viewport_cache_key: {
+    fields: string[];
+    canonical_form: string;
+    ttl_seconds: number;
+    invalidation_triggers: string[];
+  };
+  rusty_red_boundaries: RustyRedHotStateBoundary[];
+  rust_preprocessing_lanes: RustPreprocessingLane[];
+  notes: string[];
+};
+
 export type SceneAssetKind =
   | "brush_splat"
   | "brush_splat_placeholder"
@@ -448,6 +653,62 @@ export type SceneAssetKind =
   | "glb_model"
   | "raster_reference"
   | "vector_reference";
+
+export type SceneFoundryExportFormat =
+  | "usd"
+  | "usdz"
+  | "glb"
+  | "ply"
+  | "splat";
+
+export type SceneFoundryExportStatus =
+  | "planned"
+  | "reviewed"
+  | "exported"
+  | "retired";
+
+export type SceneFoundryAssetMetadata = {
+  asset_id: string;
+  scene_id: string;
+  object_id: string;
+  export_format: SceneFoundryExportFormat;
+  href: string | null;
+  byte_size: number | null;
+  generator_id: string;
+  generator_version: string;
+  source_ids: string[];
+  review_state: ReviewState;
+  status: SceneFoundryExportStatus;
+  generated_at: string | null;
+  notes: string[];
+};
+
+export type SceneFoundryExportTarget = {
+  target_id: string;
+  scene_id: string;
+  export_format: SceneFoundryExportFormat;
+  output_path_pattern: string;
+  offline_only: true;
+  rebuild_trigger: string;
+  status: SceneFoundryExportStatus;
+  notes: string[];
+};
+
+export type SceneFoundryExportManifest = {
+  schema_version: string;
+  atlas_id: string;
+  offline_only: true;
+  generator_inventory: {
+    generator_id: string;
+    label: string;
+    runtime: string;
+    accepts_renderer: ("r3f" | "brush" | "ifc" | "deck.gl" | "maplibre")[];
+    produces_formats: SceneFoundryExportFormat[];
+  }[];
+  targets: SceneFoundryExportTarget[];
+  assets: SceneFoundryAssetMetadata[];
+  notes: string[];
+};
 
 export type SceneAssetSupportState =
   | "reviewed"
@@ -568,6 +829,9 @@ export type StaticAtlasPackage = {
   scenePacketIndex: ScenePacketIndex;
   scenePackets: ScenePacket[];
   mobileRuntimeProfile: MobileRuntimeProfile;
+  readModelFormats: ReadModelFormatsManifest;
+  sceneFoundryExports: SceneFoundryExportManifest;
+  spatialRuntime: SpatialRuntimeContract;
 };
 
 export type ValidationIssue = {
@@ -1321,6 +1585,497 @@ export function validateMobileRuntimeProfile(
   return issues;
 }
 
+const READ_MODEL_FORMAT_VALUES: ReadModelFormat[] = [
+  "json",
+  "geojson",
+  "csv",
+  "parquet",
+  "geoparquet",
+  "glb",
+  "arrow",
+  "flatgeobuf",
+  "pmtiles",
+];
+
+const BINARY_READ_MODEL_ROLE_VALUES: BinaryReadModelRole[] = [
+  "basemap_archive",
+  "bulk_query",
+  "viewport_packet",
+  "runtime_transfer",
+  "fixture_fallback",
+  "dossier_record",
+];
+
+const BINARY_ROLES_REQUIRING_FALLBACK_URL: BinaryReadModelRole[] = [
+  "basemap_archive",
+  "bulk_query",
+  "viewport_packet",
+];
+
+function isReadModelFormat(value: unknown): value is ReadModelFormat {
+  return typeof value === "string" && (READ_MODEL_FORMAT_VALUES as string[]).includes(value);
+}
+
+function isBinaryReadModelRole(value: unknown): value is BinaryReadModelRole {
+  return (
+    typeof value === "string" && (BINARY_READ_MODEL_ROLE_VALUES as string[]).includes(value)
+  );
+}
+
+const SPATIAL_INDEX_FAMILY_VALUES: SpatialIndexFamily[] = ["h3", "s2", "geohash"];
+const SPATIAL_CONTRACT_STATUS_VALUES: SpatialContractStatus[] = [
+  "proposed",
+  "current",
+  "deprecated",
+];
+const RUSTY_RED_HOT_STATE_KIND_VALUES: RustyRedHotStateKind[] = [
+  "viewport_cache",
+  "session",
+  "scene_hydration",
+  "nearby_lookup",
+];
+const RUST_LANE_RUNTIME_VALUES = ["rust_cli", "rust_wasm"] as const;
+
+function isSpatialIndexFamily(value: unknown): value is SpatialIndexFamily {
+  return typeof value === "string" && (SPATIAL_INDEX_FAMILY_VALUES as string[]).includes(value);
+}
+
+function isSpatialContractStatus(value: unknown): value is SpatialContractStatus {
+  return (
+    typeof value === "string" && (SPATIAL_CONTRACT_STATUS_VALUES as string[]).includes(value)
+  );
+}
+
+function isRustyRedHotStateKind(value: unknown): value is RustyRedHotStateKind {
+  return (
+    typeof value === "string" &&
+    (RUSTY_RED_HOT_STATE_KIND_VALUES as string[]).includes(value)
+  );
+}
+
+function isRustLaneRuntime(value: unknown): value is (typeof RUST_LANE_RUNTIME_VALUES)[number] {
+  return typeof value === "string" && (RUST_LANE_RUNTIME_VALUES as readonly string[]).includes(value);
+}
+
+export function validateSpatialRuntimeContract(
+  value: unknown,
+  path = "spatialRuntime",
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(value)) {
+    return [{ path, message: "Spatial runtime contract must be an object." }];
+  }
+
+  pushMissingString(issues, value, path, "schema_version");
+  pushMissingString(issues, value, path, "atlas_id");
+  pushMissingStringArray(issues, value, path, "notes");
+
+  if (!isRecord(value.indexing_family)) {
+    issues.push({
+      path: `${path}.indexing_family`,
+      message: "Indexing family must be an object.",
+    });
+  } else {
+    const familyPath = `${path}.indexing_family`;
+    if (!isSpatialIndexFamily(value.indexing_family.name)) {
+      issues.push({
+        path: `${familyPath}.name`,
+        message: `Indexing family name must be one of: ${SPATIAL_INDEX_FAMILY_VALUES.join(", ")}.`,
+      });
+    }
+    pushMissingString(issues, value.indexing_family, familyPath, "library");
+    pushMissingString(issues, value.indexing_family, familyPath, "rationale");
+    if (!isSpatialContractStatus(value.indexing_family.status)) {
+      issues.push({
+        path: `${familyPath}.status`,
+        message: "Status must be a SpatialContractStatus.",
+      });
+    }
+    if (
+      !Array.isArray(value.indexing_family.resolutions) ||
+      value.indexing_family.resolutions.length === 0 ||
+      !value.indexing_family.resolutions.every(
+        (r) => typeof r === "number" && Number.isFinite(r),
+      )
+    ) {
+      issues.push({
+        path: `${familyPath}.resolutions`,
+        message: "Resolutions must be a non-empty array of finite numbers.",
+      });
+    }
+  }
+
+  if (!isRecord(value.viewport_cache_key)) {
+    issues.push({
+      path: `${path}.viewport_cache_key`,
+      message: "Viewport cache key must be an object.",
+    });
+  } else {
+    const cachePath = `${path}.viewport_cache_key`;
+    pushMissingStringArray(issues, value.viewport_cache_key, cachePath, "fields");
+    pushMissingString(issues, value.viewport_cache_key, cachePath, "canonical_form");
+    pushMissingStringArray(
+      issues,
+      value.viewport_cache_key,
+      cachePath,
+      "invalidation_triggers",
+    );
+    if (
+      typeof value.viewport_cache_key.ttl_seconds !== "number" ||
+      !Number.isFinite(value.viewport_cache_key.ttl_seconds) ||
+      value.viewport_cache_key.ttl_seconds < 0
+    ) {
+      issues.push({
+        path: `${cachePath}.ttl_seconds`,
+        message: "TTL seconds must be a non-negative finite number.",
+      });
+    }
+  }
+
+  if (!Array.isArray(value.rusty_red_boundaries) || value.rusty_red_boundaries.length === 0) {
+    issues.push({
+      path: `${path}.rusty_red_boundaries`,
+      message: "At least one Rusty Red hot-state boundary is required.",
+    });
+  } else {
+    value.rusty_red_boundaries.forEach((boundary, index) => {
+      const boundaryPath = `${path}.rusty_red_boundaries.${index}`;
+      if (!isRecord(boundary)) {
+        issues.push({ path: boundaryPath, message: "Boundary must be an object." });
+        return;
+      }
+      pushMissingString(issues, boundary, boundaryPath, "boundary_id");
+      pushMissingString(issues, boundary, boundaryPath, "label");
+      pushMissingString(issues, boundary, boundaryPath, "canonical_source");
+      pushMissingStringArray(issues, boundary, boundaryPath, "rebuild_on");
+      pushMissingStringArray(issues, boundary, boundaryPath, "notes");
+      if (!isRustyRedHotStateKind(boundary.hot_state_kind)) {
+        issues.push({
+          path: `${boundaryPath}.hot_state_kind`,
+          message: "Hot state kind must be a RustyRedHotStateKind.",
+        });
+      }
+      if (!isSpatialContractStatus(boundary.status)) {
+        issues.push({
+          path: `${boundaryPath}.status`,
+          message: "Status must be a SpatialContractStatus.",
+        });
+      }
+      if (
+        !(
+          boundary.ttl_seconds === null ||
+          (typeof boundary.ttl_seconds === "number" &&
+            Number.isFinite(boundary.ttl_seconds) &&
+            boundary.ttl_seconds >= 0)
+        )
+      ) {
+        issues.push({
+          path: `${boundaryPath}.ttl_seconds`,
+          message: "TTL seconds must be null or a non-negative finite number.",
+        });
+      }
+    });
+  }
+
+  if (!Array.isArray(value.rust_preprocessing_lanes)) {
+    issues.push({
+      path: `${path}.rust_preprocessing_lanes`,
+      message: "Rust preprocessing lanes must be an array.",
+    });
+  } else {
+    value.rust_preprocessing_lanes.forEach((lane, index) => {
+      const lanePath = `${path}.rust_preprocessing_lanes.${index}`;
+      if (!isRecord(lane)) {
+        issues.push({ path: lanePath, message: "Lane must be an object." });
+        return;
+      }
+      pushMissingString(issues, lane, lanePath, "lane_id");
+      pushMissingString(issues, lane, lanePath, "label");
+      pushMissingStringArray(issues, lane, lanePath, "notes");
+      if (!isReadModelFormat(lane.input_format)) {
+        issues.push({
+          path: `${lanePath}.input_format`,
+          message: "Input format must be a ReadModelFormat.",
+        });
+      }
+      if (!isReadModelFormat(lane.output_format)) {
+        issues.push({
+          path: `${lanePath}.output_format`,
+          message: "Output format must be a ReadModelFormat.",
+        });
+      }
+      if (!isRustLaneRuntime(lane.runtime)) {
+        issues.push({
+          path: `${lanePath}.runtime`,
+          message: "Runtime must be rust_cli or rust_wasm.",
+        });
+      }
+      if (!isSpatialContractStatus(lane.status)) {
+        issues.push({
+          path: `${lanePath}.status`,
+          message: "Status must be a SpatialContractStatus.",
+        });
+      }
+    });
+  }
+
+  return issues;
+}
+
+const SCENE_FOUNDRY_EXPORT_FORMAT_VALUES: SceneFoundryExportFormat[] = [
+  "usd",
+  "usdz",
+  "glb",
+  "ply",
+  "splat",
+];
+
+const SCENE_FOUNDRY_STATUS_VALUES: SceneFoundryExportStatus[] = [
+  "planned",
+  "reviewed",
+  "exported",
+  "retired",
+];
+
+function isSceneFoundryExportFormat(value: unknown): value is SceneFoundryExportFormat {
+  return (
+    typeof value === "string" &&
+    (SCENE_FOUNDRY_EXPORT_FORMAT_VALUES as string[]).includes(value)
+  );
+}
+
+function isSceneFoundryStatus(value: unknown): value is SceneFoundryExportStatus {
+  return (
+    typeof value === "string" && (SCENE_FOUNDRY_STATUS_VALUES as string[]).includes(value)
+  );
+}
+
+export function validateSceneFoundryExportManifest(
+  value: unknown,
+  path = "sceneFoundryExports",
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(value)) {
+    return [{ path, message: "Scene Foundry export manifest must be an object." }];
+  }
+
+  pushMissingString(issues, value, path, "schema_version");
+  pushMissingString(issues, value, path, "atlas_id");
+  pushMissingStringArray(issues, value, path, "notes");
+
+  if (value.offline_only !== true) {
+    issues.push({
+      path: `${path}.offline_only`,
+      message: "Scene Foundry must be offline_only: true.",
+    });
+  }
+
+  if (!Array.isArray(value.generator_inventory) || value.generator_inventory.length === 0) {
+    issues.push({
+      path: `${path}.generator_inventory`,
+      message: "At least one generator inventory entry is required.",
+    });
+  } else {
+    value.generator_inventory.forEach((generator, index) => {
+      const generatorPath = `${path}.generator_inventory.${index}`;
+      if (!isRecord(generator)) {
+        issues.push({ path: generatorPath, message: "Generator entry must be an object." });
+        return;
+      }
+      pushMissingString(issues, generator, generatorPath, "generator_id");
+      pushMissingString(issues, generator, generatorPath, "label");
+      pushMissingString(issues, generator, generatorPath, "runtime");
+      pushMissingStringArray(issues, generator, generatorPath, "accepts_renderer");
+      if (!Array.isArray(generator.produces_formats) || generator.produces_formats.length === 0) {
+        issues.push({
+          path: `${generatorPath}.produces_formats`,
+          message: "Generator must declare at least one produced format.",
+        });
+      } else {
+        generator.produces_formats.forEach((format, formatIndex) => {
+          if (!isSceneFoundryExportFormat(format)) {
+            issues.push({
+              path: `${generatorPath}.produces_formats.${formatIndex}`,
+              message: "Produced format must be a SceneFoundryExportFormat.",
+            });
+          }
+        });
+      }
+    });
+  }
+
+  if (!Array.isArray(value.targets)) {
+    issues.push({
+      path: `${path}.targets`,
+      message: "Targets must be an array.",
+    });
+  } else {
+    value.targets.forEach((target, index) => {
+      const targetPath = `${path}.targets.${index}`;
+      if (!isRecord(target)) {
+        issues.push({ path: targetPath, message: "Target must be an object." });
+        return;
+      }
+      pushMissingString(issues, target, targetPath, "target_id");
+      pushMissingString(issues, target, targetPath, "scene_id");
+      pushMissingString(issues, target, targetPath, "output_path_pattern");
+      pushMissingString(issues, target, targetPath, "rebuild_trigger");
+      pushMissingStringArray(issues, target, targetPath, "notes");
+      if (!isSceneFoundryExportFormat(target.export_format)) {
+        issues.push({
+          path: `${targetPath}.export_format`,
+          message: "Export format must be a SceneFoundryExportFormat.",
+        });
+      }
+      if (!isSceneFoundryStatus(target.status)) {
+        issues.push({
+          path: `${targetPath}.status`,
+          message: "Status must be a SceneFoundryExportStatus.",
+        });
+      }
+      if (target.offline_only !== true) {
+        issues.push({
+          path: `${targetPath}.offline_only`,
+          message: "Target must be offline_only: true.",
+        });
+      }
+    });
+  }
+
+  if (!Array.isArray(value.assets)) {
+    issues.push({
+      path: `${path}.assets`,
+      message: "Assets must be an array.",
+    });
+  } else {
+    value.assets.forEach((asset, index) => {
+      const assetPath = `${path}.assets.${index}`;
+      if (!isRecord(asset)) {
+        issues.push({ path: assetPath, message: "Asset must be an object." });
+        return;
+      }
+      pushMissingString(issues, asset, assetPath, "asset_id");
+      pushMissingString(issues, asset, assetPath, "scene_id");
+      pushMissingString(issues, asset, assetPath, "object_id");
+      pushMissingString(issues, asset, assetPath, "generator_id");
+      pushMissingString(issues, asset, assetPath, "generator_version");
+      pushMissingStringArray(issues, asset, assetPath, "source_ids");
+      pushMissingStringArray(issues, asset, assetPath, "notes");
+      if (!isSceneFoundryExportFormat(asset.export_format)) {
+        issues.push({
+          path: `${assetPath}.export_format`,
+          message: "Export format must be a SceneFoundryExportFormat.",
+        });
+      }
+      if (!isSceneFoundryStatus(asset.status)) {
+        issues.push({
+          path: `${assetPath}.status`,
+          message: "Status must be a SceneFoundryExportStatus.",
+        });
+      }
+      pushNullableStringIssue(issues, `${assetPath}.href`, asset.href);
+      if (
+        !(asset.byte_size === null || (typeof asset.byte_size === "number" && asset.byte_size >= 0))
+      ) {
+        issues.push({
+          path: `${assetPath}.byte_size`,
+          message: "Byte size must be null or a non-negative number.",
+        });
+      }
+      pushNullableStringIssue(issues, `${assetPath}.generated_at`, asset.generated_at);
+    });
+  }
+
+  return issues;
+}
+
+export function validateReadModelFormatsManifest(
+  value: unknown,
+  path = "readModelFormats",
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!isRecord(value)) {
+    return [{ path, message: "Read model formats manifest must be an object." }];
+  }
+
+  pushMissingString(issues, value, path, "schema_version");
+  pushMissingString(issues, value, path, "atlas_id");
+  pushMissingStringArray(issues, value, path, "notes");
+
+  if (!Array.isArray(value.assignments) || value.assignments.length === 0) {
+    issues.push({
+      path: `${path}.assignments`,
+      message: "At least one read model role assignment is required.",
+    });
+    return issues;
+  }
+
+  const seenRoles = new Set<BinaryReadModelRole>();
+  value.assignments.forEach((assignment, index) => {
+    const assignmentPath = `${path}.assignments.${index}`;
+    if (!isRecord(assignment)) {
+      issues.push({ path: assignmentPath, message: "Assignment must be an object." });
+      return;
+    }
+
+    pushMissingString(issues, assignment, assignmentPath, "label");
+    pushMissingString(issues, assignment, assignmentPath, "description");
+    pushMissingStringArray(issues, assignment, assignmentPath, "notes");
+
+    if (!isBinaryReadModelRole(assignment.role)) {
+      issues.push({
+        path: `${assignmentPath}.role`,
+        message: `Role must be one of: ${BINARY_READ_MODEL_ROLE_VALUES.join(", ")}.`,
+      });
+    } else if (seenRoles.has(assignment.role)) {
+      issues.push({
+        path: `${assignmentPath}.role`,
+        message: `Role ${assignment.role} is assigned more than once.`,
+      });
+    } else {
+      seenRoles.add(assignment.role);
+    }
+
+    if (!isReadModelFormat(assignment.default_format)) {
+      issues.push({
+        path: `${assignmentPath}.default_format`,
+        message: "Default format must be a member of ReadModelFormat.",
+      });
+    }
+
+    if (!Array.isArray(assignment.acceptable_fallbacks)) {
+      issues.push({
+        path: `${assignmentPath}.acceptable_fallbacks`,
+        message: "Acceptable fallbacks must be an array.",
+      });
+    } else {
+      assignment.acceptable_fallbacks.forEach((fallback, fallbackIndex) => {
+        if (!isReadModelFormat(fallback)) {
+          issues.push({
+            path: `${assignmentPath}.acceptable_fallbacks.${fallbackIndex}`,
+            message: "Fallback must be a member of ReadModelFormat.",
+          });
+        }
+      });
+    }
+
+    const role = assignment.role as BinaryReadModelRole | undefined;
+    if (role && BINARY_ROLES_REQUIRING_FALLBACK_URL.includes(role)) {
+      pushNullableStringIssue(issues, `${assignmentPath}.fallback_url`, assignment.fallback_url);
+      if (assignment.fallback_url === null) {
+        issues.push({
+          path: `${assignmentPath}.fallback_url`,
+          message: `Binary role ${role} must declare a non-null fallback url.`,
+        });
+      }
+    } else {
+      pushNullableStringIssue(issues, `${assignmentPath}.fallback_url`, assignment.fallback_url);
+    }
+  });
+
+  return issues;
+}
+
 export function validateStaticAtlasPackage(pkg: StaticAtlasPackage): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   issues.push(...validateAtlasNodeManifest(pkg.atlasNode));
@@ -1410,6 +2165,18 @@ export function validateStaticAtlasPackage(pkg: StaticAtlasPackage): ValidationI
       pkg.mobileRuntimeProfile,
       "mobileRuntimeProfile",
     ),
+  );
+
+  issues.push(
+    ...validateReadModelFormatsManifest(pkg.readModelFormats, "readModelFormats"),
+  );
+
+  issues.push(
+    ...validateSceneFoundryExportManifest(pkg.sceneFoundryExports, "sceneFoundryExports"),
+  );
+
+  issues.push(
+    ...validateSpatialRuntimeContract(pkg.spatialRuntime, "spatialRuntime"),
   );
 
   return issues;

@@ -1,0 +1,83 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "assignments": [
+    {
+      "role": "basemap_archive",
+      "label": "Basemap archive",
+      "description": "Pre-tiled vector or raster basemap delivered as a single range-requestable archive.",
+      "default_format": "pmtiles",
+      "acceptable_fallbacks": [],
+      "fallback_url": "/data/basemap-fallback.geojson",
+      "notes": [
+        "PMTiles is the publication format for the bounded civic basemap.",
+        "If PMTiles hosting is unavailable, a static GeoJSON fallback ships the bounded shape only."
+      ]
+    },
+    {
+      "role": "bulk_query",
+      "label": "Bulk query read model",
+      "description": "Tabular features and attributes for DuckDB-WASM, Data Lab, and bulk consumers.",
+      "default_format": "geoparquet",
+      "acceptable_fallbacks": ["parquet", "geojson", "json"],
+      "fallback_url": "/data/civic-objects.json",
+      "notes": [
+        "GeoParquet is preferred for any read model larger than a few thousand features.",
+        "The civic objects JSON fixture is the current fallback until GeoParquet export lands."
+      ]
+    },
+    {
+      "role": "viewport_packet",
+      "label": "Viewport packet",
+      "description": "Range-streamed feature delivery for mid-zoom mobile and desktop overlays.",
+      "default_format": "flatgeobuf",
+      "acceptable_fallbacks": ["geojson", "json"],
+      "fallback_url": "/data/scene-packets/flint-overview-mobile.json",
+      "notes": [
+        "FlatGeobuf is preferred when the host supports range requests.",
+        "Scene packets ship with a JSON fallback that mirrors the FlatGeobuf payload schema."
+      ]
+    },
+    {
+      "role": "runtime_transfer",
+      "label": "Runtime transfer",
+      "description": "In-memory transfer between worker and main thread, or between DuckDB-WASM and the renderer.",
+      "default_format": "arrow",
+      "acceptable_fallbacks": ["json"],
+      "fallback_url": null,
+      "notes": [
+        "Arrow IPC streams flow over postMessage between workers and the renderer.",
+        "Runtime transfer is not a publication format and has no public URL."
+      ]
+    },
+    {
+      "role": "fixture_fallback",
+      "label": "Fixture fallback",
+      "description": "Repo-checked-in static fixtures for tests, validators, and offline review.",
+      "default_format": "json",
+      "acceptable_fallbacks": ["geojson"],
+      "fallback_url": null,
+      "notes": [
+        "Fixtures are deliberately human-readable.",
+        "They never carry private fields listed in PRIVACY.md."
+      ]
+    },
+    {
+      "role": "dossier_record",
+      "label": "Dossier record",
+      "description": "Per-object civic record for residents and reviewers.",
+      "default_format": "json",
+      "acceptable_fallbacks": [],
+      "fallback_url": null,
+      "notes": [
+        "Dossier records stay JSON to keep them human-readable.",
+        "They are linked from each civic object's dossier_url."
+      ]
+    }
+  ],
+  "notes": [
+    "This manifest names the role each ReadModelFormat plays in the public atlas.",
+    "Catalog URLs continue to live in read-model-catalog.json.",
+    "Fallback URLs use repo-relative paths in this fixture and resolve against the atlas data origin in production."
+  ]
+}

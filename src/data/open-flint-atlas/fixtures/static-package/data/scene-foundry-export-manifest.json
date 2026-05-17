@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "offline_only": true,
+  "generator_inventory": [
+    {
+      "generator_id": "brush_splat_pipeline",
+      "label": "Brush Gaussian splat pipeline",
+      "runtime": "rust",
+      "accepts_renderer": ["brush", "r3f"],
+      "produces_formats": ["ply", "splat"]
+    },
+    {
+      "generator_id": "usd_export_pipeline",
+      "label": "USD scene export pipeline",
+      "runtime": "python",
+      "accepts_renderer": ["r3f"],
+      "produces_formats": ["usd", "usdz"]
+    },
+    {
+      "generator_id": "glb_export_pipeline",
+      "label": "GLB scene export pipeline",
+      "runtime": "node",
+      "accepts_renderer": ["r3f", "deck.gl"],
+      "produces_formats": ["glb"]
+    }
+  ],
+  "targets": [
+    {
+      "target_id": "target:flint-overview-glb",
+      "scene_id": "scene:flint-overview",
+      "export_format": "glb",
+      "output_path_pattern": "exports/{scene_id}/overview.glb",
+      "offline_only": true,
+      "rebuild_trigger": "scene manifest review_state transitions to accepted",
+      "status": "planned",
+      "notes": [
+        "GLB output mirrors the reviewed Flint overview scene for offline asset review.",
+        "Public page load must not depend on this artifact existing."
+      ]
+    },
+    {
+      "target_id": "target:flint-overview-usd",
+      "scene_id": "scene:flint-overview",
+      "export_format": "usd",
+      "output_path_pattern": "exports/{scene_id}/overview.usd",
+      "offline_only": true,
+      "rebuild_trigger": "scene manifest review_state transitions to accepted",
+      "status": "planned",
+      "notes": [
+        "USD output enables interchange with film/architecture pipelines.",
+        "Not served from the public read-model origin."
+      ]
+    },
+    {
+      "target_id": "target:carriage-town-splat",
+      "scene_id": "scene:flint-overview",
+      "export_format": "splat",
+      "output_path_pattern": "exports/{scene_id}/{object_id}.splat",
+      "offline_only": true,
+      "rebuild_trigger": "Brush capture review by data steward",
+      "status": "planned",
+      "notes": [
+        "Brush splat output for Carriage Town historical reconstruction placeholder.",
+        "Source provenance recorded in the asset metadata; runtime cannot consume splats without review."
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "asset:carriage-town-brush-placeholder",
+      "scene_id": "scene:flint-overview",
+      "object_id": "place:carriage-town",
+      "export_format": "splat",
+      "href": null,
+      "byte_size": null,
+      "generator_id": "brush_splat_pipeline",
+      "generator_version": "0.0.1-placeholder",
+      "source_ids": ["mapflint"],
+      "review_state": "needs_review",
+      "status": "planned",
+      "generated_at": null,
+      "notes": [
+        "Placeholder metadata for the Carriage Town historical Brush splat.",
+        "MapLibre/deck.gl remains the public default until this asset is reviewed and exported."
+      ]
+    }
+  ],
+  "notes": [
+    "Scene Foundry runs offline. Public page load must never depend on a Scene Foundry runtime or asset pipeline being available.",
+    "Reviewed scene manifests drive export targets via the rebuild_trigger field; the targets themselves do not pull from runtime services.",
+    "Asset metadata records provenance so future renderer changes can reproduce the artifact from the same source ids."
+  ]
+}

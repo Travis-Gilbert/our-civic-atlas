@@ -1,0 +1,100 @@
+{
+  "schema_version": "0.1.0",
+  "atlas_id": "atlas:flint-mi",
+  "indexing_family": {
+    "name": "h3",
+    "library": "h3-js",
+    "resolutions": [6, 8, 10, 12],
+    "rationale": "H3 hexagonal cells give every cell six neighbors that share full edges, removing the neighbor-discontinuity artifacts of geohash quadrants. The JS/WASM ecosystem (h3-js) is the strongest of the three candidates evaluated. Resolutions 6 (district), 8 (neighborhood), 10 (building cluster), and 12 (lot) cover the zoom range a civic atlas needs.",
+    "status": "current"
+  },
+  "viewport_cache_key": {
+    "fields": ["atlas_node_id", "layer_id", "h3_index", "resolution", "time_range", "filters_hash"],
+    "canonical_form": "Stable JSON serialization of the fields above, hashed to a short opaque key.",
+    "ttl_seconds": 300,
+    "invalidation_triggers": [
+      "Source freshness change for any source id in the layer",
+      "Read model rebuild for the affected layer",
+      "Review state transition for any contained civic object"
+    ]
+  },
+  "rusty_red_boundaries": [
+    {
+      "boundary_id": "viewport_cache",
+      "label": "Viewport cache (hot)",
+      "hot_state_kind": "viewport_cache",
+      "canonical_source": "/data/civic-objects.json and the read-model-formats role assignments",
+      "rebuild_on": [
+        "viewport_cache_key TTL expiry",
+        "Source freshness change",
+        "Read model rebuild"
+      ],
+      "ttl_seconds": 300,
+      "status": "proposed",
+      "notes": [
+        "Hot cache for repeated viewport queries during a session.",
+        "Cache misses fall back to the canonical read model path."
+      ]
+    },
+    {
+      "boundary_id": "scene_hydration",
+      "label": "Scene hydration cache",
+      "hot_state_kind": "scene_hydration",
+      "canonical_source": "/data/scene-manifests/* and /data/scene-packets/*",
+      "rebuild_on": [
+        "Scene manifest review_state transition",
+        "Scene packet republish"
+      ],
+      "ttl_seconds": null,
+      "status": "proposed",
+      "notes": [
+        "Hydrated scene state for fast re-entry to the same scene during a session.",
+        "Discarded on tab close. Not a publication artifact."
+      ]
+    },
+    {
+      "boundary_id": "nearby_lookup",
+      "label": "Nearby civic object lookup",
+      "hot_state_kind": "nearby_lookup",
+      "canonical_source": "/data/civic-objects.json filtered by atlas_node_id",
+      "rebuild_on": ["Civic object insert or update", "Read model rebuild"],
+      "ttl_seconds": 60,
+      "status": "proposed",
+      "notes": [
+        "Short-lived cache for tap-to-explore and dossier hover affordances.",
+        "Never the source of truth for a public dossier."
+      ]
+    }
+  ],
+  "rust_preprocessing_lanes": [
+    {
+      "lane_id": "geoparquet_partitioner",
+      "label": "GeoParquet partitioner",
+      "input_format": "geojson",
+      "output_format": "geoparquet",
+      "runtime": "rust_cli",
+      "status": "proposed",
+      "notes": [
+        "Partitions reviewed read models into atlas-node-scoped GeoParquet files.",
+        "Runs offline; results land in the public read-model origin."
+      ]
+    },
+    {
+      "lane_id": "pmtiles_packer",
+      "label": "PMTiles packer",
+      "input_format": "geojson",
+      "output_format": "pmtiles",
+      "runtime": "rust_cli",
+      "status": "proposed",
+      "notes": [
+        "Packs reviewed basemap layers into PMTiles archives.",
+        "Output is the basemap_archive read-model role."
+      ]
+    }
+  ],
+  "notes": [
+    "Rusty Red is hot state. None of these boundaries are canonical truth.",
+    "Indexing family is proposed; revisit at the design brainstorm before promoting beyond proposed.",
+    "Rust preprocessing lanes run offline. Public page load must not depend on them being available."
+  ]
+}

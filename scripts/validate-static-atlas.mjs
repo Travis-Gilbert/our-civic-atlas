@@ -422,6 +422,313 @@ function validateScenePacket(packet) {
   );
 }
 
+const READ_MODEL_FORMAT_VALUES = new Set([
+  "json",
+  "geojson",
+  "csv",
+  "parquet",
+  "geoparquet",
+  "glb",
+  "arrow",
+  "flatgeobuf",
+  "pmtiles",
+]);
+
+const BINARY_READ_MODEL_ROLE_VALUES = new Set([
+  "basemap_archive",
+  "bulk_query",
+  "viewport_packet",
+  "runtime_transfer",
+  "fixture_fallback",
+  "dossier_record",
+]);
+
+const BINARY_ROLES_REQUIRING_FALLBACK_URL = new Set([
+  "basemap_archive",
+  "bulk_query",
+  "viewport_packet",
+]);
+
+const SPATIAL_INDEX_FAMILY_VALUES = new Set(["h3", "s2", "geohash"]);
+const SPATIAL_CONTRACT_STATUS_VALUES = new Set(["proposed", "current", "deprecated"]);
+const RUSTY_RED_HOT_STATE_KIND_VALUES = new Set([
+  "viewport_cache",
+  "session",
+  "scene_hydration",
+  "nearby_lookup",
+]);
+const RUST_LANE_RUNTIME_VALUES = new Set(["rust_cli", "rust_wasm"]);
+
+function validateSpatialRuntimeContract(contract) {
+  assertString(contract.schema_version, "spatial-runtime-contract.schema_version");
+  assertString(contract.atlas_id, "spatial-runtime-contract.atlas_id");
+  assertStringArray(contract.notes, "spatial-runtime-contract.notes");
+
+  assert(
+    contract.indexing_family && typeof contract.indexing_family === "object",
+    "spatial-runtime-contract.indexing_family must be an object",
+  );
+  assert(
+    SPATIAL_INDEX_FAMILY_VALUES.has(contract.indexing_family.name),
+    "spatial-runtime-contract.indexing_family.name must be h3, s2, or geohash",
+  );
+  assertString(contract.indexing_family.library, "spatial-runtime-contract.indexing_family.library");
+  assertString(
+    contract.indexing_family.rationale,
+    "spatial-runtime-contract.indexing_family.rationale",
+  );
+  assert(
+    SPATIAL_CONTRACT_STATUS_VALUES.has(contract.indexing_family.status),
+    "spatial-runtime-contract.indexing_family.status must be a SpatialContractStatus",
+  );
+  assert(
+    Array.isArray(contract.indexing_family.resolutions) &&
+      contract.indexing_family.resolutions.length > 0 &&
+      contract.indexing_family.resolutions.every(
+        (r) => typeof r === "number" && Number.isFinite(r),
+      ),
+    "spatial-runtime-contract.indexing_family.resolutions must be a non-empty array of finite numbers",
+  );
+
+  assert(
+    contract.viewport_cache_key && typeof contract.viewport_cache_key === "object",
+    "spatial-runtime-contract.viewport_cache_key must be an object",
+  );
+  assertStringArray(
+    contract.viewport_cache_key.fields,
+    "spatial-runtime-contract.viewport_cache_key.fields",
+  );
+  assertString(
+    contract.viewport_cache_key.canonical_form,
+    "spatial-runtime-contract.viewport_cache_key.canonical_form",
+  );
+  assertStringArray(
+    contract.viewport_cache_key.invalidation_triggers,
+    "spatial-runtime-contract.viewport_cache_key.invalidation_triggers",
+  );
+  assert(
+    typeof contract.viewport_cache_key.ttl_seconds === "number" &&
+      Number.isFinite(contract.viewport_cache_key.ttl_seconds) &&
+      contract.viewport_cache_key.ttl_seconds >= 0,
+    "spatial-runtime-contract.viewport_cache_key.ttl_seconds must be a non-negative finite number",
+  );
+
+  assert(
+    Array.isArray(contract.rusty_red_boundaries) && contract.rusty_red_boundaries.length > 0,
+    "spatial-runtime-contract.rusty_red_boundaries must not be empty",
+  );
+  contract.rusty_red_boundaries.forEach((boundary, index) => {
+    const label = `spatial-runtime-contract.rusty_red_boundaries[${index}]`;
+    assertString(boundary.boundary_id, `${label}.boundary_id`);
+    assertString(boundary.label, `${label}.label`);
+    assertString(boundary.canonical_source, `${label}.canonical_source`);
+    assertStringArray(boundary.rebuild_on, `${label}.rebuild_on`);
+    assertStringArray(boundary.notes, `${label}.notes`);
+    assert(
+      RUSTY_RED_HOT_STATE_KIND_VALUES.has(boundary.hot_state_kind),
+      `${label}.hot_state_kind must be a RustyRedHotStateKind`,
+    );
+    assert(
+      SPATIAL_CONTRACT_STATUS_VALUES.has(boundary.status),
+      `${label}.status must be a SpatialContractStatus`,
+    );
+    assert(
+      boundary.ttl_seconds === null ||
+        (typeof boundary.ttl_seconds === "number" &&
+          Number.isFinite(boundary.ttl_seconds) &&
+          boundary.ttl_seconds >= 0),
+      `${label}.ttl_seconds must be null or a non-negative finite number`,
+    );
+  });
+
+  assert(
+    Array.isArray(contract.rust_preprocessing_lanes),
+    "spatial-runtime-contract.rust_preprocessing_lanes must be an array",
+  );
+  contract.rust_preprocessing_lanes.forEach((lane, index) => {
+    const label = `spatial-runtime-contract.rust_preprocessing_lanes[${index}]`;
+    assertString(lane.lane_id, `${label}.lane_id`);
+    assertString(lane.label, `${label}.label`);
+    assertStringArray(lane.notes, `${label}.notes`);
+    assert(
+      READ_MODEL_FORMAT_VALUES.has(lane.input_format),
+      `${label}.input_format must be a ReadModelFormat`,
+    );
+    assert(
+      READ_MODEL_FORMAT_VALUES.has(lane.output_format),
+      `${label}.output_format must be a ReadModelFormat`,
+    );
+    assert(
+      RUST_LANE_RUNTIME_VALUES.has(lane.runtime),
+      `${label}.runtime must be rust_cli or rust_wasm`,
+    );
+    assert(
+      SPATIAL_CONTRACT_STATUS_VALUES.has(lane.status),
+      `${label}.status must be a SpatialContractStatus`,
+    );
+  });
+}
+
+const SCENE_FOUNDRY_FORMAT_VALUES = new Set(["usd", "usdz", "glb", "ply", "splat"]);
+const SCENE_FOUNDRY_STATUS_VALUES = new Set([
+  "planned",
+  "reviewed",
+  "exported",
+  "retired",
+]);
+
+function validateSceneFoundryExportManifest(manifest) {
+  assertString(manifest.schema_version, "scene-foundry-export-manifest.schema_version");
+  assertString(manifest.atlas_id, "scene-foundry-export-manifest.atlas_id");
+  assertStringArray(manifest.notes, "scene-foundry-export-manifest.notes");
+  assert(
+    manifest.offline_only === true,
+    "scene-foundry-export-manifest.offline_only must be true",
+  );
+
+  assert(
+    Array.isArray(manifest.generator_inventory) && manifest.generator_inventory.length > 0,
+    "scene-foundry-export-manifest.generator_inventory must not be empty",
+  );
+  manifest.generator_inventory.forEach((generator, index) => {
+    const label = `scene-foundry-export-manifest.generator_inventory[${index}]`;
+    assertString(generator.generator_id, `${label}.generator_id`);
+    assertString(generator.label, `${label}.label`);
+    assertString(generator.runtime, `${label}.runtime`);
+    assertStringArray(generator.accepts_renderer, `${label}.accepts_renderer`);
+    assert(
+      Array.isArray(generator.produces_formats) && generator.produces_formats.length > 0,
+      `${label}.produces_formats must not be empty`,
+    );
+    generator.produces_formats.forEach((format, formatIndex) => {
+      assert(
+        SCENE_FOUNDRY_FORMAT_VALUES.has(format),
+        `${label}.produces_formats[${formatIndex}] must be a SceneFoundryExportFormat`,
+      );
+    });
+  });
+
+  assert(
+    Array.isArray(manifest.targets),
+    "scene-foundry-export-manifest.targets must be an array",
+  );
+  manifest.targets.forEach((target, index) => {
+    const label = `scene-foundry-export-manifest.targets[${index}]`;
+    assertString(target.target_id, `${label}.target_id`);
+    assertString(target.scene_id, `${label}.scene_id`);
+    assertString(target.output_path_pattern, `${label}.output_path_pattern`);
+    assertString(target.rebuild_trigger, `${label}.rebuild_trigger`);
+    assertStringArray(target.notes, `${label}.notes`);
+    assert(
+      SCENE_FOUNDRY_FORMAT_VALUES.has(target.export_format),
+      `${label}.export_format must be a SceneFoundryExportFormat`,
+    );
+    assert(
+      SCENE_FOUNDRY_STATUS_VALUES.has(target.status),
+      `${label}.status must be a SceneFoundryExportStatus`,
+    );
+    assert(
+      target.offline_only === true,
+      `${label}.offline_only must be true`,
+    );
+  });
+
+  assert(
+    Array.isArray(manifest.assets),
+    "scene-foundry-export-manifest.assets must be an array",
+  );
+  manifest.assets.forEach((asset, index) => {
+    const label = `scene-foundry-export-manifest.assets[${index}]`;
+    assertString(asset.asset_id, `${label}.asset_id`);
+    assertString(asset.scene_id, `${label}.scene_id`);
+    assertString(asset.object_id, `${label}.object_id`);
+    assertString(asset.generator_id, `${label}.generator_id`);
+    assertString(asset.generator_version, `${label}.generator_version`);
+    assertStringArray(asset.source_ids, `${label}.source_ids`);
+    assertStringArray(asset.notes, `${label}.notes`);
+    assert(
+      SCENE_FOUNDRY_FORMAT_VALUES.has(asset.export_format),
+      `${label}.export_format must be a SceneFoundryExportFormat`,
+    );
+    assert(
+      SCENE_FOUNDRY_STATUS_VALUES.has(asset.status),
+      `${label}.status must be a SceneFoundryExportStatus`,
+    );
+    assert(
+      asset.href === null ||
+        (typeof asset.href === "string" && asset.href.trim().length > 0),
+      `${label}.href must be null or a non-empty string`,
+    );
+    assert(
+      asset.byte_size === null ||
+        (typeof asset.byte_size === "number" && asset.byte_size >= 0),
+      `${label}.byte_size must be null or a non-negative number`,
+    );
+    assert(
+      asset.generated_at === null ||
+        (typeof asset.generated_at === "string" && asset.generated_at.trim().length > 0),
+      `${label}.generated_at must be null or a non-empty string`,
+    );
+  });
+}
+
+function validateReadModelFormats(manifest) {
+  assertString(manifest.schema_version, "read-model-formats.schema_version");
+  assertString(manifest.atlas_id, "read-model-formats.atlas_id");
+  assertStringArray(manifest.notes, "read-model-formats.notes");
+  assert(
+    Array.isArray(manifest.assignments) && manifest.assignments.length > 0,
+    "read-model-formats.assignments must not be empty",
+  );
+
+  const seenRoles = new Set();
+  manifest.assignments.forEach((assignment, index) => {
+    const label = `read-model-formats.assignments[${index}]`;
+    assertString(assignment.label, `${label}.label`);
+    assertString(assignment.description, `${label}.description`);
+    assertStringArray(assignment.notes, `${label}.notes`);
+
+    assert(
+      BINARY_READ_MODEL_ROLE_VALUES.has(assignment.role),
+      `${label}.role must be a valid BinaryReadModelRole`,
+    );
+    assert(
+      !seenRoles.has(assignment.role),
+      `${label}.role ${assignment.role} is assigned more than once`,
+    );
+    seenRoles.add(assignment.role);
+
+    assert(
+      READ_MODEL_FORMAT_VALUES.has(assignment.default_format),
+      `${label}.default_format must be a valid ReadModelFormat`,
+    );
+
+    assert(
+      Array.isArray(assignment.acceptable_fallbacks),
+      `${label}.acceptable_fallbacks must be an array`,
+    );
+    assignment.acceptable_fallbacks.forEach((fallback, fallbackIndex) => {
+      assert(
+        READ_MODEL_FORMAT_VALUES.has(fallback),
+        `${label}.acceptable_fallbacks[${fallbackIndex}] must be a valid ReadModelFormat`,
+      );
+    });
+
+    if (BINARY_ROLES_REQUIRING_FALLBACK_URL.has(assignment.role)) {
+      assert(
+        typeof assignment.fallback_url === "string" && assignment.fallback_url.trim().length > 0,
+        `${label}.fallback_url must be a non-empty string for role ${assignment.role}`,
+      );
+    } else {
+      assert(
+        assignment.fallback_url === null ||
+          (typeof assignment.fallback_url === "string" && assignment.fallback_url.trim().length > 0),
+        `${label}.fallback_url must be null or a non-empty string`,
+      );
+    }
+  });
+}
+
 function validateMobileRuntimeProfile(profile) {
   for (const key of [
     "schema_version",
@@ -479,6 +786,9 @@ async function main() {
       scenePacketIndex,
       scenePacket,
       mobileRuntimeProfile,
+      readModelFormats,
+      sceneFoundryExports,
+      spatialRuntime,
     ] = await Promise.all([
       readJson("well-known/our-civic-atlas.json"),
       readJson("data/atlas-node.json"),
@@ -496,6 +806,9 @@ async function main() {
       readJson("data/scene-packets/index.json"),
       readJson("data/scene-packets/flint-overview-mobile.json"),
       readJson("data/mobile-runtime-profile.json"),
+      readJson("data/read-model-formats.json"),
+      readJson("data/scene-foundry-export-manifest.json"),
+      readJson("data/spatial-runtime-contract.json"),
     ]);
 
     assertString(discoveryManifest.atlas_id, "well-known.atlas_id");
@@ -522,6 +835,9 @@ async function main() {
       "viewport-vector-contracts",
       "scene-packet-compiler",
       "scene-packets",
+      "read-model-formats",
+      "scene-foundry-export-manifest",
+      "spatial-runtime-contract",
     ]) {
       assert(readModelIds.has(id), `read-model-catalog must include ${id}`);
     }
@@ -536,6 +852,9 @@ async function main() {
     validateScenePacketIndex(scenePacketIndex);
     validateScenePacket(scenePacket);
     validateMobileRuntimeProfile(mobileRuntimeProfile);
+    validateReadModelFormats(readModelFormats);
+    validateSceneFoundryExportManifest(sceneFoundryExports);
+    validateSpatialRuntimeContract(spatialRuntime);
 
     console.log(
       `Validated static atlas package: ${atlasNode.name}, ${civicObjects.length} civic objects, ${layerCatalog.layers.length} layers, ${nodeCatalog.nodes.length} nodes, ${primitiveLibrary.primitives.length} primitives, ${scenePacketIndex.packets.length} packet sketch.`,
