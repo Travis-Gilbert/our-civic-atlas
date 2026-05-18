@@ -221,5 +221,86 @@ These three update AGENTS.md when we get back. Don't write them yet — file as 
 | `Open-Flint-Atlas-main-release/`                       | `main` | `9fc772b` pushed; `.claude/` untracked       |
 | `Open-Flint-Atlas/`                                    | ?      | Sibling worktree (plan path); not touched     |
 | `Index-API/`                                           | `main` | 2 commits ahead of origin from prior session; not touched this session |
-| `our-civic-atlas-backend/`                             | —      | Does not exist yet; Codex creates in Phase 0 |
+| `our-civic-atlas-backend/`                             | `main` | `16011d2` pushed; Phase 0 scaffold + Phase 4-6 lane A landed |
 | `civic-atlas-primitives/`                              | —      | Does not exist yet; Codex creates in Phase 3 |
+| `civic-atlas-ingest/`                                  | `main` | `5a116f5` (initial); no remote yet; Phase 5-6 scaffold |
+
+## Phases 4-6 lane A landed (this frontend repo not touched)
+
+Following the Phases 4-6 spec pasted into the session prompt, the
+Codex-independent + ReconstructionSpec-independent slice was driven
+to completion this turn. None of it lives in this frontend repo.
+
+### `our-civic-atlas-backend` deltas
+
+- `docs/orchestrate/phase-4-reconstruction-spec-requirements.md` —
+  coordination note to Codex. Enumerates the five Phase 4 requirements
+  against `ReconstructionSpec` (part ID stability, FieldEnvelope shape,
+  proposed_payload shape, coverage_quality placement, gnn_version
+  field location). Phase 4 protos cannot land until Codex confirms.
+- `proto/theseus_bridge/v1/bridge.proto` — extended with
+  `GetBatchSpacetimeEmbeddings` (one round trip for a whole block
+  subgraph, with per-node `missing` flag + `model_version` on the
+  response). Backend `cargo check --workspace` passes; tonic
+  regenerates clean.
+- Commits: `8a599e3` (coordination note) + `16011d2` (RPC). Both
+  on `origin/main`.
+
+### `civic-atlas-ingest` (NEW repo)
+
+Single repo holds Phase 5 ingestion + Phase 6 training. Layout:
+
+```
+civic-atlas-ingest/
+  modal/
+    ingest_overpass.py       # OSM building footprints + tags
+    ingest_sanborn.py        # Mapwarper Sanborn sheets
+    ingest_assessor.py       # per-city assessor parcel records
+    building_head_train.py   # frozen DyGFormer + GraphSAGE head
+    building_head_infer.py   # web endpoint for Axum gRPC bridge
+    model_promote.py         # manual-confirm staging -> production CLI
+    city_targets.py          # 10 cities + bboxes, priority ordered
+    coverage_quality.py      # per-field provenance lanes (0-1)
+  crates/civic-atlas-validate/  # Rust validation CLI
+  scripts/provision_corpus_tenant.sh
+  docs/multi-tenancy-invariant.md
+```
+
+All Modal apps are stubs that raise `NotImplementedError`. The
+ReconstructionSpec dependency is the gate.
+
+`cargo check --workspace` clean. Python `py_compile` clean.
+
+Commit `5a116f5` is the root commit on `main`. **No GitHub remote
+yet** — when you create one, run:
+
+```
+cd "/Users/travisgilbert/Tech Dev Local/Creative/Website/civic-atlas-ingest"
+git remote add origin <url>
+git push -u origin main
+```
+
+### What's still blocked
+
+| Item                                          | Blocked on                                |
+|-----------------------------------------------|-------------------------------------------|
+| Phase 4 protos + Axum service                 | Codex confirming ReconstructionSpec shape |
+| Real Modal app implementations (all 5)        | Codex Phase 2 ReconstructionSpec          |
+| `civic-atlas-validate` real checks            | Codex Phase 2 ReconstructionSpec          |
+| Phase 4 frontend (dossier CTA, /admin, /changelog) | UI brainstorm session with Travis     |
+| Phase 6 frontend (Generate priors button + provenance display) | UI brainstorm session with Travis |
+
+### Updated open todos when we resume
+
+1. **Diagnose time-travel visual confirmation** (existing).
+2. **Update AGENTS.md** (existing).
+3. **Wait for Codex Phase 0 hand-back** (existing).
+4. **Wait for Codex Phase 3 hand-back** (existing).
+5. **NEW — Wait for Codex response on Phase 4 coordination note.** Five
+   confirmations needed before Phase 4 protos can land. See
+   `our-civic-atlas-backend/docs/orchestrate/phase-4-reconstruction-spec-requirements.md`.
+6. **NEW — Create GitHub remote for `civic-atlas-ingest`.** Local-only
+   right now.
+7. **NEW — UI brainstorm session** for Phase 4 + Phase 6 frontend
+   surfaces. Per Travis's standing instruction: UI work requires a
+   design pass before code.
