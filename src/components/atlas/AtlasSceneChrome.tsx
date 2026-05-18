@@ -82,7 +82,7 @@ export function AtlasSceneChrome({
             <p className="font-mono text-[10px] uppercase leading-none tracking-[0.14em] text-[color:var(--ctx-ink-mute)]">
               Our Civic Atlas
             </p>
-            <h1 className="mt-1 text-[24px] font-semibold leading-none text-[color:var(--ctx-ink)]">
+            <h1 className="font-display mt-1 text-[26px] leading-none tracking-[0.01em] text-[color:var(--ctx-ink)]">
               Flint Atlas
             </h1>
             <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">

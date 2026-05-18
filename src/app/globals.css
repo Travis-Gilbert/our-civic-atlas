@@ -5,9 +5,12 @@
   --font-sans:
     var(--font-ibm-plex-sans), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Display chain: Block is a heavy condensed gothic-sans; if it
+     fails to load the fallbacks pick up the same weight + condensed
+     intent so the page never reflows into a tonally wrong typeface. */
   --font-display:
-    var(--font-ibm-plex-sans), ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
+    var(--font-block-berthold), Impact, "Haettenschweiler",
+    "Arial Narrow Bold", "Helvetica Neue Condensed Bold", sans-serif;
   --font-mono:
     var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }

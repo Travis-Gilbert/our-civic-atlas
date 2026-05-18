@@ -68,7 +68,7 @@ export function AtlasRouteShell({
           </p>
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
-              <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
+              <h1 className="font-display text-4xl leading-tight tracking-[0.005em] md:text-6xl">
                 {title}
               </h1>
               <p
