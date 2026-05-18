@@ -383,11 +383,16 @@ Rust impl), this lane:
 
 | Repo                                                   | Branch | Status                                       |
 |--------------------------------------------------------|--------|----------------------------------------------|
-| `Open-Flint-Atlas-main-release/`                       | `main` | `2be2b86` pushed; Phase 3 route landed       |
+| `Open-Flint-Atlas-main-release/`                       | `main` | `8091a2c` pushed; Phase 3 route landed       |
 | `our-civic-atlas-backend/`                             | `main` | `92444f3` pushed; full Phase 0-4 + outbox + Phase 5/6 contracts |
-| `civic-atlas-ingest/`                                  | `main` | `883a101` pushed; Scene Foundry stub + Modal docs |
-| `civic-atlas-primitives/`                              | `main` | `bcd4573` local-only; **needs GitHub remote** |
-| `civic-atlas-primitives` archetypes .blend             | -      | not yet authored (Phase 3 hand-work)         |
+| `civic-atlas-ingest/`                                  | `main` | `eeab9bb` pushed; Scene Foundry + primitives/ subdir + Modal docs |
+| `primitives/` archetypes .blend                        | -      | not yet authored (Phase 3 hand-work; lives in civic-atlas-ingest/primitives/) |
+
+**Note:** A standalone `civic-atlas-primitives` repo briefly existed
+(`bcd4573` local-only) but was folded into `civic-atlas-ingest/primitives/`
+in commit `eeab9bb`. Reason: same toolchain (Python + Blender), same
+Modal deploy target, consumed primarily by `scene_foundry.py` in the
+same repo. Three active repos is enough.
 
 ### Railway MCP
 
@@ -415,12 +420,12 @@ to load the new server.
 
 1. **Diagnose time-travel visual confirmation** (existing).
 2. **Update AGENTS.md** (existing).
-3. **Push civic-atlas-primitives** to a GitHub remote when one exists.
-4. **UI brainstorm**: Phase 4 dossier CTA, /admin/corrections, /changelog,
+3. **UI brainstorm**: Phase 4 dossier CTA, /admin/corrections, /changelog,
    plus Phase 6 admin extensions. Travis design-gated.
-5. **Per-part merge logic** in `ApproveCorrection`. Marked TODO in
+4. **Per-part merge logic** in `ApproveCorrection`. Marked TODO in
    `crates/civic-atlas-server/src/corrections.rs::approve_correction`.
-6. **Author the 8 Blender archetype .blend files** in
-   civic-atlas-primitives. The MANIFEST contracts are locked.
-7. **Wire the live PostGIS gate**: run migrations against a real PG,
+5. **Author the 8 Blender archetype .blend files** in
+   `civic-atlas-ingest/primitives/archetypes/<slug>/archetype.blend`.
+   The MANIFEST contracts are locked.
+6. **Wire the live PostGIS gate**: run migrations against a real PG,
    confirm `civic-atlas-outbox-worker` drains.
