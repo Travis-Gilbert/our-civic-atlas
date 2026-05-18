@@ -112,23 +112,32 @@ export function OpenFlintAtlasScene(props: {
   initialCompareAtlasId?: string | null;
   preferredMobileSurface?: MobileRuntimeSurfaceId;
   initialViewMode?: AtlasSceneViewModeId;
+  /** Pre-applied camera bookmark. Wins over `?bookmark=` URL param when set. */
+  initialBookmark?: AtlasCameraBookmarkId;
+  /** Pre-fills the search input. Used by Phase 3 routes to seed a year-travel state. */
+  initialSearchValue?: string;
 }) {
   const {
     initialLens = "explore",
     preferredMobileSurface = "deck_mobile_candidate",
     initialViewMode,
+    initialBookmark,
+    initialSearchValue = "",
   } = props;
   const router = useRouter();
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const [layerVisibility, setLayerVisibility] = useState(DEFAULT_LAYERS);
-  const [viewMode, setViewMode] =
-    useState<AtlasSceneViewModeId>(
-      initialViewMode ?? DEFAULT_VIEW_MODE_BY_LENS[initialLens],
-    );
+  const [viewMode, setViewMode] = useState<AtlasSceneViewModeId>(() => {
+    if (initialBookmark) {
+      const bookmark = ATLAS_CAMERA_BOOKMARK_LOOKUP[initialBookmark];
+      if (bookmark) return bookmark.viewMode;
+    }
+    return initialViewMode ?? DEFAULT_VIEW_MODE_BY_LENS[initialLens];
+  });
   const [activeLens, setActiveLens] =
     useState<AtlasLensId>(initialLens);
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(initialSearchValue);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [rendererMode, setRendererMode] =
     useState<AtlasRendererMode>("baseline");
@@ -202,9 +211,21 @@ export function OpenFlintAtlasScene(props: {
 
   useEffect(() => {
     setActiveLens(initialLens);
-    // If the URL carries `?bookmark=<id>`, the bookmark's preferred
-    // view mode wins over the lens's default. The bookmark's camera
-    // is then applied imperatively once the map is ready.
+    // Bookmark resolution order:
+    //   1. `initialBookmark` prop (used by Phase 3 routes like
+    //      /open-flint-atlas/lost-flint/carriage-town to seed the
+    //      scene with the right camera framing on first paint).
+    //   2. `?bookmark=<id>` URL param (deep-link sharing).
+    //   3. Lens default view mode.
+    if (
+      initialBookmark &&
+      ATLAS_CAMERA_BOOKMARK_LOOKUP[initialBookmark]
+    ) {
+      const bookmark = ATLAS_CAMERA_BOOKMARK_LOOKUP[initialBookmark];
+      setViewMode(bookmark.viewMode);
+      setPendingBookmark(bookmark.id);
+      return;
+    }
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const bookmarkParam = params.get("bookmark");
@@ -220,7 +241,7 @@ export function OpenFlintAtlasScene(props: {
       }
     }
     setViewMode(initialViewMode ?? DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
-  }, [initialLens, initialViewMode]);
+  }, [initialLens, initialViewMode, initialBookmark]);
 
   /**
    * Camera choreography for view-mode changes. Lives in the scene
