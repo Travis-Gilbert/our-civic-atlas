@@ -311,6 +311,30 @@ export function createLostFlintDeckLayers({
     atlasYear === null
       ? reconstructions
       : reconstructions.filter((r) => reconstructionExistsInYear(r, atlasYear));
+
+  // Diagnostic surface for the Carriage Town visibility issue. Lets
+  // a visitor open DevTools and confirm whether the layer path is
+  // firing + how many reconstructions reached the renderer. Remove
+  // once the cluster is reliably visible in production.
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.info(
+      "[lost-flint] createLostFlintDeckLayers",
+      {
+        viewMode,
+        atlasYear,
+        visible,
+        reconstruction_count_in: reconstructions.length,
+        candidate_count_after_year_filter: candidates.length,
+        candidate_positions: candidates.map((r) => ({
+          id: r.id,
+          position: r.position,
+          roof_form: r.roof_form ?? "flat",
+        })),
+      },
+    );
+  }
+
   if (candidates.length === 0) return [];
 
   const proceduralByForm = new Map<RoofForm, HistoricalReconstruction[]>();
@@ -348,11 +372,13 @@ export function createLostFlintDeckLayers({
         id: `${ATLAS_DECK_LAYER_IDS.lostFlint}-${form}`,
         data: items,
         mesh: ROOF_GEOMETRIES[form],
-        // Slight exaggeration so the procedural placeholder is
-        // legible against the dense OSM stone field at city-scale
-        // zoom. Real splat/glTF assets render at literal scale via
-        // their own layer and ignore this multiplier.
-        sizeScale: 3,
+        // DIAGNOSTIC SIZE: dialed up to 10 so the Lost Flint cluster
+        // is unambiguous against the OSM porcelain field — a visitor
+        // shouldn't have to squint to tell what's a reconstruction
+        // and what's an OSM extrusion. Drop back to 3-4 once the
+        // visual grammar is clearly differentiated by other means
+        // (saturated material, distinct shape silhouette, etc.).
+        sizeScale: 10,
         pickable: true,
         getPosition: (r: HistoricalReconstruction) => [r.position[0], r.position[1]],
         getScale: (r: HistoricalReconstruction) => [r.footprint.width_m, r.footprint.depth_m, r.height_m],
