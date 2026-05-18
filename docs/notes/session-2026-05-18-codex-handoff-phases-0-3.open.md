@@ -298,3 +298,129 @@ was rebased on top.
 6. **NEW — UI brainstorm session** for Phase 4 + Phase 6 frontend
    surfaces. Per Travis's standing instruction: UI work requires a
    design pass before code.
+
+## Phases 4-6 — Codex incomplete completion + Phase 4 contracts landed
+
+After Codex shipped `6ef870b feat(reconstruction): add spec pipeline`
+on branch `Travis-Gilbert/complete-reconstruction-pipeline` (with
+ReconstructionSpec proto + service + PostGIS migration 0002 + full
+Rust impl), this lane:
+
+1. **Merged Codex's branch to main** (`4b18132 Merge ...`). Phase 0-3
+   schema now lives on origin/main.
+
+2. **Phase 4 contracts** (`7665449 feat(corrections): phase 4 community
+   correction loop`):
+   - `proto/civic_atlas/v1/corrections.proto` — `CorrectionSubmission`,
+     `CommunityCorrectionPayload`, `PartChange`, `ChangelogEntry`,
+     `TrainingExample`; `CorrectionService` with 7 RPCs.
+   - `migrations/0003_corrections_phase_4.sql` — extends Codex's
+     polymorphic `corrections` table (adds submitter_ip_hash, moderator_notes,
+     accepted_part_selectors, resulting_spec_(id,version)); new tables
+     `correction_rate_limits` (10/hour anonymous ceiling) and
+     `changelog_entries` (public anonymized changelog); accepted-immutability
+     trigger.
+   - `crates/civic-atlas-server/src/corrections.rs` (~700 lines) — full
+     impl of Submit/ListForBuilding/ListPending/Reject/ListChangelog/
+     ExportTrainingData. Approve has the row-lock + status transition +
+     changelog publish, but the per-part merge against
+     reconstruction_specs is TODO (depends on outbox runtime).
+
+3. **Codex incomplete A: outbox worker** (`631b870 + ac4401f`):
+   - new crate `civic-atlas-outbox-worker` (binary)
+   - drains `reconstruction_projection_outbox` via SELECT FOR UPDATE
+     SKIP LOCKED (multi-replica safe)
+   - exponential backoff w/ 1-hour cap on transient failures
+   - when `THESEUS_BRIDGE_URL` is unset, logs + marks succeeded so
+     Phase 4 gate can observe pending -> succeeded without RustyRed
+
+4. **Codex incomplete B: GetBlockSubgraph PostGIS-wired** (same commit
+   `631b870`): the SpacetimeAtlasService method now queries buildings
+   joined to `reconstruction_specs.block_id` plus building_parts plus
+   artifact_anchors. Previously returned empty. depth>=2 expansion is
+   a TODO (needs RustyRed).
+
+5. **Codex incomplete C: 5 hand-encoded Carriage Town specs**
+   (`33bc5f1`):
+   - `migrations/0004_seed_carriage_town_specs.sql`
+   - 5 parcels + 5 buildings + 5 approved specs + 3 artifacts + anchors
+   - all under tenant_id='flint', block_id='block:carriage-town:central'
+   - each spec is approved + projected to `building_parts` + enqueued
+     to `reconstruction_projection_outbox` so the worker drains it
+
+6. **Codex incomplete D: civic-atlas-primitives repo** (separate repo,
+   commit `bcd4573`):
+   - 8 Blender geometry-nodes archetype descriptors (commercial-brick,
+     frame-house, factory-bay, warehouse, church, school, gas-station,
+     mixed-use-storefront)
+   - each MANIFEST declares spec_fields_used + material_slots +
+     geometry_nodes_group_name
+   - validator CLI + render entrypoint + hash manifest script
+   - **No remote yet** — needs a GitHub URL to push
+
+7. **Codex incomplete E: Modal civic_atlas_scene_foundry app stub**
+   (commit `8c594f8` in civic-atlas-ingest):
+   - `modal/scene_foundry.py` — headless Blender container, primitives
+     volume mount, render -> S3 upload -> generated_assets row write
+   - `primitives_sync` helper to update the mounted volume
+
+8. **Codex incomplete F: frontend /lost-flint/carriage-town route**
+   (commit `2be2b86` in this repo):
+   - new route at `src/app/open-flint-atlas/lost-flint/carriage-town/page.tsx`
+   - mounts the existing OpenFlintAtlasScene with two new optional props:
+     `initialBookmark="carriage-town"` and `initialSearchValue="1925"`
+   - bookmark resolution order: prop > URL > lens default
+   - the existing FLINT_LOST_RECONSTRUCTIONS fixtures drive the render
+     until the GraphQL hookup to the new backend lands
+
+9. **Phase 5/6 contract unblock** (`92444f3` backend + `883a101` ingest):
+   - `PartProvenance` extends with `coverage_quality` (Phase 5) and
+     `gnn_version` (Phase 6) as additive proto fields
+   - resolves the last two of the five coordination questions from
+     `docs/orchestrate/phase-4-reconstruction-spec-requirements.md`
+
+### Repo state after this session
+
+| Repo                                                   | Branch | Status                                       |
+|--------------------------------------------------------|--------|----------------------------------------------|
+| `Open-Flint-Atlas-main-release/`                       | `main` | `2be2b86` pushed; Phase 3 route landed       |
+| `our-civic-atlas-backend/`                             | `main` | `92444f3` pushed; full Phase 0-4 + outbox + Phase 5/6 contracts |
+| `civic-atlas-ingest/`                                  | `main` | `883a101` pushed; Scene Foundry stub + Modal docs |
+| `civic-atlas-primitives/`                              | `main` | `bcd4573` local-only; **needs GitHub remote** |
+| `civic-atlas-primitives` archetypes .blend             | -      | not yet authored (Phase 3 hand-work)         |
+
+### Railway MCP
+
+`openrail-ops-mcp` was already deployed at
+`openrail-ops-mcp-production.up.railway.app` (Railway service id
+`b87a2fe0-9664-4588-98e9-e186ccd89978`). Verified via /health and /ready.
+Added to `~/.claude/settings.json` mcpServers as `openrail` with
+bearer auth. MCP `initialize` smoke test succeeded. Restart Claude Code
+to load the new server.
+
+### What still gates a live Phase 4 gate
+
+| Gate criterion                                  | Status |
+|-------------------------------------------------|--------|
+| Tables + service + worker exist                 | done   |
+| ReconstructionSpec proto + per-part fields      | done   |
+| Anonymous submission rate-limit (10/IP/hour)    | done   |
+| Approve writes changelog_entries                | done   |
+| **Approve merges accepted parts onto new spec** | TODO (per-part merge logic in corrections.rs) |
+| **Real RustyRed projection on outbox drain**    | TODO (bridge RPC not yet defined) |
+| **Scene Foundry GLB regenerate on approve**     | TODO (Blender archetype files unauthored) |
+| **Live PostGIS run + verify**                   | TODO (DATABASE_URL needs a live PG) |
+
+### Updated open todos when we resume (post Phases 4-6 lane)
+
+1. **Diagnose time-travel visual confirmation** (existing).
+2. **Update AGENTS.md** (existing).
+3. **Push civic-atlas-primitives** to a GitHub remote when one exists.
+4. **UI brainstorm**: Phase 4 dossier CTA, /admin/corrections, /changelog,
+   plus Phase 6 admin extensions. Travis design-gated.
+5. **Per-part merge logic** in `ApproveCorrection`. Marked TODO in
+   `crates/civic-atlas-server/src/corrections.rs::approve_correction`.
+6. **Author the 8 Blender archetype .blend files** in
+   civic-atlas-primitives. The MANIFEST contracts are locked.
+7. **Wire the live PostGIS gate**: run migrations against a real PG,
+   confirm `civic-atlas-outbox-worker` drains.
