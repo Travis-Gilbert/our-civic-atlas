@@ -16,6 +16,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
+import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
 import { osmBuildingExistsInYear } from "@/lib/atlas/atlas-time";
 import type {
   PlacesCollection,
@@ -370,6 +371,17 @@ export type AtlasMapProps = {
    * a 4-digit year typed into the search field (`parseAtlasYear`).
    */
   atlasYear?: number | null;
+  /**
+   * Override for the Lost Flint reconstruction array. When omitted,
+   * `createLostFlintDeckLayers` falls back to its in-file fixture
+   * (`FLINT_LOST_RECONSTRUCTIONS`). Supplied by the Phase 3 routes
+   * (`/lost-flint/<bookmark>`) via `useHistoricalReconstructions`,
+   * which fetches `/atlas/historical/<bookmark>.json`. The data
+   * path is wired identically to how the eventual GraphQL fetch
+   * will work; swapping the source is a one-line change in the
+   * hook.
+   */
+  historicalReconstructions?: HistoricalReconstruction[];
 };
 
 /* ------------------------------------------------------------------ */
@@ -389,6 +401,7 @@ export function AtlasMap({
   className,
   onMapReady,
   atlasYear = null,
+  historicalReconstructions,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -697,7 +710,11 @@ export function AtlasMap({
       atlasYear !== null
     ) {
       result.push(
-        ...createLostFlintDeckLayers({ viewMode, atlasYear }),
+        ...createLostFlintDeckLayers({
+          viewMode,
+          atlasYear,
+          reconstructions: historicalReconstructions,
+        }),
       );
     }
 
@@ -748,6 +765,7 @@ export function AtlasMap({
     viewMode,
     activeLens,
     atlasYear,
+    historicalReconstructions,
     visibleOsmBuildings,
   ]);
 

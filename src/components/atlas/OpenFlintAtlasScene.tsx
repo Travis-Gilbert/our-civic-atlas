@@ -46,6 +46,7 @@ import {
   type AtlasCameraBookmarkId,
 } from "@/lib/atlas/scene-view";
 import { parseAtlasYear } from "@/lib/atlas/atlas-time";
+import { useHistoricalReconstructions } from "@/lib/atlas/use-historical-reconstructions";
 
 const ProvenancePanel = dynamic(
   () =>
@@ -585,6 +586,23 @@ export function OpenFlintAtlasScene(props: {
    */
   const atlasYear = useMemo(() => parseAtlasYear(searchValue), [searchValue]);
 
+  /**
+   * Fetch the Lost Flint reconstruction set for the active bookmark.
+   * When `initialBookmark` is set (Phase 3 routes like
+   * `/lost-flint/carriage-town`), the hook GETs
+   * `/atlas/historical/<bookmark>.json` and returns the parsed
+   * reconstructions. On any failure the hook falls back to the
+   * in-file `FLINT_LOST_RECONSTRUCTIONS` fixture so the renderer
+   * keeps drawing. When no bookmark is active the hook skips the
+   * fetch entirely and returns the fallback.
+   *
+   * This is the data-fetch contract the eventual GraphQL bridge will
+   * fill; swapping the source is a one-line change in the hook.
+   */
+  const historicalReconstructionsState = useHistoricalReconstructions(
+    initialBookmark ?? null,
+  );
+
   const handlePlaceSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
   }, []);
@@ -841,6 +859,9 @@ export function OpenFlintAtlasScene(props: {
               viewMode={viewMode}
               activeLens={activeLens}
               atlasYear={atlasYear}
+              historicalReconstructions={
+                historicalReconstructionsState.reconstructions
+              }
               className="w-full h-full"
               onMapReady={handleMapReady}
             />
