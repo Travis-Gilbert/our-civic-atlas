@@ -2,21 +2,28 @@
  * Lost Flint — historical reconstruction contract.
  *
  * A `HistoricalReconstruction` is a single past-tense civic object positioned
- * in geography, intended for rendering inside the R3F Atlas Scene with the
- * porcelain ghost-palette material (see `docs/design/visual-grammar-v1.md`).
+ * in geography, rendered through the porcelain ghost-palette material (see
+ * `docs/design/visual-grammar-v1.md`).
  *
- * Confidence drives the porcelain-vs-faithful ratio at render time. The shader
- * (TODO) scatters porcelain over the mesh using noise weighted by this score —
- * no per-element data needed in the contract itself.
+ * Per-part confidence (Mass / Facade / Roof / GroundFloor) drives a z-band
+ * masking pass in the fragment shader. Different vertical regions of the
+ * building scatter at different rates so a visitor reads at a glance which
+ * parts of the reconstruction are well-documented and which are inferred.
  *
- * Geometry is currently expressed as a procedural footprint + height. As the
- * Brush pipeline produces real Gaussian splats, this contract will extend with
- * an optional `splat_url` pointer; the renderer will prefer the splat when
- * present and fall back to the procedural box otherwise.
+ * Mass acts as a floor on the other three: any zone's effective confidence
+ * is `min(zone, mass)`. If Mass is contested, the whole building scatters
+ * regardless of how well-documented the facade or roof are individually.
  *
- * Source registry: every reconstruction must list source ids so the dossier
- * (expanded island place page) can name what backs it.
+ * Geometry is expressed as a procedural box parameterized by Mass dimensions
+ * + Roof.form (flat / gable / hipped). When a real glTF asset is available,
+ * `geometry_url` overrides the procedural path. Splat support lands later
+ * via the Brush pipeline.
+ *
+ * Source registry: every reconstruction lists source ids so the dossier
+ * can name what backs it.
  */
+
+export type RoofForm = "flat" | "gable" | "hipped";
 
 export type HistoricalReconstruction = {
   /** Stable id for this reconstruction. Prefix: `historical:`. */
@@ -31,12 +38,36 @@ export type HistoricalReconstruction = {
   position: [number, number];
   /** Procedural footprint in meters, used until a real mesh/splat is available. */
   footprint: { width_m: number; depth_m: number };
-  /** Above-ground height in meters. */
+  /** Above-ground height in meters (includes roof cap if any). */
   height_m: number;
   /** Bearing of the building's long axis, degrees clockwise from north. */
   bearing_deg: number;
-  /** 0..1; drives porcelain coverage at render time. */
+  /**
+   * Overall (Mass) confidence in [0, 1]. Used as the floor on the per-part
+   * confidences below: any zone's effective confidence is
+   * `min(zone, confidence)`. If Mass is contested, the whole building scatters.
+   *
+   * Maps to `ReconstructionSpec.mass.provenance.confidence` in the backend.
+   */
   confidence: number;
+  /**
+   * Per-part confidences. Each in [0, 1]. When omitted, the shader falls
+   * back to `confidence` (the Mass value) for that zone, so a Mass-only
+   * record still renders sensibly.
+   *
+   * Maps to `ReconstructionSpec.{facades[0],roof,ground_floor}.provenance.confidence`.
+   */
+  facade_confidence?: number;
+  roof_confidence?: number;
+  ground_floor_confidence?: number;
+  /**
+   * Roof form drives the mesh dispatch: which of the three pre-built
+   * geometries (flat box, gable cap, hipped cap) the reconstruction is
+   * rendered against. Mass.height_m is the total including the cap.
+   *
+   * Maps to `ReconstructionSpec.roof.form`. Defaults to "flat" when omitted.
+   */
+  roof_form?: RoofForm;
   /** Year the structure was built (string for human readability). */
   time_start: string | null;
   /** Year the structure was demolished or vanished, or null if still standing. */
@@ -64,66 +95,142 @@ export type HistoricalReconstruction = {
 };
 
 /**
- * Seed data for the first Lost Flint slice. Single hardcoded Carriage Town
- * landmark so the R3F scene has something to render before the Theseus
- * retrieval pipeline brings live data online.
+ * Carriage Town reconstruction seed.
  *
- * Hubbard & Co. is illustrative — historical record needs verification before
- * this surfaces in any public route. Treat as a development placeholder.
+ * Five buildings mirror `our-civic-atlas-backend/migrations/
+ * 0004_seed_carriage_town_specs.sql` — positions are parcel centroids
+ * along East Kearsley Street (~43.0125N, -83.7000W), heights come from
+ * the migration's `story_count * 3.0m`, and per-part confidences are
+ * authored here to surface where each building's documentation is strong
+ * vs inferred.
+ *
+ * General authorship rule (also applied in the migration):
+ *   - Mass usually highest (footprint + story count are easiest to verify
+ *     from extant land records + Sanborn maps).
+ *   - Facade slightly lower (material + color often photographed but with
+ *     gaps).
+ *   - Roof always lowest (roofs are re-clad over time; original material
+ *     is rarely documented).
+ *   - GroundFloor middling (entries and porches change frequently).
+ *
+ * These are fixture values pending live GraphQL fetch from the Civic Atlas
+ * backend; the structural shape (per-part PartProvenance) is what Phase 6
+ * inference will eventually fill in.
  */
 export const FLINT_LOST_RECONSTRUCTIONS: HistoricalReconstruction[] = [
   {
-    id: "historical:carriage-town:hubbard-drug",
-    civic_object_id: "place:carriage-town",
-    name: "Hubbard & Co. Drug Store (placeholder)",
+    id: "historical:carriage-town:whaley-house",
+    civic_object_id: "building:carriage-town:1",
+    name: "Whaley House (1885)",
     description:
-      "Two-story commercial block at approximately W. 2nd & Detroit Street. " +
-      "Placeholder reconstruction until the Theseus historical pipeline lands " +
-      "verified sources.",
-    position: [-83.7035, 43.0185],
-    footprint: { width_m: 14, depth_m: 22 },
-    height_m: 12,
+      "Three-story italianate brick mansion at 624 E Kearsley St. Anchor "
+      + "landmark for the Carriage Town historic district. HABS-documented "
+      + "footprint and elevations; slate vs asphalt roof material remains "
+      + "contested.",
+    position: [-83.70025, 43.01275],
+    footprint: { width_m: 14, depth_m: 18 },
+    height_m: 12.5,
+    bearing_deg: 0,
+    confidence: 0.95, // Mass — well documented
+    facade_confidence: 0.92,
+    roof_confidence: 0.65, // re-clad history
+    ground_floor_confidence: 0.82,
+    roof_form: "hipped",
+    time_start: "1885",
+    time_end: null,
+    source_ids: ["habs:mi-318", "loc:sanborn:flint:1899:s18"],
+    geometry_url: null,
+    foundry_asset_url: null,
+  },
+  {
+    id: "historical:carriage-town:628-kearsley",
+    civic_object_id: "building:carriage-town:2",
+    name: "628 E Kearsley Frame House",
+    description:
+      "Wood-frame Queen Anne dwelling. Two stories with side gable, asphalt "
+      + "shingle (likely original wood shake). Standard late-19th-century "
+      + "Carriage Town typology.",
+    position: [-83.69975, 43.01275],
+    footprint: { width_m: 9, depth_m: 13 },
+    height_m: 7.5,
     bearing_deg: 0,
     confidence: 0.85,
-    time_start: "1898",
-    time_end: "1971",
-    source_ids: ["mapflint"],
+    facade_confidence: 0.78,
+    roof_confidence: 0.55,
+    ground_floor_confidence: 0.70,
+    roof_form: "gable",
+    time_start: "1892",
+    time_end: null,
+    source_ids: ["loc:sanborn:flint:1899:s18"],
     geometry_url: null,
     foundry_asset_url: null,
   },
   {
-    id: "historical:carriage-town:industrial-shed",
-    civic_object_id: "place:carriage-town",
-    name: "Industrial outbuilding (placeholder)",
+    id: "historical:carriage-town:storefront",
+    civic_object_id: "building:carriage-town:3",
+    name: "Carriage Town Storefront",
     description:
-      "Sawtooth-roof factory outbuilding near the rail corridor, low " +
-      "documentation. Placeholder until verified.",
-    position: [-83.7045, 43.0175],
-    footprint: { width_m: 32, depth_m: 18 },
-    height_m: 9,
-    bearing_deg: 12,
-    confidence: 0.3,
-    time_start: "1910",
-    time_end: "1948",
-    source_ids: ["mapflint"],
-    geometry_url: null,
-    foundry_asset_url: null,
-  },
-  {
-    id: "historical:carriage-town:bungalow",
-    civic_object_id: "place:carriage-town",
-    name: "Worker's bungalow (placeholder)",
-    description:
-      "Single-story wood-frame residence typical of the post-Buick boom. " +
-      "Placeholder until verified.",
-    position: [-83.703, 43.019],
-    footprint: { width_m: 9, depth_m: 12 },
-    height_m: 5,
+      "Two-story main-street brick commercial block. Flat parapet roof, tar "
+      + "and gravel cover. Storefront type and awning configuration "
+      + "uncertain across the building's lifespan.",
+    position: [-83.69925, 43.01275],
+    footprint: { width_m: 11, depth_m: 16 },
+    height_m: 7,
     bearing_deg: 0,
-    confidence: 0.6,
-    time_start: "1908",
-    time_end: "1965",
-    source_ids: ["mapflint"],
+    confidence: 0.78,
+    facade_confidence: 0.65,
+    roof_confidence: 0.45,
+    ground_floor_confidence: 0.50,
+    roof_form: "flat",
+    time_start: "1905",
+    time_end: "1968",
+    source_ids: ["sloan:storefront-1925", "loc:sanborn:flint:1899:s18"],
+    geometry_url: null,
+    foundry_asset_url: null,
+  },
+  {
+    id: "historical:carriage-town:workers-cottage",
+    civic_object_id: "building:carriage-town:4",
+    name: "Worker's Cottage (1898)",
+    description:
+      "Single-story wood-frame cottage typical of the post-Buick boom. "
+      + "Side gable, wood shingle. Footprint visible on Sanborn 1899 but "
+      + "detailed facade documentation is thin.",
+    position: [-83.70025, 43.01225],
+    footprint: { width_m: 7, depth_m: 10 },
+    height_m: 4.5,
+    bearing_deg: 0,
+    confidence: 0.70,
+    facade_confidence: 0.55,
+    roof_confidence: 0.40,
+    ground_floor_confidence: 0.50,
+    roof_form: "gable",
+    time_start: "1898",
+    time_end: "1962",
+    source_ids: ["loc:sanborn:flint:1899:s18"],
+    geometry_url: null,
+    foundry_asset_url: null,
+  },
+  {
+    id: "historical:carriage-town:stockton-house",
+    civic_object_id: "building:carriage-town:5",
+    name: "Stockton House (1872)",
+    description:
+      "Two-story Greek Revival timber-frame residence. Pre-dates the "
+      + "Buick-era cottages around it. Documented in genealogical records "
+      + "but no surviving photographs.",
+    position: [-83.69975, 43.01225],
+    footprint: { width_m: 10, depth_m: 14 },
+    height_m: 7.5,
+    bearing_deg: 0,
+    confidence: 0.80,
+    facade_confidence: 0.65,
+    roof_confidence: 0.50,
+    ground_floor_confidence: 0.60,
+    roof_form: "gable",
+    time_start: "1872",
+    time_end: "1955",
+    source_ids: ["loc:sanborn:flint:1899:s18", "genesee:stockton-genealogy"],
     geometry_url: null,
     foundry_asset_url: null,
   },

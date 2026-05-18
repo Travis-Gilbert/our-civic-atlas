@@ -48,13 +48,19 @@
 
 import { ScenegraphLayer, SimpleMeshLayer } from "@deck.gl/mesh-layers";
 import type { Layer } from "@deck.gl/core";
-import { CubeGeometry } from "@luma.gl/engine";
+import type { Geometry } from "@luma.gl/engine";
 
 import {
   FLINT_LOST_RECONSTRUCTIONS,
   GHOST_PALETTE,
   type HistoricalReconstruction,
+  type RoofForm,
 } from "@/lib/atlas/historical-reconstruction";
+import {
+  createFlatBoxGeometry,
+  createGableRoofedBoxGeometry,
+  createHippedRoofedBoxGeometry,
+} from "@/components/atlas/LostFlintGeometries";
 import {
   ATLAS_SCENE_VIEW_MODE_LOOKUP,
   type AtlasSceneViewModeId,
@@ -62,9 +68,25 @@ import {
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
 import { reconstructionExistsInYear } from "@/lib/atlas/atlas-time";
 
-/** Unit cube shared across all instances. SimpleMeshLayer uses
- * per-feature scale/translation/orientation to place each one. */
-const BOX_MESH = new CubeGeometry();
+/**
+ * Pre-built roof-form geometry lookup. Each variant runs through the
+ * same `ConfidenceMixMeshLayer` subclass but with a different mesh,
+ * so a building's `roof_form` selects both the silhouette and (via
+ * the shader's z-band masking) the roof confidence visualization.
+ *
+ * Built once at module load; shared across all instances of a given
+ * form to keep deck.gl's draw-call batching effective.
+ */
+const ROOF_GEOMETRIES: Record<RoofForm, Geometry> = {
+  flat: createFlatBoxGeometry(),
+  gable: createGableRoofedBoxGeometry(),
+  hipped: createHippedRoofedBoxGeometry(),
+};
+
+/** Default roof form when a reconstruction omits the field. Flat is
+ * the most morphologically neutral and matches the previous behaviour
+ * before per-form dispatch landed. */
+const DEFAULT_ROOF_FORM: RoofForm = "flat";
 
 /** Translate a CSS hex string like "#9CC0B8" into a deck.gl RGBA tuple
  * with the given alpha. Kept inline rather than imported from a util
@@ -100,17 +122,41 @@ const PORCELAIN_GLSL = rgbToGlsl(
 );
 
 /**
- * `SimpleMeshLayer` subclass that adds:
+ * `SimpleMeshLayer` subclass that paints a per-part confidence
+ * visualization onto the procedural box.
  *
- *   - a per-instance `instanceConfidence` attribute (0..1) sourced
- *     from `getConfidence(r)` on each reconstruction,
- *   - a fragment-shader injection at `DECKGL_FILTER_COLOR` that
- *     swaps each fragment between the faithful and porcelain colors
- *     using a hash-based noise threshold driven by the per-instance
- *     confidence.
+ * Four per-instance attributes feed the fragment shader:
+ *
+ *   - `instanceMassConfidence`         (0..1)  Mass — the building's
+ *                                                overall shape, dimensions,
+ *                                                story count.
+ *   - `instanceFacadeConfidence`       (0..1)  Facade — wall material,
+ *                                                color, opening rhythm.
+ *   - `instanceRoofConfidence`         (0..1)  Roof — form, material,
+ *                                                pitch.
+ *   - `instanceGroundFloorConfidence`  (0..1)  GroundFloor — entry,
+ *                                                storefront, awning.
+ *
+ * The fragment shader picks a zone by the mesh-local z position
+ * (`vMeshPos.z` in [-0.5, +0.5] for the unit cube):
+ *
+ *     zFraction = vMeshPos.z + 0.5                    (0..1)
+ *     zFraction < 0.15            -> GroundFloor zone
+ *     0.15 <= zFraction < 0.85    -> Facade zone (the building body)
+ *     0.85 <= zFraction           -> Roof zone
+ *
+ * The effective confidence at any fragment is then the minimum of
+ * the zone's confidence and the Mass confidence. Mass acts as a
+ * **floor**: if Mass is contested ("we don't know how tall this
+ * building was"), the entire box scatters regardless of how
+ * well-documented the Facade is.
+ *
+ * The hash-based noise threshold + porcelain/faithful tint logic is
+ * identical to the previous (single-confidence) implementation;
+ * only the threshold input changed.
  *
  * The base `getColor` is set to white in the consumer (see
- * `createLostFlintDeckLayer` below) so the post-lighting `color.rgb`
+ * `createLostFlintDeckLayers` below) so the post-lighting `color.rgb`
  * arrives at the filter as a pure lighting factor; the filter
  * multiplies the chosen tint by that factor to preserve Phong
  * shading after the recolour.
@@ -123,9 +169,24 @@ class ConfidenceMixMeshLayer extends SimpleMeshLayer<HistoricalReconstruction> {
     const attributeManager = this.getAttributeManager();
     if (!attributeManager) return;
     attributeManager.addInstanced({
-      instanceConfidence: {
+      instanceMassConfidence: {
         size: 1,
-        accessor: "getConfidence",
+        accessor: "getMassConfidence",
+        defaultValue: 1,
+      },
+      instanceFacadeConfidence: {
+        size: 1,
+        accessor: "getFacadeConfidence",
+        defaultValue: 1,
+      },
+      instanceRoofConfidence: {
+        size: 1,
+        accessor: "getRoofConfidence",
+        defaultValue: 1,
+      },
+      instanceGroundFloorConfidence: {
+        size: 1,
+        accessor: "getGroundFloorConfidence",
         defaultValue: 1,
       },
     });
@@ -140,26 +201,44 @@ class ConfidenceMixMeshLayer extends SimpleMeshLayer<HistoricalReconstruction> {
       ...base,
       inject: {
         ...(base.inject ?? {}),
-        // Vertex stage: route per-instance confidence and the
-        // mesh-local position out to the fragment shader so the
-        // noise threshold has spatial input to vary against.
+        // Vertex stage: route the four per-part confidences plus the
+        // mesh-local position out to the fragment shader. The
+        // fragment shader picks which one to threshold against by
+        // looking at vMeshPos.z.
         "vs:#decl": `
-          in float instanceConfidence;
-          out float vConfidence;
+          in float instanceMassConfidence;
+          in float instanceFacadeConfidence;
+          in float instanceRoofConfidence;
+          in float instanceGroundFloorConfidence;
+          out float vMassConfidence;
+          out float vFacadeConfidence;
+          out float vRoofConfidence;
+          out float vGroundFloorConfidence;
           out vec3 vMeshPos;
         `,
         "vs:#main-end": `
-          vConfidence = instanceConfidence;
+          vMassConfidence = instanceMassConfidence;
+          vFacadeConfidence = instanceFacadeConfidence;
+          vRoofConfidence = instanceRoofConfidence;
+          vGroundFloorConfidence = instanceGroundFloorConfidence;
           vMeshPos = positions.xyz;
         `,
         // Fragment stage: hash-based 2-D value noise, sampled at a
         // frequency tuned so the "bricks" read at a believable
         // building-detail scale (roughly per-square-meter at the
-        // boosted footprint scale). The exact frequency is a taste
-        // knob; tweak `NOISE_FREQ` if porcelain dots feel too big
-        // or too small.
+        // boosted footprint scale). Tweak `NOISE_FREQ` if porcelain
+        // dots feel too big or too small.
+        //
+        // Zone thresholds:
+        //   GROUND_TOP = 0.15  bottom 15% of building height
+        //   ROOF_BOT   = 0.85  top 15% of building height
+        //   facade  = the 70% in between
+        // Mass.confidence caps every zone (min).
         "fs:#decl": `
-          in float vConfidence;
+          in float vMassConfidence;
+          in float vFacadeConfidence;
+          in float vRoofConfidence;
+          in float vGroundFloorConfidence;
           in vec3 vMeshPos;
           float lostFlintHash(vec2 p) {
             return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -167,8 +246,23 @@ class ConfidenceMixMeshLayer extends SimpleMeshLayer<HistoricalReconstruction> {
         `,
         "fs:DECKGL_FILTER_COLOR": `
           const float NOISE_FREQ = 28.0;
+          const float GROUND_TOP = 0.15;
+          const float ROOF_BOT   = 0.85;
+          float zFraction = vMeshPos.z + 0.5;
+          float zoneConfidence;
+          if (zFraction < GROUND_TOP) {
+            zoneConfidence = vGroundFloorConfidence;
+          } else if (zFraction < ROOF_BOT) {
+            zoneConfidence = vFacadeConfidence;
+          } else {
+            zoneConfidence = vRoofConfidence;
+          }
+          // Mass.confidence is a floor on every zone. The whole
+          // building scatters at the higher of its zone uncertainty
+          // and its overall mass uncertainty.
+          float effective = min(zoneConfidence, vMassConfidence);
           float h = lostFlintHash(vMeshPos.xy * NOISE_FREQ + vMeshPos.z * (NOISE_FREQ * 0.7));
-          float threshold = 1.0 - clamp(vConfidence, 0.0, 1.0);
+          float threshold = 1.0 - clamp(effective, 0.0, 1.0);
           vec3 tint = h < threshold ? ${PORCELAIN_GLSL} : ${FAITHFUL_GLSL};
           // color.rgb arrives as (white base * Phong lighting) so it
           // doubles as the lighting factor. Multiplying by tint
@@ -219,13 +313,19 @@ export function createLostFlintDeckLayers({
       : reconstructions.filter((r) => reconstructionExistsInYear(r, atlasYear));
   if (candidates.length === 0) return [];
 
-  const procedural: HistoricalReconstruction[] = [];
+  const proceduralByForm = new Map<RoofForm, HistoricalReconstruction[]>();
   const glTFGroups = new Map<string, HistoricalReconstruction[]>();
 
   for (const reconstruction of candidates) {
     const url = reconstruction.geometry_url ?? null;
     if (!url || !isGltfUrl(url)) {
-      procedural.push(reconstruction);
+      const form = reconstruction.roof_form ?? DEFAULT_ROOF_FORM;
+      const bucket = proceduralByForm.get(form);
+      if (bucket) {
+        bucket.push(reconstruction);
+      } else {
+        proceduralByForm.set(form, [reconstruction]);
+      }
       continue;
     }
     const existing = glTFGroups.get(url);
@@ -238,15 +338,16 @@ export function createLostFlintDeckLayers({
 
   const layers: Layer[] = [];
 
-  // Procedural box layer with the confidence mix shader. All
-  // reconstructions without a usable geometry asset share this one
-  // draw call.
-  if (procedural.length > 0) {
+  // One ConfidenceMixMeshLayer per roof form. Reconstructions sharing
+  // a form batch into a single draw call against the matching
+  // geometry. The confidence-mix shader is identical across all
+  // three forms — only the mesh silhouette differs.
+  for (const [form, items] of proceduralByForm) {
     layers.push(
       new ConfidenceMixMeshLayer({
-        id: ATLAS_DECK_LAYER_IDS.lostFlint,
-        data: procedural,
-        mesh: BOX_MESH,
+        id: `${ATLAS_DECK_LAYER_IDS.lostFlint}-${form}`,
+        data: items,
+        mesh: ROOF_GEOMETRIES[form],
         // Slight exaggeration so the procedural placeholder is
         // legible against the dense OSM stone field at city-scale
         // zoom. Real splat/glTF assets render at literal scale via
@@ -261,9 +362,18 @@ export function createLostFlintDeckLayers({
         // the lighting factor, which the confidence filter uses to
         // re-tint per fragment without losing directional shading.
         getColor: () => [255, 255, 255, 235],
-        // Custom accessor consumed by the `instanceConfidence`
-        // attribute added in `initializeState`.
-        getConfidence: (r: HistoricalReconstruction) => r.confidence,
+        // Custom accessors consumed by the four `instance*Confidence`
+        // attributes added in `initializeState`. Each falls back to
+        // the building's overall confidence (which IS Mass.confidence
+        // per the type contract) so reconstructions that only carry
+        // a top-level confidence still render sensibly.
+        getMassConfidence: (r: HistoricalReconstruction) => r.confidence,
+        getFacadeConfidence: (r: HistoricalReconstruction) =>
+          r.facade_confidence ?? r.confidence,
+        getRoofConfidence: (r: HistoricalReconstruction) =>
+          r.roof_confidence ?? r.confidence,
+        getGroundFloorConfidence: (r: HistoricalReconstruction) =>
+          r.ground_floor_confidence ?? r.confidence,
         material: {
           ambient: 0.6,
           diffuse: 0.55,
@@ -274,12 +384,15 @@ export function createLostFlintDeckLayers({
           ) as [number, number, number],
         },
         updateTriggers: {
-          getConfidence: [],
+          getMassConfidence: [],
+          getFacadeConfidence: [],
+          getRoofConfidence: [],
+          getGroundFloorConfidence: [],
         },
-      // Cast through unknown because the `getConfidence` accessor is
-      // injected by our subclass and not part of SimpleMeshLayer's
-      // typed prop surface; the runtime AttributeManager picks it up
-      // by name via `accessor: "getConfidence"`.
+      // Cast through unknown because the `get*Confidence` accessors
+      // are injected by our subclass and not part of SimpleMeshLayer's
+      // typed prop surface; the runtime AttributeManager picks each
+      // up by name via `accessor: "getMassConfidence"` etc.
       } as unknown as ConstructorParameters<typeof ConfidenceMixMeshLayer>[0]),
     );
   }
