@@ -108,9 +108,9 @@ In the RustyRed repo:
 - new crate `civic-atlas-schema` documenting node label conventions: `BuildingPresence`, `ArtifactAnchor`, `StreetSegment`, `Parcel`. Edge types `ANCHORED_BY`, `FRONTS_STREET`, `ADJACENT_TO`, `REPLACED_BY`. Required properties per label.
 
 Proto:
-- `proto/civic_atlas/v1/geotemporal.proto` — `GeoTemporalService { GetViewportAtTime, GetBlockSubgraph, GetParcelHistory, GetNearbyArtifacts }`
+- `proto/civic_atlas/v1/spacetime_atlas.proto` — public endpoint `spacetime-atlas`, service `SpacetimeAtlasService { GetViewportAtTime, GetBlockSubgraph, GetParcelHistory, GetNearbyArtifacts }`
 
-Server: `civic-atlas-server` composes the geotemporal primitive with existing `expand_bounded` graph traversal for block subgraph queries.
+Server: `civic-atlas-server` composes the internal geotemporal primitive with existing `expand_bounded` graph traversal for block subgraph queries.
 
 H3 stays a pure spatial primitive — time goes in node properties, composition happens in `thg-geotemporal`, not inside `SpatialIndex`. Every spatial index is tenant-scoped; cross-tenant queries impossible by construction.
 

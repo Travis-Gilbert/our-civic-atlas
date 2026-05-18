@@ -1,8 +1,12 @@
 /**
  * Civic Atlas GraphQL client.
  *
- * Talks to the Theseus Strawberry endpoint at
- *   $THESEUS_GRAPHQL_URL (default: Railway production)
+ * Talks to the browser-facing Civic Atlas GraphQL endpoint.
+ *
+ * Default remains the existing Theseus Strawberry endpoint. Set
+ * NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_PATH=node-sidecar and
+ * NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL to migrate behind the Node sidecar
+ * without changing browser GraphQL operations.
  *
  * Field selection happens at the operation level — see `queries/*.graphql`.
  * The schema at `docs/design/flint-graphql-schema-v1.graphql` is the contract.
@@ -19,8 +23,17 @@ import { Client, cacheExchange, fetchExchange } from "urql";
 
 const DEFAULT_ENDPOINT =
   "https://index-api-production-a5f7.up.railway.app/api/graphql/open-flint-atlas";
+const DEFAULT_NODE_SIDECAR_ENDPOINT = "http://127.0.0.1:4010/graphql";
 
 function getEndpoint(): string {
+  if (process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_PATH === "node-sidecar") {
+    return (
+      process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL ??
+      process.env.CIVIC_ATLAS_GRAPHQL_URL ??
+      DEFAULT_NODE_SIDECAR_ENDPOINT
+    );
+  }
+
   return (
     process.env.NEXT_PUBLIC_THESEUS_GRAPHQL_URL ??
     process.env.THESEUS_GRAPHQL_URL ??
