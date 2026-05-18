@@ -118,22 +118,23 @@ export type HistoricalReconstruction = {
  * inference will eventually fill in.
  */
 export const FLINT_LOST_RECONSTRUCTIONS: HistoricalReconstruction[] = [
-  // Positions are clustered around the `carriage-town` camera bookmark
-  // (-83.7035, 43.0185) at the W. 2nd / Detroit Street area, which is
-  // where the bookmark camera actually frames the view. Migration 0004's
-  // SQL geometry uses a synthetic grid; the frontend fixture takes the
-  // visible-from-camera positions until live GraphQL ships and the two
-  // sources reconcile.
+  // Positions are clustered just north of the `carriage-town` camera
+  // bookmark (-83.708, 43.0108) so the buildings appear in the forward
+  // frustum at pitch 58 / bearing 0. Real Carriage Town historic
+  // district is bounded by Grand Traverse / Beach / Flint River /
+  // I-475; the cluster sits inside that district. Migration 0004's
+  // SQL geometry uses a synthetic grid; the frontend fixture takes
+  // visible-from-camera positions until live GraphQL ships and the
+  // two sources reconcile.
   {
     id: "historical:carriage-town:whaley-house",
     civic_object_id: "building:carriage-town:1",
     name: "Whaley House (1885)",
     description:
-      "Three-story italianate brick mansion at the W. 2nd / Detroit Street "
-      + "corner. Anchor landmark for the Carriage Town historic district. "
-      + "HABS-documented footprint and elevations; slate vs asphalt roof "
-      + "material remains contested.",
-    position: [-83.7038, 43.0182],
+      "Three-story italianate brick mansion in the Carriage Town historic "
+      + "district. HABS-documented footprint and elevations; slate vs "
+      + "asphalt roof material remains contested.",
+    position: [-83.7082, 43.0118],
     footprint: { width_m: 14, depth_m: 18 },
     height_m: 12.5,
     bearing_deg: 0,
@@ -156,7 +157,7 @@ export const FLINT_LOST_RECONSTRUCTIONS: HistoricalReconstruction[] = [
       "Wood-frame Queen Anne dwelling. Two stories with side gable, asphalt "
       + "shingle (likely original wood shake). Standard late-19th-century "
       + "Carriage Town typology.",
-    position: [-83.7032, 43.0184],
+    position: [-83.7076, 43.0119],
     footprint: { width_m: 9, depth_m: 13 },
     height_m: 7.5,
     bearing_deg: 0,
@@ -179,7 +180,7 @@ export const FLINT_LOST_RECONSTRUCTIONS: HistoricalReconstruction[] = [
       "Two-story main-street brick commercial block. Flat parapet roof, tar "
       + "and gravel cover. Storefront type and awning configuration "
       + "uncertain across the building's lifespan.",
-    position: [-83.7026, 43.0186],
+    position: [-83.7072, 43.0121],
     footprint: { width_m: 11, depth_m: 16 },
     height_m: 7,
     bearing_deg: 0,
@@ -202,7 +203,7 @@ export const FLINT_LOST_RECONSTRUCTIONS: HistoricalReconstruction[] = [
       "Single-story wood-frame cottage typical of the post-Buick boom. "
       + "Side gable, wood shingle. Footprint visible on Sanborn 1899 but "
       + "detailed facade documentation is thin.",
-    position: [-83.7040, 43.0188],
+    position: [-83.7086, 43.0123],
     footprint: { width_m: 7, depth_m: 10 },
     height_m: 4.5,
     bearing_deg: 0,
@@ -225,7 +226,7 @@ export const FLINT_LOST_RECONSTRUCTIONS: HistoricalReconstruction[] = [
       "Two-story Greek Revival timber-frame residence. Pre-dates the "
       + "Buick-era cottages around it. Documented in genealogical records "
       + "but no surviving photographs.",
-    position: [-83.7034, 43.0190],
+    position: [-83.7079, 43.0125],
     footprint: { width_m: 10, depth_m: 14 },
     height_m: 7.5,
     bearing_deg: 0,

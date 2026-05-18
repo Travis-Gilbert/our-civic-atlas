@@ -176,14 +176,19 @@ export const ATLAS_CAMERA_BOOKMARKS: AtlasCameraBookmark[] = [
     id: "carriage-town",
     label: "Carriage Town close-up",
     description:
-      "Oblique view of the Carriage Town historic district, where the Lost Flint reconstructions sit alongside surviving OSM building footprints.",
+      "Oblique view of the Carriage Town historic district (bounded by Grand Traverse, Beach, the Flint River, and I-475). The Lost Flint reconstructions sit on the south bank of the river alongside surviving OSM building footprints.",
     viewMode: "street",
     camera: {
-      longitude: -83.7035,
-      latitude: 43.0185,
-      zoom: 16.2,
-      bearing: -18,
-      pitch: 62,
+      // Camera positioned just south of the Carriage Town cluster so
+      // the buildings appear in the forward frustum (bearing 0 = N).
+      // Real Carriage Town center is around (-83.708, 43.012); the
+      // 5 reconstructions in `historical-reconstruction.ts` cluster
+      // just north of this camera point.
+      longitude: -83.708,
+      latitude: 43.0108,
+      zoom: 16.6,
+      bearing: 0,
+      pitch: 58,
     },
   },
   {
