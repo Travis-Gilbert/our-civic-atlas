@@ -223,7 +223,7 @@ These three update AGENTS.md when we get back. Don't write them yet — file as 
 | `Index-API/`                                           | `main` | 2 commits ahead of origin from prior session; not touched this session |
 | `our-civic-atlas-backend/`                             | `main` | `16011d2` pushed; Phase 0 scaffold + Phase 4-6 lane A landed |
 | `civic-atlas-primitives/`                              | —      | Does not exist yet; Codex creates in Phase 3 |
-| `civic-atlas-ingest/`                                  | `main` | `5a116f5` (initial); no remote yet; Phase 5-6 scaffold |
+| `civic-atlas-ingest/`                                  | `main` | `dc74368` pushed to `Travis-Gilbert/civic-atlas-ingest`; Phase 5-6 scaffold |
 
 ## Phases 4-6 lane A landed (this frontend repo not touched)
 
@@ -271,14 +271,10 @@ ReconstructionSpec dependency is the gate.
 
 `cargo check --workspace` clean. Python `py_compile` clean.
 
-Commit `5a116f5` is the root commit on `main`. **No GitHub remote
-yet** — when you create one, run:
-
-```
-cd "/Users/travisgilbert/Tech Dev Local/Creative/Website/civic-atlas-ingest"
-git remote add origin <url>
-git push -u origin main
-```
+Commit `dc74368` is on `origin/main` at
+`https://github.com/Travis-Gilbert/civic-atlas-ingest`. The repo
+existed on GitHub with a stub README + MIT LICENSE; local scaffold
+was rebased on top.
 
 ### What's still blocked
 
@@ -299,8 +295,6 @@ git push -u origin main
 5. **NEW — Wait for Codex response on Phase 4 coordination note.** Five
    confirmations needed before Phase 4 protos can land. See
    `our-civic-atlas-backend/docs/orchestrate/phase-4-reconstruction-spec-requirements.md`.
-6. **NEW — Create GitHub remote for `civic-atlas-ingest`.** Local-only
-   right now.
-7. **NEW — UI brainstorm session** for Phase 4 + Phase 6 frontend
+6. **NEW — UI brainstorm session** for Phase 4 + Phase 6 frontend
    surfaces. Per Travis's standing instruction: UI work requires a
    design pass before code.
