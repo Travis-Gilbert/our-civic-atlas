@@ -37,6 +37,14 @@ type AtlasSceneChromeProps = {
   selectedPlaceId: string | null;
   focusCameraBand: AtlasSceneCameraBand;
   focusDetailLevel: AtlasSceneDetailLevel;
+  /** Live MapLibre bearing in degrees, clockwise from north. */
+  cameraBearing?: number;
+  /** Fired when the compass control is clicked. Should ease the
+   * map's bearing back to 0. */
+  onResetCompass?: () => void;
+  /** Active atlas year (4-digit). When set, the chrome displays it
+   * prominently and the renderer is in time-travel mode. */
+  atlasYear?: number | null;
   onClearSelection: () => void;
   dossierContent: ReactNode;
 };
@@ -58,6 +66,9 @@ export function AtlasSceneChrome({
   selectedPlaceId,
   focusCameraBand,
   focusDetailLevel,
+  cameraBearing = 0,
+  onResetCompass,
+  atlasYear = null,
   onClearSelection,
   dossierContent,
 }: AtlasSceneChromeProps) {
@@ -92,7 +103,7 @@ export function AtlasSceneChrome({
                 onChange={(event) => onSearchValueChange(event.target.value)}
                 suppressHydrationWarning
                 className="h-9 w-full bg-transparent text-[14px] outline-none placeholder:text-[color:var(--ctx-ink-faint)]"
-                placeholder="Search places, wards, landmarks"
+                placeholder="Search places, wards, landmarks — or type a year (1925)"
                 type="search"
               />
             </label>
@@ -148,6 +159,9 @@ export function AtlasSceneChrome({
         eventsCount={eventsCount}
         horizonNodes={horizonNodes}
         isMobileViewport={isMobileViewport}
+        cameraBearing={cameraBearing}
+        onResetCompass={onResetCompass}
+        atlasYear={atlasYear}
         dossierContent={dossierContent}
         onClearSelection={onClearSelection}
       />

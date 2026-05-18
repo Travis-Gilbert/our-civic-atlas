@@ -13,6 +13,10 @@ import {
   Vector2,
   Vector3,
 } from "three";
+import {
+  AtlasLostFlintLayer,
+  AtlasOsmBuildingsLayer,
+} from "@/components/atlas/AtlasBuildingsLayer";
 import type { AtlasMapProps } from "@/components/atlas/AtlasMap";
 import type {
   PlaceFeature,
@@ -1416,6 +1420,8 @@ export function AtlasThreeScene({
             viewMode={viewMode}
             onSelect={onPlaceSelect}
           />
+          <AtlasOsmBuildingsLayer projection={projection} />
+          <AtlasLostFlintLayer projection={projection} />
           {detailPolicy.showHorizonPortals && <HorizonPortals nodes={horizonNodes} />}
           <PlaceInstances places={visiblePlaces} onSelect={onPlaceSelect} />
           <SelectedPlaceFocus place={selectedVisiblePlace} />

@@ -9,10 +9,14 @@ import {
 } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
-import type { PickingInfo } from "@deck.gl/core";
+import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
+import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
+import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
+import { osmBuildingExistsInYear } from "@/lib/atlas/atlas-time";
 import type {
   PlacesCollection,
   PlaceFeature,
@@ -32,6 +36,19 @@ import "maplibre-gl/dist/maplibre-gl.css";
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Soft bounds for the Flint civic world. MapLibre uses these to
+ * resist pans that try to drift off the stage. Set wider than the
+ * city limits so users keep visible context for Burton, Mt Morris,
+ * Flint Township, and the Genesee County frame — without ever fully
+ * losing the city as the center of gravity. Coordinates are
+ * `[[swLng, swLat], [neLng, neLat]]`, the format MapLibre expects.
+ */
+const ATLAS_MAX_BOUNDS: [[number, number], [number, number]] = [
+  [-83.92, 42.88],
+  [-83.5, 43.18],
+];
 
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
@@ -254,6 +271,45 @@ function placeElevation(placeType: string, viewMode: AtlasSceneViewModeId) {
   return baseElevation * mode.extrusionScale;
 }
 
+/** Default building height in meters when OSM tags are missing. */
+const OSM_DEFAULT_HEIGHT_M = 6;
+/** Hard cap for OSM heights. The Mott Foundation Building (Flint's tallest)
+ * is ~65 m; anything taller is almost certainly an OSM tagging error
+ * (warehouse with `levels=50`). */
+const OSM_MAX_HEIGHT_M = 80;
+
+type OsmFootprintProperties = {
+  osm_id?: number;
+  building?: string | null;
+  name?: string | null;
+  height_meters?: number | null;
+  levels?: number | null;
+  /**
+   * Construction date from OSM tags (`start_date` /
+   * `building:start_date`). Typed as `string | null` because the
+   * fixture stores the raw OSM string ("1898", "c.1900", "1900s")
+   * rather than a parsed number — `parseHistoricalYear` in
+   * `atlas-time.ts` is the canonical reader for these values.
+   */
+  year_built?: string | null;
+};
+
+function osmBuildingHeight(props: OsmFootprintProperties): number {
+  const raw =
+    props.height_meters ??
+    (props.levels != null ? props.levels * 3 : OSM_DEFAULT_HEIGHT_M);
+  return Math.min(OSM_MAX_HEIGHT_M, Math.max(2, raw));
+}
+
+function osmBuildingElevation(
+  props: OsmFootprintProperties,
+  viewMode: AtlasSceneViewModeId,
+): number {
+  const mode = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
+  if (mode.extrusionScale === 0) return 0;
+  return osmBuildingHeight(props) * mode.extrusionScale;
+}
+
 function lensFillColor(
   placeType: string,
   activeLens: AtlasLensId,
@@ -295,6 +351,25 @@ export type AtlasMapProps = {
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
   className?: string;
+  /**
+   * Hand the underlying MapLibre `MapRef` to the parent so chrome
+   * components (compass, view controls, scene focus) can read camera
+   * state and dispatch imperative actions like `easeTo`. The ref is
+   * stable for the lifetime of the map instance; callers should not
+   * persist it across `viewMode` changes (the inner `Map` remounts
+   * via its `key`).
+   */
+  onMapReady?: (map: MapRef | null) => void;
+  /**
+   * Active atlas year for time-travel rendering. `null` means
+   * "today" (default): OSM buildings show in full, Lost Flint
+   * reconstructions stay hidden. A number flips the renderer into
+   * its time filter: OSM buildings built after `atlasYear` are
+   * removed, and Lost Flint reconstructions whose lifespan covers
+   * the year appear in their place. The chrome derives this from
+   * a 4-digit year typed into the search field (`parseAtlasYear`).
+   */
+  atlasYear?: number | null;
 };
 
 /* ------------------------------------------------------------------ */
@@ -312,6 +387,8 @@ export function AtlasMap({
   viewMode = "oblique",
   activeLens = "explore",
   className,
+  onMapReady,
+  atlasYear = null,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -361,9 +438,19 @@ export function AtlasMap({
   const mobileContextBounds = initialBounds ?? computedBounds;
 
   useEffect(() => {
-    setMapLoaded(false);
+    // The map instance no longer remounts on `viewMode` change (the
+    // `<Map>` key was removed in favour of smooth camera choreography
+    // via `easeTo`). We still reset the mobile-fit applied key so the
+    // bounds-fit logic re-runs for the new view's framing.
     appliedMobileFitKeyRef.current = null;
   }, [viewMode]);
+
+  // Camera choreography on view-mode change is owned by the parent
+  // (`OpenFlintAtlasScene`) so it can coordinate with camera
+  // bookmarks and avoid racing with `Map.onLoad`. AtlasMap supplies
+  // only the initial framing via `initialViewState`; all subsequent
+  // camera moves arrive via the `MapRef` handed up through
+  // `onMapReady`.
 
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
@@ -423,6 +510,33 @@ export function AtlasMap({
       );
   }, [events, placeCentroids]);
 
+  /**
+   * Year-filtered OSM building collection. When `atlasYear === null`
+   * we hand the full fixture straight to deck.gl so no work happens
+   * on the today-path. When a year is set we filter once per
+   * year-change; deck.gl's GeoJsonLayer rebuilds its tessellation
+   * against the smaller feature set, which is cheaper than passing
+   * 21k features and discarding most of them in a shader filter.
+   *
+   * The data import has a `metadata` field on top of the standard
+   * GeoJSON `FeatureCollection` shape, so we cast through `unknown`
+   * to get back to a clean FeatureCollection without TypeScript
+   * complaining about the extra field.
+   */
+  const visibleOsmBuildings = useMemo<GeoJSON.FeatureCollection>(() => {
+    const source = osmBuildings as unknown as GeoJSON.FeatureCollection;
+    if (atlasYear === null) return source;
+    return {
+      ...source,
+      features: source.features.filter((feature) =>
+        osmBuildingExistsInYear(
+          feature.properties as OsmFootprintProperties,
+          atlasYear,
+        ),
+      ),
+    };
+  }, [atlasYear]);
+
   /* ---- Selected feature (separate GeoJSON for highlight ring) ----- */
   const selectedFeatureCollection = useMemo<GeometricPlacesCollection | null>(() => {
     if (!selectedPlaceId || !geometricPlaces) return null;
@@ -447,7 +561,53 @@ export function AtlasMap({
 
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
-    const result: (GeoJsonLayer | ScatterplotLayer)[] = [];
+    const result: Layer[] = [];
+
+    /* OSM building footprints — extruded in non-atlas (3D) view modes.
+     * Renders 6671 Flint buildings from Carriage Town + downtown as warm
+     * stone volumes. Heights come from OSM `height` or `building:levels * 3`,
+     * capped at 80 m. */
+    if (
+      viewMode !== "atlas" &&
+      layerVisibility.osmBuildings !== false &&
+      layerVisibility.buildings !== false
+    ) {
+      result.push(
+        new GeoJsonLayer({
+          id: ATLAS_DECK_LAYER_IDS.osmBuildings,
+          data: visibleOsmBuildings,
+          pickable: true,
+          stroked: false,
+          filled: true,
+          extruded: true,
+          wireframe: false,
+          getElevation: (f) =>
+            osmBuildingElevation(
+              (f as GeoJSON.Feature).properties as OsmFootprintProperties,
+              viewMode,
+            ),
+          // In time-travel mode the OSM buildings represent "what
+          // still existed in this year." We dim the saturation
+          // slightly (lower alpha) so the ghost layer reads as the
+          // foreground subject, with surviving OSM as the period
+          // context behind it. Today-mode keeps the full warm-stone
+          // alpha for solid presence.
+          getFillColor:
+            atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 180],
+          getLineColor: [82, 64, 50, 200],
+          material: {
+            ambient: 0.58,
+            diffuse: 0.48,
+            shininess: 12,
+            specularColor: [232, 215, 188],
+          },
+          updateTriggers: {
+            getElevation: [viewMode],
+            getFillColor: [atlasYear === null],
+          },
+        }),
+      );
+    }
 
     /* Places polygons/points */
     if (geometricPlaces && layerVisibility.places !== false) {
@@ -517,6 +677,30 @@ export function AtlasMap({
       );
     }
 
+    /* Lost Flint historical reconstructions. Each reconstruction is
+     * dispatched to a renderer by what artifact it carries:
+     *   - geometry_url null → ConfidenceMixMeshLayer (procedural box
+     *     with per-fragment faithful/porcelain scatter)
+     *   - geometry_url .glb / .gltf → ScenegraphLayer
+     *   - splat / ply assets fall through to the procedural box
+     *     until a dedicated splat layer ships
+     *
+     * Lost Flint is gated on the active atlas year: by definition
+     * these buildings no longer exist today, so the today-mode
+     * (`atlasYear === null`) hides them entirely. Time-travel mode
+     * filters reconstructions whose recorded lifespan covers the
+     * typed year — that's the trigger Travis described: type a
+     * year, watch the city as it stood. */
+    if (
+      viewMode !== "atlas" &&
+      layerVisibility.lostFlint !== false &&
+      atlasYear !== null
+    ) {
+      result.push(
+        ...createLostFlintDeckLayers({ viewMode, atlasYear }),
+      );
+    }
+
     /* Events as scatter dots */
     if (positionedEvents.length > 0 && layerVisibility.events !== false) {
       result.push(
@@ -563,6 +747,8 @@ export function AtlasMap({
     onPlaceSelect,
     viewMode,
     activeLens,
+    atlasYear,
+    visibleOsmBuildings,
   ]);
 
   /* ---- Render ----------------------------------------------------- */
@@ -574,10 +760,19 @@ export function AtlasMap({
       data-mobile-surface={mobileSurface}
     >
       <Map
-        ref={mapRef}
-        key={viewMode}
+        ref={(instance: MapRef | null) => {
+          mapRef.current = instance;
+          // Hand the live MapRef up so chrome components can read the
+          // bearing/pitch/zoom and trigger imperative camera moves
+          // (compass reset, fly-to bookmarks, etc.) without needing
+          // their own ref into MapLibre.
+          if (onMapReady) onMapReady(instance);
+        }}
         initialViewState={camera}
+        maxBounds={ATLAS_MAX_BOUNDS}
         maxPitch={75}
+        minZoom={10.5}
+        maxZoom={19}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}
         attributionControl={false}
@@ -587,6 +782,24 @@ export function AtlasMap({
         <DeckGLOverlay layers={layers} />
         <NavigationControl position="bottom-right" />
       </Map>
+
+      {/*
+        Civic-world vignette. A radial gradient sits above the basemap
+        and below the chrome (z-index between the deck.gl overlay and
+        the AtlasShell controls). The gradient fades from transparent
+        at the screen centre to a warm earth-tone at the edges,
+        giving Flint the visual identity of a stage rather than a
+        slice of an infinite world map. Pointer-events:none so it
+        never intercepts map gestures.
+       */}
+      <div
+        aria-hidden="true"
+        className="atlas-scene-vignette pointer-events-none absolute inset-0 z-[5]"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 52%, rgba(246,244,238,0) 0%, rgba(246,244,238,0) 38%, rgba(46,34,22,0.08) 62%, rgba(34,24,14,0.22) 88%, rgba(28,20,12,0.32) 100%)",
+        }}
+      />
     </div>
   );
 }

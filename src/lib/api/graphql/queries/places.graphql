@@ -1,0 +1,62 @@
+query PlacesByBbox(
+  $bbox: BboxInput!
+  $types: [PlaceType!]
+  $limit: Int = 500
+) {
+  placesByBbox(bbox: $bbox, types: $types, limit: $limit) {
+    id
+    name
+    placeType
+    geometry
+    centroid
+    confidence
+    temporalStatus
+    reviewStatus
+    lastUpdated
+  }
+}
+
+query PlacesByTimeRange(
+  $range: TimeRangeInput!
+  $bbox: BboxInput
+  $types: [PlaceType!]
+) {
+  placesByTimeRange(range: $range, bbox: $bbox, types: $types) {
+    id
+    name
+    placeType
+    centroid
+    confidence
+    temporalStatus
+  }
+}
+
+query PlaceById($id: ID!) {
+  place(id: $id) {
+    id
+    name
+    placeType
+    geometry
+    bbox {
+      west
+      south
+      east
+      north
+    }
+    centroid
+    parentId
+    childIds
+    confidence
+    temporalStatus
+    reviewStatus
+    lastUpdated
+    description
+    sources {
+      id
+      name
+      sourceType
+      trustTier
+      lastChecked
+    }
+  }
+}

@@ -1,0 +1,38 @@
+query SignalsInBbox(
+  $bbox: BboxInput
+  $kinds: [SignalKind!]
+  $minConfidence: Float = 0.6
+  $limit: Int = 50
+) {
+  signals(
+    bbox: $bbox
+    kinds: $kinds
+    minConfidence: $minConfidence
+    limit: $limit
+  ) {
+    id
+    signalKind
+    title
+    summary
+    publishedAt
+    receivedAt
+    relativeTimeLabel
+    confidence
+    reviewStatus
+    visibilityLevel
+    warningCopy
+    expiresAt
+    geometry
+    source {
+      id
+      name
+      sourceType
+      trustTier
+    }
+    place {
+      id
+      name
+      centroid
+    }
+  }
+}

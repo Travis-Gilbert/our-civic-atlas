@@ -1,0 +1,10 @@
+mutation SubmitObservation($input: ObservationInput!) {
+  submitObservation(input: $input) {
+    receiptId
+    submissionId
+    acknowledgedAt
+    status
+    nextReviewWindowLabel
+    contributorVisibleNotes
+  }
+}

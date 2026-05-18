@@ -1,0 +1,472 @@
+# =============================================================================
+# Flint Civic Atlas — GraphQL Schema v1 (draft for review)
+# =============================================================================
+#
+# The contract between the Civic Atlas client and the Theseus backend.
+# The schema IS the curation boundary: anything outside it cannot be asked for,
+# returned, or accidentally surfaced. Theseus may store research papers, code,
+# personal notes, and a hundred other types — none of them appear here, so
+# none of them can leak through.
+#
+# Implementation notes
+# --------------------
+# - Theseus side: Strawberry GraphQL. Resolvers fan out to existing services:
+#     - search_kernel (planner, frontier, ranking, neural, native)
+#     - geoparsing (Nominatim, GeoNames, parser, resolvers)
+#     - spatiotemporal (retrieval, clustering, coherence, embedding_service)
+#     - native_search (dense, lexical, fusion, graph_candidates)
+#     - discovery_runs (long-running research jobs)
+#     - browser_playbooks (deep_research, source_verification, etc.)
+#     - web (fetch, browse, parse, extract, archive)
+#   Hot reads served from Rusty Red Graph DB (geocache + H3 spatial index +
+#   HNSW vector search + confidence-weighted edges).
+# - Atlas side: typed GraphQL client (urql + graphql-codegen recommended).
+#   All atlas data fetching goes through this schema. The REST shim in
+#   /api/v2/theseus/open-flint-atlas/* gets retired once this lands.
+#
+# Versioning
+# ----------
+# v1 covers public read paths + the contribution intake mutation. Future
+# versions add: scenario / proposed-future authoring (UCA-015 Civic Model
+# Studio), GeoComments (UCA-016), Data Lab queries (UCA-018). Each version
+# bump appends; no breaking changes without a major bump.
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Scalars
+# -----------------------------------------------------------------------------
+
+"""ISO 8601 UTC timestamp."""
+scalar DateTime
+
+"""GeoJSON geometry object (Point / Polygon / MultiPolygon / LineString)."""
+scalar GeoJSON
+
+"""[longitude, latitude] tuple in WGS84."""
+scalar LatLng
+
+"""Arbitrary JSON payload. Used sparingly — only for provenance node properties
+and metric units where typing every variant would explode the schema."""
+scalar JSON
+
+# -----------------------------------------------------------------------------
+# Enums
+# -----------------------------------------------------------------------------
+
+enum PlaceType {
+  WARD
+  PARCEL
+  BUILDING
+  INFRASTRUCTURE
+  PARK
+  CORRIDOR
+  CITY
+  NEIGHBORHOOD
+  DISTRICT
+}
+
+enum SourceType {
+  OFFICIAL_GOVERNMENT
+  COMMUNITY
+  ACADEMIC
+  NEWS
+  HISTORICAL_ARCHIVE
+  MAP_SERVICE
+  PHOTO_ARCHIVE
+  PUBLIC_RECORD
+}
+
+enum SignalKind {
+  """A news story tied to a location."""
+  NEWS_STORY
+  """Active construction / permit / city work."""
+  CONSTRUCTION
+  """311 incidents and other civic safety alerts."""
+  CIVIC_INCIDENT
+  """A resident-contributed observation."""
+  COMMUNITY_OBSERVATION
+  """Source freshness / update notices."""
+  SOURCE_UPDATE
+}
+
+enum TemporalStatus {
+  CURRENT
+  HISTORICAL
+  VANISHED
+  PROPOSED
+  INFERRED
+  DISPUTED
+  UNKNOWN
+}
+
+enum VisibilityLevel {
+  PUBLIC
+  REVIEW_ONLY
+  PRIVATE
+}
+
+enum TrustTier {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ReviewStatus {
+  ACCEPTED
+  NEEDS_REVIEW
+  CORROBORATED
+  CONTESTED
+  RETRACTED
+  OUTDATED
+  WITHDRAWN
+}
+
+"""Geometry artifact formats the renderer understands."""
+enum GeometryFormat {
+  GLB
+  GLTF
+  PLY
+  SPLAT
+  USD
+  USDZ
+}
+
+# -----------------------------------------------------------------------------
+# Input types
+# -----------------------------------------------------------------------------
+
+input BboxInput {
+  west: Float!
+  south: Float!
+  east: Float!
+  north: Float!
+}
+
+input TimeRangeInput {
+  start: DateTime
+  end: DateTime
+}
+
+input ObservationInput {
+  """Optional place this observation is about."""
+  placeId: ID
+  """High-level observation category (e.g. condition_update, source_correction)."""
+  observationType: String!
+  """Resident-written summary. Will be reviewer-rewritten before publication."""
+  summary: String!
+  """Required for receipt issuance. Stays private; never reaches public read model."""
+  contributorEmail: String!
+  """Optional public URLs the contributor cites as backing."""
+  sourceUrls: [String!]
+}
+
+# -----------------------------------------------------------------------------
+# Core types
+# -----------------------------------------------------------------------------
+
+"""A civic object positioned in geography. Wards, parcels, buildings, parks,
+corridors, neighborhoods, districts."""
+type Place {
+  id: ID!
+  name: String!
+  placeType: PlaceType!
+  geometry: GeoJSON
+  bbox: BoundingBox
+  centroid: LatLng
+  parentId: ID
+  childIds: [ID!]!
+  sources: [Source!]!
+  confidence: Float!
+  temporalStatus: TemporalStatus!
+  reviewStatus: ReviewStatus!
+  lastUpdated: DateTime!
+  """Plain-language description. No 'evidence' / 'provenance' / 'epistemic' jargon."""
+  description: String
+}
+
+"""A reviewed source backing some atlas content."""
+type Source {
+  id: ID!
+  name: String!
+  homepageUrl: String
+  sourceType: SourceType!
+  publicUseTerms: String
+  trustTier: TrustTier!
+  lastChecked: DateTime
+  knownLimits: [String!]!
+  containsPersonalData: Boolean!
+}
+
+"""A live geographic signal — the 'geographic newspaper' layer.
+News, construction, incidents, observations placed where they happened."""
+type Signal {
+  id: ID!
+  signalKind: SignalKind!
+  source: Source
+  title: String!
+  summary: String!
+  publishedAt: DateTime
+  receivedAt: DateTime
+  place: Place
+  geometry: GeoJSON
+  confidence: Float!
+  reviewStatus: ReviewStatus!
+  visibilityLevel: VisibilityLevel!
+  """Plain-language caveat shown to residents when relevant."""
+  warningCopy: String
+  expiresAt: DateTime
+  """Resident-facing relative-time string ('2 hours ago', 'yesterday')."""
+  relativeTimeLabel: String
+}
+
+"""A point-in-time event placed in geography. Past or present.
+1936 sit-down strike. 2014 water switch. Today's storm damage."""
+type SpatialEvent {
+  id: ID!
+  eventType: String!
+  title: String!
+  summary: String!
+  occurredAt: DateTime
+  occurredRange: TimeRange
+  place: Place
+  geometry: GeoJSON
+  sources: [Source!]!
+  confidence: Float!
+  reviewStatus: ReviewStatus!
+}
+
+"""A reconstructed past civic object for the Lost Flint scene.
+Renders in R3F with the porcelain ghost-palette material when low confidence;
+swaps to a faithful Brush splat or Blender mesh when confidence and source
+support are high."""
+type HistoricalReconstruction {
+  id: ID!
+  civicObjectId: ID!
+  name: String!
+  description: String!
+  position: LatLng!
+  footprint: Footprint!
+  heightMeters: Float!
+  bearingDegrees: Float!
+  """Drives the porcelain-vs-faithful render mix at draw time."""
+  confidence: Float!
+  timeStart: String
+  timeEnd: String
+  sources: [Source!]!
+  """Optional URL to a real geometry artifact (mesh or Gaussian splat)."""
+  geometryUrl: String
+  geometryFormat: GeometryFormat
+  """Optional URL to the Scene Foundry asset metadata record (provenance)."""
+  foundryAssetUrl: String
+}
+
+"""Procedural building footprint, used until a real mesh/splat is available."""
+type Footprint {
+  widthMeters: Float!
+  depthMeters: Float!
+}
+
+"""Civic metric — population, household income, vacancy rate, water service
+status, anything with a number or label attached to a place."""
+type Metric {
+  id: ID!
+  key: String!
+  label: String!
+  value: Float
+  stringValue: String
+  unit: String
+  observedAt: DateTime
+  source: Source
+  caveat: String
+}
+
+"""A bounding box in WGS84 lon/lat."""
+type BoundingBox {
+  west: Float!
+  south: Float!
+  east: Float!
+  north: Float!
+}
+
+"""A time range for queries and event spans."""
+type TimeRange {
+  start: DateTime
+  end: DateTime
+  label: String
+}
+
+"""Provenance graph for a place — sources, datasets, claims, and the edges
+between them. Renders in the Cosmos.gl provenance panel."""
+type ProvenanceGraph {
+  nodes: [ProvenanceNode!]!
+  edges: [ProvenanceEdge!]!
+  nodeCount: Int!
+  edgeCount: Int!
+}
+
+type ProvenanceNode {
+  id: ID!
+  labels: [String!]!
+  """Free-form JSON for node-type-specific fields. Caller is responsible for
+  knowing the shape based on labels."""
+  properties: JSON!
+}
+
+type ProvenanceEdge {
+  source: ID!
+  target: ID!
+  edgeType: String!
+  weight: Float
+}
+
+"""The expanded island / place page payload. Composes everything a resident
+needs to understand one place: the place itself, its sources, its events,
+its signals, its historical reconstructions, its metrics, related places.
+One round-trip from the atlas."""
+type Dossier {
+  place: Place!
+  description: String!
+  events: [SpatialEvent!]!
+  signals: [Signal!]!
+  historicalReconstructions: [HistoricalReconstruction!]!
+  sources: [Source!]!
+  metrics: [Metric!]!
+  relatedPlaces: [Place!]!
+  confidence: Float!
+  """Plain-language explanation of WHY the confidence is what it is.
+  Shown when the resident taps the confidence indicator."""
+  confidenceExplanation: String!
+}
+
+"""The atlas's identity + size manifest."""
+type AtlasManifest {
+  atlasId: String!
+  builtAt: DateTime!
+  schemaVersion: Int!
+  placeCount: Int!
+  sourceCount: Int!
+  signalCount: Int!
+  metricCount: Int!
+  historicalReconstructionCount: Int!
+  privacyNotes: [String!]!
+}
+
+"""Composite search result — the single search button returns one of these."""
+type SearchResults {
+  query: String!
+  places: [Place!]!
+  signals: [Signal!]!
+  events: [SpatialEvent!]!
+  historicalReconstructions: [HistoricalReconstruction!]!
+  sources: [Source!]!
+  totalResultCount: Int!
+  """True if Theseus's neural reranker was invoked."""
+  reranked: Boolean!
+  """The ACC/ACT minimum confidence threshold applied to this result set."""
+  acceptedConfidenceFloor: Float!
+  """Time-of-year contextualization. If the user typed '1925', the query is
+  scoped to that era."""
+  inferredTimeRange: TimeRange
+}
+
+"""Receipt for a contribution submission. Private to the contributor."""
+type ContributionReceipt {
+  receiptId: ID!
+  submissionId: ID!
+  acknowledgedAt: DateTime!
+  status: ReviewStatus!
+  nextReviewWindowLabel: String!
+  contributorVisibleNotes: [String!]!
+}
+
+# -----------------------------------------------------------------------------
+# Query (public read paths)
+# -----------------------------------------------------------------------------
+
+type Query {
+  """The atlas identity + manifest. Cheap to call; cached aggressively."""
+  manifest: AtlasManifest!
+
+  """The single search button. Composes Theseus's search_kernel + geoparsing +
+  spatiotemporal + native_search + ACC/ACT confidence + neural reranking into
+  one operation. Returns a unified, shape-typed result set."""
+  searchAtlas(
+    query: String!
+    bbox: BboxInput
+    timeRange: TimeRangeInput
+    """Reject results below this confidence. Default 0.6 matches the live
+    signal threshold."""
+    minConfidence: Float = 0.6
+    limit: Int = 25
+  ): SearchResults!
+
+  # ---- Places ----
+
+  place(id: ID!): Place
+  placesByBbox(
+    bbox: BboxInput!
+    types: [PlaceType!]
+    limit: Int = 500
+  ): [Place!]!
+  placesByTimeRange(
+    range: TimeRangeInput!
+    bbox: BboxInput
+    types: [PlaceType!]
+  ): [Place!]!
+
+  # ---- Sources ----
+
+  source(id: ID!): Source
+  sources(sourceTypes: [SourceType!], minTrustTier: TrustTier): [Source!]!
+
+  # ---- Live signal layer (the geographic newspaper) ----
+
+  signals(
+    bbox: BboxInput
+    kinds: [SignalKind!]
+    """Resident posts surface here only when confidence >= this floor."""
+    minConfidence: Float = 0.6
+    limit: Int = 50
+  ): [Signal!]!
+
+  # ---- Spatial events (point-in-time, past or present) ----
+
+  spatialEvents(
+    bbox: BboxInput
+    timeRange: TimeRangeInput
+    eventTypes: [String!]
+    limit: Int = 100
+  ): [SpatialEvent!]!
+
+  # ---- Lost Flint historical reconstructions ----
+
+  historicalReconstructions(
+    bbox: BboxInput!
+    """If provided, only return reconstructions whose lifespan covered this year."""
+    year: Int
+    minConfidence: Float = 0.0
+  ): [HistoricalReconstruction!]!
+
+  historicalReconstruction(id: ID!): HistoricalReconstruction
+
+  # ---- Dossier (expanded island place page) ----
+
+  """One round-trip payload for everything the place page needs."""
+  dossierFor(placeId: ID!): Dossier
+
+  # ---- Provenance ----
+
+  provenanceFor(placeId: ID, sourceId: ID): ProvenanceGraph!
+}
+
+# -----------------------------------------------------------------------------
+# Mutation (write paths)
+# -----------------------------------------------------------------------------
+
+type Mutation {
+  """Submit a community observation. Routed through Theseus's submission
+  pipeline: TF.js NSFW filter -> ACC/ACT scoring -> review queue. Never
+  auto-publishes. Receipt is private to the contributor."""
+  submitObservation(input: ObservationInput!): ContributionReceipt!
+}

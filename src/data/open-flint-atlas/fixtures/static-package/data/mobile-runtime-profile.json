@@ -1,12 +1,12 @@
 {
   "schema_version": "0.1.0",
   "atlas_id": "atlas:flint-mi",
-  "default_mobile_surface": "leaflet_baseline",
+  "default_mobile_surface": "deck_mobile_candidate",
   "candidate_mobile_surface": "deck_mobile_candidate",
-  "current_status": "candidate_available",
-  "promotion_summary": "Leaflet remains the default mobile renderer until the deck-backed candidate route passes runtime, product, and throttled-device budget gates.",
+  "current_status": "promoted",
+  "promotion_summary": "Deck.gl is the sole atlas render path across every viewport. The Leaflet `MobileAtlasMap` and its `react-leaflet` dependency tree have been deleted; a single MapLibre + deck.gl pipeline renders OSM building extrusions, places, events, and signals on desktop and phone alike.",
   "baseline_reference_route": "/open-flint-atlas",
-  "reversible_boundary": "ResponsiveAtlasMap keeps the phone-class baseline on Leaflet while the deck-backed candidate is exposed separately at /open-flint-atlas/mobile-candidate.",
+  "reversible_boundary": "ResponsiveAtlasMap is now a thin SSR-safety wrapper around AtlasMap with no viewport branching. Reintroducing a phone-class alternative renderer would mean either restoring Leaflet from git history or implementing a new fallback layer set inside the deck pipeline.",
   "dynamic_viewport_contracts_url": "/data/viewport-vector-contracts.json",
   "scene_packet_compiler_url": "/data/scene-packet-compiler.json",
   "scene_packet_index_url": "/data/scene-packets/index.json",
@@ -97,6 +97,7 @@
   ],
   "notes": [
     "This profile executes the mobile promotion boundary as machine-readable repo state instead of plan prose only.",
-    "Rusty Red remains a hot scene hydrator and cache lane only; it is not the canonical source of atlas truth."
+    "Rusty Red remains a hot scene hydrator and cache lane only; it is not the canonical source of atlas truth.",
+    "Deck.gl promotion was executed before all formal gates returned `ready`. The gates remain documented above as the audit-trail follow-ups: runtime smoke, mobile parity review, and throttled-device budget review. They must be reconciled before public mobile launch."
   ]
 }

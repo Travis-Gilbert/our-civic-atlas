@@ -8,6 +8,7 @@ import {
   Footprints,
   Layers3,
   Map,
+  Navigation,
   Route,
   Search,
   ShieldAlert,
@@ -49,6 +50,18 @@ type AtlasDynamicIslandProps = {
   eventsCount: number;
   horizonNodes: NodeHorizonEntry[];
   isMobileViewport: boolean;
+  /** Live MapLibre bearing in degrees, clockwise from north. The
+   * compass control on the left of the island rotates inversely so
+   * its "N" axis always points to true north. */
+  cameraBearing?: number;
+  /** Fired when the compass control is clicked. Should ease the
+   * MapLibre camera back to bearing 0. */
+  onResetCompass?: () => void;
+  /** Active atlas year (4-digit). When set, the collapsed island
+   * replaces its lens label with the year so the chrome
+   * acknowledges that the renderer is in time-travel mode and the
+   * search field is being read as a year, not a place query. */
+  atlasYear?: number | null;
   dossierContent?: ReactNode;
   onClearSelection: () => void;
 };
@@ -101,6 +114,9 @@ export function AtlasDynamicIsland({
   eventsCount,
   horizonNodes,
   isMobileViewport,
+  cameraBearing = 0,
+  onResetCompass,
+  atlasYear = null,
   dossierContent,
   onClearSelection,
 }: AtlasDynamicIslandProps) {
@@ -145,10 +161,13 @@ export function AtlasDynamicIsland({
   const activeView = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
   const activeLensInfo = ATLAS_LENS_LOOKUP[activeLens];
   const islandTitle = selectedPlaceName ?? focusHeadline(focusDetailLevel, activeLensInfo.label);
-  const islandSubtitle = `${focusDetailLabel(focusDetailLevel)} · ${focusBandLabel(focusCameraBand)} · ${activeView.shortLabel}`;
-  const collapsedIslandWidth = isMobileViewport ? 316 : 318;
+  // The collapsed island uses one unified compact layout on every
+  // viewport. Slightly narrower on phones to leave room for thumb
+  // gestures at the screen edges.
+  const collapsedIslandWidth = isMobileViewport ? 316 : 360;
   const expandedIslandWidth = isMobileViewport ? 354 : 392;
-  const mobileSearchActive = isMobileViewport && !isExpanded && searchValue.trim().length > 0;
+  const collapsedSearchActive =
+    !isExpanded && searchValue.trim().length > 0;
 
   function openIsland(panel?: IslandPanel) {
     if (panel && availablePanels.includes(panel)) {
@@ -181,7 +200,7 @@ export function AtlasDynamicIsland({
         className="pointer-events-none absolute bottom-5 left-1/2 z-[1420] -translate-x-1/2"
         style={{ width: isExpanded ? expandedIslandWidth : collapsedIslandWidth }}
       >
-        {mobileSearchActive ? (
+        {collapsedSearchActive ? (
           <div
             className="atlas-scene-search-results pointer-events-auto absolute bottom-[calc(100%+10px)] left-0 right-0"
             role="listbox"
@@ -226,83 +245,69 @@ export function AtlasDynamicIsland({
               : "0 18px 30px -24px rgba(42,36,25,0.44)",
           }}
         >
-          {isMobileViewport ? (
-            <motion.div
-              initial={false}
-              animate={{
-                opacity: isExpanded ? 0 : 1,
-                pointerEvents: isExpanded ? "none" : "auto",
-              }}
-              transition={islandTransition}
-              className="absolute inset-0"
-            >
-              <div className="relative h-full w-full">
-                <button
-                  type="button"
-                  className="absolute inset-0 flex items-center justify-center px-[88px] text-center"
-                  onClick={() => openIsland()}
-                >
+          {/* Unified collapsed-island layout. Compass on the left, lens
+           * label centered, search field on the right. Same shape on
+           * every viewport so visual identity travels from desktop to
+           * phone without forking. Tapping the centered label opens
+           * the expanded panel; the compass and search field are
+           * stacked above so they receive their own clicks. */}
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: isExpanded ? 0 : 1,
+              pointerEvents: isExpanded ? "none" : "auto",
+            }}
+            transition={islandTransition}
+            className="absolute inset-0"
+          >
+            <div className="relative h-full w-full">
+              <button
+                type="button"
+                className="absolute inset-0 flex flex-col items-center justify-center px-[112px] text-center"
+                onClick={() => openIsland()}
+                aria-label={
+                  atlasYear !== null
+                    ? `Time travel to ${atlasYear}, open Atlas focus panel`
+                    : "Open Atlas focus panel"
+                }
+              >
+                {atlasYear !== null ? (
+                  <>
+                    <span className="truncate font-mono text-[18px] font-semibold leading-none tracking-[0.04em] text-[color:var(--ctx-ink)]">
+                      {atlasYear}
+                    </span>
+                    <span className="mt-1 truncate font-mono text-[9px] uppercase leading-none tracking-[0.18em] text-[color:var(--ctx-ink-mute)]">
+                      Time travel
+                    </span>
+                  </>
+                ) : (
                   <span className="truncate text-[15px] font-medium leading-none text-[color:var(--ctx-ink)]">
                     {activeLensInfo.label}
                   </span>
-                </button>
+                )}
+              </button>
 
-                <div className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)]">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: lensAccent(activeLens) }}
-                  />
-                </div>
-
-                <label
-                  className="absolute right-3 top-1/2 z-10 flex h-10 w-[104px] -translate-y-1/2 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.36)] px-3 shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
-                  aria-label="Search Flint Atlas places"
-                >
-                  <Search className="h-4 w-4 shrink-0 text-[color:var(--ctx-ink-mute)]" />
-                  <input
-                    value={searchValue}
-                    onChange={(event) => onSearchValueChange(event.target.value)}
-                    suppressHydrationWarning
-                    className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
-                    placeholder=""
-                    type="search"
-                  />
-                </label>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.button
-              type="button"
-              initial={false}
-              animate={{
-                opacity: isExpanded ? 0 : 1,
-                pointerEvents: isExpanded ? "none" : "auto",
-              }}
-              transition={islandTransition}
-              className="absolute inset-0 flex w-full items-center gap-4 px-4 text-left"
-              onClick={() => openIsland()}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)]">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: lensAccent(activeLens) }}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-medium leading-[1.2] text-[color:var(--ctx-ink)]">
-                  {islandTitle}
-                </p>
-                <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                  {islandSubtitle}
-                </p>
-              </div>
-              <SceneFocusIndicator
-                cameraBand={focusCameraBand}
-                detailLevel={focusDetailLevel}
-                hasSelection={selectedPlaceId !== null}
+              <CompassControl
+                bearing={cameraBearing}
+                onReset={onResetCompass}
               />
-            </motion.button>
-          )}
+
+              <label
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-[104px] -translate-y-1/2 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.36)] px-3 shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
+                aria-label="Search Flint Atlas places"
+              >
+                <Search className="h-4 w-4 shrink-0 text-[color:var(--ctx-ink-mute)]" />
+                <input
+                  value={searchValue}
+                  onChange={(event) => onSearchValueChange(event.target.value)}
+                  suppressHydrationWarning
+                  className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
+                  placeholder=""
+                  type="search"
+                />
+              </label>
+            </div>
+          </motion.div>
 
           <motion.div
             initial={false}
@@ -556,6 +561,81 @@ export function AtlasDynamicIsland({
   );
 }
 
+/**
+ * Compass control on the left of the collapsed island. Replaces the
+ * earlier lens-accent dot. The needle rotates counter to the live
+ * MapLibre bearing so its `N` mark always points to true north;
+ * clicking the button asks the parent to ease the map's bearing back
+ * to zero. Falls back to a static needle when no `onReset` callback
+ * is provided so the chrome still reads as a compass even outside
+ * the full map context.
+ */
+function CompassControl({
+  bearing,
+  onReset,
+}: {
+  bearing: number;
+  onReset?: () => void;
+}) {
+  const isInteractive = Boolean(onReset);
+  // Needle rotates inversely so "N" stays true north regardless of
+  // how the map is oriented. Wrap at ±180° so framer doesn't take
+  // the long way around when bearing crosses the seam.
+  const rotation = -bearing;
+  const isAligned = Math.abs(bearing) < 0.5;
+
+  const sharedClass =
+    "absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.46)] shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]";
+
+  const inner = (
+    <>
+      <motion.span
+        initial={false}
+        animate={{ rotate: rotation }}
+        transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.32 }}
+        className="flex h-full w-full items-center justify-center"
+        aria-hidden="true"
+      >
+        <Navigation
+          className="h-4 w-4 text-[color:var(--ctx-ink)]"
+          fill="currentColor"
+          strokeWidth={1.4}
+        />
+      </motion.span>
+      <span className="sr-only">
+        {isAligned
+          ? "Compass aligned to north"
+          : `Compass at ${Math.round(((bearing % 360) + 360) % 360)}°, click to reset to north`}
+      </span>
+    </>
+  );
+
+  if (!isInteractive) {
+    return (
+      <div className={sharedClass} aria-label="Compass">
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={sharedClass}
+      onClick={(event) => {
+        // Don't bubble — the centered label button covers the rest
+        // of the island and would otherwise also fire.
+        event.stopPropagation();
+        onReset?.();
+      }}
+      aria-label="Reset map bearing to north"
+      data-aligned={isAligned ? "true" : "false"}
+    >
+      {inner}
+    </button>
+  );
+}
+
 function MetaPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] px-3 py-2">
@@ -640,18 +720,6 @@ function focusBandLabel(cameraBand: AtlasSceneCameraBand): string {
     mid: "mid band",
     near: "near band",
   }[cameraBand];
-}
-
-function lensAccent(lens: AtlasLensId): string {
-  return (
-    {
-      explore: "#2f7f78",
-      memory: "#c14a2c",
-      safety: "#9d5e26",
-      interventions: "#5c6aa0",
-      evidence: "#6a63a8",
-    }[lens] ?? "#2a2419"
-  );
 }
 
 function horizonBadge(name: string): string {

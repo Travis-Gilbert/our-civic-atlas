@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { fetchTheseusOrFallback } from "@/lib/api/theseusClient";
 import manifest from "@/data/open-flint-atlas/fixtures/read-model/build-manifest.json";
 import metrics from "@/data/open-flint-atlas/fixtures/read-model/metrics.json";
 import places from "@/data/open-flint-atlas/fixtures/read-model/places.json";
@@ -453,7 +454,10 @@ export async function GET(request: Request, { params }: RouteContext) {
   const searchParams = getSearchParams(request);
   const staticPackage = getStaticAtlasPackage();
 
-  if (!segment || segment === "manifest") return json(manifest);
+  if (!segment || segment === "manifest") {
+    const { data } = await fetchTheseusOrFallback("manifest", () => manifest);
+    return json(data);
+  }
   if (segment === "well-known" && id === "our-civic-atlas.json") {
     return json(staticPackage.discoveryManifest);
   }
@@ -509,8 +513,18 @@ export async function GET(request: Request, { params }: RouteContext) {
       },
     });
   }
-  if (segment === "sources") return json(sources);
-  if (segment === "places" && !id) return json(places);
+  if (segment === "sources") {
+    const { data } = await fetchTheseusOrFallback("sources", () => sources);
+    return json(data);
+  }
+  if (segment === "places" && !id) {
+    const qs = searchParams.toString();
+    const { data } = await fetchTheseusOrFallback(
+      qs ? `places?${qs}` : "places",
+      () => places,
+    );
+    return json(data);
+  }
 
   if (segment === "places" && id) {
     const place = placeById(decodeURIComponent(id));
@@ -532,10 +546,24 @@ export async function GET(request: Request, { params }: RouteContext) {
   }
 
   if (segment === "signals" && (!id || id === "telemetry" || id === "stream")) {
-    if (id === "telemetry") return json(signalTelemetry(allSignals()));
-    const payload = signalsPayload(searchParams);
-    if (id === "stream") return signalStream(payload.signals);
-    return json(payload);
+    if (id === "telemetry") {
+      const { data } = await fetchTheseusOrFallback(
+        "signals/telemetry",
+        () => signalTelemetry(allSignals()),
+      );
+      return json(data);
+    }
+    const qs = searchParams.toString();
+    const { data } = await fetchTheseusOrFallback(
+      qs ? `signals?${qs}` : "signals",
+      () => signalsPayload(searchParams),
+    );
+    if (id === "stream") {
+      const signalsForStream =
+        (data as { signals?: AtlasSignal[] }).signals ?? [];
+      return signalStream(signalsForStream);
+    }
+    return json(data);
   }
 
   if (segment === "signals" && id) {
@@ -545,8 +573,22 @@ export async function GET(request: Request, { params }: RouteContext) {
     return json(signal);
   }
 
-  if (segment === "provenance") return json(provenancePayload(searchParams));
-  if (segment === "search") return json(searchPayload(searchParams));
+  if (segment === "provenance") {
+    const qs = searchParams.toString();
+    const { data } = await fetchTheseusOrFallback(
+      qs ? `provenance?${qs}` : "provenance",
+      () => provenancePayload(searchParams),
+    );
+    return json(data);
+  }
+  if (segment === "search") {
+    const qs = searchParams.toString();
+    const { data } = await fetchTheseusOrFallback(
+      qs ? `search?${qs}` : "search",
+      () => searchPayload(searchParams),
+    );
+    return json(data);
+  }
 
   if (segment === "capture" && id === "sources") {
     const captureSources = (sourceRegistry as { sources: JsonRecord[] }).sources.map((source) => ({

@@ -1,0 +1,13 @@
+query AtlasManifest {
+  manifest {
+    atlasId
+    builtAt
+    schemaVersion
+    placeCount
+    sourceCount
+    signalCount
+    metricCount
+    historicalReconstructionCount
+    privacyNotes
+  }
+}

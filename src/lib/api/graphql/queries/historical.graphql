@@ -1,0 +1,65 @@
+query HistoricalReconstructionsAt(
+  $bbox: BboxInput!
+  $year: Int
+  $minConfidence: Float = 0.0
+) {
+  historicalReconstructions(
+    bbox: $bbox
+    year: $year
+    minConfidence: $minConfidence
+  ) {
+    id
+    civicObjectId
+    name
+    description
+    position
+    footprint {
+      widthMeters
+      depthMeters
+    }
+    heightMeters
+    bearingDegrees
+    confidence
+    timeStart
+    timeEnd
+    geometryUrl
+    geometryFormat
+    foundryAssetUrl
+    sources {
+      id
+      name
+      trustTier
+    }
+  }
+}
+
+query HistoricalReconstructionById($id: ID!) {
+  historicalReconstruction(id: $id) {
+    id
+    civicObjectId
+    name
+    description
+    position
+    footprint {
+      widthMeters
+      depthMeters
+    }
+    heightMeters
+    bearingDegrees
+    confidence
+    timeStart
+    timeEnd
+    geometryUrl
+    geometryFormat
+    foundryAssetUrl
+    sources {
+      id
+      name
+      homepageUrl
+      sourceType
+      trustTier
+      lastChecked
+      knownLimits
+    }
+  }
+}

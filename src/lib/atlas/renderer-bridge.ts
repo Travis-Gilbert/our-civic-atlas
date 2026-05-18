@@ -3,7 +3,9 @@ export type AtlasRendererMode = "baseline" | "scene";
 export type AtlasAnalyticalLayerId =
   | "atlas-places"
   | "atlas-selected"
-  | "atlas-events";
+  | "atlas-events"
+  | "atlas-osm-buildings"
+  | "atlas-lost-flint";
 
 export type AtlasRendererBridge = {
   mode: AtlasRendererMode;
@@ -18,6 +20,8 @@ export const ATLAS_DECK_LAYER_IDS = {
   places: "atlas-places",
   selected: "atlas-selected",
   events: "atlas-events",
+  osmBuildings: "atlas-osm-buildings",
+  lostFlint: "atlas-lost-flint",
 } as const satisfies Record<string, AtlasAnalyticalLayerId>;
 
 export const ATLAS_RENDERER_BRIDGES = {

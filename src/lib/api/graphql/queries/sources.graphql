@@ -1,0 +1,30 @@
+query SourcesList(
+  $sourceTypes: [SourceType!]
+  $minTrustTier: TrustTier
+) {
+  sources(sourceTypes: $sourceTypes, minTrustTier: $minTrustTier) {
+    id
+    name
+    homepageUrl
+    sourceType
+    publicUseTerms
+    trustTier
+    lastChecked
+    knownLimits
+    containsPersonalData
+  }
+}
+
+query SourceById($id: ID!) {
+  source(id: $id) {
+    id
+    name
+    homepageUrl
+    sourceType
+    publicUseTerms
+    trustTier
+    lastChecked
+    knownLimits
+    containsPersonalData
+  }
+}

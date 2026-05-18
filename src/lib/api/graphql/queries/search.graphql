@@ -1,0 +1,72 @@
+query SearchAtlas(
+  $query: String!
+  $bbox: BboxInput
+  $timeRange: TimeRangeInput
+  $minConfidence: Float = 0.6
+  $limit: Int = 25
+) {
+  searchAtlas(
+    query: $query
+    bbox: $bbox
+    timeRange: $timeRange
+    minConfidence: $minConfidence
+    limit: $limit
+  ) {
+    query
+    totalResultCount
+    reranked
+    acceptedConfidenceFloor
+    inferredTimeRange {
+      start
+      end
+      label
+    }
+    places {
+      id
+      name
+      placeType
+      centroid
+      confidence
+      temporalStatus
+    }
+    signals {
+      id
+      signalKind
+      title
+      summary
+      publishedAt
+      relativeTimeLabel
+      confidence
+      place {
+        id
+        name
+      }
+    }
+    events {
+      id
+      title
+      summary
+      occurredAt
+      confidence
+      place {
+        id
+        name
+      }
+    }
+    historicalReconstructions {
+      id
+      name
+      description
+      position
+      confidence
+      timeStart
+      timeEnd
+    }
+    sources {
+      id
+      name
+      sourceType
+      trustTier
+    }
+  }
+}

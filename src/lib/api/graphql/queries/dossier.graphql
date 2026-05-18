@@ -1,0 +1,83 @@
+query DossierFor($placeId: ID!) {
+  dossierFor(placeId: $placeId) {
+    place {
+      id
+      name
+      placeType
+      geometry
+      centroid
+      confidence
+      temporalStatus
+      reviewStatus
+      lastUpdated
+      description
+    }
+    description
+    confidence
+    confidenceExplanation
+    events {
+      id
+      eventType
+      title
+      summary
+      occurredAt
+      confidence
+      reviewStatus
+    }
+    signals {
+      id
+      signalKind
+      title
+      summary
+      publishedAt
+      relativeTimeLabel
+      confidence
+      visibilityLevel
+      warningCopy
+    }
+    historicalReconstructions {
+      id
+      civicObjectId
+      name
+      description
+      position
+      footprint {
+        widthMeters
+        depthMeters
+      }
+      heightMeters
+      bearingDegrees
+      confidence
+      timeStart
+      timeEnd
+      geometryUrl
+      geometryFormat
+      foundryAssetUrl
+    }
+    sources {
+      id
+      name
+      homepageUrl
+      sourceType
+      trustTier
+      lastChecked
+      knownLimits
+    }
+    metrics {
+      id
+      key
+      label
+      value
+      stringValue
+      unit
+      observedAt
+      caveat
+    }
+    relatedPlaces {
+      id
+      name
+      placeType
+      centroid
+    }
+  }
+}

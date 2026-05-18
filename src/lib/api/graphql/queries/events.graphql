@@ -1,0 +1,37 @@
+query SpatialEventsList(
+  $bbox: BboxInput
+  $timeRange: TimeRangeInput
+  $eventTypes: [String!]
+  $limit: Int = 100
+) {
+  spatialEvents(
+    bbox: $bbox
+    timeRange: $timeRange
+    eventTypes: $eventTypes
+    limit: $limit
+  ) {
+    id
+    eventType
+    title
+    summary
+    occurredAt
+    occurredRange {
+      start
+      end
+      label
+    }
+    confidence
+    reviewStatus
+    geometry
+    place {
+      id
+      name
+      centroid
+    }
+    sources {
+      id
+      name
+      trustTier
+    }
+  }
+}

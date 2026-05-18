@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lost Flint — Carriage Town, 1925 (mockup)</title>
+  <style>
+    :root {
+      /* Ghost palette */
+      --ghost-highlight: #F2F8F7;
+      --ghost-mid:       #CFE0DC;
+      --ghost-shadow:    #9CC0B8;
+
+      /* Period-faithful palette (industrial-era brick/wood) */
+      --brick-base:      #8b4a32;
+      --brick-light:     #a85d3f;
+      --brick-shadow:    #5d3120;
+      --brick-mortar:    #4a2a1a;
+      --wood-base:       #8a6f4a;
+      --wood-light:      #b08a5e;
+      --wood-shadow:     #5e4a2f;
+      --stone-base:      #c8c0b0;
+      --stone-light:     #ddd5c4;
+      --stone-shadow:    #8e8775;
+      --window-dark:     #2a2f3a;
+
+      /* Scene / chrome */
+      --sky:             #e8ecef;
+      --sky-haze:        #d6dde2;
+      --ground:          #d2cdc1;
+      --street:          #b8b3a7;
+      --street-line:     #cfcabd;
+      --sidewalk:        #c0bbae;
+
+      /* Chrome */
+      --island-bg:       rgba(255,255,255,0.96);
+      --island-border:   rgba(0,0,0,0.08);
+      --island-text:     #18181b;
+      --island-meta:     #52525b;
+      --select-glow:     #c14a2c;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #f4f4f5;
+      color: #18181b;
+      line-height: 1.5;
+    }
+
+    header {
+      max-width: 1280px;
+      margin: 0 auto 24px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .lede {
+      font-size: 15px;
+      color: #52525b;
+      max-width: 760px;
+      margin: 0;
+    }
+    section {
+      max-width: 1280px;
+      margin: 0 auto 32px;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    section h2 {
+      margin: 0 0 4px;
+      font-size: 19px;
+      font-weight: 600;
+    }
+    section p { color: #52525b; margin: 0 0 16px; max-width: 760px; }
+
+    /* ====== The scene stage ====== */
+    .scene-stage {
+      position: relative;
+      width: 100%;
+      max-width: 1232px;
+      aspect-ratio: 1232 / 692;
+      background: var(--sky);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .scene-svg { width: 100%; height: 100%; display: block; }
+
+    /* ====== Dynamic island ====== */
+    .island {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--island-bg);
+      border: 1px solid var(--island-border);
+      border-radius: 22px;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      backdrop-filter: blur(8px);
+      font-size: 14px;
+      min-width: 340px;
+      max-width: 560px;
+    }
+    .island-place {
+      font-weight: 600;
+      color: var(--island-text);
+    }
+    .island-sep {
+      width: 1px;
+      height: 14px;
+      background: var(--island-border);
+    }
+    .island-year {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--island-meta);
+      font-size: 13px;
+    }
+    .island-search {
+      margin-left: auto;
+      color: var(--island-meta);
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    /* ====== Floating label for selected building ====== */
+    .float-label {
+      position: absolute;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--island-border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      pointer-events: none;
+    }
+    .float-label .fl-name { font-weight: 600; }
+    .float-label .fl-meta { color: var(--island-meta); font-size: 11px; }
+
+    /* ====== Time scrubber at the bottom ====== */
+    .scrubber {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 16px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--island-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--island-meta);
+    }
+    .scrubber-track {
+      flex: 1;
+      height: 4px;
+      background: #e4e4e7;
+      border-radius: 2px;
+      position: relative;
+    }
+    .scrubber-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 33%; /* 1925 of (1900-1975 range visible) */
+      background: var(--island-meta);
+      border-radius: 2px;
+      opacity: 0.4;
+    }
+    .scrubber-knob {
+      position: absolute;
+      left: 33%;
+      top: -4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid var(--island-text);
+      transform: translateX(-50%);
+    }
+    .scrubber-tick {
+      position: absolute;
+      top: 6px;
+      width: 1px;
+      height: 6px;
+      background: #a1a1aa;
+    }
+
+    /* ====== Annotations panel ====== */
+    .annotations {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .annot {
+      background: #fafafa;
+      border: 1px solid #e4e4e7;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 13px;
+    }
+    .annot-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .annot-detail { color: #52525b; }
+
+    /* ====== Place page (expanded island) ====== */
+    .place-page {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid var(--island-border);
+      border-radius: 22px;
+      padding: 24px 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    }
+    .pp-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .pp-name {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .pp-meta {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12px;
+      color: var(--island-meta);
+    }
+    .pp-subtitle {
+      color: var(--island-meta);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .pp-summary {
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .pp-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .pp-source-pill {
+      background: #f4f4f5;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #3f3f46;
+    }
+    .pp-source-pill::before {
+      content: "📄  ";
+      font-size: 10px;
+    }
+    .pp-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--island-border);
+      padding-top: 14px;
+    }
+    .pp-confidence {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--island-meta);
+    }
+    .pp-confidence-bar {
+      width: 80px;
+      height: 6px;
+      background: #e4e4e7;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .pp-confidence-fill {
+      width: 60%;
+      height: 100%;
+      background: var(--island-meta);
+    }
+    .pp-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .pp-btn {
+      background: #f4f4f5;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #3f3f46;
+      cursor: pointer;
+    }
+    .pp-btn-primary {
+      background: var(--island-text);
+      color: white;
+      border-color: var(--island-text);
+    }
+
+    footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 12px;
+      color: #71717a;
+      font-size: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Lost Flint — Carriage Town, 1925 (mockup)</h1>
+  <p class="lede">
+    First-frame mockup of the Lost Flint scene. Oblique camera over Carriage
+    Town, three reconstructed buildings rendered with the porcelain mix from
+    Visual Grammar v1. Each building's faithful-vs-porcelain ratio reflects
+    a different confidence level. Dynamic island at top shows the place and
+    year. Time scrubber at bottom for moving between eras.
+  </p>
+</header>
+
+<!-- ============================================================== -->
+<!-- 1. The scene stage                                              -->
+<!-- ============================================================== -->
+<section>
+  <h2>Scene</h2>
+  <p>
+    A small block on what is now W. 2nd Street. Left: a two-story commercial
+    block (high confidence — well-documented in city directories and a 1922
+    Sanborn map). Right: a residential bungalow (medium confidence — single
+    archival photo, neighborhood pattern inference). Center-back: an
+    industrial outbuilding (low confidence — appears in two background
+    photographs but never directly documented). Selected building is the
+    commercial block.
+  </p>
+
+  <div class="scene-stage">
+
+    <!-- ================= MAIN SVG: SCENE ================= -->
+    <svg class="scene-svg" viewBox="0 0 1232 692" preserveAspectRatio="xMidYMid slice" id="scene-svg"></svg>
+
+    <!-- ================= DYNAMIC ISLAND ================= -->
+    <div class="island">
+      <div class="island-place">Carriage Town</div>
+      <div class="island-sep"></div>
+      <div class="island-year">1925</div>
+      <div class="island-search">⌘K · search or type a year</div>
+    </div>
+
+    <!-- ================= FLOATING LABEL on selected building ================= -->
+    <div class="float-label" style="left: 23%; top: 38%;">
+      <div class="fl-name">Hubbard &amp; Co. Drug Store</div>
+      <div class="fl-meta">1898–1971 · commercial</div>
+    </div>
+
+    <!-- ================= TIME SCRUBBER ================= -->
+    <div class="scrubber">
+      <div>1900</div>
+      <div class="scrubber-track">
+        <div class="scrubber-progress"></div>
+        <div class="scrubber-tick" style="left: 0%;"></div>
+        <div class="scrubber-tick" style="left: 13.3%;"></div>
+        <div class="scrubber-tick" style="left: 26.6%;"></div>
+        <div class="scrubber-tick" style="left: 40%;"></div>
+        <div class="scrubber-tick" style="left: 53.3%;"></div>
+        <div class="scrubber-tick" style="left: 66.6%;"></div>
+        <div class="scrubber-tick" style="left: 80%;"></div>
+        <div class="scrubber-tick" style="left: 93.3%;"></div>
+        <div class="scrubber-knob"></div>
+      </div>
+      <div>2026 (now)</div>
+    </div>
+
+  </div>
+
+  <div class="annotations">
+    <div class="annot">
+      <div class="annot-title">Porcelain mix at 3 confidences</div>
+      <div class="annot-detail">
+        Left building ~85% confidence (mostly faithful brick),
+        right bungalow ~60% (about a third porcelain),
+        back industrial ~30% (predominantly porcelain).
+      </div>
+    </div>
+    <div class="annot">
+      <div class="annot-title">Selected state</div>
+      <div class="annot-detail">
+        The drug store has a subtle warm-orange glow ring + floating
+        label. Same selection treatment as in the current
+        <code>three-materials.ts</code> (<code>--select-glow</code>
+        <code>#c14a2c</code>).
+      </div>
+    </div>
+    <div class="annot">
+      <div class="annot-title">Chrome budget</div>
+      <div class="annot-detail">
+        Only the island (top) and time scrubber (bottom). No side panel,
+        no top toolbar. Tap the island to expand into the place page
+        (sketched below). Map / zoom / layer controls are out-of-frame
+        in a corner.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- 2. The expanded island (place page) for the selected building   -->
+<!-- ============================================================== -->
+<section>
+  <h2>Expanded island — place page for Hubbard &amp; Co. Drug Store</h2>
+  <p>
+    What the island expands into when you tap a reconstructed building.
+    No "evidence" / "provenance" / "epistemic" jargon. Confidence shown
+    as a subtle bar (the building scores 60–90%, see Visual Grammar v1).
+  </p>
+
+  <div class="place-page">
+    <div class="pp-header">
+      <div class="pp-name">Hubbard &amp; Co. Drug Store</div>
+      <div class="pp-meta">1898 – 1971</div>
+    </div>
+    <div class="pp-subtitle">Two-story commercial block · W. 2nd St. · Carriage Town</div>
+
+    <div class="pp-summary">
+      Built in 1898 by John Hubbard, the building anchored the corner of
+      W. 2nd and Detroit Street through the auto-industry boom. Razed in
+      1971 during the I-475 corridor clearance. The pressed-tin cornice
+      and Renaissance Revival storefront were rare survivals of the
+      pre-Buick commercial landscape.
+    </div>
+
+    <div class="pp-sources">
+      <div class="pp-source-pill">1922 Sanborn map · sheet 14</div>
+      <div class="pp-source-pill">Flint city directory 1908</div>
+      <div class="pp-source-pill">Genesee Hist. Society photo (1932)</div>
+      <div class="pp-source-pill">Detroit News (1971)</div>
+    </div>
+
+    <div class="pp-footer">
+      <div class="pp-confidence">
+        <span>Confidence</span>
+        <div class="pp-confidence-bar">
+          <div class="pp-confidence-fill"></div>
+        </div>
+        <span>60%</span>
+      </div>
+      <div class="pp-actions">
+        <button class="pp-btn">Jump to 1971</button>
+        <button class="pp-btn pp-btn-primary">See it now</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Mockup only. SVG-based stand-in for the eventual Brush splat + R3F
+  rendering. Mirrors Visual Grammar v1 tokens.
+</footer>
+
+<script>
+  // Safe DOM SVG construction — no innerHTML.
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  function el(tag, attrs, parent) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) node.setAttribute(k, String(attrs[k]));
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  function mulberry32(seed) {
+    return function () {
+      let t = (seed += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function shuffled(count, seed) {
+    const a = Array.from({ length: count }, (_, i) => i);
+    const rng = mulberry32(seed);
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  /**
+   * Draw a faithful-or-porcelain brick wall in an oblique projection.
+   * The "front" face uses warm brick or porcelain mix based on confidence.
+   * Each brick is independent.
+   */
+  function drawBrickFront(parent, x0, y0, width, height, confidence, seed) {
+    const COL = Math.max(2, Math.round(width / 22));
+    const ROW = Math.max(2, Math.round(height / 12));
+    const bw = width / COL;
+    const bh = height / ROW;
+    const total = COL * ROW;
+    const tealCount = Math.round((1 - confidence) * total);
+    const tealSet = new Set(shuffled(total, seed).slice(0, tealCount));
+
+    for (let r = 0; r < ROW; r++) {
+      for (let c = 0; c < COL; c++) {
+        const idx = r * COL + c;
+        const x = x0 + c * bw;
+        const y = y0 + r * bh;
+        const isTeal = tealSet.has(idx);
+        if (isTeal) {
+          el("rect", {
+            x, y, width: bw, height: bh,
+            fill: "#CFE0DC", stroke: "#9CC0B8", "stroke-width": 0.4,
+          }, parent);
+          el("rect", {
+            x, y, width: bw, height: Math.max(0.8, bh * 0.18),
+            fill: "#F2F8F7", opacity: 0.75,
+          }, parent);
+        } else {
+          el("rect", {
+            x, y, width: bw, height: bh,
+            fill: "#8b4a32", stroke: "#5d3120", "stroke-width": 0.4,
+          }, parent);
+          el("rect", {
+            x, y, width: bw, height: Math.max(0.8, bh * 0.18),
+            fill: "#a85d3f", opacity: 0.45,
+          }, parent);
+        }
+      }
+    }
+  }
+
+  /**
+   * Draw a side face (oblique parallelogram), darker than the front
+   * to simulate light coming from upper-left. Uses the same porcelain
+   * scatter logic but with darker brick / deeper porcelain shadow.
+   */
+  function drawBrickSide(parent, points, confidence, seed) {
+    // Approximate side surface with a filled polygon, then overlay a
+    // simple vertical brick-line pattern. Cheaper than per-brick on the
+    // side face; reads correctly at this resolution.
+    el("polygon", { points, fill: "#5d3120" }, parent);
+    // Wash with a slight cool teal-shadow when low confidence to keep
+    // visual coherence with the porcelain-heavy side.
+    if (confidence < 0.5) {
+      el("polygon", { points, fill: "#9CC0B8", opacity: 0.4 }, parent);
+    } else if (confidence < 0.8) {
+      el("polygon", { points, fill: "#9CC0B8", opacity: 0.18 }, parent);
+    }
+  }
+
+  function drawBuildingCommercial(svg, ox, oy, scale, confidence, seed) {
+    // Two-story commercial block. Front face is brick wall.
+    // Oblique: front face flat, side face skewed to upper-right.
+    const W = 220 * scale;
+    const H = 230 * scale;
+    const D = 80 * scale; // side depth
+
+    // Cast shadow on ground
+    const shadowPts = `
+      ${ox + D},${oy + H + 4}
+      ${ox + W + D + 30},${oy + H + 4}
+      ${ox + W + D + 60},${oy + H + 24}
+      ${ox + 30},${oy + H + 24}
+    `;
+    el("polygon", { points: shadowPts, fill: "#000", opacity: 0.12 }, svg);
+
+    // Side face (deeper, to the right)
+    const sidePts = `
+      ${ox + W},${oy}
+      ${ox + W + D},${oy - D * 0.6}
+      ${ox + W + D},${oy + H - D * 0.6}
+      ${ox + W},${oy + H}
+    `;
+    drawBrickSide(svg, sidePts, confidence, seed + 1);
+
+    // Roof (parapet flat top, slight ledge)
+    const roofPts = `
+      ${ox},${oy}
+      ${ox + W},${oy}
+      ${ox + W + D},${oy - D * 0.6}
+      ${ox + D},${oy - D * 0.6}
+    `;
+    el("polygon", { points: roofPts, fill: "#7a7066", stroke: "#5d544d" }, svg);
+    // Roof porcelain treatment if applicable
+    if (confidence < 0.6) {
+      el("polygon", { points: roofPts, fill: "#CFE0DC", opacity: 0.55 }, svg);
+    }
+
+    // Front face — brick wall with windows
+    drawBrickFront(svg, ox, oy, W, H, confidence, seed);
+
+    // Cornice line (architectural detail)
+    el("rect", { x: ox - 3, y: oy + 5, width: W + 6, height: 6,
+                 fill: "#3a2520", opacity: 0.85 }, svg);
+
+    // Windows: 2 rows of 3 windows
+    const winRows = 2;
+    const winCols = 3;
+    const winW = W * 0.18;
+    const winH = H * 0.22;
+    const tealWindows = Math.min(winRows * winCols,
+      Math.round((1 - confidence) * winRows * winCols));
+    const winTealSet = new Set(shuffled(winRows * winCols, seed + 7).slice(0, tealWindows));
+    for (let wr = 0; wr < winRows; wr++) {
+      for (let wc = 0; wc < winCols; wc++) {
+        const wx = ox + (W * 0.12) + wc * (W * 0.26);
+        const wy = oy + 28 + wr * (H * 0.4);
+        const isTeal = winTealSet.has(wr * winCols + wc);
+        if (isTeal) {
+          el("rect", { x: wx, y: wy, width: winW, height: winH,
+                       fill: "#CFE0DC", stroke: "#9CC0B8", "stroke-width": 0.8 }, svg);
+          el("rect", { x: wx, y: wy, width: winW, height: 2,
+                       fill: "#F2F8F7", opacity: 0.75 }, svg);
+        } else {
+          el("rect", { x: wx, y: wy, width: winW, height: winH,
+                       fill: "#2a2f3a", stroke: "#5d3120", "stroke-width": 0.8 }, svg);
+          el("rect", { x: wx, y: wy + 1, width: winW, height: 1.5,
+                       fill: "#5d3120" }, svg);
+        }
+      }
+    }
+
+    // Ground-floor storefront: tall windows + door
+    el("rect", { x: ox + 8, y: oy + H * 0.7, width: W * 0.3, height: H * 0.28,
+                 fill: "#2a2f3a", stroke: "#5d3120" }, svg);
+    el("rect", { x: ox + 8 + W * 0.34, y: oy + H * 0.7, width: W * 0.3, height: H * 0.28,
+                 fill: "#2a2f3a", stroke: "#5d3120" }, svg);
+    el("rect", { x: ox + 8 + W * 0.68, y: oy + H * 0.78, width: W * 0.22, height: H * 0.2,
+                 fill: "#3a2a1a", stroke: "#5d3120" }, svg);
+  }
+
+  function drawBuildingBungalow(svg, ox, oy, scale, confidence, seed) {
+    // Single-story residential bungalow with pitched roof.
+    const W = 160 * scale;
+    const H = 120 * scale;
+    const D = 60 * scale;
+
+    // Shadow
+    const shadowPts = `
+      ${ox + D},${oy + H + 4}
+      ${ox + W + D + 20},${oy + H + 4}
+      ${ox + W + D + 40},${oy + H + 22}
+      ${ox + 20},${oy + H + 22}
+    `;
+    el("polygon", { points: shadowPts, fill: "#000", opacity: 0.1 }, svg);
+
+    // Side face
+    const sidePts = `
+      ${ox + W},${oy}
+      ${ox + W + D},${oy - D * 0.6}
+      ${ox + W + D},${oy + H - D * 0.6}
+      ${ox + W},${oy + H}
+    `;
+    drawBrickSide(svg, sidePts, confidence, seed + 2);
+
+    // Pitched roof — triangular front gable
+    const peakX = ox + W / 2;
+    const peakY = oy - H * 0.4;
+    const roofFrontPts = `${ox - 5},${oy + 4} ${peakX},${peakY} ${ox + W + 5},${oy + 4}`;
+    if (confidence < 0.6) {
+      el("polygon", { points: roofFrontPts, fill: "#CFE0DC", stroke: "#9CC0B8" }, svg);
+      el("polygon", { points: `${ox - 5},${oy + 4} ${peakX},${peakY} ${peakX},${peakY + (oy - peakY) * 0.5}`,
+                       fill: "#F2F8F7", opacity: 0.6 }, svg);
+    } else {
+      el("polygon", { points: roofFrontPts, fill: "#5d3120", stroke: "#3a1d10" }, svg);
+      el("polygon", { points: `${ox - 5},${oy + 4} ${peakX},${peakY} ${peakX},${peakY + (oy - peakY) * 0.5}`,
+                       fill: "#a85d3f", opacity: 0.4 }, svg);
+    }
+
+    // Roof side (oblique)
+    const roofSidePts = `${peakX},${peakY} ${ox + W + 5},${oy + 4} ${ox + W + D + 5},${oy - D * 0.6 + 4} ${peakX + D},${peakY - D * 0.6}`;
+    el("polygon", { points: roofSidePts,
+                     fill: confidence < 0.6 ? "#9CC0B8" : "#3a1d10" }, svg);
+
+    // Front wall - use wood-siding-style with brick scatter
+    // For variety, draw as horizontal lap siding rather than bricks.
+    const SIDING_ROWS = Math.round(H / 14);
+    const tealRows = Math.round((1 - confidence) * SIDING_ROWS);
+    const tealRowSet = new Set(shuffled(SIDING_ROWS, seed).slice(0, tealRows));
+    const rowH = H / SIDING_ROWS;
+    for (let r = 0; r < SIDING_ROWS; r++) {
+      const isTeal = tealRowSet.has(r);
+      el("rect", {
+        x: ox, y: oy + r * rowH, width: W, height: rowH,
+        fill: isTeal ? "#CFE0DC" : "#8a6f4a",
+        stroke: isTeal ? "#9CC0B8" : "#5e4a2f",
+        "stroke-width": 0.5,
+      }, svg);
+      el("rect", {
+        x: ox, y: oy + r * rowH, width: W, height: 1.5,
+        fill: isTeal ? "#F2F8F7" : "#b08a5e",
+        opacity: 0.55,
+      }, svg);
+    }
+
+    // Porch / front door
+    el("rect", { x: ox + W * 0.4, y: oy + H * 0.55, width: W * 0.2, height: H * 0.45,
+                 fill: confidence < 0.5 ? "#9CC0B8" : "#3a2a1a", stroke: "#5d3120" }, svg);
+    // Windows flanking door
+    el("rect", { x: ox + W * 0.1, y: oy + H * 0.35, width: W * 0.22, height: H * 0.32,
+                 fill: confidence < 0.7 ? "#9CC0B8" : "#2a2f3a", stroke: "#5d3120" }, svg);
+    el("rect", { x: ox + W * 0.68, y: oy + H * 0.35, width: W * 0.22, height: H * 0.32,
+                 fill: confidence < 0.7 ? "#9CC0B8" : "#2a2f3a", stroke: "#5d3120" }, svg);
+  }
+
+  function drawBuildingIndustrial(svg, ox, oy, scale, confidence, seed) {
+    // Large industrial outbuilding — wide, lower, sawtooth roof.
+    const W = 320 * scale;
+    const H = 170 * scale;
+    const D = 100 * scale;
+
+    // Shadow
+    const shadowPts = `
+      ${ox + D},${oy + H + 6}
+      ${ox + W + D + 30},${oy + H + 6}
+      ${ox + W + D + 60},${oy + H + 30}
+      ${ox + 30},${oy + H + 30}
+    `;
+    el("polygon", { points: shadowPts, fill: "#000", opacity: 0.13 }, svg);
+
+    // Side face
+    const sidePts = `
+      ${ox + W},${oy}
+      ${ox + W + D},${oy - D * 0.5}
+      ${ox + W + D},${oy + H - D * 0.5}
+      ${ox + W},${oy + H}
+    `;
+    drawBrickSide(svg, sidePts, confidence, seed + 3);
+
+    // Sawtooth roof — 4 peaks
+    const NUM_SAWS = 4;
+    const sawW = (W + D) / NUM_SAWS;
+    for (let i = 0; i < NUM_SAWS; i++) {
+      const x1 = ox + i * sawW;
+      const x2 = ox + (i + 1) * sawW;
+      const peakY = oy - 30 * scale;
+      // Each sawtooth: triangle facing up
+      const pts = `${x1},${oy} ${x1 + sawW * 0.4},${peakY} ${x1 + sawW},${oy}`;
+      el("polygon", { points: pts,
+                       fill: confidence < 0.6 ? "#CFE0DC" : "#5d3120",
+                       stroke: confidence < 0.6 ? "#9CC0B8" : "#3a1d10",
+                       "stroke-width": 0.5 }, svg);
+      // Skylight glass (always darker, slightly visible)
+      const glassPts = `${x1 + sawW * 0.4},${peakY} ${x1 + sawW},${oy} ${x1 + sawW * 0.6},${oy - 4}`;
+      el("polygon", { points: glassPts,
+                       fill: confidence < 0.5 ? "#9CC0B8" : "#2a2f3a",
+                       opacity: 0.7 }, svg);
+    }
+
+    // Brick front face (or porcelain mix)
+    drawBrickFront(svg, ox, oy, W, H, confidence, seed);
+
+    // Large industrial windows
+    const winCols = 6;
+    const winW = W * 0.11;
+    const winH = H * 0.5;
+    const tealWindows = Math.min(winCols, Math.round((1 - confidence) * winCols));
+    const winSet = new Set(shuffled(winCols, seed + 11).slice(0, tealWindows));
+    for (let c = 0; c < winCols; c++) {
+      const wx = ox + W * 0.05 + c * (W * 0.155);
+      const wy = oy + H * 0.25;
+      const isTeal = winSet.has(c);
+      el("rect", {
+        x: wx, y: wy, width: winW, height: winH,
+        fill: isTeal ? "#CFE0DC" : "#2a2f3a",
+        stroke: isTeal ? "#9CC0B8" : "#5d3120",
+        "stroke-width": 0.6,
+      }, svg);
+      if (isTeal) {
+        el("rect", { x: wx, y: wy, width: winW, height: 2,
+                     fill: "#F2F8F7", opacity: 0.7 }, svg);
+      }
+    }
+
+    // Large factory door
+    el("rect", {
+      x: ox + W * 0.4, y: oy + H * 0.75, width: W * 0.2, height: H * 0.25,
+      fill: confidence < 0.5 ? "#9CC0B8" : "#3a2a1a",
+      stroke: "#5d3120",
+    }, svg);
+  }
+
+  function drawBasemap(svg) {
+    // Sky gradient
+    const defs = el("defs", {}, svg);
+    const skyGrad = el("linearGradient", { id: "skyGrad", x1: "0%", y1: "0%", x2: "0%", y2: "100%" }, defs);
+    el("stop", { offset: "0%", "stop-color": "#dee4e8" }, skyGrad);
+    el("stop", { offset: "100%", "stop-color": "#e6ecef" }, skyGrad);
+    el("rect", { x: 0, y: 0, width: 1232, height: 380, fill: "url(#skyGrad)" }, svg);
+
+    // Distant haze band
+    el("rect", { x: 0, y: 320, width: 1232, height: 80,
+                 fill: "#d6dde2", opacity: 0.6 }, svg);
+
+    // Ground plane (slight perspective — wider at front)
+    const groundPts = `0,400 1232,400 1232,692 0,692`;
+    el("polygon", { points: groundPts, fill: "#d2cdc1" }, svg);
+
+    // Street — diagonal across the scene
+    const streetPts = `120,420 1120,420 1232,580 0,580`;
+    el("polygon", { points: streetPts, fill: "#b8b3a7" }, svg);
+
+    // Street center dashes
+    const dashY = 500;
+    for (let x = 60; x < 1232; x += 80) {
+      el("line", { x1: x, y1: dashY, x2: x + 40, y2: dashY,
+                    stroke: "#cfcabd", "stroke-width": 2, opacity: 0.6 }, svg);
+    }
+
+    // Sidewalks (lighter strips along the street edges)
+    el("polygon", { points: "100,415 1130,415 1135,440 95,440",
+                     fill: "#c0bbae" }, svg);
+    el("polygon", { points: "-10,580 1232,580 1232,610 -10,610",
+                     fill: "#c0bbae" }, svg);
+
+    // A few pedestrian dots
+    for (let i = 0; i < 6; i++) {
+      const px = 200 + i * 150;
+      const py = 595 + (i % 2) * 8;
+      el("circle", { cx: px, cy: py, r: 3, fill: "#52525b", opacity: 0.5 }, svg);
+    }
+  }
+
+  function drawSelectionGlow(svg, cx, cy, w, h) {
+    // Soft orange selection ring under the building (cast on ground).
+    el("ellipse", {
+      cx: cx, cy: cy, rx: w * 0.55, ry: h * 0.18,
+      fill: "none", stroke: "#c14a2c", "stroke-width": 3,
+      opacity: 0.55,
+    }, svg);
+    el("ellipse", {
+      cx: cx, cy: cy, rx: w * 0.55, ry: h * 0.18,
+      fill: "none", stroke: "#c14a2c", "stroke-width": 8,
+      opacity: 0.15,
+    }, svg);
+  }
+
+  // ====== Compose the scene ======
+  const scene = document.getElementById("scene-svg");
+  drawBasemap(scene);
+
+  // Industrial outbuilding (back-center, low confidence ~0.3)
+  drawBuildingIndustrial(scene, 540, 240, 0.85, 0.3, 17);
+
+  // Two-story commercial block (front-left, high confidence ~0.85) — SELECTED
+  // Drawn after the ground but before the selection glow.
+  drawSelectionGlow(scene, 280, 540, 240, 240);
+  drawBuildingCommercial(scene, 170, 280, 1.0, 0.85, 23);
+
+  // Bungalow (front-right, medium confidence ~0.6)
+  drawBuildingBungalow(scene, 850, 360, 1.0, 0.6, 41);
+</script>
+
+</body>
+</html>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import type { MapRef } from "react-map-gl/maplibre";
 import {
   AtlasSceneChrome,
   type AtlasSceneSearchResult,
@@ -38,7 +39,13 @@ import type {
   AtlasLensId,
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
-import { DEFAULT_VIEW_MODE_BY_LENS } from "@/lib/atlas/scene-view";
+import {
+  ATLAS_CAMERA_BOOKMARK_LOOKUP,
+  ATLAS_SCENE_VIEW_MODE_LOOKUP,
+  DEFAULT_VIEW_MODE_BY_LENS,
+  type AtlasCameraBookmarkId,
+} from "@/lib/atlas/scene-view";
+import { parseAtlasYear } from "@/lib/atlas/atlas-time";
 
 const ProvenancePanel = dynamic(
   () =>
@@ -87,14 +94,16 @@ function initialRendererMode(): AtlasRendererMode {
 function initialMobileSurface(
   defaultSurface: MobileRuntimeSurfaceId,
 ): MobileRuntimeSurfaceId {
+  // The Leaflet path was deleted alongside `MobileAtlasMap` once deck.gl
+  // was promoted to the sole render path. The URL-param escape hatch
+  // here used to switch between Leaflet (`?mobile=leaflet`) and
+  // deck (`?mobile=deck`) for diagnostic comparison; both branches now
+  // resolve to the deck path. The function is preserved for two
+  // reasons: (1) external links carrying `?mobile=...` should not 404,
+  // and (2) reinstating a viewport-specific runtime is a real
+  // possibility (e.g. a small-screen 2D-only mode) and we want the
+  // hook to be here when that decision lands.
   if (typeof window === "undefined") return defaultSurface;
-  const value = new URLSearchParams(window.location.search).get("mobile");
-  if (value === "deck" || value === "deck_mobile_candidate") {
-    return "deck_mobile_candidate";
-  }
-  if (value === "leaflet" || value === "leaflet_baseline") {
-    return "leaflet_baseline";
-  }
   return defaultSurface;
 }
 
@@ -106,7 +115,7 @@ export function OpenFlintAtlasScene(props: {
 }) {
   const {
     initialLens = "explore",
-    preferredMobileSurface = "leaflet_baseline",
+    preferredMobileSurface = "deck_mobile_candidate",
     initialViewMode,
   } = props;
   const router = useRouter();
@@ -130,6 +139,30 @@ export function OpenFlintAtlasScene(props: {
   const [sceneCameraDistance, setSceneCameraDistance] = useState<number | null>(
     null,
   );
+  // Live MapLibre camera bearing for the compass control in the
+  // dynamic island. Initialised from the active view mode preset so
+  // the compass renders correct even before the map's first `move`
+  // event fires. Updated by a `move` listener installed once the
+  // MapLibre instance becomes available.
+  const [cameraBearing, setCameraBearing] = useState<number>(0);
+  const mapRefRef = useRef<MapRef | null>(null);
+  // `?bookmark=carriage-town` (etc.) seeds a one-shot camera fly
+  // after the map is ready. Stored as state so the effect can clear
+  // it once applied — preventing the bookmark from re-firing if the
+  // user manually pans, zooms, or toggles a view mode after arrival.
+  const [pendingBookmark, setPendingBookmark] =
+    useState<AtlasCameraBookmarkId | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+  /**
+   * Tracks the most recently choreographed view mode so the
+   * camera-choreography effect can distinguish initial mount (let
+   * `initialViewState` handle the framing) from a real change made
+   * mid-session by the user clicking a different view chip. Without
+   * this guard the effect would race the bookmark-application
+   * effect on first paint and yank the camera to the view-mode
+   * preset before the bookmark gets to apply.
+   */
+  const lastChoreographedViewModeRef = useRef<string | null>(null);
 
   const [places, setPlaces] = useState<PlacesCollection | null>(null);
   const [events, setEvents] = useState<SpatialEvent[]>([]);
@@ -169,8 +202,109 @@ export function OpenFlintAtlasScene(props: {
 
   useEffect(() => {
     setActiveLens(initialLens);
+    // If the URL carries `?bookmark=<id>`, the bookmark's preferred
+    // view mode wins over the lens's default. The bookmark's camera
+    // is then applied imperatively once the map is ready.
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const bookmarkParam = params.get("bookmark");
+      if (
+        bookmarkParam &&
+        ATLAS_CAMERA_BOOKMARK_LOOKUP[bookmarkParam as AtlasCameraBookmarkId]
+      ) {
+        const bookmark =
+          ATLAS_CAMERA_BOOKMARK_LOOKUP[bookmarkParam as AtlasCameraBookmarkId];
+        setViewMode(bookmark.viewMode);
+        setPendingBookmark(bookmark.id);
+        return;
+      }
+    }
     setViewMode(initialViewMode ?? DEFAULT_VIEW_MODE_BY_LENS[initialLens]);
   }, [initialLens, initialViewMode]);
+
+  /**
+   * Camera choreography for view-mode changes. Lives in the scene
+   * shell (not AtlasMap) so it can coordinate with the bookmark
+   * application below — without this co-location, the choreography
+   * raced `Map.onLoad` and yanked the camera off any pending
+   * bookmark.
+   *
+   * On initial mount we record the active view mode but skip the
+   * ease; the `<Map initialViewState>` prop already framed the
+   * scene, and re-easing to the same coordinates wastes the budget
+   * for vestibular-safety motion. Subsequent mode changes ease (or
+   * jump if `prefers-reduced-motion`) to the new preset.
+   *
+   * The effect also yields immediately if a bookmark is still
+   * pending — that flow owns the camera until it consumes itself.
+   */
+  useEffect(() => {
+    if (!isMapReady) return;
+    if (pendingBookmark) return;
+    const previous = lastChoreographedViewModeRef.current;
+    lastChoreographedViewModeRef.current = viewMode;
+    if (previous === null) {
+      // Initial mount: respect `initialViewState`, do not ease.
+      return;
+    }
+    if (previous === viewMode) return;
+    const map = mapRefRef.current;
+    if (!map) return;
+    const target = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
+    const moveOptions = {
+      center: [target.longitude, target.latitude] as [number, number],
+      zoom: target.zoom,
+      bearing: target.bearing,
+      pitch: target.pitch,
+    };
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reducedMotion) {
+      map.jumpTo(moveOptions);
+    } else {
+      map.easeTo({ ...moveOptions, duration: 900 });
+    }
+  }, [isMapReady, viewMode, pendingBookmark]);
+
+  /**
+   * Apply a pending camera bookmark once the MapLibre instance is
+   * ready. A short delay lets MapLibre paint at least one frame so
+   * the easing animation reads as motion rather than a snap. The
+   * bookmark is one-shot: cleared after the ease begins so any
+   * subsequent view-mode change goes back to the normal preset.
+   */
+  useEffect(() => {
+    if (!pendingBookmark || !isMapReady) return;
+    const bookmark = ATLAS_CAMERA_BOOKMARK_LOOKUP[pendingBookmark];
+    const timer = window.setTimeout(() => {
+      const map = mapRefRef.current;
+      if (!map) return;
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const target = {
+        center: [bookmark.camera.longitude, bookmark.camera.latitude] as [
+          number,
+          number,
+        ],
+        zoom: bookmark.camera.zoom,
+        bearing: bookmark.camera.bearing,
+        pitch: bookmark.camera.pitch,
+      };
+      if (reducedMotion) {
+        map.jumpTo(target);
+      } else {
+        map.easeTo({ ...target, duration: 1200 });
+      }
+      // Mark the bookmark's view mode as already choreographed so
+      // the view-mode effect doesn't run a redundant ease the next
+      // time it fires.
+      lastChoreographedViewModeRef.current = bookmark.viewMode;
+      setPendingBookmark(null);
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [pendingBookmark, isMapReady]);
 
   useEffect(() => {
     setRendererMode(initialRendererMode());
@@ -186,6 +320,51 @@ export function OpenFlintAtlasScene(props: {
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
+  }, []);
+
+  /**
+   * Receive the MapLibre instance from AtlasMap and subscribe to its
+   * `move` event so the compass control in the island can track live
+   * bearing. The ref is reset on view-mode change because AtlasMap
+   * keys the inner `Map` on `viewMode` (forces remount when camera
+   * preset changes drastically). We re-attach the listener on each
+   * fresh instance.
+   */
+  const handleMapReady = useCallback((map: MapRef | null) => {
+    mapRefRef.current = map;
+    setIsMapReady(Boolean(map));
+    if (!map) return;
+    const sync = () => {
+      const next = map.getBearing();
+      setCameraBearing((prev) => (Math.abs(prev - next) < 0.05 ? prev : next));
+    };
+    sync();
+    map.on("move", sync);
+    // Development-only exposure so the compass + camera controls can
+    // be exercised from the preview tool / browser console without
+    // wiring per-test plumbing into the chrome. Stripped out
+    // automatically by Next.js's production build because
+    // `process.env.NODE_ENV` is statically replaced.
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      (window as Window & { __atlasMap?: MapRef }).__atlasMap = map;
+    }
+    // Cleanup happens implicitly when MapLibre's own `Map` unmounts —
+    // the underlying emitter is GC'd. We don't return a cleanup from
+    // useCallback (it's not an effect), so guard against duplicates
+    // by sync-checking before subscribing again. MapLibre's `on`
+    // dedupes identical listener identities, but `sync` is a fresh
+    // closure on each map remount so we're safe.
+  }, []);
+
+  /**
+   * Compass click → return north-up via an animated camera ease.
+   * Skips when no map is mounted or bearing is already ~0.
+   */
+  const handleResetCompass = useCallback(() => {
+    const map = mapRefRef.current;
+    if (!map) return;
+    if (Math.abs(map.getBearing()) < 0.1) return;
+    map.easeTo({ bearing: 0, duration: 600 });
   }, []);
 
   useEffect(() => {
@@ -357,6 +536,11 @@ export function OpenFlintAtlasScene(props: {
   const searchResults = useMemo<AtlasSceneSearchResult[]>(() => {
     const query = searchValue.trim().toLowerCase();
     if (!query || !places) return [];
+    // When the search value is a bare 4-digit year we treat it as a
+    // time-travel trigger, not a place query — suppress the
+    // place-search dropdown so the chrome doesn't compete with the
+    // year filter for the user's attention.
+    if (parseAtlasYear(searchValue) !== null) return [];
 
     return places.features
       .filter((feature) => {
@@ -371,6 +555,14 @@ export function OpenFlintAtlasScene(props: {
         type: feature.properties.place_type.replaceAll("_", " "),
       }));
   }, [places, searchValue]);
+
+  /**
+   * Derive the active atlas year from the search field. `null` means
+   * "today" (default); a parsed year flips every feature layer into
+   * its time-travel filter. The memo means we don't re-parse on
+   * every render — only when the search value actually changes.
+   */
+  const atlasYear = useMemo(() => parseAtlasYear(searchValue), [searchValue]);
 
   const handlePlaceSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
@@ -627,7 +819,9 @@ export function OpenFlintAtlasScene(props: {
               initialBounds={mobileCandidateBounds}
               viewMode={viewMode}
               activeLens={activeLens}
+              atlasYear={atlasYear}
               className="w-full h-full"
+              onMapReady={handleMapReady}
             />
           ) : (
             <AtlasThreeScene
@@ -661,6 +855,9 @@ export function OpenFlintAtlasScene(props: {
             selectedPlaceId={selectedPlaceId}
             focusCameraBand={focusPolicy.cameraDistanceBand}
             focusDetailLevel={focusPolicy.detailLevel}
+            cameraBearing={cameraBearing}
+            onResetCompass={handleResetCompass}
+            atlasYear={atlasYear}
             onClearSelection={() => setSelectedPlaceId(null)}
             dossierContent={
               <PlaceDossierPanel

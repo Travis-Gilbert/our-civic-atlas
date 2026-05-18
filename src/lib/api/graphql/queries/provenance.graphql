@@ -1,0 +1,17 @@
+query Provenance($placeId: ID, $sourceId: ID) {
+  provenanceFor(placeId: $placeId, sourceId: $sourceId) {
+    nodeCount
+    edgeCount
+    nodes {
+      id
+      labels
+      properties
+    }
+    edges {
+      source
+      target
+      edgeType
+      weight
+    }
+  }
+}

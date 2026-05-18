@@ -1,31 +1,28 @@
 "use client";
 
 /**
- * ResponsiveAtlasMap — dispatches between the desktop MapLibre + deck.gl
- * AtlasMap and the mobile Leaflet MobileAtlasMap based on viewport.
+ * ResponsiveAtlasMap — thin viewport-aware wrapper around `AtlasMap`.
  *
- * Behavior:
- *   - `<768px` (Tailwind ``md`` breakpoint): MobileAtlasMap (Leaflet) by
- *     default, or AtlasMap when the deck-backed mobile candidate is enabled.
- *   - `>=768px`: AtlasMap (MapLibre + deck.gl).
- *   - SSR / first paint: renders nothing until viewport is known, to
- *     avoid hydration mismatch between the server (no window) and the
- *     client (which decides at mount time).
+ * Historical note: this component used to dispatch between the desktop
+ * MapLibre + deck.gl `AtlasMap` and a Leaflet `MobileAtlasMap` for
+ * phone-class devices. As of the deck.gl promotion (`mobile-runtime-
+ * profile.json` → `current_status: "promoted"`), `AtlasMap` is the sole
+ * render path across every viewport. The Leaflet `MobileAtlasMap` has
+ * been deleted; this wrapper is retained because:
  *
- * Both branches are dynamic-imported with ``ssr: false`` because:
- *   - AtlasMap imports MapLibre which touches WebGL at module load.
- *   - MobileAtlasMap imports Leaflet which touches ``window`` at module
- *     load.
+ *   1. `AtlasMap` is dynamic-imported (it loads MapLibre / WebGL at
+ *      module evaluation, which must not run server-side).
+ *   2. The pre-hydration empty container prevents layout shift when
+ *      the WebGL canvas mounts.
  *
- * The active branch swap on resize is intentional: rotating a tablet
- * across the breakpoint, or a desktop user dragging the window narrow,
- * will swap implementations. Map state (zoom, pan, selection) does not
- * persist across the swap; that's an acceptable trade-off for a
- * breakpoint that rarely fires in real sessions.
+ * If a future viewport split is reintroduced (for instance: very small
+ * phones get a 2D-only layer set while tablets stay 3D), the routing
+ * logic returns here. Until then, this is a passthrough.
  */
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import type { MapRef } from "react-map-gl/maplibre";
 import type {
   FreshSignal,
   PlacesCollection,
@@ -42,15 +39,6 @@ const AtlasMap = dynamic(
   { ssr: false },
 );
 
-const MobileAtlasMap = dynamic(
-  () => import("./MobileAtlasMap").then((m) => m.MobileAtlasMap),
-  { ssr: false },
-);
-
-/** Tailwind ``md`` breakpoint — same boundary the rest of the atlas
-    uses for hidden / md:block / md:flex / etc. */
-const MOBILE_MAX_WIDTH = 768;
-
 export type ResponsiveAtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
@@ -60,52 +48,32 @@ export type ResponsiveAtlasMapProps = {
   selectedPlaceId: string | null;
   selectedSignalId: string | null;
   layerVisibility: Record<string, boolean>;
+  /**
+   * Kept for backward compatibility with callers that still pass it.
+   * The value is no longer used at runtime — `AtlasMap` is the only
+   * render path.
+   */
   mobileSurface?: MobileRuntimeSurfaceId;
   initialBounds?: [[number, number], [number, number]] | null;
   viewMode?: AtlasSceneViewModeId;
   activeLens?: AtlasLensId;
   className?: string;
+  onMapReady?: (map: MapRef | null) => void;
+  atlasYear?: number | null;
 };
 
-function useIsMobileViewport(): boolean | null {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
-
+function useHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const mql = window.matchMedia(`(max-width: ${MOBILE_MAX_WIDTH - 1}px)`);
-    const update = () => setIsMobile(mql.matches);
-    update();
-
-    if (mql.addEventListener) {
-      mql.addEventListener("change", update);
-      return () => mql.removeEventListener("change", update);
-    }
-
-    // Safari < 14 fallback
-    mql.addListener(update);
-    return () => mql.removeListener(update);
+    setHydrated(true);
   }, []);
-
-  return isMobile;
+  return hydrated;
 }
 
 export function ResponsiveAtlasMap(props: ResponsiveAtlasMapProps) {
-  const isMobile = useIsMobileViewport();
-  const mobileSurface = props.mobileSurface ?? "leaflet_baseline";
-
-  // Before the viewport is known (SSR + initial hydration), render an
-  // empty container at the same size so layout doesn't reflow when the
-  // chosen branch lands.
-  if (isMobile === null) {
+  const hydrated = useHydrated();
+  if (!hydrated) {
     return <div className={props.className} />;
   }
-
-  if (!isMobile) {
-    return <AtlasMap {...props} />;
-  }
-
-  return mobileSurface === "deck_mobile_candidate"
-    ? <AtlasMap {...props} />
-    : <MobileAtlasMap {...props} />;
+  return <AtlasMap {...props} />;
 }
