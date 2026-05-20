@@ -33,7 +33,7 @@ broader intent is cross-repo cleanup; that cross-repo plan follows this
 catchup pass. Backend catch-up belongs in separate sessions against:
 
 - `our-civic-atlas-backend` (Rust workspace, Axum/gRPC)
-- `civic-atlas-ingest` (Modal apps, Blender Scene Foundry, training)
+- `civic-atlas-ingest` (Ray on RunPod; ML training, inference, Blender Scene Foundry; migrating off Modal per 2026-05-20 user correction)
 - `Index-API` Theseus bridge sidecar
 
 Items requiring those repos are listed in section "Out of Scope for This
@@ -57,6 +57,13 @@ themselves are documents in this repo, not code changes in the siblings.
   The catchup plan's remaining items (CU-L1-002 through CU-L1-006 and the
   Lane 3 brainstorms) continue alongside the cross-repo plan; they are not
   superseded.
+- 2026-05-20 (third pass): platform correction. User retired the Modal
+  account and is moving all ML work onto Ray (https://github.com/ray-project/ray)
+  on RunPod. Cross-repo launch plan revised to reflect Ray + RunPod as
+  the target platform; new XRL-B-000 added to migrate `civic-atlas-ingest`
+  off Modal; Pairformer adapter-seam coordination note updated to point
+  at the post-migration paths. Catchup plan's repo description updated
+  in the same revision.
 
 ## Lane 1: Frontend Hygiene (no design gate)
 

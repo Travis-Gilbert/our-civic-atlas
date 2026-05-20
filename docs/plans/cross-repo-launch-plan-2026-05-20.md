@@ -37,6 +37,31 @@ each slice.
   PostGIS table has `tenant_id` with RLS; every RustyRed namespace is
   tenant-scoped.
 
+## Platform Decisions
+
+The 2026-05-20 user correction retired the prior Modal-based ML
+infrastructure. Forward-looking compute and training in this plan target:
+
+| Concern | Platform | Notes |
+|---|---|---|
+| Training cluster | RunPod (GPU pods or pod clusters) | RunPod provides H100, A100, A6000, L40S. SKU choice per XRL item. |
+| Training framework | Ray (`https://github.com/ray-project/ray`) | Ray Train wraps PyTorch / PyG / DGL for distributed GNN training. Ray Tune for hyperparameter search. Ray Data for distributed data loading. |
+| Inference serving | Ray Serve on RunPod | Ray Serve replaces the previous Modal web endpoint pattern. Tenant-scoped routing handled by Ray Serve deployments. |
+| Asset rendering | Ray task with headless Blender on RunPod GPU pod | Replaces the prior "Modal Blender container" pattern. |
+| Data lake | S3-compatible object store | Unchanged. Training corpus, model checkpoints, generated GLBs, scene packets all flow through S3. |
+
+Implications:
+
+- The current `civic-atlas-ingest/modal/` directory is legacy nomenclature.
+  XRL-B-000 below renames it and rewrites the stubs as Ray entrypoints.
+- Existing CLAUDE.md status entries referencing Modal (`Modal NegativeHealthCache`,
+  `theseus-gemma-26b-v2`, etc.) belong to the broader Theseus / Index-API
+  context, not to this civic atlas plan. They are historical facts; this
+  plan does not retroactively edit them.
+- The user's broader migration of ML work onto RunPod + Ray is the
+  source-of-truth decision; if any sibling project still depends on Modal,
+  that's a separate retirement task outside this plan.
+
 ## Goal
 
 A live atlas at `flint.ourcivicatlas.org` where a visitor:
@@ -62,7 +87,7 @@ adapters, and USD live archive publication land post-V1.
 |---|---|
 | `Open-Flint-Atlas-main-release/` (this repo) | Frontend consumer. Lost Flint route, per-part R3F shader, dossier extension, GraphQL client cutover, search-bar year filter, baseline visual evidence. |
 | `our-civic-atlas-backend/` | Rust workspace. Proto rename + OpeningOverride addition, Scene Foundry orchestration (render_jobs outbox), Spacetime + Reconstruction service implementations, projection from PostGIS to RustyRed. |
-| `civic-atlas-ingest/` | Modal apps. Pairformer architecture with adapter seams, training corpus ingestion, training pipeline, inference endpoint, Blender Scene Foundry archetypes (8 .blend files), GLB render Modal app. |
+| `civic-atlas-ingest/` | Ray entrypoints on RunPod. Pairformer architecture with adapter seams, training corpus ingestion, training pipeline (Ray Train), inference endpoint (Ray Serve), Blender Scene Foundry archetypes (8 .blend files), GLB render Ray task. Legacy `modal/` directory renamed in XRL-B-000. |
 | `Index-API/` | Theseus bridge sidecar. Mostly passive in this plan; ingestion path queries for IngestArtifact. |
 
 Coordination model: this repo owns the cross-repo plan as a document. The
@@ -130,15 +155,17 @@ Phase A deferrals (surfaced individually):
 
 ## Phase B: Pairformer V1
 
-Owner: `civic-atlas-ingest`. The procedural algorithm itself.
+Owner: `civic-atlas-ingest`. The procedural algorithm itself. All Phase B
+items run on Ray on RunPod per the Platform Decisions section above.
 
 | ID | Task | Owner | Acceptance | Validator | Dependencies |
 |---|---|---|---|---|---|
-| XRL-B-001 | Pairformer architecture with adapter seams. Land the three seams from `pairformer-adapter-seams.md`: separable `PairUpdate` block, separable `ConfidenceHead` block, `tenant_context` parameter on the input encoder and output heads. | `civic-atlas-ingest` | Module layout matches the coordination note's acceptance criteria. Unit test confirms `tenant_context="flint"` and `tenant_context="_base"` produce the same output today (adapter dispatch is a no-op at V1). Checkpoint format records the tenant context. | `pytest`, smoke test on a synthetic 5-node graph. | XRL-A-002. |
-| XRL-B-002 | Training corpus ingestion for the Flint tenant. Existing stubs at `modal/ingest_overpass.py`, `modal/ingest_sanborn.py`, `modal/ingest_assessor.py` become real. Output: typed training graphs with per-part labels, archetype labels, and coverage_quality lanes. | `civic-atlas-ingest` | Each ingest Modal app runs end-to-end against the named source (Overpass, Mapwarper Sanborn, Genesee County assessor). Output to `s3://civic-atlas/training/flint/<source>/<date>/` with content hash. `coverage_quality` per record set per the Phase 5 protocol. | Modal app smoke run on a small bbox; manual review of output Parquet schemas. | XRL-A-003. |
-| XRL-B-003 | Pairformer training pipeline. Trains the base Flint Pairformer with the architecture from XRL-B-001 on the corpus from XRL-B-002. | `civic-atlas-ingest` | `modal/building_head_train.py` runs end-to-end on Modal H100 or B200 and produces a checkpoint at `s3://civic-atlas/models/pairformer-flint-v1/<run_id>/`. Held-out validation set produces sensible per-part priors (eyeball at least; rigorous benchmark is a separate plan). | Modal training run; checkpoint validation smoke. | XRL-B-001, XRL-B-002. |
-| XRL-B-004 | Pairformer inference endpoint. The Modal-hosted inference service that takes a partial ReconstructionSpec (footprint + known fields) and returns per-part priors with confidence + `from_gnn_prior=true` + `gnn_version`. | `civic-atlas-ingest` | `modal/building_head_infer.py` ships as a Modal web endpoint. Request: ReconstructionSpec partial; response: filled-in PartProvenance per part with confidences. Tenant-scoped: a Flint request never touches a future Detroit checkpoint. | curl smoke against the Modal endpoint with a Carriage Town partial spec; response shape matches the proto. | XRL-B-003. |
-| XRL-B-005 | Backend bridge to the inference endpoint. The Axum service `crates/civic-atlas-server` gets an internal client that calls the Modal inference endpoint when a spec is submitted for review. | `our-civic-atlas-backend` | `civic-atlas-server` reads `PAIRFORMER_INFER_URL` env var; when a `SubmitSpecForReview` arrives with empty fields, the server calls the Modal endpoint, fills the empty fields with priors, marks `from_gnn_prior=true`, and records `gnn_version`. Existing approval flow unchanged. | Integration test that round-trips a partial spec through submit + infer + approve. | XRL-B-004, XRL-A-004. |
+| XRL-B-000 | Migrate `civic-atlas-ingest` from Modal to Ray on RunPod. Rename `modal/` directory (likely to `ray/` or flatten at repo root), rewrite the existing Modal-app stubs as Ray entrypoints (Ray tasks for batch work, Ray Serve deployments for inference endpoints). Add a top-level `ray_cluster/` config directory describing the RunPod-targeted cluster shape (head node, worker pods, GPU SKU per workload). | `civic-atlas-ingest` | All Modal-specific decorators (`@modal.function`, `@modal.web_endpoint`, etc.) removed. Files import from `ray` and use `@ray.remote` or `serve.deployment` as appropriate. A Ray cluster launches against RunPod via the configured launcher (Ray's `ray up` or equivalent) and the head node accepts a smoke task. Existing file-level intent (ingest_overpass, ingest_sanborn, ingest_assessor, building_head_train, building_head_infer, model_promote, city_targets, coverage_quality, scene_foundry) is preserved; only the execution platform changes. CLAUDE.md and any in-repo docs updated to reflect Ray + RunPod. | `ray status` against the launched cluster; one Ray task smoke run; `pytest` on any unit tests. | XRL-A-002. |
+| XRL-B-001 | Pairformer architecture with adapter seams. Land the three seams from `pairformer-adapter-seams.md`: separable `PairUpdate` block, separable `ConfidenceHead` block, `tenant_context` parameter on the input encoder and output heads. Architecture is a PyTorch nn.Module wrapped for Ray Train; PyG or DGL is the graph library (Anthropic doc's recommendation; either is acceptable). | `civic-atlas-ingest` | Module layout matches the coordination note's acceptance criteria. Unit test confirms `tenant_context="flint"` and `tenant_context="_base"` produce the same output today (adapter dispatch is a no-op at V1). Checkpoint format records the tenant context. Ray Train wrapper accepts the module without modification. | `pytest`, smoke test on a synthetic 5-node graph in a Ray task on the RunPod cluster. | XRL-B-000. |
+| XRL-B-002 | Training corpus ingestion for the Flint tenant. Existing stubs at `ingest_overpass.py`, `ingest_sanborn.py`, `ingest_assessor.py` (under the post-migration path) become real. Output: typed training graphs with per-part labels, archetype labels, and coverage_quality lanes. | `civic-atlas-ingest` | Each ingest Ray task runs end-to-end against the named source (Overpass, Mapwarper Sanborn, Genesee County assessor). Output to `s3://civic-atlas/training/flint/<source>/<date>/` with content hash. `coverage_quality` per record set per the Phase 5 protocol. Ray Data optional for parallelism; not required if a single-worker task is sufficient. | Ray task smoke run on a small bbox via the RunPod cluster; manual review of output Parquet schemas. | XRL-A-003, XRL-B-000. |
+| XRL-B-003 | Pairformer training pipeline. Trains the base Flint Pairformer with the architecture from XRL-B-001 on the corpus from XRL-B-002 via Ray Train. | `civic-atlas-ingest` | `building_head_train.py` runs end-to-end as a Ray Train job on RunPod (GPU SKU per the Ray cluster config; H100 or A100 typical) and produces a checkpoint at `s3://civic-atlas/models/pairformer-flint-v1/<run_id>/`. Held-out validation set produces sensible per-part priors (eyeball at least; rigorous benchmark is a separate plan). | Ray Train run; checkpoint validation smoke. | XRL-B-001, XRL-B-002. |
+| XRL-B-004 | Pairformer inference endpoint. The Ray Serve deployment on RunPod that takes a partial ReconstructionSpec (footprint + known fields) and returns per-part priors with confidence + `from_gnn_prior=true` + `gnn_version`. | `civic-atlas-ingest` | `building_head_infer.py` ships as a Ray Serve deployment with an HTTP entrypoint. Request: ReconstructionSpec partial; response: filled-in PartProvenance per part with confidences. Tenant-scoped routing: a Flint request never touches a future Detroit checkpoint (Ray Serve deployment per tenant or a single deployment with a tenant-keyed dispatcher; choose at implementation time). | curl smoke against the Ray Serve endpoint with a Carriage Town partial spec; response shape matches the proto. | XRL-B-003. |
+| XRL-B-005 | Backend bridge to the inference endpoint. The Axum service `crates/civic-atlas-server` gets an internal client that calls the Ray Serve endpoint when a spec is submitted for review. | `our-civic-atlas-backend` | `civic-atlas-server` reads `PAIRFORMER_INFER_URL` env var pointing at the Ray Serve endpoint on RunPod; when a `SubmitSpecForReview` arrives with empty fields, the server calls the endpoint, fills the empty fields with priors, marks `from_gnn_prior=true`, and records `gnn_version`. Existing approval flow unchanged. | Integration test that round-trips a partial spec through submit + infer + approve. | XRL-B-004, XRL-A-004. |
 
 Phase B deferrals:
 
@@ -161,7 +188,7 @@ Owner: `civic-atlas-ingest` for archetypes and render; `our-civic-atlas-backend`
 | ID | Task | Owner | Acceptance | Validator | Dependencies |
 |---|---|---|---|---|---|
 | XRL-C-001 | Author the 8 Blender geometry-nodes archetypes. Hand work: commercial-brick, frame-house, factory-bay, warehouse, church, school, gas-station, mixed-use-storefront. Each `archetype.blend` file matches its existing MANIFEST contract in `civic-atlas-ingest/primitives/archetypes/<slug>/`. | `civic-atlas-ingest` | All 8 `.blend` files exist. Each renders a sample building from a synthetic ReconstructionSpec without manual intervention. Material slots match the manifest. | Blender batch-render smoke against synthetic specs. | None (independent hand work). |
-| XRL-C-002 | Scene Foundry Modal app. Headless Blender container that takes a ReconstructionSpec + Pairformer priors, selects the archetype, renders a GLB, and uploads to S3. | `civic-atlas-ingest` | `modal/scene_foundry.py` (already stubbed) becomes real. Web endpoint accepts a spec, dispatches Blender headless render, writes GLB to `s3://civic-atlas/<tenant>/assets/<spec_id>/<version>/<hash>.glb`. Writes a `generated_assets` row to PostGIS via the backend on success. | Modal smoke run with one Carriage Town spec; validate the GLB renders correctly in `usdview` or Blender. | XRL-C-001, XRL-A-004. |
+| XRL-C-002 | Scene Foundry Ray task. Headless Blender container that takes a ReconstructionSpec + Pairformer priors, selects the archetype, renders a GLB, and uploads to S3. Runs as a Ray task on a RunPod GPU pod (Blender benefits from GPU when available; not strictly required for small renders). | `civic-atlas-ingest` | `scene_foundry.py` (already stubbed, post-XRL-B-000 path) becomes real. Ray Serve endpoint accepts a spec or Ray task dispatched from the backend outbox, dispatches Blender headless render, writes GLB to `s3://civic-atlas/<tenant>/assets/<spec_id>/<version>/<hash>.glb`. Writes a `generated_assets` row to PostGIS via the backend on success. | Ray task smoke run on the RunPod cluster with one Carriage Town spec; validate the GLB renders correctly in `usdview` or Blender. | XRL-C-001, XRL-A-004, XRL-B-000. |
 | XRL-C-003 | Backend orchestration of Scene Foundry. The `render_jobs` table + outbox over PostgreSQL row locks (already designed by Codex) actually fires Scene Foundry when a spec is approved. | `our-civic-atlas-backend` | `ApproveSpec` triggers an outbox row; the existing `civic-atlas-outbox-worker` (already shipped) is extended to dispatch Scene Foundry render jobs in addition to RustyRed projections. Retry on failure with exponential backoff. | Integration test: submit + approve a spec, verify a GLB lands in S3 and a `generated_assets` row appears. | XRL-C-002, XRL-A-004. |
 | XRL-C-004 | Time-slice variant rendering. For each approved spec, Scene Foundry produces one GLB per era variant the spec declares (e.g., 1925, 1932, 1965, 1980). | `civic-atlas-ingest` | Multi-era specs produce N GLBs at `<tenant>/<spec_id>/<version>/<era>/<hash>.glb`. The `generated_assets` table carries one row per era. | Smoke run with a multi-era spec; validate all eras render. | XRL-C-002. |
 

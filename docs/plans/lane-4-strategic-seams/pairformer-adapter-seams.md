@@ -4,9 +4,22 @@ To: Codex, working in `civic-atlas-ingest` (and consumers in `our-civic-atlas-ba
 From: 2026-05-20 frontend session in `Open-Flint-Atlas-main-release`
 Status: forward-looking architectural guidance, not a code change request
 
+## Platform note (2026-05-20 user correction)
+
+The user retired the prior Modal-based ML infrastructure on 2026-05-20.
+All ML work, including the Pairformer, now targets Ray
+(`https://github.com/ray-project/ray`) on RunPod. The current
+`civic-atlas-ingest/modal/` directory is legacy nomenclature; XRL-B-000
+in `docs/plans/cross-repo-launch-plan-2026-05-20.md` covers the rename
+and rewrite of the stubs as Ray entrypoints. The seams requested below
+apply equally to either platform; they are framework-level concerns
+about module separability, not platform-specific. References to
+`civic-atlas-ingest/modal/` in this note refer to the current stub
+locations, not the long-term home.
+
 ## Request
 
-Before any Pairformer training code is written in `civic-atlas-ingest/modal/building_head_train.py` or its siblings, design the Pairformer with three adapter seams:
+Before any Pairformer training code is written in `civic-atlas-ingest/modal/building_head_train.py` (current stub location; post-migration this becomes a Ray Train entrypoint) or its siblings, design the Pairformer with three adapter seams:
 
 1. **Separable `PairUpdate` block.** The pair-update message-passing logic lives in its own module, distinct from the input encoder and the output heads.
 2. **Separable `ConfidenceHead` block.** The per-part confidence head lives in its own module, distinct from the archetype head and the per-part prediction heads.
