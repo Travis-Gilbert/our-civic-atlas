@@ -43,11 +43,20 @@ themselves are documents in this repo, not code changes in the siblings.
 
 ## Revision Log
 
-- 2026-05-20: added Lane 4 (Strategic Architecture Seams) and expanded
-  CU-L1-001 scope after the theorize Theorem Brief named USD field-name
-  parity, OpeningOverride proto addition, and Pairformer adapter seams as
-  now-decisions. Underlying reasoning lives in the theorize output for the
-  session; the artifacts are committed in this same change.
+- 2026-05-20 (first pass): added Lane 4 (Strategic Architecture Seams) and
+  expanded CU-L1-001 scope after the theorize Theorem Brief named USD
+  field-name parity, OpeningOverride proto addition, and Pairformer adapter
+  seams as now-decisions. Committed in `9febedc`.
+- 2026-05-20 (second pass): cross-repo launch plan generated at
+  `docs/plans/cross-repo-launch-plan-2026-05-20.md`. That plan acts on the
+  Lane 4 coordination notes and sequences the work across all four repos
+  (this one, `our-civic-atlas-backend`, `civic-atlas-ingest`, `Index-API`)
+  to get from the current state to procedural algorithm rendering buildings
+  before launch. UCA-022 in the unified north-star plan was promoted to
+  include OpenUSD as the canonical publication format in the same commit.
+  The catchup plan's remaining items (CU-L1-002 through CU-L1-006 and the
+  Lane 3 brainstorms) continue alongside the cross-repo plan; they are not
+  superseded.
 
 ## Lane 1: Frontend Hygiene (no design gate)
 
