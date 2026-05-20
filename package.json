@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "validate:atlas": "node scripts/validate-static-atlas.mjs && node scripts/validate-visual-grammar.mjs && node scripts/validate-dossier-payload.mjs --fail-on-warning",
+    "validate:reconstruction-node-tree": "node --experimental-strip-types scripts/validate-reconstruction-node-tree.mjs",
     "validate:scene-manifest": "node scripts/validate-static-atlas.mjs --target=scene-manifest",
     "validate:scenario-manifest": "node scripts/validate-static-atlas.mjs --target=scenario-manifest",
     "validate:primitive-library": "node scripts/validate-static-atlas.mjs --target=primitive-library",
