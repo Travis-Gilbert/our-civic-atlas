@@ -828,7 +828,7 @@ export function OpenFlintAtlasScene(props: {
       <AtlasShell
         showTabs={false}
         showTimeline={activeLens === "memory"}
-        showProvenance={!isMobileViewport && !!selectedPlaceId}
+        showProvenance={false}
         dossier={
           <ControlDossier
             presets={controlDossierPresets}
