@@ -200,19 +200,6 @@ function summarizeResults(results: SearchResultsPayload): string {
   return parts.join(" · ");
 }
 
-function statusLabel(status: ResearchStatus): string {
-  switch (status.kind) {
-    case "idle":
-      return "idle";
-    case "loading":
-      return "running";
-    case "error":
-      return status.reason === "schema" ? "pending" : "error";
-    case "ok":
-      return "ok";
-  }
-}
-
 function statusLine(status: ResearchStatus): string | null {
   switch (status.kind) {
     case "idle":
@@ -235,14 +222,6 @@ function statusLine(status: ResearchStatus): string | null {
         status.payload.results,
       )}.`;
   }
-}
-
-function statusColor(status: ResearchStatus): string {
-  if (status.kind === "error" && status.reason === "schema") {
-    return "var(--ctx-ink-mute)";
-  }
-  if (status.kind === "error") return "var(--ctx-accent)";
-  return "var(--ctx-ink-mute)";
 }
 
 /* ------------------------------------------------------------------ */
@@ -342,19 +321,7 @@ export function CivicResearchPanel() {
       data-civic-research-panel="true"
     >
       <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-            Algorithm prompt
-          </p>
-          <span
-            className="font-mono text-[10px] uppercase tracking-[0.10em]"
-            style={{ color: statusColor(status) }}
-          >
-            {statusLabel(status)}
-          </span>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
