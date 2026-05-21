@@ -349,13 +349,16 @@ export function createLostFlintDeckLayers({
         id: `${ATLAS_DECK_LAYER_IDS.lostFlint}-${form}`,
         data: items,
         mesh: ROOF_GEOMETRIES[form],
-        // DIAGNOSTIC SIZE: dialed up to 10 so the Lost Flint cluster
-        // is unambiguous against the OSM porcelain field — a visitor
-        // shouldn't have to squint to tell what's a reconstruction
-        // and what's an OSM extrusion. Drop back to 3-4 once the
-        // visual grammar is clearly differentiated by other means
-        // (saturated material, distinct shape silhouette, etc.).
-        sizeScale: 10,
+        // Presence-amplified to 3x real meters. Real scale (1x)
+        // leaves buildings too small to read at residential zoom
+        // against the OSM porcelain field; diagnostic value 10
+        // overscaled into a single merged plate. 3x is the lower
+        // edge of the "3-4" band the prior shader comment named.
+        // The ghost material (per-element porcelain substitution)
+        // and distinct roof-form silhouettes carry differentiation
+        // from OSM; size only ensures legibility. Tune during the
+        // visual gate (XRL-E-003 Do Not Downgrade review).
+        sizeScale: 3,
         pickable: true,
         getPosition: (r: HistoricalReconstruction) => [r.position[0], r.position[1]],
         getScale: (r: HistoricalReconstruction) => [r.footprint.width_m, r.footprint.depth_m, r.height_m],
