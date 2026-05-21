@@ -469,4 +469,84 @@ type Mutation {
   pipeline: TF.js NSFW filter -> ACC/ACT scoring -> review queue. Never
   auto-publishes. Receipt is private to the contributor."""
   submitObservation(input: ObservationInput!): ContributionReceipt!
+
+  """Run Theseus's gap-driven fractal-expansion algorithm and return the
+  evidence it surfaces. The mutation is the user-facing entry point of
+  the civic research tool: a designer (or a public visitor) types a
+  query, Theseus crawls authoritative sources for relevant historic
+  information, and the result returns in the same SearchResults shape
+  as searchAtlas so the atlas can inject the evidence into existing
+  places / signals / events / historicalReconstructions / sources state
+  without remapping.
+
+  Wiring contract (per docs/plans/lane-4-strategic-seams/civic-research-
+  graphql-coordination.md):
+    Theseus harness (Index-API, Strawberry)
+      -> gRPC bridge (our-civic-atlas-backend `theseus-client` crate)
+      -> Axum civic-atlas-server resolver (this mutation)
+      -> GraphQL response to the Civic Atlas frontend
+
+  Auth: harness credentials are server-to-server only; the frontend
+  carries no Theseus token. Each call carries TenantContext from the
+  Axum middleware so the harness run is tenant-scoped.
+
+  Cost: the algorithm dispatches web crawls and embedding work. Budget
+  knobs (hop limit, frontier width, total tokens, wall-clock cap)
+  belong on the input; defaults are picked by the resolver."""
+  civicResearch(input: CivicResearchInput!): CivicResearchPayload!
+}
+
+# -----------------------------------------------------------------------------
+# Civic research (gap-driven fractal expansion): mutation surface
+# -----------------------------------------------------------------------------
+
+"""Inputs for the civicResearch mutation. Optional fields are propagated to
+the Theseus harness; the resolver applies sensible defaults when they are
+omitted. The harness response shape is normalized to SearchResults before
+return so callers do not depend on harness internals."""
+input CivicResearchInput {
+  """Free-text research query. The algorithm decides the expansion frontier."""
+  query: String!
+
+  """Optional Theseus harness budget knobs. Recognized keys (subject to
+  harness contract): `max_hops` (Int), `frontier_width` (Int),
+  `max_tokens` (Int), `wall_clock_seconds` (Int). When omitted, harness
+  defaults apply. Untyped because the harness budget vocabulary evolves
+  faster than this schema can re-version."""
+  budget: JSON
+
+  """Optional scope hints (era, neighborhood, source filters). Recognized
+  keys (subject to harness contract): `era` (string label e.g. '1900-1930'),
+  `bbox` (BboxInput JSON), `place_ids` ([String]), `source_ids` ([String]),
+  `min_confidence` (Float). Untyped for the same reason as `budget`."""
+  scope: JSON
+
+  """Optional session identifier so multiple research calls can be grouped
+  by the harness for cross-call caching and follow-up steps."""
+  sessionId: String
+
+  """Optional folio identifier when this research call is part of a curated
+  workspace. Lets the harness attribute artifacts to a folio."""
+  folioId: String
+}
+
+"""Payload returned by civicResearch. Carries the harness run identifier
+(so the frontend can correlate later state, replay, or follow-up calls),
+the name of the skill the harness ran, and the evidence the algorithm
+surfaced in the SearchResults shape callers already know."""
+type CivicResearchPayload {
+  """The Theseus harness run identifier this query was attached to. Stable
+  for the lifetime of the run; can be re-used by future calls (e.g., for
+  context recall, replay, or compare flows)."""
+  runId: ID!
+
+  """The Theseus skill the harness executed (e.g., 'fractal_expansion').
+  Surfaces here so the frontend can adapt presentation when the resolver
+  starts dispatching to alternative skills in the future."""
+  skill: String!
+
+  """Evidence the algorithm surfaced. Same shape as searchAtlas results so
+  injection into atlas state is a single merge step. Empty arrays when the
+  algorithm finds nothing, never null."""
+  results: SearchResults!
 }
