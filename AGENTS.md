@@ -22,6 +22,17 @@ Current posture:
 - Multi-tenancy is invariant from day one: every backend call carries
   `TenantContext`, every PostGIS table has `tenant_id` with RLS, and every
   RustyRed namespace is tenant-scoped.
+- The frontend talks one boundary: the GraphQL endpoint at
+  `docs/design/flint-graphql-schema-v1.graphql`. Service-tier auth tokens
+  (Theseus harness, Rusty Red, Modal/Ray, OpenAI, Firecrawl, etc.) NEVER
+  live in the frontend deployment, env file, or Next.js Route Handler.
+  When a feature needs upstream service capability, the resolver lives on
+  the Axum (or Node sidecar) service and the frontend hits it via a
+  GraphQL `Mutation` or `Query`, never via a same-origin `/api/` proxy
+  holding the credential. Route Handlers under `src/app/api/` are reserved
+  for local fixture shims and trivially public endpoints. See
+  `docs/plans/lane-4-strategic-seams/civic-research-graphql-coordination.md`
+  for the canonical pattern (the `civicResearch` mutation).
 - The unified execution plan
   (`docs/plans/our-civic-atlas-north-star-execution-plan.md`) is the active
   source of truth. Older plan files exist for grounding only and should not
