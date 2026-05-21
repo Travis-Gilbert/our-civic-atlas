@@ -3,8 +3,8 @@
 /**
  * CivicResearchPanel
  *
- * Atlas chrome surface that exposes Theseus's gap-driven fractal-expansion
- * algorithm to the user.
+ * Atlas dynamic-island tab that exposes Theseus's gap-driven
+ * fractal-expansion algorithm to the user.
  *
  * Wiring contract:
  *   panel  -> urql mutation  -> civic atlas GraphQL endpoint
@@ -18,11 +18,16 @@
  * which this panel surfaces as an honest "backend not implemented yet"
  * state per the project's no-fake-UI rule.
  *
- * Visual vocabulary matches the existing chrome cards (paper background,
- * monospace section labels, accent button). Result rendering is currently
- * a JSON preview of the SearchResults payload; injection into live atlas
- * state (places / signals / events / historicalReconstructions) is the
- * follow-on iteration once the backend resolver returns real data.
+ * Visual placement: this panel is consumed only by AtlasDynamicIsland as
+ * the "research" tab. It does not render its own outer card; the island
+ * already owns the chrome. Sub-cards follow the island's existing
+ * conventions (rounded-[14px] cards with rgba paper backgrounds).
+ *
+ * State preservation: query + status are owned by this component. When
+ * the user switches tabs mid-run, React unmounts the component and the
+ * in-flight call is dropped. If state-preservation across tabs becomes
+ * important, lift state to AtlasDynamicIsland or wrap with `hidden`
+ * instead of conditional rendering.
  *
  * See also:
  *   docs/plans/lane-4-strategic-seams/civic-research-graphql-coordination.md
@@ -229,8 +234,16 @@ function statusLine(status: ResearchStatus): string {
   }
 }
 
+function statusColor(status: ResearchStatus): string {
+  if (status.kind === "error" && status.reason === "schema") {
+    return "var(--ctx-ink-mute)";
+  }
+  if (status.kind === "error") return "var(--ctx-accent)";
+  return "var(--ctx-ink-mute)";
+}
+
 /* ------------------------------------------------------------------ */
-/*  Result preview                                                     */
+/*  Result preview (island-styled card)                                */
 /* ------------------------------------------------------------------ */
 
 function ResultPreview({ payload }: { payload: CivicResearchPayload }) {
@@ -238,21 +251,12 @@ function ResultPreview({ payload }: { payload: CivicResearchPayload }) {
   const truncated =
     pretty.length > 1400 ? `${pretty.slice(0, 1400)}\n…` : pretty;
   return (
-    <div
-      className="mt-2 rounded-[5px] px-2 py-2 overflow-hidden"
-      style={{
-        background: "rgba(255, 255, 255, 0.50)",
-        border: "1px solid var(--ctx-rule-soft)",
-      }}
-    >
-      <div
-        className="font-mono text-[10px] uppercase tracking-[0.14em] mb-1"
-        style={{ color: "var(--ctx-ink-mute)" }}
-      >
+    <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
         Run · {payload.runId} · {payload.skill}
-      </div>
+      </p>
       <pre
-        className="font-mono text-[11px] leading-[1.4] whitespace-pre-wrap break-words m-0"
+        className="mt-2 font-mono text-[11px] leading-[1.4] whitespace-pre-wrap break-words m-0"
         style={{ color: "var(--ctx-ink)", maxHeight: 220, overflow: "auto" }}
       >
         {truncated}
@@ -262,7 +266,7 @@ function ResultPreview({ payload }: { payload: CivicResearchPayload }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Panel                                                              */
+/*  Panel (embedded — renders inside AtlasDynamicIsland)               */
 /* ------------------------------------------------------------------ */
 
 export function CivicResearchPanel() {
@@ -294,8 +298,6 @@ export function CivicResearchPanel() {
             });
             return;
           }
-          // GraphQL-side error: surface the first one. Schema-shaped
-          // errors render as the "pending" coordination state.
           const first = result.error.graphQLErrors[0]?.message ?? "GraphQL error";
           setStatus({
             kind: "error",
@@ -332,93 +334,75 @@ export function CivicResearchPanel() {
     status.kind === "error" && status.reason === "schema";
 
   return (
-    <div
+    <section
+      className="space-y-3"
       data-civic-research-panel="true"
-      className="rounded-[6px] px-3 py-3 flex flex-col gap-2 pointer-events-auto"
-      style={{
-        width: 260,
-        background: "rgba(248, 244, 234, 0.85)",
-        border: "1px solid var(--ctx-rule-soft)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-      }}
     >
-      <div className="flex items-center justify-between">
-        <span
-          className="font-mono text-[10px] uppercase tracking-[0.14em]"
-          style={{ color: "var(--ctx-ink-mute)" }}
-        >
-          Research
-        </span>
-        <span
-          className="font-mono text-[10px] uppercase tracking-[0.10em]"
-          style={{
-            color:
-              status.kind === "error" && status.reason !== "schema"
-                ? "var(--ctx-accent)"
-                : "var(--ctx-ink-mute)",
-          }}
-        >
-          {statusLabel(status)}
-        </span>
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        <textarea
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Research a place, person, era, or claim in Flint history."
-          rows={3}
-          maxLength={2000}
-          className="rounded-[4px] px-2 py-2 text-[13px] leading-[1.35] resize-y"
-          style={{
-            background: "rgba(255, 255, 255, 0.72)",
-            border: "1px solid var(--ctx-rule-soft)",
-            color: "var(--ctx-ink)",
-            outline: "none",
-            minHeight: 64,
-            fontFamily: "inherit",
-          }}
-          disabled={isLoading}
-        />
+      <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
         <div className="flex items-center justify-between gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+            Algorithm prompt
+          </p>
           <span
-            className="font-mono text-[10px]"
-            style={{ color: "var(--ctx-ink-mute)" }}
+            className="font-mono text-[10px] uppercase tracking-[0.10em]"
+            style={{ color: statusColor(status) }}
           >
-            {statusLine(status)}
+            {statusLabel(status)}
           </span>
-          <button
-            type="submit"
-            disabled={isLoading || query.trim().length === 0}
-            className="font-mono text-[11px] uppercase tracking-[0.12em] rounded-[3px] px-3 py-1.5 cursor-pointer transition-colors disabled:cursor-not-allowed"
-            style={{
-              background:
-                isLoading || query.trim().length === 0
-                  ? "rgba(193,74,44,0.10)"
-                  : "var(--ctx-accent)",
-              color:
-                isLoading || query.trim().length === 0
-                  ? "var(--ctx-ink-mute)"
-                  : "var(--ctx-bg)",
-              border: "1px solid var(--ctx-accent)",
-            }}
-          >
-            {isLoading ? "Searching" : "Run"}
-          </button>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2">
+          <textarea
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Research a place, person, era, or claim in Flint history."
+            rows={3}
+            maxLength={2000}
+            className="rounded-[10px] px-2 py-2 text-[13px] leading-[1.35] resize-y"
+            style={{
+              background: "rgba(255, 255, 255, 0.55)",
+              border: "1px solid rgba(42,36,25,0.08)",
+              color: "var(--ctx-ink)",
+              outline: "none",
+              minHeight: 72,
+              fontFamily: "inherit",
+            }}
+            disabled={isLoading}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className="text-[11px] leading-[1.4]"
+              style={{ color: "var(--ctx-ink-mute)" }}
+            >
+              {statusLine(status)}
+            </span>
+            <button
+              type="submit"
+              disabled={isLoading || query.trim().length === 0}
+              className="font-mono text-[11px] uppercase tracking-[0.12em] rounded-[10px] px-3 py-1.5 cursor-pointer transition-colors disabled:cursor-not-allowed"
+              style={{
+                background:
+                  isLoading || query.trim().length === 0
+                    ? "rgba(193,74,44,0.10)"
+                    : "var(--ctx-accent)",
+                color:
+                  isLoading || query.trim().length === 0
+                    ? "var(--ctx-ink-mute)"
+                    : "var(--ctx-bg)",
+                border: "1px solid var(--ctx-accent)",
+              }}
+            >
+              {isLoading ? "Searching" : "Run"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {status.kind === "ok" ? <ResultPreview payload={status.payload} /> : null}
 
       {showCoordinationHint ? (
         <div
-          className="rounded-[5px] px-2 py-2 text-[12px] leading-[1.4]"
-          style={{
-            background: "rgba(255, 255, 255, 0.40)",
-            border: "1px dashed var(--ctx-rule-soft)",
-            color: "var(--ctx-ink-mute)",
-          }}
+          className="rounded-[14px] border border-dashed border-[rgba(42,36,25,0.16)] bg-[rgba(255,255,255,0.18)] p-3 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]"
         >
           GraphQL endpoint does not yet implement{" "}
           <code className="font-mono text-[11px]">Mutation.civicResearch</code>
@@ -430,6 +414,6 @@ export function CivicResearchPanel() {
           .
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

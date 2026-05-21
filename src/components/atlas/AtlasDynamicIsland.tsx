@@ -25,9 +25,10 @@ import {
   ATLAS_SCENE_VIEW_MODE_LOOKUP,
 } from "@/lib/atlas/scene-view";
 import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
+import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
-type IslandPanel = "focus" | "navigate" | "dossier" | "horizon";
+type IslandPanel = "focus" | "navigate" | "research" | "dossier" | "horizon";
 
 type AtlasDynamicIslandProps = {
   activeLens: AtlasLensId;
@@ -95,6 +96,7 @@ const islandTransition = {
 const PANEL_LABELS: Record<IslandPanel, string> = {
   focus: "Focus",
   navigate: "Navigate",
+  research: "Research",
   dossier: "Dossier",
   horizon: "Horizon",
 };
@@ -148,7 +150,7 @@ export function AtlasDynamicIsland({
   }, [activePanel, horizonNodes, selectedHorizonId]);
 
   const availablePanels = useMemo<IslandPanel[]>(() => {
-    const panels: IslandPanel[] = ["focus", "navigate"];
+    const panels: IslandPanel[] = ["focus", "navigate", "research"];
     if (selectedPlaceId) panels.push("dossier");
     if (horizonNodes.length > 0) panels.push("horizon");
     return panels;
@@ -483,6 +485,8 @@ export function AtlasDynamicIsland({
                   </div>
                 </section>
               ) : null}
+
+              {activePanel === "research" ? <CivicResearchPanel /> : null}
 
               {activePanel === "dossier" ? (
                 <section className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.24)]">
