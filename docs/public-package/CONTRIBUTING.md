@@ -22,8 +22,9 @@ details, or household-level accusations.
 
 Source changes should update:
 
-- `docs/plans/open-flint-atlas/source-registry.json`
-- `data/open-flint-atlas/source-probes/`
+- `src/data/open-flint-atlas/source-registry.json`
+- `src/data/open-flint-atlas/fixtures/raw-artifacts/` when source inspection
+  artifacts change
 - Any affected data dictionary notes
 - Any affected public read-model fixtures
 

@@ -3,61 +3,58 @@
 The v0.1 package is a static fixture prototype. It does not require a database,
 queue, object storage, or secrets.
 
-## Local Static Serve
+## Local App Serve
 
 ```bash
-cd docs/plans/open-flint-atlas/prototype
-python3 -m http.server 8765 --bind 127.0.0.1
+npm install
+npm run dev -- --hostname 127.0.0.1
 ```
 
-Open `http://127.0.0.1:8765/index.html`.
+Open `http://127.0.0.1:3000/open-flint-atlas`.
 
-## Static Hosting
+## Checked-In Public Data
 
-The current prototype can be deployed as static files once the release
-checklist is green:
+The app reads checked-in public fixtures and static-package manifests from:
 
-- `docs/plans/open-flint-atlas/prototype/index.html`
-- `docs/plans/open-flint-atlas/fixtures/read-model/`
-- `docs/plans/open-flint-atlas/fixtures/provenance/`
-- Public package docs
+- `src/data/open-flint-atlas/source-registry.json`
+- `src/data/open-flint-atlas/fixtures/read-model/`
+- `src/data/open-flint-atlas/fixtures/provenance/`
+- `src/data/open-flint-atlas/fixtures/static-package/`
+- `public/atlas/historical/`
 
 The hosted page must visibly state that Open Flint Atlas is not an official City of Flint website.
 
 ## Routed App Deployment
 
-The production atlas route is hosted by the `context-theorem-ui` Vercel project:
+The production atlas route is hosted from this standalone Next.js app:
 
 - App route: `/open-flint-atlas`
-- Canonical launch domain: `mappingourcity.org`
-- Transition alias: `flintmapped.org`
-- Domain checklist: `docs/plans/open-flint-atlas/domain-cutover.md`
+- Canonical launch domain: `flint.ourcivicatlas.org`
+- Root network domain: `ourcivicatlas.org`
 
-The custom-domain root rewrites live in `Context-Theorem-UI/next.config.ts`.
-When Vercel has `mappingourcity.org` and `www.mappingourcity.org` attached,
-the registrar DNS should point to the records Vercel requests. Keep the public
-read-only atlas available while capture/admin operations stay staff-gated.
+When Vercel has `flint.ourcivicatlas.org` attached, the registrar DNS should
+point to the records Vercel requests. Keep the public read-only atlas available
+while capture/admin operations stay staff-gated.
 
 ## Standalone Repo Path
 
-Recommended next home:
+Current home:
 
 ```text
-open-flint-atlas/
+Open-Flint-Atlas-main-release/
   README.md
   docs/
-  data/source-probes/
-  fixtures/
-  prototype/
+  public/
   scripts/
+  src/
 ```
 
-The first standalone deployment should remain static. PostGIS, Memgraph, and
-submission storage can be added only after governance, moderation, and source
-refresh operations are ready.
+PostGIS, Ray/RunPod inference, and submission storage can be added only after
+governance, moderation, and source-refresh operations are ready.
 
 ## Future App Shell
 
-A future routed app can use Observable Framework, MapLibre, Mosaic, Plot,
-DuckDB-WASM, PMTiles, or a small Next route. That step should preserve the same
-source registry, public read-model schema, and contribution privacy contract.
+A future route can extend MapLibre, deck.gl, Mosaic, Plot, DuckDB-WASM,
+PMTiles, Ray/RunPod-generated assets, and selective R3F overlays. That step
+should preserve the same source registry, public read-model schema, and
+contribution privacy contract.

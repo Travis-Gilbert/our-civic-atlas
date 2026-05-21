@@ -45,7 +45,10 @@ import {
   DEFAULT_VIEW_MODE_BY_LENS,
   type AtlasCameraBookmarkId,
 } from "@/lib/atlas/scene-view";
-import { parseAtlasYear } from "@/lib/atlas/atlas-time";
+import {
+  parseAtlasYear,
+  reconstructionExistsInYear,
+} from "@/lib/atlas/atlas-time";
 import { useHistoricalReconstructions } from "@/lib/atlas/use-historical-reconstructions";
 
 const ProvenancePanel = dynamic(
@@ -602,6 +605,12 @@ export function OpenFlintAtlasScene(props: {
   const historicalReconstructionsState = useHistoricalReconstructions(
     initialBookmark ?? null,
   );
+  const visibleHistoricalReconstructionCount = useMemo(() => {
+    if (atlasYear === null) return null;
+    return historicalReconstructionsState.reconstructions.filter((item) =>
+      reconstructionExistsInYear(item, atlasYear),
+    ).length;
+  }, [atlasYear, historicalReconstructionsState.reconstructions]);
 
   const handlePlaceSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
@@ -900,6 +909,12 @@ export function OpenFlintAtlasScene(props: {
             cameraBearing={cameraBearing}
             onResetCompass={handleResetCompass}
             atlasYear={atlasYear}
+            visibleHistoricalReconstructionCount={
+              visibleHistoricalReconstructionCount
+            }
+            totalHistoricalReconstructionCount={
+              historicalReconstructionsState.reconstructions.length
+            }
             onClearSelection={() => setSelectedPlaceId(null)}
             dossierContent={
               <PlaceDossierPanel

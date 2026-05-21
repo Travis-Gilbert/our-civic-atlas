@@ -9,7 +9,8 @@
 ## Carried Forward
 
 - Public atlas app route and components.
-- MapLibre/deck.gl desktop map and Leaflet mobile map.
+- MapLibre/deck.gl map foundation. Leaflet was later retired from the public
+  route; current desktop and mobile use the shared deck.gl path.
 - Mosaic/vgplot timeline brushing.
 - Cosmos provenance panel.
 - Open Flint fixtures, public package docs, contribution/privacy docs, and ACT Evidence Cockpit reference plan.

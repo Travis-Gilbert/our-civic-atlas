@@ -46,9 +46,10 @@ The map is the primary surface. Moderation, review, and confidence UI should exp
 ## System Lanes
 
 1. Atlas reader
-   - Three/R3F is the V1 target for the primary full-canvas civic scene.
-   - MapLibre/deck.gl remain the working baseline, fallback, and geospatial/data overlay path until the Three/R3F scene is equal-or-better.
-   - Leaflet remains the mobile fallback until a lighter WebGL mobile path or responsive Three/R3F path is justified by visual gates.
+   - MapLibre/deck.gl is the V1 geospatial base across desktop and mobile.
+   - Three/R3F is selective scene augmentation for Lost Flint and reviewed
+     scene objects, not the atlas base.
+   - Leaflet is retired from the public route.
    - Timeline, source trail, place dossier, provenance graph, and scene objects cross-filter the same selected `Place`, `Event`, `Source`, and `Claim` ids.
 
 2. Public contribution

@@ -9,6 +9,27 @@ Read this whole file before resuming. `/catchup` will surface it
 (`.open.md` suffix). The prior 2026-05-18 note has been closed
 (`.md` suffix).
 
+## Update - CU-L1 execution pass later on 2026-05-20
+
+CU-L1-002 through CU-L1-006 have now been executed in this repo:
+
+- CU-L1-002: time-travel visual confirmation fixed. The 1925 Lost Flint state
+  now shows a persistent Year badge with the visible Lost Flint count, suppresses
+  the stale no-results dropdown, and dims the OSM period context.
+- CU-L1-003: `AGENTS.md` now says Leaflet is fully retired, R3F is only a
+  selective Lost Flint per-part overlay, and multi-tenancy is invariant.
+- CU-L1-004: stale public-package deployment/source-path/domain/renderer docs
+  were swept to `flint.ourcivicatlas.org`, `src/data/open-flint-atlas/...`, and
+  the current MapLibre + deck.gl posture.
+- CU-L1-005: UCA-024 screenshots were captured under
+  `docs/visual-evidence/2026-05-20/`.
+- CU-L1-006: branch decisions were recorded in
+  `docs/notes/session-2026-05-20-branch-consolidation.md`; the merged remote
+  branch `origin/mainline-island-port` was deleted.
+
+Remaining in-repo catchup work after this pass is Lane 3 design brainstorms
+CU-L3-001 through CU-L3-005.
+
 ## What shipped this session
 
 | Commit | Title | Role |

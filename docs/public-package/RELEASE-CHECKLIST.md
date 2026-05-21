@@ -52,7 +52,7 @@ complete labels are addressed in the release notes, not silently deferred.
 - [ ] Affected routes load locally without console errors.
 - [ ] Affected workers start, return, and fail in expected categories.
 - [ ] Renderer mode for each touched route is the intended one (`deck`, `r3f`,
-      `leaflet_fallback`, or `static`).
+      `static`, or an explicitly named fallback).
 - [ ] Packet and read-model load paths fall back to JSON cleanly when the
       binary path is unavailable.
 
@@ -78,8 +78,8 @@ complete labels are addressed in the release notes, not silently deferred.
 
 ## Baseline And Reversibility
 
-- [ ] The previous deck route, mobile fallback, and scene route are preserved
-      until the new path passes Product complete.
+- [ ] The previous deck route and scene route are preserved until the new path
+      passes Product complete.
 - [ ] A rollback path exists (revert commit, feature flag, route fallback, or
       mode boundary).
 - [ ] Removed code paths are removed in a separate commit after the new path

@@ -11,94 +11,76 @@
   },
   "artifacts": [
     {
-      "path": "docs/plans/open-flint-atlas/source-registry.json",
+      "path": "src/data/open-flint-atlas/source-registry.json",
       "kind": "source_registry"
     },
     {
-      "path": "data/open-flint-atlas/source-probes",
-      "kind": "source_probe_directory"
+      "path": "src/data/open-flint-atlas/fixtures/raw-artifacts",
+      "kind": "raw_artifact_fixture_directory"
     },
     {
-      "path": "docs/plans/open-flint-atlas/public-read-model.schema.json",
-      "kind": "read_model_schema"
-    },
-    {
-      "path": "docs/plans/open-flint-atlas/fixtures/read-model",
+      "path": "src/data/open-flint-atlas/fixtures/read-model",
       "kind": "read_model_fixtures"
     },
     {
-      "path": "docs/plans/open-flint-atlas/provenance-graph-contract.md",
-      "kind": "provenance_contract"
-    },
-    {
-      "path": "docs/plans/open-flint-atlas/fixtures/provenance/provenance-graph.json",
+      "path": "src/data/open-flint-atlas/fixtures/provenance/provenance-graph.json",
       "kind": "provenance_fixture"
     },
     {
-      "path": "docs/plans/open-flint-atlas/contribution-workflow.schema.json",
-      "kind": "contribution_workflow_schema"
-    },
-    {
-      "path": "docs/plans/open-flint-atlas/fixtures/contributions/moderation-fixtures.json",
+      "path": "src/data/open-flint-atlas/fixtures/contributions/moderation-fixtures.json",
       "kind": "moderation_fixtures"
     },
     {
-      "path": "docs/plans/open-flint-atlas/prototype/index.html",
-      "kind": "static_prototype"
-    },
-    {
-      "path": "docs/plans/open-flint-atlas/public-package",
+      "path": "docs/public-package",
       "kind": "public_package_docs"
     },
     {
-      "path": "docs/plans/open-flint-atlas/domain-cutover.md",
-      "kind": "domain_cutover_runbook"
+      "path": "public/atlas/historical/carriage-town.json",
+      "kind": "historical_reconstruction_fixture"
     }
   ],
   "validators": [
-    "python3 scripts/validate_open_flint_source_registry.py",
-    "python3 scripts/validate_open_flint_source_probes.py",
-    "python3 scripts/validate_open_flint_read_model.py",
-    "python3 scripts/validate_open_flint_provenance_graph.py",
-    "python3 scripts/validate_open_flint_contribution_workflow.py",
-    "python3 scripts/validate_open_flint_prototype.py",
-    "python3 scripts/validate_open_flint_public_package.py"
+    "npm run typecheck",
+    "npm run lint",
+    "npm run validate:atlas",
+    "npm run validate:reconstruction-node-tree",
+    "npm run validate:time-travel"
   ],
   "release_checklist": [
     {
       "item": "source registry validates",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_source_registry.py"
+      "validator": "npm run validate:atlas"
     },
     {
-      "item": "source probes validate",
+      "item": "raw artifact fixtures validate",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_source_probes.py"
+      "validator": "npm run validate:atlas"
     },
     {
       "item": "public read model validates",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_read_model.py"
+      "validator": "npm run validate:atlas"
     },
     {
       "item": "provenance graph validates",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_provenance_graph.py"
+      "validator": "npm run validate:atlas"
     },
     {
-      "item": "contribution workflow validates",
+      "item": "moderation fixtures validate",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_contribution_workflow.py"
+      "validator": "npm run validate:atlas"
     },
     {
-      "item": "static prototype validates",
+      "item": "historical reconstruction time-travel validates",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_prototype.py"
+      "validator": "npm run validate:time-travel"
     },
     {
       "item": "public package boundary validates",
       "status": "done",
-      "validator": "python3 scripts/validate_open_flint_public_package.py"
+      "validator": "npm run validate:atlas"
     },
     {
       "item": "standalone repository extraction",

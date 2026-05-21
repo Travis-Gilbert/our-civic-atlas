@@ -44,8 +44,8 @@ asset export respectively. They are not roles.
 - The fallback chain runs from preferred to least preferred. The client picks
   the first available format.
 - A renderer fallback is not the same as a format fallback. Renderer fallback
-  (deck → leaflet, R3F → deck, etc.) is described in the renderer bridge
-  contract and `OBSERVABILITY.md`.
+  is described in the renderer bridge contract and `OBSERVABILITY.md`; Leaflet
+  is retired from the public atlas path.
 
 ## Encoding Rules
 

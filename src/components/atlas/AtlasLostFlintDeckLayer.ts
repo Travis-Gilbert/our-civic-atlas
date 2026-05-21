@@ -312,29 +312,6 @@ export function createLostFlintDeckLayers({
       ? reconstructions
       : reconstructions.filter((r) => reconstructionExistsInYear(r, atlasYear));
 
-  // Diagnostic surface for the Carriage Town visibility issue. Lets
-  // a visitor open DevTools and confirm whether the layer path is
-  // firing + how many reconstructions reached the renderer. Remove
-  // once the cluster is reliably visible in production.
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line no-console
-    console.info(
-      "[lost-flint] createLostFlintDeckLayers",
-      {
-        viewMode,
-        atlasYear,
-        visible,
-        reconstruction_count_in: reconstructions.length,
-        candidate_count_after_year_filter: candidates.length,
-        candidate_positions: candidates.map((r) => ({
-          id: r.id,
-          position: r.position,
-          roof_form: r.roof_form ?? "flat",
-        })),
-      },
-    );
-  }
-
   if (candidates.length === 0) return [];
 
   const proceduralByForm = new Map<RoofForm, HistoricalReconstruction[]>();

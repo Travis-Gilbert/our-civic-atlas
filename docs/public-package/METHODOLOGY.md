@@ -6,7 +6,7 @@ students, and public servants can see where each claim came from.
 
 ## 1. Source Registry
 
-`docs/plans/open-flint-atlas/source-registry.json` is the first control point.
+`src/data/open-flint-atlas/source-registry.json` is the first control point.
 Each source records ownership, source type, trust tier, use notes, privacy
 notes, update expectations, and candidate layers.
 
@@ -16,7 +16,8 @@ must carry its own caveats.
 
 ## 2. Source Probes
 
-`data/open-flint-atlas/source-probes/*.json` stores the first inspection of each
+`src/data/open-flint-atlas/fixtures/raw-artifacts/` and related fixture
+directories store the first inspection of each
 source: public URLs, export/API paths, terms notes, freshness signals, and
 initial layer inventory.
 
@@ -25,9 +26,9 @@ everything. They are reviewed before a source enters a public read model.
 
 ## 3. Public Read Model
 
-`docs/plans/open-flint-atlas/public-read-model.schema.json` defines the public
-fixture shape. The first fixtures under `fixtures/read-model/` avoid raw parcel
-records and household-level implications.
+`src/data/open-flint-atlas/fixtures/read-model/` defines the current public
+fixture shape through checked-in JSON and GeoJSON. Those fixtures avoid raw
+parcel records and household-level implications.
 
 The read model is deliberately static for v0.1. Static fixtures make the
 project cheap to host, easy to audit, and safer to review before any live
@@ -35,8 +36,8 @@ submission or ingestion service exists.
 
 ## 4. Provenance Graph
 
-`docs/plans/open-flint-atlas/provenance-graph-contract.md` defines the graph
-contract. The fixture graph maps:
+`src/data/open-flint-atlas/fixtures/provenance/provenance-graph.json` is the
+current fixture graph. It maps:
 
 ```text
 Source -> Dataset -> Record -> Claim -> Place

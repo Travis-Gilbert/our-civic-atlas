@@ -75,7 +75,7 @@ Reason categories should be a closed list (for example: `privacy_risk`,
 
 | Event | When | Payload fields |
 |---|---|---|
-| `runtime.route_loaded` | A public route renders for the first time in a session. | route name, render mode (`deck`, `r3f`, `leaflet_fallback`, `static`). |
+| `runtime.route_loaded` | A public route renders for the first time in a session. | route name, render mode (`deck`, `r3f`, `static`, or an explicitly named fallback). |
 | `runtime.renderer_fallback` | A renderer fails and a fallback engages. | route name, from renderer, to renderer, fail category. |
 | `runtime.packet_load_failed` | A scene packet fails to load. | packet id, failure category. |
 | `runtime.worker_failure` | A worker boundary fails. | worker name, failure category. |

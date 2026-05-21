@@ -13,12 +13,15 @@ Current posture:
 - Do not add staff-only/admin capture UI to the public route unless it is clearly separated from public contribution flows.
 - ACC/ACT and TF.js scoring are advisory moderation aids, not final verdicts.
 - Trust UI should read as progress and explanation, not a hard truth meter.
-- V1 renderer is `MapLibre + deck.gl` for both desktop and mobile. Leaflet
-  remains only as a mobile fallback until the deck.gl mobile candidate passes
-  the promotion gates in `docs/plans/our-civic-atlas-north-star-execution-plan.md`.
-- Three.js / R3F is parked. The `r3f-atlas-scene-quality` branch is the
-  parked experiment. Do not commit to it as an active delivery lane unless
-  the user explicitly revives it.
+- V1 renderer is `MapLibre + deck.gl` for both desktop and mobile. Leaflet is
+  fully retired from the public render path, not a mobile fallback.
+- Three.js / R3F is parked as a standalone scene renderer. It is selectively
+  revived only as a Lost Flint per-part reconstruction overlay, never as the
+  atlas base. The `r3f-atlas-scene-quality` branch remains the parked
+  experiment unless the user explicitly revives it.
+- Multi-tenancy is invariant from day one: every backend call carries
+  `TenantContext`, every PostGIS table has `tenant_id` with RLS, and every
+  RustyRed namespace is tenant-scoped.
 - The unified execution plan
   (`docs/plans/our-civic-atlas-north-star-execution-plan.md`) is the active
   source of truth. Older plan files exist for grounding only and should not

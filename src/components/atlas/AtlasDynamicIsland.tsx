@@ -62,6 +62,8 @@ type AtlasDynamicIslandProps = {
    * acknowledges that the renderer is in time-travel mode and the
    * search field is being read as a year, not a place query. */
   atlasYear?: number | null;
+  visibleHistoricalReconstructionCount?: number | null;
+  totalHistoricalReconstructionCount?: number;
   dossierContent?: ReactNode;
   onClearSelection: () => void;
 };
@@ -117,6 +119,8 @@ export function AtlasDynamicIsland({
   cameraBearing = 0,
   onResetCompass,
   atlasYear = null,
+  visibleHistoricalReconstructionCount = null,
+  totalHistoricalReconstructionCount = 0,
   dossierContent,
   onClearSelection,
 }: AtlasDynamicIslandProps) {
@@ -167,7 +171,7 @@ export function AtlasDynamicIsland({
   const collapsedIslandWidth = isMobileViewport ? 316 : 360;
   const expandedIslandWidth = isMobileViewport ? 354 : 392;
   const collapsedSearchActive =
-    !isExpanded && searchValue.trim().length > 0;
+    !isExpanded && searchValue.trim().length > 0 && atlasYear === null;
 
   function openIsland(panel?: IslandPanel) {
     if (panel && availablePanels.includes(panel)) {
@@ -277,7 +281,9 @@ export function AtlasDynamicIsland({
                       {atlasYear}
                     </span>
                     <span className="mt-1 truncate font-mono text-[9px] uppercase leading-none tracking-[0.18em] text-[color:var(--ctx-ink-mute)]">
-                      Time travel
+                      {visibleHistoricalReconstructionCount !== null
+                        ? `${visibleHistoricalReconstructionCount}/${totalHistoricalReconstructionCount} Lost Flint`
+                        : "Time travel"}
                     </span>
                   </>
                 ) : (

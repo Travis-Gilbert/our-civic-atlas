@@ -9,7 +9,6 @@ import {
 } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
-import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
@@ -593,6 +592,7 @@ export function AtlasMap({
           stroked: false,
           filled: true,
           extruded: true,
+          opacity: atlasYear === null ? 1 : 0.42,
           wireframe: false,
           getElevation: (f) =>
             osmBuildingElevation(
@@ -606,8 +606,9 @@ export function AtlasMap({
           // context behind it. Today-mode keeps the full warm-stone
           // alpha for solid presence.
           getFillColor:
-            atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 180],
-          getLineColor: [82, 64, 50, 200],
+            atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 132],
+          getLineColor:
+            atlasYear === null ? [82, 64, 50, 200] : [82, 64, 50, 118],
           material: {
             ambient: 0.58,
             diffuse: 0.48,
@@ -617,6 +618,7 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear === null],
+            getLineColor: [atlasYear === null],
           },
         }),
       );

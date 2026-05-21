@@ -23,6 +23,11 @@ const ROUTES = [
     path: "/open-flint-atlas/scene/scene%3Aflint-overview",
     expect: "Flint overview scene",
   },
+  { path: "/open-flint-atlas/lost-flint", expect: "Flint Atlas" },
+  {
+    path: "/open-flint-atlas/lost-flint/carriage-town",
+    expect: "Flint Atlas",
+  },
 ];
 
 const API_ROUTES = [

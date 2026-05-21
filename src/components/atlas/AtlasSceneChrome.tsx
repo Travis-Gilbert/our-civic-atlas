@@ -45,6 +45,8 @@ type AtlasSceneChromeProps = {
   /** Active atlas year (4-digit). When set, the chrome displays it
    * prominently and the renderer is in time-travel mode. */
   atlasYear?: number | null;
+  visibleHistoricalReconstructionCount?: number | null;
+  totalHistoricalReconstructionCount?: number;
   onClearSelection: () => void;
   dossierContent: ReactNode;
 };
@@ -69,6 +71,8 @@ export function AtlasSceneChrome({
   cameraBearing = 0,
   onResetCompass,
   atlasYear = null,
+  visibleHistoricalReconstructionCount = null,
+  totalHistoricalReconstructionCount = 0,
   onClearSelection,
   dossierContent,
 }: AtlasSceneChromeProps) {
@@ -107,7 +111,7 @@ export function AtlasSceneChrome({
                 type="search"
               />
             </label>
-            {searchValue.trim().length > 0 && (
+            {searchValue.trim().length > 0 && atlasYear === null && (
               <div
                 className="atlas-scene-search-results absolute left-0 right-0 top-[calc(100%+6px)]"
                 role="listbox"
@@ -142,6 +146,22 @@ export function AtlasSceneChrome({
         </header>
       ) : null}
 
+      {atlasYear !== null ? (
+        <div
+          className="atlas-time-travel-badge pointer-events-auto absolute z-[1401]"
+          aria-live="polite"
+          aria-label={`Atlas year ${atlasYear}`}
+        >
+          <span className="atlas-time-travel-badge__label">Year</span>
+          <span className="atlas-time-travel-badge__year">{atlasYear}</span>
+          {visibleHistoricalReconstructionCount !== null ? (
+            <span className="atlas-time-travel-badge__count">
+              {visibleHistoricalReconstructionCount} / {totalHistoricalReconstructionCount} Lost Flint
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <AtlasDynamicIsland
         activeLens={activeLens}
         onLensChange={onLensChange}
@@ -162,6 +182,12 @@ export function AtlasSceneChrome({
         cameraBearing={cameraBearing}
         onResetCompass={onResetCompass}
         atlasYear={atlasYear}
+        visibleHistoricalReconstructionCount={
+          visibleHistoricalReconstructionCount
+        }
+        totalHistoricalReconstructionCount={
+          totalHistoricalReconstructionCount
+        }
         dossierContent={dossierContent}
         onClearSelection={onClearSelection}
       />

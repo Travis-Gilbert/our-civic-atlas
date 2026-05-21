@@ -8,6 +8,9 @@ import sources from "@/data/open-flint-atlas/fixtures/read-model/sources.json";
 import spatialEventIndex from "@/data/open-flint-atlas/fixtures/spatial-event-index/seed-events.json";
 import provenanceGraph from "@/data/open-flint-atlas/fixtures/provenance/provenance-graph.json";
 import sourceRegistry from "@/data/open-flint-atlas/source-registry.json";
+import primitiveLibrary from "@/data/open-flint-atlas/fixtures/static-package/data/primitive-library.json";
+import geoComments from "@/data/open-flint-atlas/fixtures/static-package/data/geo-comments.json";
+import layerRecipes from "@/data/open-flint-atlas/fixtures/static-package/data/layer-recipes.json";
 import {
   buildPlaceDossierPayload,
   type RawAtlasMetric,
@@ -22,6 +25,7 @@ import {
   getStaticAtlasPackage,
   validateStaticAtlasPackageFixture,
 } from "@/lib/atlas/static-package";
+import { getRendererBoundaries } from "@/lib/atlas/renderer-registry";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -485,6 +489,25 @@ export async function GET(request: Request, { params }: RouteContext) {
     return json({
       scenario_manifests: staticPackage.scenarioManifests,
       total: staticPackage.scenarioManifests.length,
+    });
+  }
+  if (segment === "primitive-library") {
+    return json(primitiveLibrary);
+  }
+  if (segment === "geo-comments") {
+    return json(geoComments);
+  }
+  if (segment === "layer-recipes") {
+    return json({
+      layer_recipes: (layerRecipes as { recipes?: unknown[] }).recipes ?? [],
+      ...layerRecipes,
+    });
+  }
+  if (segment === "renderer-boundaries") {
+    const rendererBoundaries = getRendererBoundaries();
+    return json({
+      renderer_boundaries: rendererBoundaries,
+      total: rendererBoundaries.length,
     });
   }
   if (segment === "viewport-vector-contracts") {

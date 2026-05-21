@@ -30,8 +30,8 @@ The boundary includes:
 - A provenance graph contract and fixture export.
 - A contribution review and privacy workflow.
 - A static mobile-first prototype.
-- A routed atlas app shell with MapLibre/deck.gl desktop map, Leaflet mobile
-  map, Mosaic/vgplot timeline, and cosmos.gl provenance panel.
+- A routed atlas app shell with one MapLibre + deck.gl render path across
+  desktop and mobile, Mosaic/vgplot timeline, and cosmos.gl provenance panel.
 - Validators for every artifact above.
 
 ## Inspect The Current App
@@ -47,42 +47,25 @@ Then visit `http://localhost:3000/open-flint-atlas`.
 
 ## Inspect The Legacy Prototype
 
-Open:
-
-```bash
-docs/plans/open-flint-atlas/prototype/index.html
-```
-
-Or serve it locally from the prototype directory:
-
-```bash
-cd docs/plans/open-flint-atlas/prototype
-python3 -m http.server 8765 --bind 127.0.0.1
-```
-
-Then visit `http://127.0.0.1:8765/index.html`.
+The old static prototype path has been retired. Use the routed Next.js app at
+`/open-flint-atlas` for current validation.
 
 ## Validate
 
-Run the full v0.1 fixture boundary:
+Run the current fixture and route boundary:
 
 ```bash
-python3 scripts/validate_open_flint_source_registry.py
-python3 scripts/validate_open_flint_source_probes.py
-python3 scripts/validate_open_flint_read_model.py
-python3 scripts/validate_open_flint_provenance_graph.py
-python3 scripts/validate_open_flint_contribution_workflow.py
-python3 scripts/validate_open_flint_prototype.py
-python3 scripts/validate_open_flint_public_package.py
+npm run typecheck
+npm run lint
+npm run validate:atlas
+npm run validate:reconstruction-node-tree
+npm run validate:time-travel
 ```
 
-Rebuild generated fixtures before validating if source registry, read-model, or
-prototype inputs changed:
+When a local dev server is running, also run:
 
 ```bash
-python3 scripts/build_open_flint_read_model.py
-python3 scripts/build_open_flint_provenance_graph.py
-python3 scripts/build_open_flint_prototype.py
+npm run validate:routes:live
 ```
 
 ## Public Boundary

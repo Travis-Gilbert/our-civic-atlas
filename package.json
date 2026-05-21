@@ -20,6 +20,7 @@
     "validate:dossier": "node scripts/validate-dossier-payload.mjs --fail-on-warning",
     "validate:dossier:live": "node scripts/validate-dossier-payload.mjs --fail-on-warning --base-url http://localhost:3000",
     "validate:routes:live": "node scripts/smoke-open-flint-routes.mjs",
+    "validate:time-travel": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-atlas-time-travel.mjs",
     "atlas:starter": "node scripts/generate-atlas-starter.mjs",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
