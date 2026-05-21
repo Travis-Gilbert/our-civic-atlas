@@ -11,8 +11,14 @@
   --font-display:
     var(--font-block-berthold), Impact, "Haettenschweiler",
     "Arial Narrow Bold", "Helvetica Neue Condensed Bold", sans-serif;
+  /* `--font-mono` now resolves to Plex Sans Condensed. Courier Prime was
+     removed from the bundle; the atlas's "mono surface" (chips, coords,
+     IDs, section labels) is rendered in the same condensed sans family
+     as body text, just via uppercase + tracking utilities. The variable
+     name is kept for compatibility with existing `font-mono` Tailwind
+     utilities and direct `var(--font-mono)` references. */
   --font-mono:
-    var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+    var(--font-ibm-plex-sans), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html,

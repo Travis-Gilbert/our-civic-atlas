@@ -213,10 +213,13 @@ function statusLabel(status: ResearchStatus): string {
   }
 }
 
-function statusLine(status: ResearchStatus): string {
+function statusLine(status: ResearchStatus): string | null {
   switch (status.kind) {
     case "idle":
-      return "Ask the algorithm.";
+      // No idle copy. The textarea placeholder is the call to action; an
+      // extra "Ask the algorithm." line beneath it added visual noise
+      // without informational value.
+      return null;
     case "loading":
       return "Running fractal expansion…";
     case "error":
@@ -370,12 +373,16 @@ export function CivicResearchPanel() {
             disabled={isLoading}
           />
           <div className="flex items-center justify-between gap-2">
-            <span
-              className="text-[11px] leading-[1.4]"
-              style={{ color: "var(--ctx-ink-mute)" }}
-            >
-              {statusLine(status)}
-            </span>
+            {statusLine(status) ? (
+              <span
+                className="text-[11px] leading-[1.4]"
+                style={{ color: "var(--ctx-ink-mute)" }}
+              >
+                {statusLine(status)}
+              </span>
+            ) : (
+              <span aria-hidden="true" />
+            )}
             <button
               type="submit"
               disabled={isLoading || query.trim().length === 0}

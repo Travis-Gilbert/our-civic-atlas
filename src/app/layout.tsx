@@ -1,28 +1,25 @@
 import type { Metadata } from "next";
-import { Courier_Prime, IBM_Plex_Sans_Condensed } from "next/font/google";
+import { IBM_Plex_Sans_Condensed } from "next/font/google";
 import localFont from "next/font/local";
 import "antd/dist/reset.css";
 import "./globals.css";
 
 // Body / UI font. Plex Sans Condensed reads denser than the
 // non-condensed Plex Sans, which matches the editorial atlas
-// feel — narrower x-height + tighter letter spacing means more
+// feel: narrower x-height + tighter letter spacing means more
 // content fits in the chrome panels without dropping size.
+//
+// Plex Sans Condensed also acts as the "mono surface" font in this
+// atlas. We previously routed Courier Prime through `--font-mono`
+// for chips, coords, IDs, and section labels, but the visual
+// vocabulary tightened up to a single condensed sans family. The
+// `--font-mono` CSS variable still exists (so Tailwind's `font-mono`
+// utility resolves) but it now points at Plex Sans Condensed. There
+// is no longer a separate monospace face in the bundle.
 const ibmPlexSansCondensed = IBM_Plex_Sans_Condensed({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-ibm-plex-sans",
-  display: "swap",
-});
-
-// Monospace font. Courier Prime is Quote-Unquote Apps' refinement
-// of Courier — improved on-screen legibility, better italic. The
-// mono surface in this atlas is small (chips, coords, IDs) but
-// dense, so legibility wins over personality.
-const courierPrime = Courier_Prime({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-ibm-plex-mono",
   display: "swap",
 });
 
@@ -53,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexSansCondensed.variable} ${courierPrime.variable} ${blockBerthold.variable}`}
+      className={`${ibmPlexSansCondensed.variable} ${blockBerthold.variable}`}
     >
       <body>{children}</body>
     </html>
