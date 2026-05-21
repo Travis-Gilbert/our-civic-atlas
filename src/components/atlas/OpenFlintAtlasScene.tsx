@@ -10,6 +10,7 @@ import {
 } from "@/components/atlas/AtlasSceneChrome";
 import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
 import { LayerControls } from "@/components/atlas/LayerControls";
+import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
 import {
@@ -845,14 +846,23 @@ export function OpenFlintAtlasScene(props: {
         }
         provenance={provenancePanel}
         layers={
-          <LayerControls
-            visibility={layerVisibility}
-            onChange={handleLayerChange}
-            visible
-          />
+          <div className="flex flex-col gap-3">
+            <LayerControls
+              visibility={layerVisibility}
+              onChange={handleLayerChange}
+              visible
+            />
+            <CivicResearchPanel />
+          </div>
         }
       >
         <div className="relative h-full w-full">
+          <div
+            className="absolute z-20 pointer-events-none"
+            style={{ left: "76px", top: "420px" }}
+          >
+            <CivicResearchPanel />
+          </div>
           {rendererMode === "baseline" ? (
             <AtlasMap
               places={places}
