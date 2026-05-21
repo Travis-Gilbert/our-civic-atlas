@@ -64,6 +64,14 @@ themselves are documents in this repo, not code changes in the siblings.
   off Modal; Pairformer adapter-seam coordination note updated to point
   at the post-migration paths. Catchup plan's repo description updated
   in the same revision.
+- 2026-05-21 (fourth pass, reconciliation only): Codex shipped a Lane 1
+  readiness pass (`9600b7c fix(atlas): complete lane 1 readiness pass`)
+  while the prior session was wrapped up. CU-L1-003 (AGENTS.md three
+  corrections), CU-L1-004 (stale doc sweep), CU-L1-005 (UCA-024 baseline
+  visual evidence), and CU-L1-006 (5-branch reconciliation) all landed
+  in that single commit. Status callouts added to Lane 1 and Lane 4
+  tables; execution order trimmed to remaining items. No content changes
+  to task definitions, acceptance criteria, or validators.
 
 ## Lane 1: Frontend Hygiene (no design gate)
 
@@ -79,6 +87,17 @@ design-gate skill does not fire.
 | CU-L1-004 | Sweep stale public docs and references. | Flagged in `orchestrate-non-ui-execution-report.md` "New Findings" | `DEPLOYMENT.md` no longer references `mappingourcity.org` or `flintmapped.org`; reflects `flint.ourcivicatlas.org`. `METHODOLOGY.md` source-registry path corrected from `docs/plans/open-flint-atlas/source-registry.json` to `src/data/open-flint-atlas/source-registry.json`. Cross-link consolidation considered for README files. | Markdown grep + doc review. |
 | CU-L1-005 | Capture UCA-024 baseline visual evidence. | UCA-024 partial; UCA-027 mobile gate prep | Baseline screenshots saved under `docs/visual-evidence/2026-05-20/baseline/` for desktop (1280+) AND 390 x 844 mobile across these currently-routed pages: `/open-flint-atlas`, `/open-flint-atlas/[lens]`, `/open-flint-atlas/sources`, `/open-flint-atlas/contribute`, `/open-flint-atlas/methodology`, `/open-flint-atlas/node`, `/open-flint-atlas/place`, `/open-flint-atlas/object`, `/open-flint-atlas/scene`, `/open-flint-atlas/lost-flint`, `/open-flint-atlas/lost-flint/carriage-town`. Selected-place dossier states also captured. | Dev server up; `npm run validate:routes:live`; manual screenshot review. |
 | CU-L1-006 | Reconcile the 5 local branches with overlapping history. | Carried from `orchestrate-non-ui-execution-report.md` "Incomplete or Blocked Work" | Each of `main`, `r3f-atlas-scene-quality`, `atlas-mobile-runtime-packets`, `mainline-island-port`, `merge-mainline-island-port` has a recorded decision: keep / merge / delete, plus the actual git operation executed. Decisions land in a session note for audit trail. | `git branch -av` plus `git log` comparisons; decisions captured in `docs/notes/session-<date>-branch-consolidation.md`. |
+
+### Lane 1 Status (as of 2026-05-21)
+
+| ID | Status | Evidence |
+|---|---|---|
+| CU-L1-001 | done | Committed `9febedc feat(atlas): land reconstruction-node-tree adapter + Lane 4 strategic seams`. Validator `npm run validate:reconstruction-node-tree` green for 51 nodes across 5 reconstructions. |
+| CU-L1-002 | open (UI) | Validator script `scripts/validate-atlas-time-travel.mjs` was added in `9600b7c` but the underlying bug fix is UI work and is paused for the design brainstorm session per project posture. |
+| CU-L1-003 | done | Commit `9600b7c` AGENTS.md hunk: Leaflet "fully retired from the public render path"; R3F "selectively revived only as a Lost Flint per-part reconstruction overlay"; multi-tenancy invariant paragraph added with `TenantContext` + PostGIS `tenant_id` + RLS + RustyRed namespace language. |
+| CU-L1-004 | done | Commit `9600b7c` DEPLOYMENT.md hunk: `mappingourcity.org` and `flintmapped.org` removed; `flint.ourcivicatlas.org` named as the canonical launch domain. METHODOLOGY.md hunk: source-registry path corrected from `docs/plans/open-flint-atlas/...` to `src/data/open-flint-atlas/...`. |
+| CU-L1-005 | done | Commit `9600b7c` added 22 baseline PNGs under `docs/visual-evidence/2026-05-20/baseline/` covering desktop and 390 x 844 mobile across the 11 routed pages named in the acceptance criteria. |
+| CU-L1-006 | done | Commit `9600b7c` added `docs/notes/session-2026-05-20-branch-consolidation.md` documenting per-branch decisions. `mainline-island-port` deleted from origin. `atlas-mobile-runtime-packets` and `merge-mainline-island-port` already absorbed into main. `main` and `r3f-atlas-scene-quality` (parked) remain. |
 
 Lane 1 deferral candidates (surfaced individually):
 
@@ -101,6 +120,14 @@ cross-repo plan that follows.
 | CU-L4-001 | USD field-name parity audit between `our-civic-atlas-backend/proto/civic_atlas/v1/reconstruction.proto` and the `civicAtlasSchema` in the Anthropic-authored OpenUSD/PairFormer/Nodetree doc. | Theorize Theorem Brief 2026-05-20, Decision "USD field-name parity is a now-decision" | `docs/design/proto-usd-field-parity-audit.md` enumerates every divergence by message, names the rename or extension action per field, and notes which extensions belong on the USD side vs the proto side. Audit is honest: counts and severity per message; no silent collapses. | Markdown review against `reconstruction.proto` and the Anthropic doc's `civicAtlasSchema`. |
 | CU-L4-002 | OpeningOverride proto coordination note. | Theorize Theorem Brief 2026-05-20, Decision "OpeningOverride is a coordination note to Codex, not a frontend commit"; Anthropic doc Pascal-tree spec section | `docs/plans/lane-4-strategic-seams/opening-override-proto-coordination.md` requests `repeated OpeningOverride opening_overrides` on the `OpeningGrid` message at additive field number 7, defines the `OpeningOverride` message shape inline, names acceptance criteria for Codex, and lists the downstream frontend slices that unblock when the proto change lands. | Markdown review against `OpeningGrid` in `reconstruction.proto` and the Anthropic doc's adapter spec. |
 | CU-L4-003 | Pairformer adapter-seam coordination note. | Theorize Theorem Brief 2026-05-20, Decision "Pairformer adapter seams are a coordination note"; Anthropic doc Graph-LoRA section | `docs/plans/lane-4-strategic-seams/pairformer-adapter-seams.md` requests three architectural seams (separable `PairUpdate`, separable `ConfidenceHead`, `tenant_context` parameter on the input encoder + output heads) be designed into the Pairformer in `civic-atlas-ingest/modal/building_head_train.py` BEFORE any training code is written. Names acceptance criteria, names the cheapest moment to insert the seams (now, before checkpoints exist), and explicitly defers Graph-LoRA implementation to a post-V1 plan. | Markdown review against the current stub state of `civic-atlas-ingest/modal/building_head_train.py` and the Anthropic doc's Graph-LoRA section. |
+
+### Lane 4 Status (as of 2026-05-21)
+
+| ID | Status | Evidence |
+|---|---|---|
+| CU-L4-001 | done | `docs/design/proto-usd-field-parity-audit.md` committed in `9febedc`. Backend mirrored copy lives at `our-civic-atlas-backend/docs/orchestrate/proto-usd-field-parity-audit.md` with mirror frontmatter (only delta vs source). |
+| CU-L4-002 | done | `docs/plans/lane-4-strategic-seams/opening-override-proto-coordination.md` committed in `9febedc`. Backend mirrored copy matches byte-for-byte. |
+| CU-L4-003 | done | `docs/plans/lane-4-strategic-seams/pairformer-adapter-seams.md` committed in `9febedc`, platform-corrected in `5e0ddb6`. Backend and ingest mirrored copies match byte-for-byte. |
 
 Lane 4 deferral candidates (surfaced individually):
 
@@ -219,15 +246,17 @@ other repositories. Listed here so they remain visible.
 
 ## Execution Order
 
-1. **CU-L1-001** + **CU-L4-001** + **CU-L4-002** + **CU-L4-003** (one bounded
-   commit: lands the working-tree files, the scope-note comment, the parity
-   audit, and both coordination notes together).
-2. **CU-L1-002** (verifiable bug; clear acceptance).
-3. **CU-L1-003** (doc only; three named claims).
-4. **CU-L1-004** (doc only; two named files).
-5. **CU-L1-005** (visual baseline; needs dev server and screenshot pass).
-6. **CU-L1-006** (branch consolidation; needs user judgment on per-branch
-   decisions).
+Original eleven-step order is preserved for audit. Items 1, 3, 4, 5, 6
+landed in `9600b7c` (with `9febedc` for item 1's adapter slice).
+Remaining work:
+
+1. ~~CU-L1-001 + CU-L4-001 + CU-L4-002 + CU-L4-003~~ (done: `9febedc`).
+2. **CU-L1-002** (verifiable bug; UI surface; reserved for the Lane 3
+   design brainstorm session per project posture).
+3. ~~CU-L1-003~~ (done: `9600b7c`).
+4. ~~CU-L1-004~~ (done: `9600b7c`).
+5. ~~CU-L1-005~~ (done: `9600b7c`).
+6. ~~CU-L1-006~~ (done: `9600b7c`).
 7. **CU-L3-001** (Lost Flint UI brainstorm; priority slice per AGENTS.md;
    brainstorm inputs include the three Phase 4 confidence bands, per-opening
    node-tree addressability, and the USD-as-archive-target).

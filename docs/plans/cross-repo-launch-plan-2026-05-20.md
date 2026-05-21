@@ -7,6 +7,19 @@ notes, sequences the work that gets from the current state to procedural
 algorithm rendering buildings before launch, and identifies which repo owns
 each slice.
 
+## Revision Log
+
+- 2026-05-20 (first pass): plan written and committed as `e86f10a docs(atlas): cross-repo launch plan + promote OpenUSD to UCA-022`.
+- 2026-05-20 (second pass): platform correction to Ray on RunPod;
+  committed as `5e0ddb6 docs(atlas): retarget ML compute from Modal to Ray on RunPod`.
+- 2026-05-21 (third pass, reconciliation only): Codex shipped Phase A
+  end-to-end (XRL-A-001 through XRL-A-005) and most of Phase B's first
+  two items (XRL-B-000 platform migration + XRL-B-001 tenant-aware
+  Pairformer architecture with all three Lane 4 seams) while the prior
+  session was wrapped up. Status callouts added under Phase A and Phase B
+  tables; no task definitions, acceptance criteria, or validators were
+  changed.
+
 ## Source of Truth Stack
 
 - Unified north-star plan (now with USD promoted to UCA-022):
@@ -139,6 +152,16 @@ coordination notes into a single bounded backend PR.
 | XRL-A-004 | Update existing backend service implementations to use the renamed proto fields. | `our-civic-atlas-backend` | `crates/civic-atlas-server/src/corrections.rs`, `src/lib.rs`, and any other consumer compiles against the new field names. `GetBlockSubgraph`, `SubmitReconstructionSpec`, and the corrections service continue to return the same data shape (just with the new names). | `cargo test` + a smoke test that round-trips a Carriage Town spec through the renamed proto. | XRL-A-003. |
 | XRL-A-005 | Update the frontend's GraphQL codegen and any TypeScript consumers that touch proto-derived types. | this repo | `npm run codegen` regenerates against the updated backend schema. `npm run typecheck` passes. `npm run validate:reconstruction-node-tree` passes (the adapter consumes the `HistoricalReconstruction` fixture model today, not the proto directly; the validator may not need changes). | `npm run codegen`, `npm run typecheck`, `npm run validate:reconstruction-node-tree`. | XRL-A-003, XRL-A-004. |
 
+### Phase A Status (as of 2026-05-21)
+
+| ID | Status | Evidence |
+|---|---|---|
+| XRL-A-001 | done | `our-civic-atlas-backend/docs/orchestrate/` contains `opening-override-proto-coordination.md`, `pairformer-adapter-seams.md`, `proto-usd-field-parity-audit.md`, plus `phase-4-reconstruction-spec-requirements.md` and `phases-0-3-task-ledger.md`. Diff vs source: opening-override and pairformer match byte-for-byte; parity audit gained a frontmatter block with `mirror_note`, `mirrored_from_commit: 9febedc`, `source_head_at_mirror: eace782`, `mirrored_on: 2026-05-20` (additive only). |
+| XRL-A-002 | done | `civic-atlas-ingest/docs/orchestrate/pairformer-adapter-seams.md` present, byte-for-byte match with source. |
+| XRL-A-003 | done | Backend commit `79b8920 feat(proto): align reconstruction spec with usd parity`. |
+| XRL-A-004 | done | Backend commit `40cdfb4 feat(reconstruction): wire procedural pipeline`; downstream Axum services compile against renamed fields. |
+| XRL-A-005 | wired | `codegen.ts` schema source pinned to `docs/design/flint-graphql-schema-v1.graphql`; `src/lib/api/graphql/generated/` checked in (`fragment-masking.ts`, `gql.ts`, `graphql.ts`, `index.ts`); `src/lib/api/graphql/client.ts` urql client present. Codegen will rerun on next schema change; not running now to avoid an unrelated diff colliding with the parallel `r3f-atlas-scene-quality` worktree work. |
+
 Phase A deferrals (surfaced individually):
 
 - Per-source confidences (`per_source_confidences` parallel to `sources`) is
@@ -166,6 +189,17 @@ items run on Ray on RunPod per the Platform Decisions section above.
 | XRL-B-003 | Pairformer training pipeline. Trains the base Flint Pairformer with the architecture from XRL-B-001 on the corpus from XRL-B-002 via Ray Train. | `civic-atlas-ingest` | `building_head_train.py` runs end-to-end as a Ray Train job on RunPod (GPU SKU per the Ray cluster config; H100 or A100 typical) and produces a checkpoint at `s3://civic-atlas/models/pairformer-flint-v1/<run_id>/`. Held-out validation set produces sensible per-part priors (eyeball at least; rigorous benchmark is a separate plan). | Ray Train run; checkpoint validation smoke. | XRL-B-001, XRL-B-002. |
 | XRL-B-004 | Pairformer inference endpoint. The Ray Serve deployment on RunPod that takes a partial ReconstructionSpec (footprint + known fields) and returns per-part priors with confidence + `from_gnn_prior=true` + `gnn_version`. | `civic-atlas-ingest` | `building_head_infer.py` ships as a Ray Serve deployment with an HTTP entrypoint. Request: ReconstructionSpec partial; response: filled-in PartProvenance per part with confidences. Tenant-scoped routing: a Flint request never touches a future Detroit checkpoint (Ray Serve deployment per tenant or a single deployment with a tenant-keyed dispatcher; choose at implementation time). | curl smoke against the Ray Serve endpoint with a Carriage Town partial spec; response shape matches the proto. | XRL-B-003. |
 | XRL-B-005 | Backend bridge to the inference endpoint. The Axum service `crates/civic-atlas-server` gets an internal client that calls the Ray Serve endpoint when a spec is submitted for review. | `our-civic-atlas-backend` | `civic-atlas-server` reads `PAIRFORMER_INFER_URL` env var pointing at the Ray Serve endpoint on RunPod; when a `SubmitSpecForReview` arrives with empty fields, the server calls the endpoint, fills the empty fields with priors, marks `from_gnn_prior=true`, and records `gnn_version`. Existing approval flow unchanged. | Integration test that round-trips a partial spec through submit + infer + approve. | XRL-B-004, XRL-A-004. |
+
+### Phase B Status (as of 2026-05-21)
+
+| ID | Status | Evidence |
+|---|---|---|
+| XRL-B-000 | done | Ingest commit `c2edf52 chore(ingest): migrate execution stubs to ray runpod`. `modal/` directory removed; `ray_cluster/runpod.yaml` and `scripts/check_ray_migration.py` added; existing intent preserved across `building_head_train.py`, `building_head_infer.py`, `scene_foundry.py`, `ingest_*.py`, `model_promote.py`, `city_targets.py`, `coverage_quality.py`. |
+| XRL-B-001 | done | Ingest commit `9f14ab6 feat(pairformer): add tenant-aware civic building head`. `civic_atlas_ingest/building_head_pairformer.py` (421 lines) contains: separable `CivicPairUpdate(nn.Module)` (line ~104), separable `CivicConfidenceHead(nn.Module)` (line 133), `default_tenant_context: str = DEFAULT_TENANT_CONTEXT` on `CivicPairformerConfig`, `tenant_context: str` on `CivicPairformerOutput` and `CivicBuildingHeadOutput`. `tests/test_building_head_pairformer.py` present. All three Lane 4 seams verified. |
+| XRL-B-002 | open | Training corpus ingestion stubs exist (`ingest_overpass.py`, `ingest_sanborn.py`, `ingest_assessor.py`); end-to-end Ray task runs against real sources not yet shipped. |
+| XRL-B-003 | open | Training pipeline not yet executed against a real corpus; no checkpoint at `s3://civic-atlas/models/pairformer-flint-v1/...` yet. |
+| XRL-B-004 | open | Ray Serve deployment not yet stood up. |
+| XRL-B-005 | open | Backend bridge from Axum to the Ray Serve endpoint not yet wired (no `PAIRFORMER_INFER_URL` consumer in `crates/civic-atlas-server`). |
 
 Phase B deferrals:
 
