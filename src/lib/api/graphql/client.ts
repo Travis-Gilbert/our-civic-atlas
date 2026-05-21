@@ -3,40 +3,50 @@
  *
  * Talks to the browser-facing Civic Atlas GraphQL endpoint.
  *
- * Default remains the existing Theseus Strawberry endpoint. Set
- * NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_PATH=node-sidecar and
- * NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL to migrate behind the Node sidecar
- * without changing browser GraphQL operations.
+ * Default endpoint is the Node sidecar (`apps/graphql-server` in
+ * `our-civic-atlas-backend`) at http://127.0.0.1:4010/graphql. The
+ * sidecar speaks GraphQL outward and gRPC (JSON-over-HTTP today,
+ * native gRPC after the transport migration lands) inward to the
+ * Rust Axum service, which holds the only credentials for Theseus.
  *
- * Field selection happens at the operation level — see `queries/*.graphql`.
- * The schema at `docs/design/flint-graphql-schema-v1.graphql` is the contract.
+ * The frontend deployment ships no Theseus tokens. All service-tier
+ * auth lives on the Axum service per the project's "Service-Tier
+ * Auth Stays Server-Side" rule.
+ *
+ * Override the endpoint per environment:
+ *   - NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL: production URL of the
+ *     sidecar / future Axum-native GraphQL surface.
+ *   - CIVIC_ATLAS_GRAPHQL_URL: server-side equivalent (RSC + Route
+ *     Handler contexts).
+ *
+ * Historical: the previous default pointed at a Strawberry-based
+ * scaffold mounted on Theseus (Index-API) at
+ * /api/graphql/open-flint-atlas. That scaffold has been deleted; the
+ * canonical home for the GraphQL contract is the Node sidecar +
+ * Axum stack in `our-civic-atlas-backend`. The Strawberry path no
+ * longer exists in Theseus.
+ *
+ * Field selection happens at the operation level (see
+ * `queries/*.graphql`). The schema at
+ * `docs/design/flint-graphql-schema-v1.graphql` is the contract.
  * Off-schema content is not requestable and never returned.
  *
  * Two flavors:
- *   - createTheseusClient(): one-shot Client, use in server-side route
- *     handlers and RSC contexts.
- *   - registerUrqlClient/withUrqlClient via @urql/next for client-side
- *     React hooks (added when the first hook consumer ships).
+ *   - createTheseusClient(): one-shot Client, use in server-side
+ *     route handlers and RSC contexts.
+ *   - registerUrqlClient/withUrqlClient via @urql/next for
+ *     client-side React hooks (added when the first hook consumer
+ *     ships).
  */
 
 import { Client, cacheExchange, fetchExchange } from "urql";
 
-const DEFAULT_ENDPOINT =
-  "https://index-api-production-a5f7.up.railway.app/api/graphql/open-flint-atlas";
-const DEFAULT_NODE_SIDECAR_ENDPOINT = "http://127.0.0.1:4010/graphql";
+const DEFAULT_ENDPOINT = "http://127.0.0.1:4010/graphql";
 
 function getEndpoint(): string {
-  if (process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_PATH === "node-sidecar") {
-    return (
-      process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL ??
-      process.env.CIVIC_ATLAS_GRAPHQL_URL ??
-      DEFAULT_NODE_SIDECAR_ENDPOINT
-    );
-  }
-
   return (
-    process.env.NEXT_PUBLIC_THESEUS_GRAPHQL_URL ??
-    process.env.THESEUS_GRAPHQL_URL ??
+    process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL ??
+    process.env.CIVIC_ATLAS_GRAPHQL_URL ??
     DEFAULT_ENDPOINT
   );
 }
@@ -70,7 +80,7 @@ export function getTheseusClient(): Client {
 }
 
 /**
- * Reset the singleton — useful in tests or when the env var changes mid-run.
+ * Reset the singleton. Useful in tests or when the env var changes mid-run.
  */
 export function resetTheseusClient(): void {
   _client = null;

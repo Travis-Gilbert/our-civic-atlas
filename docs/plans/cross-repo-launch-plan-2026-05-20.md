@@ -19,6 +19,15 @@ each slice.
   session was wrapped up. Status callouts added under Phase A and Phase B
   tables; no task definitions, acceptance criteria, or validators were
   changed.
+- 2026-05-22 (fourth pass): Phase G added. The Civic Atlas GraphQL
+  contract moved off Theseus's Strawberry scaffold and onto the Node
+  sidecar + Axum + Theseus bridge gRPC chain. Foundation (XRL-G-001)
+  landed end-to-end across three repos: bridge proto + bridge_server
+  resolver, Axum civic_research RPC + theseus-client wiring, sidecar
+  schema + grpcClient civicResearch method, frontend env flip,
+  Strawberry stub deleted. Remaining items (XRL-G-002 schema port,
+  XRL-G-003 transport hardening, XRL-G-004 bridge deployment) are open
+  follow-ons. See docs/plans/lane-4-strategic-seams/graphql-home-migration.md.
 
 ## Source of Truth Stack
 
@@ -343,6 +352,25 @@ None at this time. The USD promotion (the one open question from the
 theorize Brief) is resolved by the user's acceptance of the recommended
 option in the same session; the north-star plan update lands in the same
 commit as this plan.
+
+## Phase G: GraphQL Home Migration (added 2026-05-22)
+
+Owner: cross-repo. Moves the Civic Atlas GraphQL contract off Theseus's
+Strawberry scaffold and onto the canonical Node sidecar + Axum chain so
+the frontend talks one boundary that owns TenantContext + service auth.
+
+| ID | Task | Owner | Acceptance | Validator | Dependencies |
+|---|---|---|---|---|---|
+| XRL-G-001 | Foundation: civicResearch end-to-end across three repos. | this repo + `our-civic-atlas-backend` + `Index-API` | Proto: FractalExpansion rpc in theseus_bridge.v1, CivicResearch rpc in civic_atlas.v1. Theseus: bridge_server.FractalExpansion calls real harness fractal_expansion + normalizes to SearchResults JSON. Axum: civic-atlas-server.CivicResearch dials bridge + forwards. Sidecar: civicResearch mutation + resolver + grpcClient method. Frontend: client.ts default flipped to sidecar URL. Strawberry stub deleted from Index-API. | Manual smoke: textarea + Run in the Research panel returns evidence (once bridge is deployed). Code-grounded review against this section. | None. |
+| XRL-G-002 | Full schema port: implement the remaining ~25 types and ~10 fields from `Open-Flint-Atlas-main-release/docs/design/flint-graphql-schema-v1.graphql` on the Node sidecar. | `our-civic-atlas-backend` + this repo | searchAtlas, Mutation.submitObservation, manifest, places(id), events, signals, sources, provenance, historicalReconstructions, atlasNode, nodeCatalog, dossier all resolvable. Each backed by an Axum RPC (existing or new) and, where applicable, a Theseus bridge RPC. | npm run codegen still green; integration smoke per added field. | XRL-G-001. |
+| XRL-G-003 | Transport hardening: switch the sidecar to native gRPC (or Connect protocol) for the sidecar-to-Axum hop. Drop tonic-web from civic-atlas-server when no other browser-direct gRPC consumer remains. | `our-civic-atlas-backend` | Sidecar uses @grpc/grpc-js, nice-grpc, or @connectrpc/connect-node against Axum. Proto codegen wired (buf generate or protoc-gen-ts-proto). JSON-over-HTTP fetch calls removed from grpcClient.ts. | Sidecar boot smoke + one civic_research round-trip in the new transport. | XRL-G-001. |
+| XRL-G-004 | Theseus bridge deployment: Dockerize / Railway-ize `bridge_server.py`. Wire `THESEUS_BRIDGE_URL` on Axum to point at it. | `Index-API` | A deployable process listens on a known port; Axum can dial it from production. Health endpoint reachable. | curl + `nc` smoke against the deployed port; Axum civic_research RPC returns evidence. | XRL-G-001. |
+
+Phase G deferrals (surfaced individually):
+
+- Frontend full-result rendering (parse the `SearchResults` payload into typed map markers and overlay state) is a Phase D follow-on once XRL-G-002 ships the typed fields. Today the panel renders a JSON preview of the response.
+- RustyRed-backed resolver paths (geometry hydration, hot-graph augmentation) are deferred until Phase G transport hardens and the resolver layer has a stable execution model. The architecture in XRL-G-003 leaves the door open.
+- Browser-direct gRPC (no sidecar) is NOT in scope. The sidecar pattern is the documented and preferred architecture; reconsider only if the sidecar becomes operationally costly.
 
 ## Production Gates
 
