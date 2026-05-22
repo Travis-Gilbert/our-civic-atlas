@@ -350,6 +350,8 @@ function createBuildingFormSpec(
     footprintRatio: bounds.ratio,
     parcelFrontBearingDegrees,
     hasParcelFrontEdge: parcelFrontBearingDegrees != null,
+    typologyClass,
+    typologyConfidence,
   });
   const formType = classifyUrbanForm({
     buildingTag,
@@ -357,6 +359,8 @@ function createBuildingFormSpec(
     hash,
     name: normalizedName,
     use: props.use?.toLowerCase() ?? null,
+    typologyClass,
+    typologyConfidence,
   });
   const generatedHeightM = fabric.params.height_m;
 
@@ -380,33 +384,115 @@ function createBuildingFormSpec(
 }
 
 /**
- * Map an OSM footprint to an urban-design form using ONLY signals that
- * actually correlate with form: tag/name/use regexes and footprint shape.
+ * Map an OSM footprint to an urban-design form.
  *
- * The prior version of this function used `input.hash % N` branches as
- * tiebreakers across the area-based fallback paths. That made the form a
- * deterministic-but-arbitrary function of `osm_id`: every Nth building
- * became a "tower_podium," every other Nth a "courtyard_compact," etc.,
- * regardless of what was on the parcel. The visible result was the Lego
- * carnival render — every screen full of multi-colored "form types" was
- * mostly hash output, not classification.
+ * Hierarchy of signals (most-reliable first):
  *
- * This version returns `"unknown"` whenever the tags and shape provide no
- * basis for a specific form. Most Flint footprints will end up there until
- * Phase A's real LightGBM classifier (Ray/RunPod batch, not Modal) writes
- * `building_typology` rows that this function can consult.
+ *  1. Phase A typology classifier output (`typology_class` +
+ *     `typology_confidence`). When confidence ≥ 0.6, the classifier's
+ *     answer narrows the form to its compatible family
+ *     (residential → {single_lot, row_infill, courtyard_*, slab};
+ *     commercial → {mixed_use_street_wall, tower_podium}; etc.) and
+ *     footprint geometry picks the specific form within that family.
+ *     This is the path the classifier improvements feed into — better
+ *     classifier means more buildings get the right shape decomposition.
+ *
+ *  2. OSM tag / name regex on the few high-precision signals we trust
+ *     directly (school, church, warehouse, factory, etc.). Same signals
+ *     the classifier already trained on, used here as a backup for the
+ *     ~20% of buildings without a parcel match OR low-confidence
+ *     classifier output.
+ *
+ *  3. Shape-only fallback (very large + long-narrow → industrial_shed).
+ *
+ *  4. Honest `"unknown"` when nothing supports a specific form.
+ *
+ * The prior version (before this commit) only used signal #2. Buildings
+ * with `building=yes` (the OSM catch-all, ~87% of Flint's fixture) fell
+ * straight to `single_lot` regardless of what the classifier knew.
+ * Civic buildings without an OSM tag, large commercial buildings
+ * without an `office`/`retail` tag, industrial warehouses tagged `yes`
+ * — all rendered as single-family houses. The wiring fixes that.
+ *
+ * Procedural variation is preserved: each typology_class fans out to
+ * MULTIPLE form_types depending on area, ratio, and neighbor density.
+ * The classifier narrows the family; geometry picks the specific form.
  */
+const TYPOLOGY_CONFIDENCE_FLOOR = 0.6;
+
+// Below this footprint area, no archetype decomposition makes sense
+// (garages, sheds, awnings). These render as plain `single_lot`
+// regardless of classifier output to avoid civic-anchor-on-a-shed
+// artifacts at the edge of the data.
+const MIN_AREA_FOR_TYPOLOGY_OVERRIDE_M2 = 60;
+
 function classifyUrbanForm(input: {
   buildingTag: string | null;
   bounds: PlanBounds;
   hash: number;
   name: string;
   use: string | null;
+  typologyClass: string | null;
+  typologyConfidence: number | null;
 }): UrbanDesignFormType {
   const tag = input.buildingTag ?? "";
   const combined = `${tag} ${input.name} ${input.use ?? ""}`;
   const area = input.bounds.areaM2;
   const ratio = input.bounds.ratio;
+
+  // ── Tier 1: classifier-driven path ──────────────────────────────
+  // When the Phase A classifier is confident, its answer narrows the
+  // form family and geometry picks the specific form. The shape
+  // variation is preserved — same typology_class still produces
+  // different form_types depending on area + ratio.
+  const useTypology =
+    typeof input.typologyConfidence === "number" &&
+    input.typologyConfidence >= TYPOLOGY_CONFIDENCE_FLOOR &&
+    input.typologyClass != null &&
+    area >= MIN_AREA_FOR_TYPOLOGY_OVERRIDE_M2;
+
+  if (useTypology) {
+    switch (input.typologyClass) {
+      case "civic":
+        return "civic_anchor";
+      case "industrial":
+        // Very long/narrow industrial reads as a slab (assembly line);
+        // anything else as a shed (the more common Flint pattern).
+        return ratio > 2.6 && area > 1200 ? "slab" : "industrial_shed";
+      case "commercial":
+        // Tall + large commercial = downtown tower. Otherwise main-
+        // street pattern.
+        if (area > 2400) return "tower_podium";
+        return "mixed_use_street_wall";
+      case "residential":
+        // Residential fans out by scale + density:
+        //   tiny single-family    → single_lot
+        //   row of attached units → row_infill (high ratio, mid area)
+        //   small apartment slab  → slab (high ratio, large)
+        //   walkup courtyard      → courtyard_compact / _open (very large)
+        if (area > 5600) {
+          return ratio > 1.6 ? "courtyard_open" : "courtyard_compact";
+        }
+        if (area > 1800 && ratio > 2.6) return "slab";
+        if (area > 700 && ratio > 2.4) return "row_infill";
+        return "single_lot";
+      // Note: typology_class "mixed_use" isn't predicted in v0.1.x but
+      // the case exists for forward compatibility. Maps to the
+      // mixed_use_street_wall form which already encodes ground-floor
+      // commercial + residential above.
+      case "mixed_use":
+        return area > 2400 ? "tower_podium" : "mixed_use_street_wall";
+      // "unknown" falls through to the regex tier — the classifier
+      // explicitly said "I don't know", so use whatever direct signal
+      // we have instead of forcing a guess.
+    }
+  }
+
+  // ── Tier 2: regex on high-precision OSM signals ─────────────────
+  // The Phase A classifier already learned from these signals, but for
+  // the ~20% of buildings without a parcel match (and the small
+  // minority with low-confidence classifier output), reading the tag
+  // directly is still useful.
 
   if (
     /(church|school|college|university|library|hospital|clinic|city|county|government|courthouse|museum|theatre|theater)/.test(
@@ -424,8 +510,9 @@ function classifyUrbanForm(input: {
     return "mixed_use_street_wall";
   }
 
-  // Shape-only signal: very large, long-and-narrow footprints look industrial
-  // even when untagged. Everything else with no real tag is honest "unknown."
+  // ── Tier 3: shape-only fallback ─────────────────────────────────
+  // Very large, long-and-narrow footprints look industrial even when
+  // untagged. Everything else with no real tag is honest "unknown."
   if (area > 5600 && ratio > 2.2) {
     return "industrial_shed";
   }

@@ -85,6 +85,17 @@ type BuildingFabricInput = {
    */
   parcelFrontBearingDegrees?: number | null;
   hasParcelFrontEdge?: boolean;
+  /**
+   * Phase A classifier output, threaded through from OSM source via
+   * createBuildingFormSpec. When typologyConfidence >= 0.6,
+   * classifyPresentArchetype routes the archetype assignment through
+   * the classifier's class (mapping to present_civic / _commercial /
+   * _industrial / _residential_single / _residential_multi /
+   * _mixed_use) instead of the OSM-tag regex. The OSM-tag regex
+   * remains the fallback for low-confidence and parcel-less rows.
+   */
+  typologyClass?: string | null;
+  typologyConfidence?: number | null;
 };
 
 export const BUILDING_FABRIC_LOD = {
@@ -111,6 +122,11 @@ export function deriveBuildingFabricSpec(
     name: normalizedName,
     seed: variationSeed,
     use: normalizedUse,
+    typologyClass: input.typologyClass ?? null,
+    typologyConfidence:
+      typeof input.typologyConfidence === "number"
+        ? input.typologyConfidence
+        : null,
   });
   const prior = BUILDING_FABRIC_HEIGHT_PRIORS.archetypes[archetype];
   const stories = inferStories({
@@ -163,21 +179,36 @@ export function deriveBuildingFabricSpec(
 }
 
 /**
- * Map an OSM footprint to a present-day archetype using ONLY signals that
- * actually correlate with building use: explicit OSM tags, the building's
- * declared name, and footprint shape. The prior version of this function
- * scattered `seed % N` branches across the area-based fallback, which made
- * the archetype a deterministic-but-arbitrary function of `osm_id` rather
- * than of the building. Every "courtyard" or "tower" produced by that path
- * was structural noise wearing the costume of classification.
+ * Map an OSM footprint to a present-day archetype.
  *
- * Until Phase A's real LightGBM classifier ships, the honest answer for
- * any footprint without a real tag signal is `"present_unknown"`, which
- * renders as a plain extruded mass. We keep the shape-based fallback only
- * for the cases where the geometry itself is the signal (very large
- * footprints with a long, narrow ratio look industrial; large square
- * footprints look civic).
+ * Hierarchy of signals (most-reliable first):
+ *
+ *  1. Phase A typology classifier output when confidence ≥ 0.6 and
+ *     footprint is large enough for archetype decomposition to be
+ *     meaningful (≥ 60 m²). Classifier class drives archetype family;
+ *     footprint area / height pick the specific sub-archetype within
+ *     residential (single vs multi) and the mixed-use variant for
+ *     commercial.
+ *
+ *  2. OSM tag / name regex for the ~20% of buildings without a parcel
+ *     match (low-confidence classifier output). Same signals the
+ *     classifier trained on, used here as a backup direct path.
+ *
+ *  3. Shape-only fallback (large + long-narrow → industrial).
+ *
+ *  4. `"present_unknown"` when nothing supports a specific archetype —
+ *     renders as a plain extruded mass.
+ *
+ * The prior version (before this commit) only used signal #2.
+ * Buildings with `building=yes` (the OSM catch-all, ~87% of Flint's
+ * fixture) fell to `present_unknown` regardless of what the
+ * classifier knew. Civic buildings without an OSM tag, industrial
+ * warehouses without an `industrial` tag — all rendered as plain
+ * mass with no decoration. The wiring fixes that.
  */
+const ARCHETYPE_TYPOLOGY_CONFIDENCE_FLOOR = 0.6;
+const ARCHETYPE_MIN_AREA_M2 = 60;
+
 function classifyPresentArchetype(input: {
   buildingTag: string | null;
   footprintAreaM2: number;
@@ -185,10 +216,41 @@ function classifyPresentArchetype(input: {
   name: string | null;
   seed: number;
   use: string | null;
+  typologyClass: string | null;
+  typologyConfidence: number | null;
 }): BuildingFabricArchetype {
   const combined = `${input.buildingTag ?? ""} ${input.name ?? ""} ${input.use ?? ""}`;
   const area = input.footprintAreaM2;
 
+  // ── Tier 1: classifier-driven path ──────────────────────────────
+  const useTypology =
+    typeof input.typologyConfidence === "number" &&
+    input.typologyConfidence >= ARCHETYPE_TYPOLOGY_CONFIDENCE_FLOOR &&
+    input.typologyClass != null &&
+    area >= ARCHETYPE_MIN_AREA_M2;
+
+  if (useTypology) {
+    switch (input.typologyClass) {
+      case "civic":
+        return "present_civic";
+      case "industrial":
+        return "present_industrial";
+      case "commercial":
+        // Larger commercial footprints in Flint's downtown pattern
+        // typically have ground-floor retail + apartments above. The
+        // small-storefront pattern still uses the pure commercial
+        // archetype (single-story parapet + storefront bays).
+        return area > 600 ? "present_mixed_use" : "present_commercial";
+      case "residential":
+        // Single-family vs multifamily slab by footprint scale.
+        return area > 600 ? "present_residential_multi" : "present_residential_single";
+      case "mixed_use":
+        return "present_mixed_use";
+      // "unknown" falls through to the regex tier.
+    }
+  }
+
+  // ── Tier 2: regex on high-precision OSM signals ─────────────────
   if (/(church|school|college|university|library|hospital|clinic|city|county|government|courthouse|museum|theatre|theater)/.test(combined)) {
     return "present_civic";
   }
@@ -204,6 +266,8 @@ function classifyPresentArchetype(input: {
   if (/(house|detached|semidetached|terrace|residential|garage)/.test(combined)) {
     return area > 600 ? "present_residential_multi" : "present_residential_single";
   }
+
+  // ── Tier 3: shape-only fallback ─────────────────────────────────
   if (area > 5600 && input.footprintRatio > 2.2) {
     return "present_industrial";
   }
