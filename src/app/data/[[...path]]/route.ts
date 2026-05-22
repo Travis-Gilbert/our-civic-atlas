@@ -9,6 +9,7 @@ import {
   ATLAS_SCENARIOS,
   getKpiBundle,
   getKpiDelta,
+  getScenarioEnvelopeCollection,
   getScenarioComparison,
 } from "@/lib/atlas/scenario-model";
 import type {
@@ -127,6 +128,18 @@ export async function GET(_: Request, { params }: RouteContext) {
           url.searchParams.get("base") ?? "current",
           url.searchParams.get("target") ?? "safe-routes-starter",
         ),
+      );
+    }
+    if (child === "envelopes.json") {
+      const url = new URL(_.url);
+      const requestedScenarioId = url.searchParams.get("scenario") ?? "current";
+      const scenarioId = ATLAS_SCENARIOS.some(
+        (scenario) => scenario.scenarioId === requestedScenarioId,
+      )
+        ? requestedScenarioId
+        : "current";
+      return json(
+        getScenarioEnvelopeCollection(scenarioId),
       );
     }
   }

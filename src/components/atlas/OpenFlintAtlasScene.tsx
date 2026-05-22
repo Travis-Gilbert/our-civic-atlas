@@ -55,7 +55,10 @@ import {
   ATLAS_SCENARIOS,
   getKpiBundle,
   getKpiDelta,
+  getScenarioEnvelopeCollection,
   getScenarioComparison,
+  SCENARIO_ENVELOPE_TYPE_LABELS,
+  type ScenarioEnvelopeType,
 } from "@/lib/atlas/scenario-model";
 
 const ProvenancePanel = dynamic(
@@ -117,6 +120,42 @@ function initialMobileSurface(
   // hook to be here when that decision lands.
   if (typeof window === "undefined") return defaultSurface;
   return defaultSurface;
+}
+
+function getScenarioEnvelopeBounds(
+  collection: GeoJSON.FeatureCollection<GeoJSON.Polygon>,
+): AtlasLngLatBounds | null {
+  const bounds = {
+    minLng: Number.POSITIVE_INFINITY,
+    minLat: Number.POSITIVE_INFINITY,
+    maxLng: Number.NEGATIVE_INFINITY,
+    maxLat: Number.NEGATIVE_INFINITY,
+  };
+
+  for (const feature of collection.features) {
+    for (const ring of feature.geometry.coordinates) {
+      for (const [lng, lat] of ring) {
+        bounds.minLng = Math.min(bounds.minLng, lng);
+        bounds.minLat = Math.min(bounds.minLat, lat);
+        bounds.maxLng = Math.max(bounds.maxLng, lng);
+        bounds.maxLat = Math.max(bounds.maxLat, lat);
+      }
+    }
+  }
+
+  if (
+    !Number.isFinite(bounds.minLng) ||
+    !Number.isFinite(bounds.minLat) ||
+    !Number.isFinite(bounds.maxLng) ||
+    !Number.isFinite(bounds.maxLat)
+  ) {
+    return null;
+  }
+
+  return [
+    [bounds.minLng, bounds.minLat],
+    [bounds.maxLng, bounds.maxLat],
+  ];
 }
 
 export function OpenFlintAtlasScene(props: {
@@ -651,6 +690,28 @@ export function OpenFlintAtlasScene(props: {
       ),
     [activeScenarioId, compareScenarioId, scenarioDraftEdits],
   );
+  const activeScenarioEnvelopes = useMemo(
+    () => getScenarioEnvelopeCollection(activeScenarioId, scenarioDraftEdits),
+    [activeScenarioId, scenarioDraftEdits],
+  );
+  const scenarioFocusBounds = useMemo(
+    () => getScenarioEnvelopeBounds(getScenarioEnvelopeCollection(activeScenarioId)),
+    [activeScenarioId],
+  );
+  const envelopeTypeCounts = useMemo(() => {
+    const counts = new Map<ScenarioEnvelopeType, number>();
+    for (const feature of activeScenarioEnvelopes.features) {
+      const type = feature.properties.envelopeType;
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
+    return Object.entries(SCENARIO_ENVELOPE_TYPE_LABELS).map(
+      ([type, label]) => ({
+        count: counts.get(type as ScenarioEnvelopeType) ?? 0,
+        label,
+        type: type as ScenarioEnvelopeType,
+      }),
+    );
+  }, [activeScenarioEnvelopes]);
   const kpiScope = selectedPlaceId ? "place" : "city";
   const kpiScopeId = selectedPlaceId ?? "flint";
   const scenarioKpis = useMemo(
@@ -685,6 +746,37 @@ export function OpenFlintAtlasScene(props: {
     setActiveScenarioId(scenarioId);
     setScenarioCompareEnabled(scenarioId !== "current");
   }, []);
+
+  useEffect(() => {
+    if (!isMapReady) return;
+    if (pendingBookmark) return;
+    if (activeScenarioId === "current" && !scenarioCompareEnabled) return;
+    if (!scenarioFocusBounds) return;
+
+    const map = mapRefRef.current;
+    if (!map) return;
+
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    map.fitBounds(scenarioFocusBounds, {
+      bearing: viewMode === "atlas" ? 0 : -18,
+      duration: reducedMotion ? 0 : 850,
+      maxZoom: isMobileViewport ? 15.2 : 15.7,
+      padding: isMobileViewport
+        ? { top: 116, bottom: 112, left: 28, right: 28 }
+        : { top: 118, bottom: 132, left: 220, right: 420 },
+      pitch: viewMode === "atlas" ? 0 : 56,
+    });
+  }, [
+    activeScenarioId,
+    isMapReady,
+    isMobileViewport,
+    pendingBookmark,
+    scenarioCompareEnabled,
+    scenarioFocusBounds,
+    viewMode,
+  ]);
 
   const handleLensChange = useCallback((lens: AtlasLensId) => {
     setActiveLens(lens);
@@ -936,6 +1028,7 @@ export function OpenFlintAtlasScene(props: {
               scenarioDeltaFeatures={
                 scenarioComparison.deltaFeatureCollection
               }
+              scenarioEnvelopeFeatures={activeScenarioEnvelopes}
               scenarioCompareEnabled={
                 scenarioCompareEnabled && activeScenarioId !== compareScenarioId
               }
@@ -966,6 +1059,7 @@ export function OpenFlintAtlasScene(props: {
             }
             draftHeightBoostM={draftHeightBoostM}
             comparison={scenarioComparison}
+            envelopeTypeCounts={envelopeTypeCounts}
             kpiBundle={scenarioKpis}
             kpiDelta={scenarioKpiDelta}
             selectedPlaceName={selectedPlaceName}

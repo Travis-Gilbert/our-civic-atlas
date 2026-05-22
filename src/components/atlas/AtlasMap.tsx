@@ -16,7 +16,11 @@ import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
-import type { ScenarioDeltaProperties } from "@/lib/atlas/scenario-model";
+import type {
+  ScenarioDeltaProperties,
+  ScenarioEnvelopeProperties,
+  ScenarioEnvelopeType,
+} from "@/lib/atlas/scenario-model";
 import { osmBuildingExistsInYear } from "@/lib/atlas/atlas-time";
 import type {
   PlacesCollection,
@@ -133,6 +137,22 @@ const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   safety: [56, 132, 128, 44],
   interventions: [82, 126, 82, 46],
   evidence: [95, 111, 163, 42],
+};
+
+const ENVELOPE_FILL: Record<ScenarioEnvelopeType, [number, number, number, number]> = {
+  adaptive_reuse: [126, 93, 161, 152],
+  as_of_right: [84, 112, 122, 118],
+  civic_anchor: [193, 74, 44, 164],
+  missing_middle: [217, 162, 59, 158],
+  mixed_use_infill: [45, 166, 153, 162],
+};
+
+const ENVELOPE_LINE: Record<ScenarioEnvelopeType, [number, number, number, number]> = {
+  adaptive_reuse: [96, 68, 132, 232],
+  as_of_right: [65, 88, 96, 190],
+  civic_anchor: [164, 52, 34, 238],
+  missing_middle: [170, 119, 41, 232],
+  mixed_use_infill: [24, 132, 122, 232],
 };
 
 /* ------------------------------------------------------------------ */
@@ -324,6 +344,26 @@ function lensFillColor(
   ];
 }
 
+function envelopeFillColor(
+  envelopeType: ScenarioEnvelopeType,
+  compareEnabled: boolean,
+): [number, number, number, number] {
+  const color = ENVELOPE_FILL[envelopeType];
+  return compareEnabled
+    ? color
+    : [color[0], color[1], color[2], Math.max(108, color[3] - 24)];
+}
+
+function envelopeLineColor(
+  envelopeType: ScenarioEnvelopeType,
+  compareEnabled: boolean,
+): [number, number, number, number] {
+  const color = ENVELOPE_LINE[envelopeType];
+  return compareEnabled
+    ? color
+    : [color[0], color[1], color[2], Math.max(176, color[3] - 32)];
+}
+
 /* ------------------------------------------------------------------ */
 /*  DeckGL overlay hook                                                */
 /* ------------------------------------------------------------------ */
@@ -381,6 +421,10 @@ export type AtlasMapProps = {
    * hook.
    */
   historicalReconstructions?: HistoricalReconstruction[];
+  scenarioEnvelopeFeatures?: GeoJSON.FeatureCollection<
+    GeoJSON.Polygon,
+    ScenarioEnvelopeProperties
+  >;
   scenarioDeltaFeatures?: GeoJSON.FeatureCollection<
     GeoJSON.Polygon,
     ScenarioDeltaProperties
@@ -406,6 +450,7 @@ export function AtlasMap({
   onMapReady,
   atlasYear = null,
   historicalReconstructions,
+  scenarioEnvelopeFeatures,
   scenarioDeltaFeatures,
   scenarioCompareEnabled = false,
 }: AtlasMapProps) {
@@ -679,6 +724,54 @@ export function AtlasMap({
     }
 
     if (
+      scenarioEnvelopeFeatures &&
+      scenarioEnvelopeFeatures.features.length > 0 &&
+      layerVisibility.scenarioEnvelopes !== false
+    ) {
+      result.push(
+        new GeoJsonLayer<ScenarioEnvelopeProperties>({
+          id: "scenario-envelope-volumes",
+          data: scenarioEnvelopeFeatures,
+          pickable: true,
+          stroked: true,
+          filled: true,
+          extruded: viewMode !== "atlas",
+          wireframe: viewMode !== "atlas",
+          opacity: 0.96,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+          lineWidthMinPixels: scenarioCompareEnabled ? 3.2 : 2.2,
+          getLineWidth: scenarioCompareEnabled ? 3.4 : 2.4,
+          getElevation: (feature) =>
+            Math.max(12, feature.properties.heightM * 2.15),
+          getFillColor: (feature) =>
+            envelopeFillColor(
+              feature.properties.envelopeType,
+              scenarioCompareEnabled,
+            ),
+          getLineColor: (feature) =>
+            envelopeLineColor(
+              feature.properties.envelopeType,
+              scenarioCompareEnabled,
+            ),
+          material: {
+            ambient: 0.76,
+            diffuse: 0.32,
+            shininess: 24,
+            specularColor: [255, 246, 220],
+          },
+          updateTriggers: {
+            getElevation: [scenarioEnvelopeFeatures],
+            getFillColor: [scenarioCompareEnabled],
+            getLineColor: [scenarioCompareEnabled],
+          },
+        }),
+      );
+    }
+
+    if (
       scenarioCompareEnabled &&
       scenarioDeltaFeatures &&
       scenarioDeltaFeatures.features.length > 0 &&
@@ -694,11 +787,16 @@ export function AtlasMap({
           extruded: viewMode !== "atlas",
           wireframe: viewMode !== "atlas",
           opacity: 0.92,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
           lineWidthMinPixels: 2,
           getLineWidth: 2,
           getElevation: (feature) =>
-            Math.max(4, feature.properties.heightDeltaM * 2),
-          getFillColor: [45, 166, 153, 96],
+            Math.max(12, feature.properties.heightDeltaM * 3.2),
+          getFillColor: (feature) =>
+            envelopeFillColor(feature.properties.envelopeType, true),
           getLineColor: [193, 74, 44, 220],
         }),
       );
@@ -802,6 +900,7 @@ export function AtlasMap({
     atlasYear,
     historicalReconstructions,
     visibleOsmBuildings,
+    scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,
   ]);

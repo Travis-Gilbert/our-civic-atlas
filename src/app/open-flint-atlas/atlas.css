@@ -330,6 +330,61 @@
   color: var(--ctx-ink);
 }
 
+.civic-atlas .atlas-scenario-envelope-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.civic-atlas .atlas-scenario-envelope-types span {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(42, 36, 25, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--ctx-ink-soft);
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 5px 6px;
+}
+
+.civic-atlas .atlas-scenario-envelope-types i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--atlas-envelope-swatch, var(--atlas-infrastructure));
+  box-shadow: 0 0 0 1px rgba(42, 36, 25, 0.12);
+}
+
+.civic-atlas .atlas-scenario-envelope-types strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ctx-ink);
+}
+
+.civic-atlas [data-envelope-type="adaptive_reuse"] {
+  --atlas-envelope-swatch: #7e5da1;
+}
+
+.civic-atlas [data-envelope-type="as_of_right"] {
+  --atlas-envelope-swatch: #54707a;
+}
+
+.civic-atlas [data-envelope-type="civic_anchor"] {
+  --atlas-envelope-swatch: #c14a2c;
+}
+
+.civic-atlas [data-envelope-type="missing_middle"] {
+  --atlas-envelope-swatch: #d9a23b;
+}
+
+.civic-atlas [data-envelope-type="mixed_use_infill"] {
+  --atlas-envelope-swatch: #2da699;
+}
+
 .civic-atlas .atlas-scenario-editor,
 .civic-atlas .atlas-scenario-kpis {
   margin-top: 10px;

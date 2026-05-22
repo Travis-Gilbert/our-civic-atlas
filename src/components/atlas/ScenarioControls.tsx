@@ -4,6 +4,7 @@ import { Building2, Layers3, Route } from "lucide-react";
 import type {
   KpiBundle,
   ScenarioComparison,
+  ScenarioEnvelopeType,
   ScenarioRecord,
 } from "@/lib/atlas/scenario-model";
 
@@ -14,6 +15,11 @@ type ScenarioControlsProps = {
   compareEnabled: boolean;
   draftHeightBoostM: number;
   comparison: ScenarioComparison;
+  envelopeTypeCounts: Array<{
+    count: number;
+    label: string;
+    type: ScenarioEnvelopeType;
+  }>;
   kpiBundle: KpiBundle;
   kpiDelta: KpiBundle;
   selectedPlaceName: string | null;
@@ -30,6 +36,7 @@ export function ScenarioControls({
   compareEnabled,
   draftHeightBoostM,
   comparison,
+  envelopeTypeCounts,
   kpiBundle,
   kpiDelta,
   selectedPlaceName,
@@ -98,6 +105,18 @@ export function ScenarioControls({
         <span>Compare envelopes</span>
         <strong>{comparisonLabel}</strong>
       </label>
+
+      <div className="atlas-scenario-envelope-types">
+        {envelopeTypeCounts
+          .filter((item) => item.count > 0)
+          .map((item) => (
+            <span key={item.type} data-envelope-type={item.type}>
+              <i aria-hidden="true" />
+              {item.label}
+              <strong>{item.count}</strong>
+            </span>
+          ))}
+      </div>
 
       <div className="atlas-scenario-editor">
         <div className="atlas-scenario-editor__title">

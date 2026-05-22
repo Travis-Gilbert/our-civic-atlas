@@ -11,6 +11,7 @@ export type ScenarioRecord = {
 export type ScenarioDeltaProperties = {
   parcelKey: string;
   label: string;
+  envelopeType: ScenarioEnvelopeType;
   heightDeltaM: number;
   floorAreaDeltaM2: number;
   unitsDelta: number;
@@ -30,6 +31,46 @@ export type ScenarioComparison = {
     GeoJSON.Polygon,
     ScenarioDeltaProperties
   >;
+};
+
+export type ScenarioEnvelopeType =
+  | "as_of_right"
+  | "mixed_use_infill"
+  | "missing_middle"
+  | "adaptive_reuse"
+  | "civic_anchor";
+
+export type ScenarioEnvelopeProperties = {
+  envelopeId: string;
+  parcelKey: string;
+  label: string;
+  envelopeType: ScenarioEnvelopeType;
+  currentHeightM: number;
+  heightM: number;
+  floorAreaM2: number;
+  units: number;
+  confidence: number;
+};
+
+export type ScenarioEnvelopeFeature = GeoJSON.Feature<
+  GeoJSON.Polygon,
+  ScenarioEnvelopeProperties
+>;
+
+export type ScenarioEnvelopeCollection = GeoJSON.FeatureCollection<
+  GeoJSON.Polygon,
+  ScenarioEnvelopeProperties
+>;
+
+export const SCENARIO_ENVELOPE_TYPE_LABELS: Record<
+  ScenarioEnvelopeType,
+  string
+> = {
+  adaptive_reuse: "Adaptive reuse",
+  as_of_right: "As-of-right",
+  civic_anchor: "Civic anchor",
+  missing_middle: "Missing middle",
+  mixed_use_infill: "Mixed-use infill",
 };
 
 export type KpiMetric = {
@@ -76,53 +117,152 @@ export const ATLAS_SCENARIOS: ScenarioRecord[] = [
   },
 ];
 
-const BASE_DELTAS: ScenarioDeltaFeature[] = [
-  {
-    type: "Feature",
-    properties: {
-      parcelKey: "40-01-154-012",
-      label: "Carriage Town mixed-use envelope",
-      heightDeltaM: 7.3,
-      floorAreaDeltaM2: 640,
-      unitsDelta: 8,
-      bindingConstraint: "height",
-    },
-    geometry: {
-      type: "Polygon",
-      coordinates: [
-        [
-          [-83.709354, 43.041493],
-          [-83.709206, 43.041495],
-          [-83.7092, 43.041192],
-          [-83.709345, 43.041189],
-          [-83.709354, 43.041493],
-        ],
-      ],
-    },
-  },
-  {
-    type: "Feature",
-    properties: {
-      parcelKey: "40-01-154-018",
-      label: "Grand Traverse infill test",
-      heightDeltaM: 4.2,
-      floorAreaDeltaM2: 410,
-      unitsDelta: 5,
-      bindingConstraint: "far",
-    },
-    geometry: {
-      type: "Polygon",
-      coordinates: [
-        [
-          [-83.70798, 43.04092],
-          [-83.70771, 43.04092],
-          [-83.70772, 43.04067],
-          [-83.70799, 43.04068],
-          [-83.70798, 43.04092],
-        ],
-      ],
-    },
-  },
+const BASE_ENVELOPES: Array<
+  Omit<ScenarioEnvelopeProperties, "heightM"> & {
+    futureHeightM: number;
+    geometry: GeoJSON.Polygon;
+  }
+> = [
+  envelope(
+    "env-downtown-saginaw-mixed-use",
+    "40-01-154-101",
+    "Saginaw mixed-use envelope",
+    "mixed_use_infill",
+    -83.69372,
+    43.0132,
+    0.00046,
+    0.00034,
+    9,
+    21,
+    2480,
+    24,
+  ),
+  envelope(
+    "env-downtown-point-infill",
+    "40-01-154-102",
+    "Downtown corner infill",
+    "mixed_use_infill",
+    -83.6939,
+    43.01115,
+    0.0005,
+    0.00036,
+    8,
+    18,
+    1820,
+    18,
+  ),
+  envelope(
+    "env-durant-adaptive-reuse",
+    "40-01-154-103",
+    "Durant adaptive reuse",
+    "adaptive_reuse",
+    -83.69418,
+    43.02055,
+    0.00062,
+    0.00042,
+    17,
+    26,
+    4260,
+    36,
+  ),
+  envelope(
+    "env-riverfront-civic-anchor",
+    "40-01-154-104",
+    "Riverfront civic anchor",
+    "civic_anchor",
+    -83.69336,
+    43.01772,
+    0.00078,
+    0.00048,
+    14,
+    24,
+    5400,
+    0,
+  ),
+  envelope(
+    "env-bervean-missing-middle",
+    "40-01-154-105",
+    "Bervean missing-middle envelope",
+    "missing_middle",
+    -83.69338,
+    43.01368,
+    0.00038,
+    0.0003,
+    8,
+    15,
+    1220,
+    14,
+  ),
+  envelope(
+    "env-children-services-missing-middle",
+    "40-01-154-106",
+    "Neighborhood services infill",
+    "missing_middle",
+    -83.69372,
+    43.0148,
+    0.00042,
+    0.00032,
+    7,
+    14,
+    980,
+    10,
+  ),
+  envelope(
+    "env-white-horse-as-of-right",
+    "40-01-154-107",
+    "White Horse as-of-right envelope",
+    "as_of_right",
+    -83.69418,
+    43.00928,
+    0.0004,
+    0.00028,
+    7,
+    11,
+    760,
+    4,
+  ),
+  envelope(
+    "env-carriage-town-row-infill",
+    "40-01-154-108",
+    "Carriage Town row infill",
+    "missing_middle",
+    -83.70518,
+    43.04005,
+    0.0007,
+    0.0005,
+    6,
+    13,
+    1600,
+    18,
+  ),
+  envelope(
+    "env-carriage-town-industrial-adaptive",
+    "40-01-154-109",
+    "Carriage Town adaptive reuse",
+    "adaptive_reuse",
+    -83.70556,
+    43.03986,
+    0.00072,
+    0.00044,
+    8,
+    19,
+    2100,
+    12,
+  ),
+  envelope(
+    "env-grand-traverse-mixed-use",
+    "40-01-154-110",
+    "Grand Traverse mixed-use test",
+    "mixed_use_infill",
+    -83.70786,
+    43.0408,
+    0.00058,
+    0.00038,
+    7,
+    17,
+    1740,
+    16,
+  ),
 ];
 
 export function getScenarioComparison(
@@ -130,24 +270,31 @@ export function getScenarioComparison(
   targetScenarioId: string,
   edits: ScenarioDraftEdits = { heightBoostM: 0 },
 ): ScenarioComparison {
+  const targetUsesFutureEnvelope = scenarioUsesFutureEnvelope(targetScenarioId);
   const features =
-    targetScenarioId === baseScenarioId
+    targetScenarioId === baseScenarioId || !targetUsesFutureEnvelope
       ? []
-      : BASE_DELTAS.map((feature, index) => ({
-          ...feature,
-          properties: {
-            ...feature.properties,
-            heightDeltaM:
-              feature.properties.heightDeltaM +
-              (index === 0 ? edits.heightBoostM : 0),
-            floorAreaDeltaM2:
-              feature.properties.floorAreaDeltaM2 +
-              (index === 0 ? edits.heightBoostM * 70 : 0),
-            unitsDelta:
-              feature.properties.unitsDelta +
-              (index === 0 ? Math.max(0, Math.round(edits.heightBoostM)) : 0),
-          },
-        }));
+      : BASE_ENVELOPES.map((feature, index) => {
+          const boost = index < 2 ? edits.heightBoostM : 0;
+          const heightDeltaM =
+            feature.futureHeightM - feature.currentHeightM + boost;
+          return {
+            type: "Feature",
+            geometry: feature.geometry,
+            properties: {
+              parcelKey: feature.parcelKey,
+              label: feature.label,
+              envelopeType: feature.envelopeType,
+              heightDeltaM,
+              floorAreaDeltaM2:
+                feature.floorAreaM2 * Math.max(0.18, heightDeltaM / 24),
+              unitsDelta:
+                feature.units + (index < 2 ? Math.round(boost * 1.5) : 0),
+              bindingConstraint:
+                feature.envelopeType === "as_of_right" ? "setback" : "height",
+            },
+          } satisfies ScenarioDeltaFeature;
+        });
 
   return {
     baseScenarioId,
@@ -157,6 +304,38 @@ export function getScenarioComparison(
       type: "FeatureCollection",
       features,
     },
+  };
+}
+
+export function getScenarioEnvelopeCollection(
+  scenarioId: string,
+  edits: ScenarioDraftEdits = { heightBoostM: 0 },
+): ScenarioEnvelopeCollection {
+  const usesFutureEnvelope = scenarioUsesFutureEnvelope(scenarioId);
+  const features = BASE_ENVELOPES.map((feature, index) => {
+    const boost = usesFutureEnvelope && index < 2 ? edits.heightBoostM : 0;
+    const heightM =
+      usesFutureEnvelope ? feature.futureHeightM + boost : feature.currentHeightM;
+    return {
+      type: "Feature",
+      geometry: feature.geometry,
+      properties: {
+        envelopeId: feature.envelopeId,
+        parcelKey: feature.parcelKey,
+        label: feature.label,
+        envelopeType: feature.envelopeType,
+        currentHeightM: feature.currentHeightM,
+        heightM,
+        floorAreaM2: feature.floorAreaM2,
+        units: feature.units,
+        confidence: feature.confidence,
+      },
+    } satisfies ScenarioEnvelopeFeature;
+  });
+
+  return {
+    type: "FeatureCollection",
+    features,
   };
 }
 
@@ -221,6 +400,17 @@ export function getKpiDelta(
   };
 }
 
+function scenarioUsesFutureEnvelope(scenarioId: string): boolean {
+  const scenario = ATLAS_SCENARIOS.find(
+    (candidate) => candidate.scenarioId === scenarioId,
+  );
+  return Boolean(
+    scenario &&
+      scenario.scenarioId !== "current" &&
+      scenario.provenance !== "actual",
+  );
+}
+
 function metric(
   kpiId: string,
   label: string,
@@ -237,5 +427,51 @@ function metric(
     uncertaintyLow,
     uncertaintyHigh,
     sourceSummary: "Scenario-aware envelope aggregate with cited city-pack multipliers.",
+  };
+}
+
+function envelope(
+  envelopeId: string,
+  parcelKey: string,
+  label: string,
+  envelopeType: ScenarioEnvelopeType,
+  lng: number,
+  lat: number,
+  widthLng: number,
+  heightLat: number,
+  currentHeightM: number,
+  futureHeightM: number,
+  floorAreaM2: number,
+  units: number,
+): Omit<ScenarioEnvelopeProperties, "heightM"> & {
+  futureHeightM: number;
+  geometry: GeoJSON.Polygon;
+} {
+  const west = lng - widthLng / 2;
+  const east = lng + widthLng / 2;
+  const south = lat - heightLat / 2;
+  const north = lat + heightLat / 2;
+  return {
+    envelopeId,
+    parcelKey,
+    label,
+    envelopeType,
+    currentHeightM,
+    futureHeightM,
+    floorAreaM2,
+    units,
+    confidence: 0.74,
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [west, south],
+          [east, south],
+          [east, north],
+          [west, north],
+          [west, south],
+        ],
+      ],
+    },
   };
 }
