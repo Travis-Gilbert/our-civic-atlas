@@ -10,7 +10,6 @@ import {
 } from "@/components/atlas/AtlasSceneChrome";
 import type { UrbanDesignMaterialMode } from "@/components/atlas/AtlasMap";
 import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
-import { LayerControls } from "@/components/atlas/LayerControls";
 import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
 import { ScenarioControls } from "@/components/atlas/ScenarioControls";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
@@ -98,6 +97,7 @@ const DEFAULT_LAYERS: Record<string, boolean> = {
   places: true,
   buildings: true,
   urbanDesignModel: true,
+  buildingFabric: true,
   osmBuildings: false,
   events: true,
   wards: true,
@@ -864,15 +864,21 @@ export function OpenFlintAtlasScene(props: {
     [provNodes],
   );
 
+  const placeFeatureCount = places?.features.length ?? 0;
+  const wardFeatureCount =
+    places?.features.filter((feature) => feature.properties.place_type === "ward")
+      .length ?? 0;
+
   const controlDossierPresets: LayerPreset[] = [
     {
       id: "places",
       name: "Places",
       extension: "geojson",
+      countLabel: `${placeFeatureCount} places`,
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
-            Wards, neighborhoods, landmarks, and addresses. {places?.features.length ?? 0}{" "}
+            Wards, neighborhoods, landmarks, and addresses. {placeFeatureCount}{" "}
             features loaded.
           </p>
           <div className="flex items-center gap-2">
@@ -897,11 +903,12 @@ export function OpenFlintAtlasScene(props: {
       id: "urbanDesignModel",
       name: "Urban Design Model",
       extension: "geojson",
+      countLabel: "6 archetypes",
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
-            Generated form parts: courtyards, rows, slabs, sheds, towers, and
-            street walls.
+            Seeded present-day archetypes: single, multi, commercial,
+            industrial, civic, and mixed-use.
           </p>
           <div className="flex items-center gap-2">
             <label className="font-mono text-[10px] uppercase tracking-[0.10em]" style={{ color: "var(--ctx-ink-mute)" }}>
@@ -925,9 +932,24 @@ export function OpenFlintAtlasScene(props: {
       ),
     },
     {
+      id: "buildingFabric",
+      name: "Building Fabric",
+      extension: "geojson",
+      countLabel: "roof + facade",
+      controls: (
+        <div className="space-y-2">
+          <p className="text-[11px] leading-[1.5]">
+            Fabric detail fades in near street scale: roof forms, porch marks,
+            storefront bays, cornices, facade rhythm, and sawtooth roofs.
+          </p>
+        </div>
+      ),
+    },
+    {
       id: "osmBuildings",
       name: "OSM Footprints",
       extension: "geojson",
+      countLabel: "baseline",
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
@@ -940,6 +962,7 @@ export function OpenFlintAtlasScene(props: {
       id: "events",
       name: "Events",
       extension: "ndjson",
+      countLabel: `${events.length} events`,
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
@@ -968,6 +991,7 @@ export function OpenFlintAtlasScene(props: {
       id: "wards",
       name: "Ward Boundaries",
       extension: "geojson",
+      countLabel: `${wardFeatureCount} wards`,
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
@@ -994,6 +1018,7 @@ export function OpenFlintAtlasScene(props: {
       id: "infrastructure",
       name: "Infrastructure",
       extension: "geojson",
+      countLabel: "4 classes",
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
@@ -1017,6 +1042,20 @@ export function OpenFlintAtlasScene(props: {
         </div>
       ),
     },
+    {
+      id: "scenarioEnvelopes",
+      name: "Buildable Envelopes",
+      extension: "geojson",
+      countLabel: `${activeScenarioEnvelopes.features.length} envelopes`,
+      controls: (
+        <div className="space-y-2">
+          <p className="text-[11px] leading-[1.5]">
+            Transparent zoning and scenario volumes. Use the scenario panel to
+            compare active and draft envelopes.
+          </p>
+        </div>
+      ),
+    },
   ];
   const provenancePanel = (
     <ProvenancePanel
@@ -1024,6 +1063,35 @@ export function OpenFlintAtlasScene(props: {
       edges={provEdges}
       loading={provLoading}
       onNodeSelect={handleProvenanceNodeSelect}
+    />
+  );
+  const layerControlsContent = (
+    <ControlDossier
+      presets={controlDossierPresets}
+      visibility={layerVisibility}
+      onToggle={handleLayerChange}
+      defaultOpenId={selectedPlaceId ? "places" : "urbanDesignModel"}
+    />
+  );
+  const scenarioControlsContent = (
+    <ScenarioControls
+      scenarios={ATLAS_SCENARIOS}
+      activeScenarioId={activeScenarioId}
+      compareScenarioId={compareScenarioId}
+      compareEnabled={
+        scenarioCompareEnabled && activeScenarioId !== compareScenarioId
+      }
+      draftHeightBoostM={draftHeightBoostM}
+      comparison={scenarioComparison}
+      envelopeTypeCounts={envelopeTypeCounts}
+      kpiBundle={scenarioKpis}
+      kpiDelta={scenarioKpiDelta}
+      selectedPlaceName={selectedPlaceName}
+      variant="island"
+      onActiveScenarioChange={handleActiveScenarioChange}
+      onCompareScenarioChange={setCompareScenarioId}
+      onCompareEnabledChange={setScenarioCompareEnabled}
+      onDraftHeightBoostChange={setDraftHeightBoostM}
     />
   );
 
@@ -1043,15 +1111,8 @@ export function OpenFlintAtlasScene(props: {
       <AtlasShell
         showTabs={false}
         showTimeline={activeLens === "memory"}
+        showDossier={false}
         showProvenance={false}
-        dossier={
-          <ControlDossier
-            presets={controlDossierPresets}
-            visibility={layerVisibility}
-            onToggle={handleLayerChange}
-            defaultOpenId={selectedPlaceId ? "places" : "urbanDesignModel"}
-          />
-        }
         timeline={
           <AtlasTimelineHistogram
             mosaic={mosaic}
@@ -1059,13 +1120,6 @@ export function OpenFlintAtlasScene(props: {
           />
         }
         provenance={provenancePanel}
-        layers={
-          <LayerControls
-            visibility={layerVisibility}
-            onChange={handleLayerChange}
-            visible
-          />
-        }
       >
         <div className="relative h-full w-full">
           {rendererMode === "baseline" ? (
@@ -1112,24 +1166,6 @@ export function OpenFlintAtlasScene(props: {
               className="w-full h-full"
             />
           )}
-          <ScenarioControls
-            scenarios={ATLAS_SCENARIOS}
-            activeScenarioId={activeScenarioId}
-            compareScenarioId={compareScenarioId}
-            compareEnabled={
-              scenarioCompareEnabled && activeScenarioId !== compareScenarioId
-            }
-            draftHeightBoostM={draftHeightBoostM}
-            comparison={scenarioComparison}
-            envelopeTypeCounts={envelopeTypeCounts}
-            kpiBundle={scenarioKpis}
-            kpiDelta={scenarioKpiDelta}
-            selectedPlaceName={selectedPlaceName}
-            onActiveScenarioChange={handleActiveScenarioChange}
-            onCompareScenarioChange={setCompareScenarioId}
-            onCompareEnabledChange={setScenarioCompareEnabled}
-            onDraftHeightBoostChange={setDraftHeightBoostM}
-          />
           <AtlasSceneChrome
             activeLens={activeLens}
             onLensChange={handleLensChange}
@@ -1140,7 +1176,7 @@ export function OpenFlintAtlasScene(props: {
             searchResults={searchResults}
             onSearchResultSelect={handleSearchResultSelect}
             selectedPlaceName={selectedPlaceName}
-            placesCount={places?.features.length ?? 0}
+            placesCount={placeFeatureCount}
             eventsCount={visibleEvents.length}
             horizonNodes={horizonNodes}
             isMobileViewport={isMobileViewport}
@@ -1156,7 +1192,6 @@ export function OpenFlintAtlasScene(props: {
             totalHistoricalReconstructionCount={
               historicalReconstructionsState.reconstructions.length
             }
-            onClearSelection={() => setSelectedPlaceId(null)}
             dossierContent={
               <PlaceDossierPanel
                 placeId={selectedPlaceId}
@@ -1164,6 +1199,8 @@ export function OpenFlintAtlasScene(props: {
                 showCloseButton={false}
               />
             }
+            layerControlsContent={layerControlsContent}
+            scenarioControlsContent={scenarioControlsContent}
           />
         </div>
       </AtlasShell>

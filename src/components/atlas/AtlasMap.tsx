@@ -26,6 +26,7 @@ import {
   type UrbanDesignFormType,
   type UrbanDesignModelProperties,
 } from "@/lib/atlas/urban-design-model";
+import { BUILDING_FABRIC_LOD } from "@/lib/atlas/building-fabric";
 import { osmBuildingExistsInYear } from "@/lib/atlas/atlas-time";
 import type {
   PlacesCollection,
@@ -187,27 +188,45 @@ const URBAN_FORM_LINE: Record<UrbanDesignFormType, [number, number, number, numb
 const URBAN_PART_FILL: Partial<
   Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
 > = {
+  civic_entry: [202, 104, 72, 240],
+  civic_roof: [156, 86, 64, 242],
+  cornice_band: [196, 158, 98, 236],
   courtyard_yard: [74, 150, 96, 238],
+  dormer: [118, 76, 58, 242],
+  facade_rhythm: [238, 210, 150, 216],
   front_porch: [224, 178, 95, 238],
+  parapet: [126, 100, 78, 238],
   party_wall: [70, 60, 52, 235],
   porch_or_rear_ell: [214, 150, 82, 226],
+  porch_step: [228, 188, 118, 238],
   roof_monitor: [54, 92, 118, 238],
   roof_plane: [143, 77, 58, 244],
   roof_ridge: [76, 54, 44, 250],
   row_roof: [172, 88, 50, 246],
+  sawtooth_roof: [84, 104, 112, 242],
+  storefront_bay: [80, 148, 146, 228],
 };
 
 const URBAN_PART_LINE: Partial<
   Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
 > = {
+  civic_entry: [145, 64, 45, 246],
+  civic_roof: [102, 55, 43, 246],
+  cornice_band: [136, 100, 48, 242],
   courtyard_yard: [44, 106, 66, 245],
+  dormer: [72, 45, 34, 246],
+  facade_rhythm: [162, 126, 62, 220],
   front_porch: [164, 111, 42, 242],
+  parapet: [82, 62, 48, 246],
   party_wall: [48, 42, 37, 242],
   porch_or_rear_ell: [158, 94, 43, 230],
+  porch_step: [164, 112, 50, 242],
   roof_monitor: [31, 67, 91, 246],
   roof_plane: [99, 50, 39, 248],
   roof_ridge: [42, 31, 26, 252],
   row_roof: [126, 57, 35, 248],
+  sawtooth_roof: [48, 70, 78, 246],
+  storefront_bay: [35, 112, 108, 232],
 };
 
 const URBAN_SKETCH_FORM_FILL: Record<
@@ -228,22 +247,35 @@ const URBAN_SKETCH_FORM_FILL: Record<
 const URBAN_SKETCH_PART_FILL: Partial<
   Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
 > = {
+  civic_entry: [210, 188, 154, 232],
+  civic_roof: [205, 188, 160, 238],
+  cornice_band: [189, 169, 132, 232],
   courtyard_yard: [163, 184, 142, 214],
+  dormer: [180, 158, 132, 236],
+  facade_rhythm: [214, 202, 178, 218],
   front_porch: [214, 188, 139, 236],
+  parapet: [175, 163, 145, 236],
   party_wall: [78, 72, 63, 224],
   porch_or_rear_ell: [222, 204, 173, 232],
+  porch_step: [218, 196, 154, 232],
   roof_monitor: [169, 176, 175, 232],
   roof_plane: [210, 194, 168, 240],
   roof_ridge: [82, 74, 62, 236],
   row_roof: [204, 184, 157, 242],
+  sawtooth_roof: [170, 174, 169, 238],
+  storefront_bay: [181, 198, 191, 226],
 };
 
 const URBAN_SKETCH_PART_LINE: Partial<
   Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
 > = {
+  civic_entry: [92, 75, 58, 238],
+  cornice_band: [96, 84, 65, 232],
   courtyard_yard: [93, 115, 78, 230],
+  facade_rhythm: [118, 104, 78, 216],
   party_wall: [42, 39, 35, 246],
   roof_ridge: [42, 38, 32, 248],
+  storefront_bay: [76, 96, 88, 226],
 };
 
 const URBAN_SKETCH_LINE: [number, number, number, number] = [68, 64, 58, 232];
@@ -482,17 +514,20 @@ function urbanDesignFillColor(
   materialMode: UrbanDesignMaterialMode,
 ): [number, number, number, number] {
   if (materialMode === "sketch_model") {
-    return urbanDesignSketchFillColor(props, atlasYear);
+    return applyFabricCompletenessAlpha(
+      props,
+      urbanDesignSketchFillColor(props, atlasYear),
+    );
   }
 
   const roleColor = URBAN_PART_FILL[props.part_role];
   if (roleColor) {
-    return [
+    return applyFabricCompletenessAlpha(props, [
       roleColor[0],
       roleColor[1],
       roleColor[2],
       atlasYear === null ? roleColor[3] : Math.max(128, roleColor[3] - 48),
-    ];
+    ]);
   }
 
   const color = URBAN_FORM_FILL[props.form_type];
@@ -503,12 +538,12 @@ function urbanDesignFillColor(
         ? -12
         : 0;
   const alpha = atlasYear === null ? color[3] : Math.max(108, color[3] - 54);
-  return [
+  return applyFabricCompletenessAlpha(props, [
     clampByte(color[0] + partLift),
     clampByte(color[1] + partLift),
     clampByte(color[2] + partLift),
     alpha,
-  ];
+  ]);
 }
 
 function urbanDesignLineColor(
@@ -516,10 +551,16 @@ function urbanDesignLineColor(
   materialMode: UrbanDesignMaterialMode,
 ): [number, number, number, number] {
   if (materialMode === "sketch_model") {
-    return URBAN_SKETCH_PART_LINE[props.part_role] ?? URBAN_SKETCH_LINE;
+    return applyFabricCompletenessAlpha(
+      props,
+      URBAN_SKETCH_PART_LINE[props.part_role] ?? URBAN_SKETCH_LINE,
+    );
   }
 
-  return URBAN_PART_LINE[props.part_role] ?? URBAN_FORM_LINE[props.form_type];
+  return applyFabricCompletenessAlpha(
+    props,
+    URBAN_PART_LINE[props.part_role] ?? URBAN_FORM_LINE[props.form_type],
+  );
 }
 
 function urbanDesignSketchFillColor(
@@ -539,6 +580,19 @@ function urbanDesignSketchFillColor(
 
 function clampByte(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function applyFabricCompletenessAlpha(
+  props: UrbanDesignModelProperties,
+  color: [number, number, number, number],
+): [number, number, number, number] {
+  if (props.fabric_feature_completeness >= 0.5) return color;
+  return [color[0], color[1], color[2], Math.max(78, color[3] - 56)];
+}
+
+function smoothstep(edge0: number, edge1: number, value: number): number {
+  const x = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+  return x * x * (3 - 2 * x);
 }
 
 /* ------------------------------------------------------------------ */
@@ -639,6 +693,7 @@ export function AtlasMap({
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
   const mapRef = useRef<MapRef | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapZoom, setMapZoom] = useState(camera.zoom);
   const appliedMobileFitKeyRef = useRef<string | null>(null);
 
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
@@ -705,7 +760,8 @@ export function AtlasMap({
     // via `easeTo`). We still reset the mobile-fit applied key so the
     // bounds-fit logic re-runs for the new view's framing.
     appliedMobileFitKeyRef.current = null;
-  }, [viewMode]);
+    setMapZoom(camera.zoom);
+  }, [camera.zoom, viewMode]);
 
   // Camera choreography on view-mode change is owned by the parent
   // (`OpenFlintAtlasScene`) so it can coordinate with camera
@@ -806,6 +862,30 @@ export function AtlasMap({
       }),
     [flintWardMask, visibleOsmBuildings],
   );
+  const urbanDesignMassModel = useMemo<GeoJSON.FeatureCollection<
+    GeoJSON.Polygon,
+    UrbanDesignModelProperties
+  >>(
+    () => ({
+      ...urbanDesignModel,
+      features: urbanDesignModel.features.filter(
+        (feature) => feature.properties.fabric_detail_level === "mass",
+      ),
+    }),
+    [urbanDesignModel],
+  );
+  const buildingFabricModel = useMemo<GeoJSON.FeatureCollection<
+    GeoJSON.Polygon,
+    UrbanDesignModelProperties
+  >>(
+    () => ({
+      ...urbanDesignModel,
+      features: urbanDesignModel.features.filter(
+        (feature) => feature.properties.fabric_detail_level !== "mass",
+      ),
+    }),
+    [urbanDesignModel],
+  );
 
   /* ---- Selected feature (separate GeoJSON for highlight ring) ----- */
   const selectedFeatureCollection = useMemo<GeometricPlacesCollection | null>(() => {
@@ -833,9 +913,25 @@ export function AtlasMap({
   const layers = useMemo(() => {
     const result: Layer[] = [];
     const urbanDesignModelVisible =
-      urbanDesignModel.features.length > 0 &&
+      urbanDesignMassModel.features.length > 0 &&
       layerVisibility.urbanDesignModel !== false &&
       layerVisibility.buildings !== false;
+    const buildingFabricVisible =
+      urbanDesignModelVisible &&
+      buildingFabricModel.features.length > 0 &&
+      layerVisibility.buildingFabric !== false;
+    const fabricFade = smoothstep(
+      BUILDING_FABRIC_LOD.fabricFadeStartZoom,
+      BUILDING_FABRIC_LOD.fabricFullZoom,
+      mapZoom,
+    );
+    const massOpacity =
+      mapZoom < BUILDING_FABRIC_LOD.blockRollupMaxZoom
+        ? 0.58
+        : 0.98 - fabricFade * 0.28;
+    const fabricOpacity = buildingFabricVisible ? fabricFade : 0;
+    const urbanExtruded =
+      viewMode !== "atlas" && mapZoom >= BUILDING_FABRIC_LOD.extrusionMinZoom;
     const placesAsCivicContext =
       urbanDesignModelVisible && viewMode !== "atlas";
 
@@ -950,13 +1046,13 @@ export function AtlasMap({
       result.push(
         new GeoJsonLayer<UrbanDesignModelProperties>({
           id: ATLAS_DECK_LAYER_IDS.urbanDesignModel,
-          data: urbanDesignModel,
+          data: urbanDesignMassModel,
           pickable: true,
           stroked: true,
           filled: true,
-          extruded: viewMode !== "atlas",
+          extruded: urbanExtruded,
           wireframe: false,
-          opacity: 0.98,
+          opacity: massOpacity,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -981,6 +1077,51 @@ export function AtlasMap({
             diffuse: 0.46,
             shininess: 18,
             specularColor: [240, 226, 202],
+          },
+          updateTriggers: {
+            getElevation: [viewMode],
+            getFillColor: [atlasYear, urbanDesignMaterialMode],
+            getLineColor: [urbanDesignMaterialMode],
+          },
+        }),
+      );
+    }
+
+    if (buildingFabricVisible && fabricOpacity > 0.01) {
+      result.push(
+        new GeoJsonLayer<UrbanDesignModelProperties>({
+          id: ATLAS_DECK_LAYER_IDS.buildingFabric,
+          data: buildingFabricModel,
+          pickable: true,
+          stroked: true,
+          filled: true,
+          extruded: urbanExtruded,
+          wireframe: false,
+          opacity: fabricOpacity,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+          lineWidthMinPixels: viewMode === "atlas" ? 0.7 : 0.55,
+          getLineWidth: viewMode === "atlas" ? 0.7 : 0.55,
+          getElevation: (feature) =>
+            urbanDesignModelElevation(feature.properties, viewMode),
+          getFillColor: (feature) =>
+            urbanDesignFillColor(
+              feature.properties,
+              atlasYear,
+              urbanDesignMaterialMode,
+            ),
+          getLineColor: (feature) =>
+            urbanDesignLineColor(
+              feature.properties,
+              urbanDesignMaterialMode,
+            ),
+          material: {
+            ambient: 0.64,
+            diffuse: 0.44,
+            shininess: 14,
+            specularColor: [236, 220, 192],
           },
           updateTriggers: {
             getElevation: [viewMode],
@@ -1168,8 +1309,10 @@ export function AtlasMap({
     atlasYear,
     historicalReconstructions,
     visibleOsmBuildings,
-    urbanDesignModel,
+    urbanDesignMassModel,
+    buildingFabricModel,
     urbanDesignMaterialMode,
+    mapZoom,
     scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,
@@ -1201,6 +1344,7 @@ export function AtlasMap({
         style={{ width: "100%", height: "100%" }}
         attributionControl={false}
         onLoad={() => setMapLoaded(true)}
+        onMove={(event) => setMapZoom(event.viewState.zoom)}
         reuseMaps
       >
         <DeckGLOverlay layers={layers} />

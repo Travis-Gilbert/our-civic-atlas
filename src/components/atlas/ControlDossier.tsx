@@ -60,11 +60,10 @@ const EyeOffIcon = (p: React.SVGProps<SVGSVGElement>) => (
 );
 
 /**
- * File-extension icon glyphs. Mirrors the scheme used by the FileTree
+ * Layer glyphs. Mirrors the scheme used by the FileTree
  * component (Context-Theorem-UI/src/components/ui/file-tree.tsx) where
- * each file extension renders a colored Unicode glyph in place of an
- * SVG icon. New entries here: geojson + ndjson, since the atlas works
- * with map/event data formats that aren't in the dev-tool tree.
+ * each layer family renders a colored Unicode glyph in place of an SVG icon.
+ * The row suffix is reserved for civic counts, not implementation formats.
  */
 const FILE_GLYPHS: Record<string, { color: string; glyph: string }> = {
   geojson: { color: "oklch(0.65 0.16 165)", glyph: "⬣" },
@@ -87,8 +86,10 @@ export interface LayerPreset {
   id: string;
   /** Human-readable label. */
   name: string;
-  /** File-extension hint, e.g. "geojson", "csv". Rendered as a muted suffix. */
+  /** Layer-family hint used only for the small leading glyph. */
   extension?: string;
+  /** Civic count/readout shown at the row end, e.g. "222 places". */
+  countLabel?: string;
   /** Editable preset content, rendered when the row is expanded. */
   controls?: ReactNode;
 }
@@ -194,7 +195,7 @@ export function ControlDossier({
                   )}
                 </button>
 
-                {/* File-extension glyph + name + ext. Clicking the row also toggles open. */}
+                {/* Layer glyph + name + civic count. Clicking the row also toggles open. */}
                 <button
                   type="button"
                   onClick={() => toggleOpen(preset.id)}
@@ -221,12 +222,12 @@ export function ControlDossier({
                   >
                     {preset.name}
                   </span>
-                  {preset.extension && (
+                  {preset.countLabel && (
                     <span
                       className="font-mono text-[10px] shrink-0"
                       style={{ color: "var(--ctx-ink-faint)" }}
                     >
-                      .{preset.extension}
+                      {preset.countLabel}
                     </span>
                   )}
                 </button>

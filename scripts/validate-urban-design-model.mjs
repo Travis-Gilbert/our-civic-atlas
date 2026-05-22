@@ -5,11 +5,18 @@ import { pathToFileURL } from "node:url";
 const modelUrl = pathToFileURL(
   `${process.cwd()}/src/lib/atlas/urban-design-model.ts`,
 ).href;
+const fabricUrl = pathToFileURL(
+  `${process.cwd()}/src/lib/atlas/building-fabric.ts`,
+).href;
 
 const {
   createUrbanDesignModelCollection,
   summarizeUrbanDesignModel,
 } = await import(modelUrl);
+const {
+  BUILDING_FABRIC_HEIGHT_PRIORS,
+  stableHash,
+} = await import(fabricUrl);
 
 const source = JSON.parse(
   readFileSync(
@@ -45,6 +52,12 @@ const formTypes = new Set(
 const partRoles = new Set(
   collection.features.map((feature) => feature.properties.part_role),
 );
+const fabricArchetypes = new Set(
+  collection.features.map((feature) => feature.properties.fabric_archetype),
+);
+const fabricDetailLevels = new Set(
+  collection.features.map((feature) => feature.properties.fabric_detail_level),
+);
 
 assert.ok(
   collection.features.length > source.features.length * 3,
@@ -69,20 +82,50 @@ for (const formType of [
 }
 
 for (const partRole of [
+  "cornice_band",
   "courtyard_ring",
   "courtyard_yard",
+  "facade_rhythm",
   "front_porch",
   "party_wall",
   "podium",
+  "porch_step",
   "roof_monitor",
   "roof_plane",
   "roof_ridge",
   "row_roof",
   "row_unit",
+  "sawtooth_roof",
   "street_wall",
+  "storefront_bay",
   "tower",
 ]) {
   assert.ok(partRoles.has(partRole), `missing generated part role ${partRole}`);
+}
+
+for (const archetype of [
+  "present_residential_single",
+  "present_residential_multi",
+  "present_commercial",
+  "present_industrial",
+  "present_civic",
+  "present_mixed_use",
+]) {
+  assert.ok(
+    fabricArchetypes.has(archetype),
+    `missing building fabric archetype ${archetype}`,
+  );
+  assert.ok(
+    BUILDING_FABRIC_HEIGHT_PRIORS.archetypes[archetype],
+    `height prior missing for ${archetype}`,
+  );
+}
+
+for (const detailLevel of ["mass", "roof", "facade", "site"]) {
+  assert.ok(
+    fabricDetailLevels.has(detailLevel),
+    `missing fabric detail level ${detailLevel}`,
+  );
 }
 
 const courtyard = collection.features.find(
@@ -101,6 +144,20 @@ assert.ok(
 );
 
 assert.ok(
+  collection.features.filter(
+    (feature) => feature.properties.fabric_detail_level !== "mass",
+  ).length > source.features.length,
+  "building fabric should add a citywide roof/facade detail layer",
+);
+
+assert.ok(
+  collection.features.some(
+    (feature) => feature.properties.fabric_feature_completeness < 0.5,
+  ),
+  "inferred rows should honestly expose low feature completeness",
+);
+
+assert.ok(
   !collection.features.some(
     (feature) => feature.properties.source_name === "For-mar Nature Preserve",
   ),
@@ -115,6 +172,22 @@ for (const feature of collection.features) {
   assert.ok(
     feature.geometry.type === "Polygon",
     `feature ${feature.properties.model_id} should be a polygon`,
+  );
+  assert.equal(
+    feature.properties.fabric_variation_seed,
+    stableHash(feature.properties.source_osm_id),
+    `variation seed must derive solely from osm_id for ${feature.properties.model_id}`,
+  );
+  assert.equal(
+    feature.properties.fabric_model_version,
+    BUILDING_FABRIC_HEIGHT_PRIORS.model_version,
+    `fabric model version drift for ${feature.properties.model_id}`,
+  );
+  assert.ok(
+    feature.properties.fabric_glb_uri.endsWith(
+      `${feature.properties.fabric_params_hash}.glb`,
+    ),
+    `fabric glb uri is not content-keyed for ${feature.properties.model_id}`,
   );
 
   for (const ring of feature.geometry.coordinates) {
@@ -132,6 +205,15 @@ for (const feature of collection.features) {
     }
   }
 }
+
+const heightPriorYaml = readFileSync(
+  `${process.cwd()}/packs/us/mi/flint/archetypes/present/height_priors.yaml`,
+  "utf8",
+);
+assert.ok(
+  heightPriorYaml.includes(BUILDING_FABRIC_HEIGHT_PRIORS.model_version),
+  "city-pack YAML should carry the active fabric model version",
+);
 
 console.log(
   `validated urban design model: ${summary.generatedPartCount} parts from `

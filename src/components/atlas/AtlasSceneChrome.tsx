@@ -1,17 +1,13 @@
 "use client";
 
-import { Search } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { AtlasDynamicIsland } from "@/components/atlas/AtlasDynamicIsland";
 import type {
   AtlasSceneCameraBand,
   AtlasSceneDetailLevel,
 } from "@/lib/atlas/scene-detail-policy";
-import {
-  ATLAS_SCENE_VIEW_MODE_LOOKUP,
-  type AtlasLensId,
-  type AtlasSceneViewModeId,
-} from "@/lib/atlas/scene-view";
+import type { AtlasLensId, AtlasSceneViewModeId } from "@/lib/atlas/scene-view";
 import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
 
 export type AtlasSceneSearchResult = {
@@ -47,8 +43,9 @@ type AtlasSceneChromeProps = {
   atlasYear?: number | null;
   visibleHistoricalReconstructionCount?: number | null;
   totalHistoricalReconstructionCount?: number;
-  onClearSelection: () => void;
   dossierContent: ReactNode;
+  layerControlsContent: ReactNode;
+  scenarioControlsContent: ReactNode;
 };
 
 export function AtlasSceneChrome({
@@ -73,93 +70,27 @@ export function AtlasSceneChrome({
   atlasYear = null,
   visibleHistoricalReconstructionCount = null,
   totalHistoricalReconstructionCount = 0,
-  onClearSelection,
   dossierContent,
+  layerControlsContent,
+  scenarioControlsContent,
 }: AtlasSceneChromeProps) {
-  const activeView = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
-
   return (
     <div className="pointer-events-none absolute inset-0 z-[1400]">
       {!isMobileViewport ? (
-        <header className="atlas-scene-header pointer-events-auto absolute left-4 right-4 top-4 flex flex-col gap-3 md:left-5 md:right-5 md:flex-row md:items-start md:justify-between md:gap-4">
-          <div className="atlas-scene-glass atlas-scene-brand hidden min-w-[260px] max-w-[360px] px-4 py-3 md:block">
-            <p className="font-mono text-[10px] uppercase leading-none tracking-[0.14em] text-[color:var(--ctx-ink-mute)]">
-              Our Civic Atlas
-            </p>
-            <h1 className="font-display mt-1 text-[26px] leading-none tracking-[0.01em] text-[color:var(--ctx-ink)]">
+        <header className="atlas-scene-header pointer-events-auto absolute left-5 right-5 top-4">
+          <div className="atlas-scene-top-strip">
+            <Link href="/open-flint-atlas" className="atlas-scene-wordmark">
               Flint Atlas
-            </h1>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-              <SceneMetric label="places" value={String(placesCount)} />
-              <SceneMetric label="events" value={String(eventsCount)} />
-              <SceneMetric label="view" value={activeView.shortLabel} />
-            </div>
-          </div>
-
-          <div className="atlas-scene-glass atlas-scene-search-shell relative w-full px-3 py-2 md:min-w-[min(520px,44vw)] md:max-w-[620px]">
-            <label
-              className="flex items-center gap-2"
-              aria-label="Search Flint Atlas places"
-            >
-              <Search className="h-4 w-4 shrink-0 text-[color:var(--ctx-ink-mute)]" />
-              <input
-                value={searchValue}
-                onChange={(event) => onSearchValueChange(event.target.value)}
-                suppressHydrationWarning
-                className="h-9 w-full bg-transparent text-[14px] outline-none placeholder:text-[color:var(--ctx-ink-faint)]"
-                placeholder="Search places, wards, landmarks — or type a year (1925)"
-                type="search"
-              />
-            </label>
-            {searchValue.trim().length > 0 && atlasYear === null && (
-              <div
-                className="atlas-scene-search-results absolute left-0 right-0 top-[calc(100%+6px)]"
-                role="listbox"
-                aria-label="Place search results"
-              >
-                {searchResults.length > 0 ? (
-                  searchResults.map((result) => (
-                    <button
-                      key={result.id}
-                      type="button"
-                      className="flex w-full items-center justify-between gap-4 px-3 py-2 text-left text-[13px]"
-                      onClick={() => onSearchResultSelect(result.id)}
-                      role="option"
-                      aria-selected={false}
-                    >
-                      <span className="truncate text-[color:var(--ctx-ink)]">
-                        {result.name}
-                      </span>
-                      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
-                        {result.type}
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <p className="px-3 py-2 text-[13px] text-[color:var(--ctx-ink-mute)]">
-                    No matching places in the current read model.
-                  </p>
-                )}
-              </div>
-            )}
+            </Link>
+            <nav aria-label="Flint Atlas links" className="atlas-scene-top-actions">
+              <Link href="/open-flint-atlas/sources">About</Link>
+              <Link href="/open-flint-atlas/methodology">Methodology</Link>
+              <Link href="/open-flint-atlas/contribute" data-commit="true">
+                Contribute
+              </Link>
+            </nav>
           </div>
         </header>
-      ) : null}
-
-      {atlasYear !== null ? (
-        <div
-          className="atlas-time-travel-badge pointer-events-auto absolute z-[1401]"
-          aria-live="polite"
-          aria-label={`Atlas year ${atlasYear}`}
-        >
-          <span className="atlas-time-travel-badge__label">Year</span>
-          <span className="atlas-time-travel-badge__year">{atlasYear}</span>
-          {visibleHistoricalReconstructionCount !== null ? (
-            <span className="atlas-time-travel-badge__count">
-              {visibleHistoricalReconstructionCount} / {totalHistoricalReconstructionCount} Lost Flint
-            </span>
-          ) : null}
-        </div>
       ) : null}
 
       <AtlasDynamicIsland
@@ -189,21 +120,9 @@ export function AtlasSceneChrome({
           totalHistoricalReconstructionCount
         }
         dossierContent={dossierContent}
-        onClearSelection={onClearSelection}
+        layerControlsContent={layerControlsContent}
+        scenarioControlsContent={scenarioControlsContent}
       />
-    </div>
-  );
-}
-
-function SceneMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="block text-[15px] font-semibold leading-none text-[color:var(--ctx-ink)]">
-        {value}
-      </span>
-      <span className="mt-1 block font-mono text-[9px] uppercase leading-none tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
-        {label}
-      </span>
     </div>
   );
 }

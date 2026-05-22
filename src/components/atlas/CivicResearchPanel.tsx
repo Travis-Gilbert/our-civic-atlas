@@ -204,8 +204,7 @@ function statusLine(status: ResearchStatus): string | null {
   switch (status.kind) {
     case "idle":
       // No idle copy. The textarea placeholder is the call to action; an
-      // extra "Ask the algorithm." line beneath it added visual noise
-      // without informational value.
+      // extra sub-label beneath it added visual noise without useful context.
       return null;
     case "loading":
       return "Running fractal expansion…";
@@ -325,7 +324,7 @@ export function CivicResearchPanel() {
           <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Research a place, person, era, or claim in Flint history."
+            placeholder="Ask about a place, person, era, or claim in Flint..."
             rows={3}
             maxLength={2000}
             className="rounded-[10px] px-2 py-2 text-[13px] leading-[1.35] resize-y"
@@ -362,7 +361,7 @@ export function CivicResearchPanel() {
                 color:
                   isLoading || query.trim().length === 0
                     ? "var(--ctx-ink-mute)"
-                    : "var(--ctx-bg)",
+                    : "var(--ctx-paper)",
                 border: "1px solid var(--ctx-accent)",
               }}
             >

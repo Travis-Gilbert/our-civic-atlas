@@ -24,11 +24,15 @@ import {
   ATLAS_LENS_LOOKUP,
   ATLAS_SCENE_VIEW_MODE_LOOKUP,
 } from "@/lib/atlas/scene-view";
+import {
+  ATLAS_TIME_MAX_YEAR,
+  ATLAS_TIME_MIN_YEAR,
+} from "@/lib/atlas/atlas-time";
 import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
 import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
-type IslandPanel = "focus" | "navigate" | "research" | "dossier" | "horizon";
+type IslandTab = "ask" | "layers" | "scenarios" | "time" | "place" | "horizon";
 
 type AtlasDynamicIslandProps = {
   activeLens: AtlasLensId;
@@ -66,7 +70,8 @@ type AtlasDynamicIslandProps = {
   visibleHistoricalReconstructionCount?: number | null;
   totalHistoricalReconstructionCount?: number;
   dossierContent?: ReactNode;
-  onClearSelection: () => void;
+  layerControlsContent?: ReactNode;
+  scenarioControlsContent?: ReactNode;
 };
 
 const lensIcons: Record<AtlasLensId, ComponentType<{ className?: string }>> = {
@@ -93,11 +98,12 @@ const islandTransition = {
   duration: 0.34,
 } as const;
 
-const PANEL_LABELS: Record<IslandPanel, string> = {
-  focus: "Focus",
-  navigate: "Navigate",
-  research: "Research",
-  dossier: "Dossier",
+const TAB_LABELS: Record<IslandTab, string> = {
+  ask: "Ask",
+  layers: "Layers",
+  scenarios: "Scenarios",
+  time: "Time",
+  place: "Place",
   horizon: "Horizon",
 };
 
@@ -124,37 +130,42 @@ export function AtlasDynamicIsland({
   visibleHistoricalReconstructionCount = null,
   totalHistoricalReconstructionCount = 0,
   dossierContent,
-  onClearSelection,
+  layerControlsContent,
+  scenarioControlsContent,
 }: AtlasDynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activePanel, setActivePanel] = useState<IslandPanel>("focus");
+  const [activeTab, setActiveTab] = useState<IslandTab>("ask");
   const [selectedHorizonId, setSelectedHorizonId] = useState<string | null>(
     horizonNodes[0]?.atlasId ?? null,
   );
 
   useEffect(() => {
-    if (!selectedPlaceId && activePanel === "dossier") {
-      setActivePanel("focus");
+    if (!selectedPlaceId && activeTab === "place") {
+      setActiveTab("ask");
     }
-  }, [activePanel, selectedPlaceId]);
+  }, [activeTab, selectedPlaceId]);
 
   useEffect(() => {
     if (horizonNodes.length === 0) {
       setSelectedHorizonId(null);
-      if (activePanel === "horizon") setActivePanel("focus");
+      if (activeTab === "horizon") setActiveTab("ask");
       return;
     }
     if (!selectedHorizonId || !horizonNodes.some((node) => node.atlasId === selectedHorizonId)) {
       setSelectedHorizonId(horizonNodes[0]?.atlasId ?? null);
     }
-  }, [activePanel, horizonNodes, selectedHorizonId]);
+  }, [activeTab, horizonNodes, selectedHorizonId]);
 
-  const availablePanels = useMemo<IslandPanel[]>(() => {
-    const panels: IslandPanel[] = ["focus", "navigate", "research"];
-    if (selectedPlaceId) panels.push("dossier");
-    if (horizonNodes.length > 0) panels.push("horizon");
-    return panels;
-  }, [horizonNodes.length, selectedPlaceId]);
+  const hasScenarioControls = scenarioControlsContent != null;
+
+  const availableTabs = useMemo<IslandTab[]>(() => {
+    const tabs: IslandTab[] = ["ask", "layers"];
+    if (hasScenarioControls) tabs.push("scenarios");
+    tabs.push("time");
+    if (selectedPlaceId) tabs.push("place");
+    if (horizonNodes.length > 0) tabs.push("horizon");
+    return tabs;
+  }, [hasScenarioControls, horizonNodes.length, selectedPlaceId]);
 
   const selectedHorizonNode = useMemo(
     () =>
@@ -166,22 +177,32 @@ export function AtlasDynamicIsland({
 
   const activeView = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
   const activeLensInfo = ATLAS_LENS_LOOKUP[activeLens];
-  const islandTitle = selectedPlaceName ?? focusHeadline(focusDetailLevel, activeLensInfo.label);
+  const islandTitle = selectedPlaceName ?? "Flint, Michigan";
+  const timeSliderYear =
+    atlasYear ??
+    Math.min(
+      ATLAS_TIME_MAX_YEAR,
+      Math.max(ATLAS_TIME_MIN_YEAR, new Date().getFullYear()),
+    );
   // The collapsed island uses one unified compact layout on every
   // viewport. Slightly narrower on phones to leave room for thumb
   // gestures at the screen edges.
   const collapsedIslandWidth = isMobileViewport ? 316 : 360;
   const expandedIslandWidth = isMobileViewport ? 354 : 392;
+  const expandedIslandHeight =
+    activeTab === "scenarios"
+      ? isMobileViewport ? 520 : 500
+      : isMobileViewport ? 436 : 394;
   const collapsedSearchActive =
     !isExpanded && searchValue.trim().length > 0 && atlasYear === null;
 
-  function openIsland(panel?: IslandPanel) {
-    if (panel && availablePanels.includes(panel)) {
-      setActivePanel(panel);
-    } else if (selectedPlaceId && availablePanels.includes("dossier")) {
-      setActivePanel("dossier");
+  function openIsland(tab?: IslandTab) {
+    if (tab && availableTabs.includes(tab)) {
+      setActiveTab(tab);
+    } else if (selectedPlaceId && availableTabs.includes("place")) {
+      setActiveTab("place");
     } else {
-      setActivePanel("focus");
+      setActiveTab("ask");
     }
     setIsExpanded(true);
   }
@@ -230,7 +251,7 @@ export function AtlasDynamicIsland({
               ))
             ) : (
               <p className="px-3 py-2 text-[13px] text-[color:var(--ctx-ink-mute)]">
-                No matching places in the current read model.
+                No matches.
               </p>
             )}
           </div>
@@ -240,7 +261,7 @@ export function AtlasDynamicIsland({
           initial={false}
           animate={{
             width: isExpanded ? expandedIslandWidth : collapsedIslandWidth,
-            height: isExpanded ? (isMobileViewport ? 436 : 394) : 58,
+            height: isExpanded ? expandedIslandHeight : 58,
             borderRadius: isExpanded ? 24 : 999,
           }}
           transition={islandTransition}
@@ -273,8 +294,8 @@ export function AtlasDynamicIsland({
                 onClick={() => openIsland()}
                 aria-label={
                   atlasYear !== null
-                    ? `Time travel to ${atlasYear}, open Atlas focus panel`
-                    : "Open Atlas focus panel"
+                    ? `Time travel to ${atlasYear}, open controls`
+                    : "Open controls"
                 }
               >
                 {atlasYear !== null ? (
@@ -328,12 +349,14 @@ export function AtlasDynamicIsland({
           >
             <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4">
               <div className="min-w-0">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--ctx-ink-mute)]">
-                  Atlas focus
-                </p>
-                <p className="truncate text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
+                {atlasYear !== null ? (
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--ctx-ink-mute)]">
+                    Mapping · {atlasYear}
+                  </p>
+                ) : null}
+                <h2 className="truncate text-[20px] font-semibold leading-[1.05] text-[color:var(--ctx-ink)]">
                   {islandTitle}
-                </p>
+                </h2>
               </div>
               <button
                 type="button"
@@ -347,82 +370,36 @@ export function AtlasDynamicIsland({
 
             <div className="px-4 pb-3">
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {availablePanels.map((panel) => (
+                {availableTabs.map((tab) => (
                   <button
-                    key={panel}
+                    key={tab}
                     type="button"
                     className="atlas-dossier-tab"
-                    data-active={activePanel === panel ? "true" : "false"}
-                    onClick={() => setActivePanel(panel)}
+                    data-active={activeTab === tab ? "true" : "false"}
+                    onClick={() => setActiveTab(tab)}
                   >
-                    {PANEL_LABELS[panel]}
+                    {TAB_LABELS[tab]}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-              {activePanel === "focus" ? (
-                <section className="space-y-3">
-                  <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                          On screen now
-                        </p>
-                        <p className="mt-1 text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
-                          {selectedPlaceName ?? "Flint civic field"}
-                        </p>
-                      </div>
-                      <SceneFocusIndicator
-                        cameraBand={focusCameraBand}
-                        detailLevel={focusDetailLevel}
-                        hasSelection={selectedPlaceId !== null}
-                      />
-                    </div>
-                    <p className="mt-3 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
-                      The island reflects what the current view is emphasizing as you switch camera modes and move between city, ward, and object focus.
-                    </p>
-                  </div>
+              {activeTab === "ask" ? <CivicResearchPanel /> : null}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <MetaPill label="Lens" value={activeLensInfo.label} />
-                    <MetaPill label="View" value={activeView.label} />
-                    <MetaPill label="Focus" value={focusDetailLabel(focusDetailLevel)} />
-                    <MetaPill label="Band" value={focusBandLabel(focusCameraBand)} />
+              {activeTab === "layers" ? (
+                <section className="space-y-4">
+                  <div className="atlas-island-layer-dossier">
+                    {layerControlsContent}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <MetaPill label="Places" value={String(placesCount)} />
                     <MetaPill label="Events" value={String(eventsCount)} />
+                    <MetaPill label="View" value={activeView.shortLabel} />
                   </div>
-
-                  {selectedPlaceId ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="atlas-horizon-action"
-                        onClick={() => setActivePanel("dossier")}
-                      >
-                        Inspect dossier
-                      </button>
-                      <button
-                        type="button"
-                        className="atlas-horizon-action"
-                        onClick={onClearSelection}
-                      >
-                        Clear focus
-                      </button>
-                    </div>
-                  ) : null}
-                </section>
-              ) : null}
-
-              {activePanel === "navigate" ? (
-                <section className="space-y-4">
                   <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                      Civic lenses
+                      View
                     </p>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {Object.entries(lensIcons).map(([lensId, Icon]) => {
@@ -454,7 +431,7 @@ export function AtlasDynamicIsland({
 
                   <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                      Camera views
+                      Camera
                     </p>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {Object.entries(viewModeIcons).map(([modeId, Icon]) => {
@@ -486,9 +463,61 @@ export function AtlasDynamicIsland({
                 </section>
               ) : null}
 
-              {activePanel === "research" ? <CivicResearchPanel /> : null}
+              {activeTab === "scenarios" ? (
+                <section className="atlas-island-scenario-panel">
+                  {scenarioControlsContent}
+                </section>
+              ) : null}
 
-              {activePanel === "dossier" ? (
+              {activeTab === "time" ? (
+                <section className="space-y-3">
+                  <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                      {atlasYear === null ? "Now" : "Time travel"}
+                    </p>
+                    <p className="mt-1 text-[32px] font-semibold leading-none text-[color:var(--ctx-ink)]">
+                      {atlasYear ?? "Now"}
+                    </p>
+                    {visibleHistoricalReconstructionCount !== null ? (
+                      <p className="mt-2 text-[12px] leading-[1.4] text-[color:var(--ctx-ink-soft)]">
+                        {visibleHistoricalReconstructionCount} / {totalHistoricalReconstructionCount} Lost Flint
+                      </p>
+                    ) : null}
+                    <label className="mt-3 block">
+                      <span className="sr-only">Set atlas year</span>
+                      <input
+                        type="range"
+                        min={ATLAS_TIME_MIN_YEAR}
+                        max={ATLAS_TIME_MAX_YEAR}
+                        value={timeSliderYear}
+                        onChange={(event) => onSearchValueChange(event.target.value)}
+                        className="w-full"
+                        style={{ accentColor: "var(--ctx-accent)" }}
+                      />
+                      <span className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                        <span>{ATLAS_TIME_MIN_YEAR}</span>
+                        <span>{ATLAS_TIME_MAX_YEAR}</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {["Now", "1925", "1950", "1975"].map((year) => (
+                      <button
+                        key={year}
+                        type="button"
+                        className="atlas-horizon-action justify-center"
+                        onClick={() =>
+                          onSearchValueChange(year === "Now" ? "" : year)
+                        }
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {activeTab === "place" ? (
                 <section className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.24)]">
                   {selectedPlaceId && dossierContent ? (
                     dossierContent
@@ -500,7 +529,7 @@ export function AtlasDynamicIsland({
                 </section>
               ) : null}
 
-              {activePanel === "horizon" ? (
+              {activeTab === "horizon" ? (
                 <section className="space-y-3">
                   {selectedHorizonNode ? (
                     <>
@@ -551,19 +580,36 @@ export function AtlasDynamicIsland({
                             {selectedHorizonNode.freshnessLabel}
                           </span>
                           <Link href={selectedHorizonNode.detailHref} className="atlas-horizon-action">
-                            Open atlas
+                            Open
                           </Link>
                         </div>
                       </div>
                     </>
                   ) : (
                     <div className="text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
-                      No neighboring atlas nodes are published yet.
+                      No neighboring atlases yet.
                     </div>
                   )}
                 </section>
               ) : null}
             </div>
+
+            {activeTab === "scenarios" ? null : (
+              <div className="border-t border-[rgba(42,36,25,0.08)] px-4 py-3">
+                <div className="grid grid-cols-4 gap-2">
+                  <MetaPill label="View" value={activeView.label} />
+                  <MetaPill label="Focus" value={focusDetailLabel(focusDetailLevel)} />
+                  <MetaPill label="Band" value={focusBandLabel(focusCameraBand)} />
+                  <div className="flex items-center justify-end">
+                    <SceneFocusIndicator
+                      cameraBand={focusCameraBand}
+                      detailLevel={focusDetailLevel}
+                      hasSelection={selectedPlaceId !== null}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       </div>
@@ -708,12 +754,6 @@ function SceneFocusIndicator({
       </motion.span>
     </div>
   );
-}
-
-function focusHeadline(detailLevel: AtlasSceneDetailLevel, lensLabel: string): string {
-  if (detailLevel === "object") return "Focused civic object";
-  if (detailLevel === "ward") return `${lensLabel} ward field`;
-  return "Flint civic field";
 }
 
 function focusDetailLabel(detailLevel: AtlasSceneDetailLevel): string {
