@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import confidenceCards from "@/data/open-flint-atlas/fixtures/read-model/confidence-cards.json";
+import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import placesGeoJson from "@/data/open-flint-atlas/fixtures/read-model/places.json";
 import spatialEventIndex from "@/data/open-flint-atlas/fixtures/spatial-event-index/seed-events.json";
 import sourceRegistry from "@/data/open-flint-atlas/source-registry.json";
@@ -12,6 +13,10 @@ import {
   getScenarioEnvelopeCollection,
   getScenarioComparison,
 } from "@/lib/atlas/scenario-model";
+import {
+  createUrbanDesignModelCollection,
+  summarizeUrbanDesignModel,
+} from "@/lib/atlas/urban-design-model";
 import type {
   ReviewStatus,
   TimeShape,
@@ -77,6 +82,25 @@ function normalizeEvent(event: RawSpatialEvent) {
   };
 }
 
+function getFlintWardMask(): GeoJSON.GeometryCollection {
+  const places = placesGeoJson as GeoJSON.FeatureCollection<
+    GeoJSON.Geometry,
+    { place_id?: string }
+  >;
+  const geometries = places.features
+    .filter((feature) => feature.properties?.place_id?.startsWith("ward:"))
+    .map((feature) => feature.geometry)
+    .filter(
+      (geometry): geometry is GeoJSON.Polygon | GeoJSON.MultiPolygon =>
+        geometry?.type === "Polygon" || geometry?.type === "MultiPolygon",
+    );
+
+  return {
+    type: "GeometryCollection",
+    geometries,
+  };
+}
+
 export async function GET(_: Request, { params }: RouteContext) {
   const { path = [] } = await params;
   const staticPackage = getStaticAtlasPackage();
@@ -96,6 +120,26 @@ export async function GET(_: Request, { params }: RouteContext) {
     return json(events.map(normalizeEvent));
   }
   if (segment === "confidence-cards.json") return json(confidenceCards);
+  if (segment === "urban-design-model" && child === "forms.geojson") {
+    const url = new URL(_.url);
+    const source = osmBuildings as unknown as GeoJSON.FeatureCollection;
+    const requestedLimit = Number(url.searchParams.get("limit"));
+    const maxSourceFeatures = Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(source.features.length, requestedLimit))
+      : source.features.length;
+    const collection = createUrbanDesignModelCollection(source, {
+      clipGeometry: getFlintWardMask(),
+      maxSourceFeatures,
+    });
+
+    return json(
+      {
+        ...collection,
+        metadata: summarizeUrbanDesignModel(maxSourceFeatures, collection),
+      },
+      "application/geo+json",
+    );
+  }
   if (segment === "mobile-runtime-profile.json") {
     return json(staticPackage.mobileRuntimeProfile);
   }

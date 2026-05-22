@@ -4,6 +4,7 @@ export type AtlasAnalyticalLayerId =
   | "atlas-places"
   | "atlas-selected"
   | "atlas-events"
+  | "atlas-urban-design-model"
   | "atlas-osm-buildings"
   | "atlas-lost-flint";
 
@@ -20,6 +21,7 @@ export const ATLAS_DECK_LAYER_IDS = {
   places: "atlas-places",
   selected: "atlas-selected",
   events: "atlas-events",
+  urbanDesignModel: "atlas-urban-design-model",
   osmBuildings: "atlas-osm-buildings",
   lostFlint: "atlas-lost-flint",
 } as const satisfies Record<string, AtlasAnalyticalLayerId>;
@@ -34,6 +36,7 @@ export const ATLAS_RENDERER_BRIDGES = {
       ATLAS_DECK_LAYER_IDS.places,
       ATLAS_DECK_LAYER_IDS.selected,
       ATLAS_DECK_LAYER_IDS.events,
+      ATLAS_DECK_LAYER_IDS.urbanDesignModel,
     ],
     selectionKey: "place_id",
   },
@@ -46,6 +49,7 @@ export const ATLAS_RENDERER_BRIDGES = {
       ATLAS_DECK_LAYER_IDS.places,
       ATLAS_DECK_LAYER_IDS.selected,
       ATLAS_DECK_LAYER_IDS.events,
+      ATLAS_DECK_LAYER_IDS.urbanDesignModel,
     ],
     selectionKey: "place_id",
   },

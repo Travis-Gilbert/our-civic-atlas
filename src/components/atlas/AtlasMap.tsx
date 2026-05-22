@@ -21,6 +21,11 @@ import type {
   ScenarioEnvelopeProperties,
   ScenarioEnvelopeType,
 } from "@/lib/atlas/scenario-model";
+import {
+  createUrbanDesignModelCollection,
+  type UrbanDesignFormType,
+  type UrbanDesignModelProperties,
+} from "@/lib/atlas/urban-design-model";
 import { osmBuildingExistsInYear } from "@/lib/atlas/atlas-time";
 import type {
   PlacesCollection,
@@ -153,6 +158,30 @@ const ENVELOPE_LINE: Record<ScenarioEnvelopeType, [number, number, number, numbe
   civic_anchor: [164, 52, 34, 238],
   missing_middle: [170, 119, 41, 232],
   mixed_use_infill: [24, 132, 122, 232],
+};
+
+const URBAN_FORM_FILL: Record<UrbanDesignFormType, [number, number, number, number]> = {
+  civic_anchor: [184, 74, 52, 222],
+  courtyard_compact: [64, 126, 88, 214],
+  courtyard_open: [102, 148, 88, 208],
+  industrial_shed: [112, 119, 124, 202],
+  mixed_use_street_wall: [42, 147, 141, 218],
+  row_infill: [202, 143, 56, 222],
+  single_lot: [175, 128, 86, 198],
+  slab: [86, 112, 150, 210],
+  tower_podium: [126, 86, 150, 224],
+};
+
+const URBAN_FORM_LINE: Record<UrbanDesignFormType, [number, number, number, number]> = {
+  civic_anchor: [138, 46, 32, 240],
+  courtyard_compact: [38, 91, 62, 238],
+  courtyard_open: [70, 109, 57, 232],
+  industrial_shed: [74, 82, 88, 228],
+  mixed_use_street_wall: [20, 105, 100, 238],
+  row_infill: [152, 98, 33, 240],
+  single_lot: [124, 88, 58, 222],
+  slab: [55, 80, 116, 232],
+  tower_podium: [92, 59, 121, 242],
 };
 
 /* ------------------------------------------------------------------ */
@@ -364,6 +393,45 @@ function envelopeLineColor(
     : [color[0], color[1], color[2], Math.max(176, color[3] - 32)];
 }
 
+function urbanDesignModelElevation(
+  props: UrbanDesignModelProperties,
+  viewMode: AtlasSceneViewModeId,
+): number {
+  const mode = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
+  if (mode.extrusionScale === 0) return 0;
+  return Math.max(2, props.height_m * mode.extrusionScale);
+}
+
+function urbanDesignFillColor(
+  props: UrbanDesignModelProperties,
+  atlasYear: number | null,
+): [number, number, number, number] {
+  const color = URBAN_FORM_FILL[props.form_type];
+  const partLift =
+    props.part_role === "tower" || props.part_role === "roof_monitor"
+      ? 18
+      : props.part_role === "porch_or_rear_ell" || props.part_role === "rear_wing"
+        ? -12
+        : 0;
+  const alpha = atlasYear === null ? color[3] : Math.max(108, color[3] - 54);
+  return [
+    clampByte(color[0] + partLift),
+    clampByte(color[1] + partLift),
+    clampByte(color[2] + partLift),
+    alpha,
+  ];
+}
+
+function urbanDesignLineColor(
+  props: UrbanDesignModelProperties,
+): [number, number, number, number] {
+  return URBAN_FORM_LINE[props.form_type];
+}
+
+function clampByte(value: number): number {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
 /* ------------------------------------------------------------------ */
 /*  DeckGL overlay hook                                                */
 /* ------------------------------------------------------------------ */
@@ -467,6 +535,23 @@ export function AtlasMap({
       features: places.features.filter(hasGeometry),
     };
   }, [places]);
+
+  const flintWardMask = useMemo<GeoJSON.GeometryCollection | null>(() => {
+    if (!geometricPlaces) return null;
+    const geometries = geometricPlaces.features
+      .filter((feature) => feature.properties.place_id.startsWith("ward:"))
+      .map((feature) => feature.geometry)
+      .filter(
+        (geometry): geometry is GeoJSON.Polygon | GeoJSON.MultiPolygon =>
+          geometry.type === "Polygon" || geometry.type === "MultiPolygon",
+      );
+
+    if (geometries.length === 0) return null;
+    return {
+      type: "GeometryCollection",
+      geometries,
+    };
+  }, [geometricPlaces]);
 
   const computedBounds = useMemo(() => {
     if (!geometricPlaces) return null;
@@ -601,6 +686,14 @@ export function AtlasMap({
     };
   }, [atlasYear]);
 
+  const urbanDesignModel = useMemo(
+    () =>
+      createUrbanDesignModelCollection(visibleOsmBuildings, {
+        clipGeometry: flintWardMask,
+      }),
+    [flintWardMask, visibleOsmBuildings],
+  );
+
   /* ---- Selected feature (separate GeoJSON for highlight ring) ----- */
   const selectedFeatureCollection = useMemo<GeometricPlacesCollection | null>(() => {
     if (!selectedPlaceId || !geometricPlaces) return null;
@@ -717,6 +810,44 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [activeLens],
+            getLineColor: [],
+          },
+        }),
+      );
+    }
+
+    if (
+      urbanDesignModel.features.length > 0 &&
+      layerVisibility.urbanDesignModel !== false &&
+      layerVisibility.buildings !== false
+    ) {
+      result.push(
+        new GeoJsonLayer<UrbanDesignModelProperties>({
+          id: ATLAS_DECK_LAYER_IDS.urbanDesignModel,
+          data: urbanDesignModel,
+          pickable: true,
+          stroked: true,
+          filled: true,
+          extruded: viewMode !== "atlas",
+          wireframe: false,
+          opacity: 0.98,
+          lineWidthMinPixels: viewMode === "atlas" ? 0.8 : 0.45,
+          getLineWidth: viewMode === "atlas" ? 0.8 : 0.5,
+          getElevation: (feature) =>
+            urbanDesignModelElevation(feature.properties, viewMode),
+          getFillColor: (feature) =>
+            urbanDesignFillColor(feature.properties, atlasYear),
+          getLineColor: (feature) =>
+            urbanDesignLineColor(feature.properties),
+          material: {
+            ambient: 0.62,
+            diffuse: 0.46,
+            shininess: 18,
+            specularColor: [240, 226, 202],
+          },
+          updateTriggers: {
+            getElevation: [viewMode],
+            getFillColor: [atlasYear],
             getLineColor: [],
           },
         }),
@@ -900,6 +1031,7 @@ export function AtlasMap({
     atlasYear,
     historicalReconstructions,
     visibleOsmBuildings,
+    urbanDesignModel,
     scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,

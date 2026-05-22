@@ -28,6 +28,8 @@ const EyeOffIcon = (p: React.SVGProps<SVGSVGElement>) => (
 
 const LAYERS = [
   { key: "places", label: "Places" },
+  { key: "urbanDesignModel", label: "Urban Design Model" },
+  { key: "osmBuildings", label: "OSM Footprints" },
   { key: "events", label: "Events" },
   { key: "freshSignals", label: "Fresh Signals" },
   { key: "scenarioEnvelopes", label: "Scenario Envelopes" },

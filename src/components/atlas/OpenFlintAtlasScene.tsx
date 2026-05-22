@@ -94,6 +94,9 @@ const AtlasThreeScene = dynamic(
 
 const DEFAULT_LAYERS: Record<string, boolean> = {
   places: true,
+  buildings: true,
+  urbanDesignModel: true,
+  osmBuildings: false,
   events: true,
   wards: true,
   infrastructure: true,
@@ -872,6 +875,45 @@ export function OpenFlintAtlasScene(props: {
               <option value="address">Addresses only</option>
             </select>
           </div>
+        </div>
+      ),
+    },
+    {
+      id: "urbanDesignModel",
+      name: "Urban Design Model",
+      extension: "geojson",
+      controls: (
+        <div className="space-y-2">
+          <p className="text-[11px] leading-[1.5]">
+            Generated form parts: courtyards, rows, slabs, sheds, towers, and
+            street walls.
+          </p>
+          <div className="flex items-center gap-2">
+            <label className="font-mono text-[10px] uppercase tracking-[0.10em]" style={{ color: "var(--ctx-ink-mute)" }}>
+              Mode
+            </label>
+            <select
+              defaultValue="forms"
+              className="flex-1 px-2 py-1 text-[11px] rounded-[2px] bg-transparent"
+              style={{ border: "1px solid var(--ctx-rule-soft)", color: "var(--ctx-ink)" }}
+            >
+              <option value="forms">Form primitives</option>
+              <option value="confidence">Confidence color</option>
+              <option value="height">Height color</option>
+            </select>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "osmBuildings",
+      name: "OSM Footprints",
+      extension: "geojson",
+      controls: (
+        <div className="space-y-2">
+          <p className="text-[11px] leading-[1.5]">
+            Raw OSM footprints preserved as the comparison baseline.
+          </p>
         </div>
       ),
     },
