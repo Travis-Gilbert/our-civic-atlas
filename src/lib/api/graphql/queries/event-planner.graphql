@@ -1,0 +1,47 @@
+# Porchfest Planner Phase 1 — read queries.
+#
+# All three queries take `tenantSlug` (defaults to "flint" via the
+# schema default) so the same operations work when the atlas grows
+# beyond the Flint tenant. `eventSlug` identifies the specific event
+# layer ("porchfest-2026") and is required on placements + tasks.
+#
+# These run against the GraphQL sidecar (apps/graphql-server) which
+# forwards via gRPC to the Axum civic-atlas-server.
+
+query EventLayers($tenantSlug: String! = "flint") {
+  eventLayers(tenantSlug: $tenantSlug) {
+    id
+    slug
+    title
+    startsAt
+    endsAt
+  }
+}
+
+query EventPlacements($tenantSlug: String! = "flint", $eventSlug: String!) {
+  placements(tenantSlug: $tenantSlug, eventSlug: $eventSlug) {
+    id
+    eventLayerId
+    category
+    sublabel
+    label
+    geometry
+    status
+    notes
+    version
+  }
+}
+
+query EventTasksList($tenantSlug: String! = "flint", $eventSlug: String!) {
+  eventTasks(tenantSlug: $tenantSlug, eventSlug: $eventSlug) {
+    id
+    eventLayerId
+    title
+    ownerDisplay
+    dueAt
+    status
+    placementId
+    notes
+    version
+  }
+}

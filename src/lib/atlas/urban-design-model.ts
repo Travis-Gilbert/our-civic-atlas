@@ -1,3 +1,11 @@
+import {
+  deriveBuildingFabricSpec,
+  type BuildingFabricArchetype,
+  type BuildingFabricDetailLevel,
+  type BuildingFabricSpec,
+  type RoofMaterial,
+} from "./building-fabric.ts";
+
 export type UrbanDesignFormType =
   | "courtyard_compact"
   | "courtyard_open"
@@ -24,6 +32,15 @@ export type UrbanDesignPartRole =
   | "roof_plane"
   | "roof_ridge"
   | "courtyard_yard"
+  | "cornice_band"
+  | "civic_entry"
+  | "civic_roof"
+  | "dormer"
+  | "facade_rhythm"
+  | "parapet"
+  | "porch_step"
+  | "sawtooth_roof"
+  | "storefront_bay"
   | "shed_body"
   | "roof_monitor"
   | "civic_body"
@@ -44,6 +61,7 @@ export type BuildingFormSpec = {
   generated_height_m: number;
   footprint_area_m2: number;
   footprint_ratio: number;
+  fabric: BuildingFabricSpec;
 };
 
 export type UrbanDesignModelProperties = {
@@ -63,6 +81,24 @@ export type UrbanDesignModelProperties = {
   rule_id: string;
   footprint_area_m2: number;
   footprint_ratio: number;
+  fabric_archetype: BuildingFabricArchetype;
+  fabric_model_version: string;
+  fabric_params_hash: string;
+  fabric_variation_seed: number;
+  fabric_feature_completeness: number;
+  fabric_completeness_flags: string[];
+  fabric_detail_level: BuildingFabricDetailLevel;
+  fabric_height_m: number;
+  fabric_stories: number;
+  fabric_front_edge_bearing_degrees: number;
+  fabric_roof_pitch_degrees: number;
+  fabric_cornice_height_m: number;
+  fabric_window_spacing_m: number;
+  fabric_facade_color: string;
+  fabric_roof_material: RoofMaterial;
+  fabric_glb_uri: string;
+  fabric_glb_sha256: string | null;
+  fabric_glb_status: BuildingFabricSpec["glb_status"];
 };
 
 export type UrbanDesignModelFeature = GeoJSON.Feature<
@@ -190,6 +226,17 @@ function createBuildingFormSpec(
       : typeof props.levels === "number"
         ? props.levels * 3
         : null;
+  const fabric = deriveBuildingFabricSpec({
+    sourceOsmId,
+    buildingTag,
+    name,
+    use: props.use?.toLowerCase() ?? null,
+    heightMeters: typeof props.height_meters === "number" ? props.height_meters : null,
+    levels: typeof props.levels === "number" ? props.levels : null,
+    footprintRing: getPlanRing(feature.geometry),
+    footprintAreaM2: bounds.areaM2,
+    footprintRatio: bounds.ratio,
+  });
   const formType = classifyUrbanForm({
     buildingTag,
     bounds,
@@ -197,12 +244,7 @@ function createBuildingFormSpec(
     name: normalizedName,
     use: props.use?.toLowerCase() ?? null,
   });
-  const generatedHeightM = generatedHeightForForm(
-    formType,
-    bounds,
-    hash,
-    sourceHeightM,
-  );
+  const generatedHeightM = fabric.params.height_m;
 
   return {
     spec_id: `urban-form-spec:${sourceOsmId}`,
@@ -217,6 +259,7 @@ function createBuildingFormSpec(
     generated_height_m: generatedHeightM,
     footprint_area_m2: Math.round(bounds.areaM2),
     footprint_ratio: Number(bounds.ratio.toFixed(2)),
+    fabric,
   };
 }
 
@@ -274,37 +317,6 @@ function classifyUrbanForm(input: {
   return input.hash % 5 === 0 ? "row_infill" : "single_lot";
 }
 
-function generatedHeightForForm(
-  formType: UrbanDesignFormType,
-  bounds: PlanBounds,
-  hash: number,
-  sourceHeightM: number | null,
-): number {
-  if (sourceHeightM != null) return Math.max(4, Math.min(64, sourceHeightM));
-  const noise = hash % 3;
-  const large = bounds.areaM2 > 2200;
-  switch (formType) {
-    case "civic_anchor":
-      return large ? 18 + noise * 2 : 12 + noise * 2;
-    case "courtyard_compact":
-      return 15 + noise * 3;
-    case "courtyard_open":
-      return 12 + noise * 2;
-    case "industrial_shed":
-      return 9 + noise * 2;
-    case "mixed_use_street_wall":
-      return 12 + noise * 3;
-    case "row_infill":
-      return 8 + noise;
-    case "single_lot":
-      return 6 + noise;
-    case "slab":
-      return 16 + noise * 3;
-    case "tower_podium":
-      return 28 + noise * 4;
-  }
-}
-
 function confidenceForForm(
   formType: UrbanDesignFormType,
   buildingTag: string | null,
@@ -348,6 +360,25 @@ function createFormParts(
         rule_id: spec.rule_id,
         footprint_area_m2: spec.footprint_area_m2,
         footprint_ratio: spec.footprint_ratio,
+        fabric_archetype: spec.fabric.archetype,
+        fabric_model_version: spec.fabric.model_version,
+        fabric_params_hash: spec.fabric.params_hash,
+        fabric_variation_seed: spec.fabric.params.variation_seed,
+        fabric_feature_completeness: spec.fabric.feature_completeness,
+        fabric_completeness_flags: spec.fabric.completeness_flags,
+        fabric_detail_level: detailLevelForPartRole(partRole),
+        fabric_height_m: spec.fabric.params.height_m,
+        fabric_stories: spec.fabric.params.stories,
+        fabric_front_edge_bearing_degrees:
+          spec.fabric.params.front_edge_bearing_degrees,
+        fabric_roof_pitch_degrees: spec.fabric.params.roof_pitch_degrees,
+        fabric_cornice_height_m: spec.fabric.params.cornice_height_m,
+        fabric_window_spacing_m: spec.fabric.params.window_spacing_m,
+        fabric_facade_color: spec.fabric.params.facade_color,
+        fabric_roof_material: spec.fabric.params.roof_material,
+        fabric_glb_uri: spec.fabric.glb_uri,
+        fabric_glb_sha256: spec.fabric.glb_sha256,
+        fabric_glb_status: spec.fabric.glb_status,
       },
     });
   };
@@ -506,7 +537,168 @@ function createFormParts(
       break;
   }
 
+  createFabricDetailParts(spec, bounds, add);
+
   return parts;
+}
+
+type AddUrbanDesignPart = (
+  geometry: GeoJSON.Polygon,
+  partRole: UrbanDesignPartRole,
+  partLabel: string,
+  heightM?: number,
+) => void;
+
+function createFabricDetailParts(
+  spec: BuildingFormSpec,
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+) {
+  const baseHeight = spec.generated_height_m;
+  const bayCount = facadeBayCount(bounds, spec);
+
+  switch (spec.fabric.archetype) {
+    case "present_residential_single":
+      addFrontBand(bounds, add, "porch_step", "Porch step", 0.08, 0.13, baseHeight * 0.16);
+      if (spec.fabric.params.variation_seed % 3 !== 0) {
+        addDormers(bounds, add, baseHeight + 1.15);
+      }
+      break;
+    case "present_residential_multi":
+      addFrontBand(bounds, add, "cornice_band", "Apartment cornice", 0.18, 0.23, baseHeight + 0.45);
+      addFacadeBays(bounds, add, "facade_rhythm", "Apartment facade bay", bayCount, 0.28, 0.36, baseHeight + 0.2);
+      break;
+    case "present_commercial":
+      addFrontBand(bounds, add, "parapet", "Commercial parapet", 0.08, 0.13, baseHeight + 0.9);
+      addFacadeBays(bounds, add, "storefront_bay", "Storefront bay", bayCount, 0.13, 0.25, baseHeight * 0.42);
+      addFrontBand(bounds, add, "cornice_band", "Commercial cornice", 0.25, 0.3, baseHeight + 0.35);
+      break;
+    case "present_industrial":
+      addSawtoothRoof(bounds, add, baseHeight + 1.2, spec.fabric.params.roof_pitch_degrees);
+      break;
+    case "present_civic":
+      addCenterFront(bounds, add, "civic_entry", "Civic entry", 0.16, 0.26, baseHeight * 0.72);
+      addCenterRoof(bounds, add, "civic_roof", "Civic roof", baseHeight + 1.15);
+      break;
+    case "present_mixed_use":
+      addFacadeBays(bounds, add, "storefront_bay", "Ground-floor storefront bay", bayCount, 0.1, 0.22, baseHeight * 0.36);
+      addFacadeBays(bounds, add, "facade_rhythm", "Upper-floor facade rhythm", bayCount, 0.34, 0.42, baseHeight + 0.18);
+      addFrontBand(bounds, add, "cornice_band", "Mixed-use cornice", 0.22, 0.27, baseHeight + 0.5);
+      break;
+  }
+}
+
+function facadeBayCount(bounds: PlanBounds, spec: BuildingFormSpec): number {
+  const frontageM = Math.max(bounds.widthM, bounds.depthM);
+  return Math.max(
+    2,
+    Math.min(8, Math.floor(frontageM / spec.fabric.params.window_spacing_m)),
+  );
+}
+
+function addFacadeBays(
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+  role: UrbanDesignPartRole,
+  label: string,
+  count: number,
+  depth0: number,
+  depth1: number,
+  heightM: number,
+) {
+  const horizontalFront = bounds.widthM >= bounds.depthM;
+  const step = 0.72 / count;
+  for (let index = 0; index < count; index += 1) {
+    const start = 0.14 + index * step + 0.008;
+    const end = 0.14 + (index + 1) * step - 0.008;
+    add(
+      horizontalFront
+        ? rect(bounds, start, depth0, end, depth1)
+        : rect(bounds, depth0, start, depth1, end),
+      role,
+      `${label} ${index + 1}`,
+      heightM,
+    );
+  }
+}
+
+function addFrontBand(
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+  role: UrbanDesignPartRole,
+  label: string,
+  depth0: number,
+  depth1: number,
+  heightM: number,
+) {
+  if (bounds.widthM >= bounds.depthM) {
+    add(rect(bounds, 0.12, depth0, 0.88, depth1), role, label, heightM);
+    return;
+  }
+  add(rect(bounds, depth0, 0.12, depth1, 0.88), role, label, heightM);
+}
+
+function addCenterFront(
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+  role: UrbanDesignPartRole,
+  label: string,
+  depth0: number,
+  depth1: number,
+  heightM: number,
+) {
+  if (bounds.widthM >= bounds.depthM) {
+    add(rect(bounds, 0.4, depth0, 0.6, depth1), role, label, heightM);
+    return;
+  }
+  add(rect(bounds, depth0, 0.4, depth1, 0.6), role, label, heightM);
+}
+
+function addCenterRoof(
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+  role: UrbanDesignPartRole,
+  label: string,
+  heightM: number,
+) {
+  add(rect(bounds, 0.28, 0.28, 0.72, 0.72), role, label, heightM);
+}
+
+function addDormers(
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+  heightM: number,
+) {
+  if (bounds.widthM >= bounds.depthM) {
+    add(rect(bounds, 0.34, 0.28, 0.42, 0.38), "dormer", "Front dormer", heightM);
+    add(rect(bounds, 0.58, 0.28, 0.66, 0.38), "dormer", "Front dormer", heightM);
+    return;
+  }
+  add(rect(bounds, 0.28, 0.34, 0.38, 0.42), "dormer", "Front dormer", heightM);
+  add(rect(bounds, 0.28, 0.58, 0.38, 0.66), "dormer", "Front dormer", heightM);
+}
+
+function addSawtoothRoof(
+  bounds: PlanBounds,
+  add: AddUrbanDesignPart,
+  heightM: number,
+  roofPitchDegrees: number,
+) {
+  const count = Math.max(2, Math.min(7, Math.floor(Math.max(bounds.widthM, bounds.depthM) / 18)));
+  const lift = Math.max(0.4, roofPitchDegrees / 12);
+  const step = 0.78 / count;
+  for (let index = 0; index < count; index += 1) {
+    const start = 0.11 + index * step;
+    const end = Math.min(0.89, start + step * 0.42);
+    add(
+      bounds.widthM >= bounds.depthM
+        ? rect(bounds, start, 0.28, end, 0.72)
+        : rect(bounds, 0.28, start, 0.72, end),
+      "sawtooth_roof",
+      `Sawtooth roof bay ${index + 1}`,
+      heightM + lift,
+    );
+  }
 }
 
 type RowPart = {
@@ -548,6 +740,35 @@ function createRowParts(bounds: PlanBounds, count: number): RowPart[] {
     }
   }
   return parts;
+}
+
+function detailLevelForPartRole(
+  partRole: UrbanDesignPartRole,
+): BuildingFabricDetailLevel {
+  switch (partRole) {
+    case "courtyard_yard":
+      return "site";
+    case "roof_plane":
+    case "roof_ridge":
+    case "row_roof":
+    case "roof_monitor":
+    case "sawtooth_roof":
+    case "civic_roof":
+    case "dormer":
+    case "parapet":
+      return "roof";
+    case "front_porch":
+    case "porch_or_rear_ell":
+    case "porch_step":
+    case "party_wall":
+    case "cornice_band":
+    case "civic_entry":
+    case "facade_rhythm":
+    case "storefront_bay":
+      return "facade";
+    default:
+      return "mass";
+  }
 }
 
 function getPlanBounds(
@@ -598,6 +819,27 @@ function getPlanBounds(
     areaM2: Math.max(1, widthM * depthM),
     ratio: Math.max(widthM, depthM) / Math.max(1, Math.min(widthM, depthM)),
   };
+}
+
+function getPlanRing(
+  geometry: GeoJSON.Geometry | null | undefined,
+): [number, number][] {
+  const ring =
+    geometry?.type === "Polygon"
+      ? geometry.coordinates[0]
+      : geometry?.type === "MultiPolygon"
+        ? geometry.coordinates[0]?.[0]
+        : null;
+  if (!ring) return [];
+  return ring
+    .filter((coordinate): coordinate is [number, number] => {
+      return (
+        Array.isArray(coordinate) &&
+        typeof coordinate[0] === "number" &&
+        typeof coordinate[1] === "number"
+      );
+    })
+    .map(([lng, lat]): [number, number] => [lng, lat]);
 }
 
 function planCenter(bounds: PlanBounds): [number, number] {

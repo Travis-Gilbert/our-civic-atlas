@@ -23,6 +23,7 @@ type ScenarioControlsProps = {
   kpiBundle: KpiBundle;
   kpiDelta: KpiBundle;
   selectedPlaceName: string | null;
+  variant?: "floating" | "island";
   onActiveScenarioChange: (scenarioId: string) => void;
   onCompareScenarioChange: (scenarioId: string) => void;
   onCompareEnabledChange: (enabled: boolean) => void;
@@ -40,6 +41,7 @@ export function ScenarioControls({
   kpiBundle,
   kpiDelta,
   selectedPlaceName,
+  variant = "floating",
   onActiveScenarioChange,
   onCompareScenarioChange,
   onCompareEnabledChange,
@@ -51,6 +53,121 @@ export function ScenarioControls({
   const comparisonLabel = `${comparison.changedParcelCount} changed parcel${
     comparison.changedParcelCount === 1 ? "" : "s"
   }`;
+
+  if (variant === "island") {
+    return (
+      <section
+        className="atlas-scenario-island"
+        aria-label="Scenario controls"
+      >
+        <div className="atlas-scenario-island__hero">
+          <span className="atlas-scenario-controls__icon">
+            <Layers3 className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <p className="atlas-scenario-controls__eyebrow">Scenario</p>
+            <h2>{activeScenario?.name ?? activeScenarioId}</h2>
+          </div>
+          <span className="atlas-scenario-island__count">
+            {comparisonLabel}
+          </span>
+        </div>
+
+        <div
+          className="atlas-scenario-island__segments"
+          role="group"
+          aria-label="Active scenario"
+        >
+          {scenarios.map((scenario) => (
+            <button
+              key={scenario.scenarioId}
+              type="button"
+              data-active={scenario.scenarioId === activeScenarioId ? "true" : "false"}
+              onClick={() => onActiveScenarioChange(scenario.scenarioId)}
+            >
+              {scenario.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="atlas-scenario-island__compare">
+          <label className="atlas-scenario-island__check">
+            <input
+              type="checkbox"
+              checked={compareEnabled}
+              onChange={(event) => onCompareEnabledChange(event.target.checked)}
+            />
+            <span>Compare</span>
+          </label>
+          <select
+            aria-label="Compare scenario"
+            value={compareScenarioId}
+            onChange={(event) => onCompareScenarioChange(event.target.value)}
+          >
+            {scenarios.map((scenario) => (
+              <option key={scenario.scenarioId} value={scenario.scenarioId}>
+                {scenario.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="atlas-scenario-island__chips">
+          {envelopeTypeCounts
+            .filter((item) => item.count > 0)
+            .map((item) => (
+              <span key={item.type} data-envelope-type={item.type}>
+                <i aria-hidden="true" />
+                {item.label}
+                <strong>{item.count}</strong>
+              </span>
+            ))}
+        </div>
+
+        <div className="atlas-scenario-island__slider">
+          <div className="atlas-scenario-island__section-title">
+            <Building2 className="h-3.5 w-3.5" />
+            <span>Draft height</span>
+            <strong>{draftHeightBoostM.toFixed(1)} m</strong>
+          </div>
+          <input
+            aria-label="Height boost"
+            type="range"
+            min={0}
+            max={8}
+            step={0.5}
+            value={draftHeightBoostM}
+            onChange={(event) =>
+              onDraftHeightBoostChange(Number(event.target.value))
+            }
+          />
+        </div>
+
+        <div className="atlas-scenario-island__kpis">
+          <div className="atlas-scenario-island__section-title">
+            <Route className="h-3.5 w-3.5" />
+            <span>{selectedPlaceName ?? "City"} KPIs</span>
+          </div>
+          <div className="atlas-scenario-island__kpi-grid">
+            {kpiBundle.metrics.map((metric) => {
+              const delta = kpiDelta.metrics.find(
+                (candidate) => candidate.kpiId === metric.kpiId,
+              );
+              return (
+                <div key={metric.kpiId} className="atlas-scenario-island__kpi">
+                  <span>{metric.label}</span>
+                  <strong>{formatMetricCompact(metric.value, metric.unit)}</strong>
+                  {compareEnabled && delta ? (
+                    <em>{formatSignedMetricCompact(delta.value, metric.unit)}</em>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <aside
@@ -171,4 +288,22 @@ function formatMetric(value: number, unit: string): string {
 function formatSignedMetric(value: number, unit: string): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${formatMetric(value, unit)}`;
+}
+
+function formatMetricCompact(value: number, unit: string): string {
+  if (unit === "usd/year") {
+    return `$${Math.round(value / 1000).toLocaleString()}k/y`;
+  }
+  if (unit === "people") {
+    return `${Math.round(value).toLocaleString()} ppl`;
+  }
+  if (unit === "index") {
+    return `${Number(value.toFixed(2))}x`;
+  }
+  return formatMetric(value, unit);
+}
+
+function formatSignedMetricCompact(value: number, unit: string): string {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatMetricCompact(value, unit)}`;
 }

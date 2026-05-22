@@ -95,6 +95,14 @@ export type ScenarioDraftEdits = {
   heightBoostM: number;
 };
 
+type KpiScopeProfile = {
+  populationCapacityFactor: number;
+  taxBaseCapacityFactor: number;
+  infrastructureLoadFactor: number;
+  uncertaintyFactor: number;
+  sourceSummary: string;
+};
+
 export const ATLAS_SCENARIOS: ScenarioRecord[] = [
   {
     scenarioId: "current",
@@ -346,16 +354,23 @@ export function getKpiBundle(
   edits: ScenarioDraftEdits = { heightBoostM: 0 },
 ): KpiBundle {
   const boost = scenarioId === "current" ? 0 : edits.heightBoostM;
-  const current = [
-    metric("population_capacity", "Population capacity", 142, "people", 122, 162),
-    metric("tax_base_capacity", "Tax base capacity", 284000, "usd/year", 203000, 379000),
-    metric("infrastructure_load", "Infrastructure load", 1.0, "index", 0.9, 1.15),
-  ];
-  const future = [
-    metric("population_capacity", "Population capacity", 169 + boost * 2.1, "people", 145, 193),
-    metric("tax_base_capacity", "Tax base capacity", 328100 + boost * 2940, "usd/year", 234400, 437500),
-    metric("infrastructure_load", "Infrastructure load", 1.08 + boost * 0.01, "index", 0.98, 1.26),
-  ];
+  const profile = getKpiScopeProfile(scope, scopeId);
+  const current = applyKpiScopeProfile(
+    [
+      metric("population_capacity", "Population capacity", 142, "people", 122, 162),
+      metric("tax_base_capacity", "Tax base capacity", 284000, "usd/year", 203000, 379000),
+      metric("infrastructure_load", "Infrastructure load", 1.0, "index", 0.9, 1.15),
+    ],
+    profile,
+  );
+  const future = applyKpiScopeProfile(
+    [
+      metric("population_capacity", "Population capacity", 169 + boost * 2.1, "people", 145, 193),
+      metric("tax_base_capacity", "Tax base capacity", 328100 + boost * 2940, "usd/year", 234400, 437500),
+      metric("infrastructure_load", "Infrastructure load", 1.08 + boost * 0.01, "index", 0.98, 1.26),
+    ],
+    profile,
+  );
   return {
     scenarioId,
     scope,
@@ -385,19 +400,133 @@ export function getKpiDelta(
       );
       return {
         ...targetMetric,
-        value: targetMetric.value - (baseMetric?.value ?? 0),
+        value: normalizeKpiValue(
+          targetMetric.value - (baseMetric?.value ?? 0),
+          targetMetric.unit,
+        ),
         uncertaintyLow:
           targetMetric.uncertaintyLow != null && baseMetric?.uncertaintyHigh != null
-            ? targetMetric.uncertaintyLow - baseMetric.uncertaintyHigh
+            ? normalizeKpiValue(
+                targetMetric.uncertaintyLow - baseMetric.uncertaintyHigh,
+                targetMetric.unit,
+              )
             : null,
         uncertaintyHigh:
           targetMetric.uncertaintyHigh != null && baseMetric?.uncertaintyLow != null
-            ? targetMetric.uncertaintyHigh - baseMetric.uncertaintyLow
+            ? normalizeKpiValue(
+                targetMetric.uncertaintyHigh - baseMetric.uncertaintyLow,
+                targetMetric.unit,
+              )
             : null,
         sourceSummary: `Delta between ${targetScenarioId} and ${baseScenarioId}.`,
       };
     }),
   };
+}
+
+const WARD_KPI_PROFILES: Record<string, KpiScopeProfile> = {
+  "ward:1": wardKpiProfile(0.86, 0.8, 0.93),
+  "ward:2": wardKpiProfile(0.94, 0.88, 0.97),
+  "ward:3": wardKpiProfile(1.06, 0.92, 1.04),
+  "ward:4": wardKpiProfile(1.18, 1.06, 1.08),
+  "ward:5": wardKpiProfile(1, 1, 1),
+  "ward:6": wardKpiProfile(0.82, 0.9, 0.91),
+  "ward:7": wardKpiProfile(1.24, 1.18, 1.12),
+  "ward:8": wardKpiProfile(0.74, 0.76, 0.86),
+  "ward:9": wardKpiProfile(1.12, 1.28, 1.06),
+};
+
+function getKpiScopeProfile(
+  scope: "city" | "place",
+  scopeId: string,
+): KpiScopeProfile {
+  if (scope === "city") {
+    return {
+      populationCapacityFactor: 1,
+      taxBaseCapacityFactor: 1,
+      infrastructureLoadFactor: 1,
+      uncertaintyFactor: 1,
+      sourceSummary:
+        "Citywide scenario-aware envelope aggregate with cited city-pack multipliers.",
+    };
+  }
+
+  const wardProfile = WARD_KPI_PROFILES[scopeId];
+  if (wardProfile) return wardProfile;
+
+  const hash = stableHash(scopeId);
+  return {
+    populationCapacityFactor: 0.72 + (hash % 49) / 100,
+    taxBaseCapacityFactor: 0.68 + ((hash >>> 5) % 58) / 100,
+    infrastructureLoadFactor: 0.84 + ((hash >>> 11) % 34) / 100,
+    uncertaintyFactor: 1.18,
+    sourceSummary:
+      `Place-scoped scenario fixture for ${scopeId}; replace with parcel/ACS aggregate service when live.`,
+  };
+}
+
+function wardKpiProfile(
+  populationCapacityFactor: number,
+  taxBaseCapacityFactor: number,
+  infrastructureLoadFactor: number,
+): KpiScopeProfile {
+  return {
+    populationCapacityFactor,
+    taxBaseCapacityFactor,
+    infrastructureLoadFactor,
+    uncertaintyFactor: 1.08,
+    sourceSummary:
+      "Ward-scoped scenario fixture; replace with parcel/ACS aggregate service when live.",
+  };
+}
+
+function applyKpiScopeProfile(
+  metrics: KpiMetric[],
+  profile: KpiScopeProfile,
+): KpiMetric[] {
+  return metrics.map((metricItem) => {
+    const factor =
+      metricItem.kpiId === "population_capacity"
+        ? profile.populationCapacityFactor
+        : metricItem.kpiId === "tax_base_capacity"
+          ? profile.taxBaseCapacityFactor
+          : profile.infrastructureLoadFactor;
+
+    return {
+      ...metricItem,
+      value: normalizeKpiValue(metricItem.value * factor, metricItem.unit),
+      uncertaintyLow:
+        metricItem.uncertaintyLow == null
+          ? null
+          : normalizeKpiValue(
+              metricItem.uncertaintyLow * factor / profile.uncertaintyFactor,
+              metricItem.unit,
+            ),
+      uncertaintyHigh:
+        metricItem.uncertaintyHigh == null
+          ? null
+          : normalizeKpiValue(
+              metricItem.uncertaintyHigh * factor * profile.uncertaintyFactor,
+              metricItem.unit,
+            ),
+      sourceSummary: profile.sourceSummary,
+    };
+  });
+}
+
+function normalizeKpiValue(value: number, unit: string): number {
+  if (unit === "index") return Number(value.toFixed(2));
+  if (unit === "usd/year") return Math.round(value / 100) * 100;
+  return Math.round(value);
+}
+
+function stableHash(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function scenarioUsesFutureEnvelope(scenarioId: string): boolean {

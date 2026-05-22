@@ -17,6 +17,7 @@ import {
   createUrbanDesignModelCollection,
   summarizeUrbanDesignModel,
 } from "@/lib/atlas/urban-design-model";
+import { BUILDING_FABRIC_HEIGHT_PRIORS } from "@/lib/atlas/building-fabric";
 import type {
   ReviewStatus,
   TimeShape,
@@ -139,6 +140,37 @@ export async function GET(_: Request, { params }: RouteContext) {
       },
       "application/geo+json",
     );
+  }
+  if (segment === "building-fabric") {
+    if (child === "height-priors.json" || !child) {
+      return json(BUILDING_FABRIC_HEIGHT_PRIORS);
+    }
+    if (child === "params.geojson") {
+      const url = new URL(_.url);
+      const source = osmBuildings as unknown as GeoJSON.FeatureCollection;
+      const requestedLimit = Number(url.searchParams.get("limit"));
+      const maxSourceFeatures = Number.isFinite(requestedLimit)
+        ? Math.max(1, Math.min(source.features.length, requestedLimit))
+        : source.features.length;
+      const collection = createUrbanDesignModelCollection(source, {
+        clipGeometry: getFlintWardMask(),
+        maxSourceFeatures,
+      });
+
+      return json(
+        {
+          ...collection,
+          metadata: {
+            ...summarizeUrbanDesignModel(maxSourceFeatures, collection),
+            city_pack: BUILDING_FABRIC_HEIGHT_PRIORS.city_pack,
+            model_version: BUILDING_FABRIC_HEIGHT_PRIORS.model_version,
+            source_yaml: "packs/us/mi/flint/archetypes/present/height_priors.yaml",
+            glb_status: "pending_offline_generation",
+          },
+        },
+        "application/geo+json",
+      );
+    }
   }
   if (segment === "mobile-runtime-profile.json") {
     return json(staticPackage.mobileRuntimeProfile);

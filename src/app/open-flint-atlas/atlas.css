@@ -11,10 +11,42 @@
  */
 
 .civic-atlas {
-  /* CANVAS — paper-white floor, three tonal steps for depth. */
-  --ctx-paper:        #f6f4ee;
-  --ctx-paper-soft:   #efece4;
-  --ctx-paper-deep:   #e2dfd4;
+  /* 4px atomic spacing grid. */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* Type scale. */
+  --text-micro:    10px;
+  --text-mono:     11px;
+  --text-caption:  12px;
+  --text-body:     14px;
+  --text-title:    16px;
+  --text-h2:       20px;
+  --text-display:  32px;
+
+  /* Font aliases for atlas chrome. Global layout wires the actual faces. */
+  --f-display: var(--font-display);
+  --f-body:    var(--font-sans);
+  --f-mono:    var(--font-mono);
+
+  /* Radius scale. */
+  --r-tight:  4px;
+  --r:        8px;
+  --r-lg:     14px;
+  --r-pill:   999px;
+
+  /* CANVAS — cooler paper floor, three tonal steps for depth. */
+  --ctx-paper:        #f2f1ec;
+  --ctx-paper-soft:   #eae8e0;
+  --ctx-paper-deep:   #dcd9cf;
 
   /* INK — warm dark brown. */
   --ctx-ink:          #2a2419;
@@ -23,13 +55,18 @@
   --ctx-ink-faint:    #a89c84;
 
   /* RULES — paper borders. */
-  --ctx-rule:         #c8bda1;
-  --ctx-rule-soft:    #d6cdb4;
+  --ctx-rule:         #c4baa0;
+  --ctx-rule-soft:    #d2cab2;
 
   /* ACCENT — terracotta, restored from the canvas system. */
   --ctx-accent:       #c14a2c;
   --ctx-accent-soft:  #e07a55;
   --ctx-accent-glow:  rgba(193, 74, 44, 0.32);
+
+  /* COMMIT — civic write actions. */
+  --ctx-commit:       #6b2c33;
+  --ctx-commit-soft:  #a04652;
+  --ctx-commit-glow:  rgba(107, 44, 51, 0.30);
 
   /* NAVY — deep slate for contrast panels (kept for AtlasShell dark zones). */
   --ctx-navy:         #1a1f26;
@@ -45,6 +82,9 @@
     0 1px 0 rgba(255, 255, 255, 0.55) inset,
     0 1px 3px rgba(60, 40, 12, 0.08),
     0 4px 16px -8px rgba(60, 40, 12, 0.22);
+  --shadow-1: 0 2px 8px -4px rgba(42, 36, 25, 0.12);
+  --shadow-2: 0 8px 24px -12px rgba(42, 36, 25, 0.28);
+  --shadow-3: 0 18px 40px -20px rgba(42, 36, 25, 0.42);
 
   /* Shadcn bridge overrides (cascade from --ctx-*). */
   --background:           var(--ctx-paper);
@@ -78,9 +118,16 @@
   --atlas-state-poll:     #5c6aa0;
   --atlas-state-safety:   #bf5f52;
   --atlas-state-live:     #c14a2c;
+  --typology-residential: #c19a6b;
+  --typology-commercial:  #4a8a82;
+  --typology-industrial:  #6b5d54;
+  --typology-civic:       #722f37;
+  --typology-mixed:       #b8893f;
+  --typology-unknown:     #a89c84;
 
   background: var(--ctx-paper);
   color: var(--ctx-ink);
+  font-family: var(--f-body);
 }
 
 /* Atlas panels: floating sticky tiles, vertically centered against the
@@ -98,35 +145,21 @@
    chrome. The canvas dot field and map remain faintly visible
    through it. */
 .civic-atlas .control-dossier-card {
-  background: rgba(246, 244, 238, 0.68);
+  background: color-mix(in srgb, var(--ctx-paper) 72%, transparent);
   backdrop-filter: blur(8px) saturate(108%);
   -webkit-backdrop-filter: blur(8px) saturate(108%);
   border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 6px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.45) inset,
-    0 1px 3px rgba(60, 40, 12, 0.06),
-    0 6px 18px -10px rgba(60, 40, 12, 0.18);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-1);
 }
 
 .civic-atlas .atlas-scene-map {
   isolation: isolate;
-  background:
-    radial-gradient(circle at 58% 24%, rgba(193, 74, 44, 0.16), transparent 31%),
-    radial-gradient(circle at 22% 74%, rgba(74, 138, 130, 0.16), transparent 28%),
-    var(--ctx-paper);
+  background: var(--ctx-paper);
 }
 
 .civic-atlas .atlas-scene-map::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(246, 244, 238, 0.48), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
-    linear-gradient(180deg, rgba(246, 244, 238, 0.36), transparent 24%, transparent 72%, rgba(42, 36, 25, 0.14));
-  mix-blend-mode: normal;
+  content: none;
 }
 
 .civic-atlas .atlas-scene-map .maplibregl-map,
@@ -135,7 +168,7 @@
 }
 
 .civic-atlas .atlas-scene-map .maplibregl-canvas {
-  filter: saturate(0.92) contrast(1.04) sepia(0.08);
+  filter: saturate(0.96) contrast(1.02) sepia(0.04);
 }
 
 .civic-atlas .atlas-three-scene canvas {
@@ -205,25 +238,82 @@
 }
 
 .civic-atlas [data-scene-view="street"] .atlas-scene-map .maplibregl-canvas {
-  filter: saturate(0.96) contrast(1.08) sepia(0.1);
-}
-
-.civic-atlas [data-active-lens="memory"] .atlas-scene-map::before {
-  background:
-    linear-gradient(90deg, rgba(246, 244, 238, 0.5), transparent 18%, transparent 82%, rgba(246, 244, 238, 0.42)),
-    linear-gradient(180deg, rgba(246, 244, 238, 0.32), transparent 22%, rgba(193, 74, 44, 0.1) 72%, rgba(42, 36, 25, 0.12));
+  filter: saturate(0.98) contrast(1.04) sepia(0.04);
 }
 
 .civic-atlas .atlas-scene-glass,
 .civic-atlas .atlas-scene-search-results {
-  background: rgba(246, 244, 238, 0.72);
+  background: color-mix(in srgb, var(--ctx-paper) 74%, transparent);
   border: 1px solid rgba(42, 36, 25, 0.12);
-  border-radius: 6px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 10px 28px -18px rgba(42, 36, 25, 0.42);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-2);
   backdrop-filter: blur(12px) saturate(115%);
   -webkit-backdrop-filter: blur(12px) saturate(115%);
+}
+
+.civic-atlas .atlas-scene-top-strip {
+  display: flex;
+  height: var(--s-12);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  border: 1px solid rgba(42, 36, 25, 0.1);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--ctx-paper) 78%, transparent);
+  box-shadow: var(--shadow-1);
+  padding: 0 var(--s-3) 0 var(--s-4);
+  backdrop-filter: blur(12px) saturate(112%);
+  -webkit-backdrop-filter: blur(12px) saturate(112%);
+}
+
+.civic-atlas .atlas-scene-wordmark {
+  color: var(--ctx-ink);
+  font-family: var(--f-display), var(--f-body), system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.civic-atlas .atlas-scene-top-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.civic-atlas .atlas-scene-top-actions a,
+.civic-atlas .atlas-scene-top-actions button {
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ctx-ink-soft);
+  font-size: var(--text-caption);
+  line-height: 1;
+  padding: var(--s-2) var(--s-3);
+  text-decoration: none;
+}
+
+.civic-atlas .atlas-scene-top-actions a:hover,
+.civic-atlas .atlas-scene-top-actions a:focus-visible,
+.civic-atlas .atlas-scene-top-actions button:hover,
+.civic-atlas .atlas-scene-top-actions button:focus-visible {
+  border-color: rgba(42, 36, 25, 0.12);
+  color: var(--ctx-ink);
+  outline: none;
+}
+
+.civic-atlas .atlas-scene-top-actions a[data-commit="true"] {
+  background: var(--ctx-commit);
+  color: var(--ctx-paper);
+  box-shadow: 0 10px 22px -16px var(--ctx-commit-glow);
+}
+
+.civic-atlas .atlas-island-layer-dossier .control-dossier-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .civic-atlas .atlas-scenario-controls {
@@ -452,6 +542,241 @@
   }
 }
 
+.civic-atlas .atlas-island-scenario-panel .atlas-scenario-controls {
+  position: static;
+  inset: auto;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.civic-atlas .atlas-island-scenario-panel .atlas-scenario-controls__grid {
+  margin-top: 10px;
+}
+
+.civic-atlas .atlas-scenario-island {
+  display: grid;
+  gap: 9px;
+}
+
+.civic-atlas .atlas-scenario-island__hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 9px;
+}
+
+.civic-atlas .atlas-scenario-island h2 {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--ctx-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.civic-atlas .atlas-scenario-island__count {
+  align-self: start;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  color: var(--ctx-ink-soft);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.civic-atlas .atlas-scenario-island__segments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px;
+}
+
+.civic-atlas .atlas-scenario-island__segments button {
+  min-width: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ctx-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 8px;
+}
+
+.civic-atlas .atlas-scenario-island__segments button[data-active="true"] {
+  background: var(--ctx-ink);
+  color: var(--ctx-paper);
+  box-shadow: 0 8px 16px -14px rgba(42, 36, 25, 0.55);
+}
+
+.civic-atlas .atlas-scenario-island__compare {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.civic-atlas .atlas-scenario-island__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  color: var(--ctx-ink-soft);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  padding: 8px 10px;
+  text-transform: uppercase;
+}
+
+.civic-atlas .atlas-scenario-island__compare select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  color: var(--ctx-ink);
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 8px 10px;
+}
+
+.civic-atlas .atlas-scenario-island__chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 1px;
+}
+
+.civic-atlas .atlas-scenario-island__chips span {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 136px;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--ctx-ink-soft);
+  font-size: 11px;
+  line-height: 1.15;
+  padding: 7px 8px;
+}
+
+.civic-atlas .atlas-scenario-island__chips i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--atlas-envelope-swatch, var(--atlas-infrastructure));
+}
+
+.civic-atlas .atlas-scenario-island__chips strong {
+  color: var(--ctx-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+}
+
+.civic-atlas .atlas-scenario-island__slider,
+.civic-atlas .atlas-scenario-island__kpis {
+  border-top: 1px solid rgba(42, 36, 25, 0.08);
+  padding-top: 9px;
+}
+
+.civic-atlas .atlas-scenario-island__section-title {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  color: var(--ctx-ink-mute);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.civic-atlas .atlas-scenario-island__section-title strong {
+  color: var(--ctx-ink);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.civic-atlas .atlas-scenario-island__slider input[type="range"] {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.civic-atlas .atlas-scenario-island__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.civic-atlas .atlas-scenario-island__kpi {
+  min-width: 0;
+  border: 1px solid rgba(42, 36, 25, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 8px 7px;
+}
+
+.civic-atlas .atlas-scenario-island__kpi span,
+.civic-atlas .atlas-scenario-island__kpi strong,
+.civic-atlas .atlas-scenario-island__kpi em {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.civic-atlas .atlas-scenario-island__kpi span {
+  color: var(--ctx-ink-mute);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.civic-atlas .atlas-scenario-island__kpi strong {
+  margin-top: 4px;
+  color: var(--ctx-ink);
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.civic-atlas .atlas-scenario-island__kpi em {
+  margin-top: 4px;
+  color: var(--atlas-infrastructure);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+}
+
 .civic-atlas .atlas-scene-brand {
   background:
     linear-gradient(135deg, rgba(246, 244, 238, 0.84), rgba(239, 236, 228, 0.68)),
@@ -460,57 +785,6 @@
 
 .civic-atlas .atlas-scene-search-results {
   overflow: hidden;
-}
-
-.civic-atlas .atlas-time-travel-badge {
-  left: 300px;
-  top: 18px;
-  display: grid;
-  min-width: 168px;
-  gap: 3px;
-  padding: 11px 13px 12px;
-  background:
-    linear-gradient(135deg, rgba(246, 244, 238, 0.88), rgba(239, 236, 228, 0.72)),
-    rgba(246, 244, 238, 0.78);
-  border: 1px solid rgba(42, 36, 25, 0.12);
-  border-radius: 6px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 14px 34px -22px rgba(42, 36, 25, 0.54);
-  backdrop-filter: blur(12px) saturate(115%);
-  -webkit-backdrop-filter: blur(12px) saturate(115%);
-}
-
-.civic-atlas .atlas-time-travel-badge__label,
-.civic-atlas .atlas-time-travel-badge__count {
-  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ctx-ink-mute);
-}
-
-.civic-atlas .atlas-time-travel-badge__year {
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--ctx-ink);
-}
-
-@media (max-width: 767px) {
-  .civic-atlas .atlas-time-travel-badge {
-    left: 20px;
-    right: auto;
-    top: 18px;
-    min-width: 132px;
-    padding: 9px 11px 10px;
-  }
-
-  .civic-atlas .atlas-time-travel-badge__year {
-    font-size: 21px;
-  }
 }
 
 .civic-atlas .atlas-scene-search-results button {
@@ -937,7 +1211,7 @@
 
 @media (max-width: 767px) {
   .civic-atlas .atlas-scene-glass {
-    background: rgba(246, 244, 238, 0.82);
+    background: color-mix(in srgb, var(--ctx-paper) 82%, transparent);
   }
 
   .civic-atlas .atlas-scene-header {

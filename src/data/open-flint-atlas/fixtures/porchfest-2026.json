@@ -1,0 +1,996 @@
+{
+  "event_layer": {
+    "slug": "porchfest-2026",
+    "title": "Carriage Town Porchfest 2026"
+  },
+  "placements": [
+    {
+      "category": "after_party",
+      "sublabel": "",
+      "label": "After Party Arrowhead",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6966212,
+          43.0170844
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.696678,
+          43.0175963
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6967558,
+          43.017563
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968389,
+          43.0175317
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6970079,
+          43.0176886
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 5",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968845,
+          43.0178552
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 6",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6973686,
+          43.0182639
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 7",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.696954,
+          43.0175629
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "amenity",
+      "sublabel": "",
+      "label": "Tree 8",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968418,
+          43.0176671
+        ]
+      },
+      "notes": "folder=Trees and Landmarks"
+    },
+    {
+      "category": "food_court",
+      "sublabel": "",
+      "label": "Dinning Area",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6972213,
+          43.0181071
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "food_court",
+      "sublabel": "",
+      "label": "Food Court",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6976893,
+          43.0185602
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "kid_zone",
+      "sublabel": "",
+      "label": "Kid Zone",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.697823,
+          43.0188508
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Arrowhead Venue",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6963891,
+          43.0171713
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Fig",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6964393,
+          43.0194075
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Last Performance Stage",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968014,
+          43.0172099
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Queens",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6956025,
+          43.0194957
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6970364,
+          43.0183726
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6964943,
+          43.0173441
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 3",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6978117,
+          43.0174889
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 4",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6973516,
+          43.0184008
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 5",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6967461,
+          43.0181912
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 6",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6978258,
+          43.0177462
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 7",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6976175,
+          43.0178103
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Stage 8",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6980315,
+          43.0176563
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "yes",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6972197,
+          43.0187025
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "music",
+      "sublabel": "",
+      "label": "Yes",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968522,
+          43.0188673
+        ]
+      },
+      "notes": "folder=Music"
+    },
+    {
+      "category": "parking",
+      "sublabel": "",
+      "label": "Porchfest Parking",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6958927,
+          43.0176292
+        ]
+      },
+      "notes": "folder=Amenties & Misc | Durant Dort Office Building"
+    },
+    {
+      "category": "parking",
+      "sublabel": "",
+      "label": "Porchfest Parking 2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.698558,
+          43.0169163
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "rest_area",
+      "sublabel": "",
+      "label": "Giant parachute",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.697582,
+          43.0185396
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "rest_area",
+      "sublabel": "",
+      "label": "Rest and Dinning Area",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6956963,
+          43.0169519
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "restroom",
+      "sublabel": "",
+      "label": "Restrooms",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6959924,
+          43.0182364
+        ]
+      },
+      "notes": "folder=Amenties & Misc"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "A&V Accessories",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968871,
+          43.0174834
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 23"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "BBQ Steve",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6969435,
+          43.0176776
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 16"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "CatnipZ",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6970797,
+          43.0178133
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 13"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Corgis Honduran Bitea",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6972586,
+          43.0180068
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 7"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Eagles Nest Academy",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6979882,
+          43.0174579
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 26"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Embrace Naturals",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968947,
+          43.0178132
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 14"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "For the love of all crafts",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6973855,
+          43.0181516
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 4"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Fresh Press Flavors LLC",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6971216,
+          43.0181245
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 44"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Fruits of Elegance Food Truck",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6965733,
+          43.0177666
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 34/Sidewalk Green Space"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Glass 4est",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6973385,
+          43.0181025
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 5"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Happy Camper Ice Cream",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6978924,
+          43.0185035
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 2"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Henna Farasha",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6969322,
+          43.017875
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 11"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Hiedi’s Hookah",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.697404,
+          43.0184944
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 21"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "I love Pig - Hold for Confirmation",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6963882,
+          43.0175593
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 36/Sidewalk Green Space"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Java Bean Designs",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968703,
+          43.0175619
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 22"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "JJ Bakery shop LLC",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6970619,
+          43.018026
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 42"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "LoveLanguage_candles",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968261,
+          43.0176971
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 20"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "MCBO house",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6972975,
+          43.0180564
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 6"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Organic Infant's Clothing LLC",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6974351,
+          43.0182151
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 3"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Park and Play",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6965425,
+          43.0174515
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 30"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Park and Play",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6966176,
+          43.0174259
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 31"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Pathways to Fantasy",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.69669,
+          43.0176217
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 25"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "PouringTLC",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6964882,
+          43.0176662
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 35/Sidewalk Green Space"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Prana Malas",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6974168,
+          43.0178335
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 40/Sidewalk Green Space"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "PreppedByDot",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6966955,
+          43.0179937
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 10"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "River and Willow",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6978602,
+          43.0183408
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 12"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Shellie Sharee Decor & Design",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6969281,
+          43.0177524
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 15"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Sweet Home Argentina",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6971769,
+          43.0179877
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 9"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "The Flintstone Candle Co",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6970907,
+          43.018079
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 43"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "The Tamale Spot",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6974892,
+          43.0185983
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 19"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Twauny Lo's Tacos",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6967295,
+          43.0176712
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 24"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor (Late Overflow)",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6961962,
+          43.0183027
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6972688,
+          43.0183053
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 17",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6969555,
+          43.0176143
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 18",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6977313,
+          43.018566
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 27",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6967048,
+          43.0175534
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 28",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6967705,
+          43.0175269
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 29",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6968283,
+          43.0175024
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 32",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6966955,
+          43.017397
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 33",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6967738,
+          43.0173641
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 37/Sidewalk Green Space",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6973096,
+          43.0177393
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 38/Sidewalk Green Space",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6974545,
+          43.0176973
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 39/Sidewalk Green Space",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6975966,
+          43.0176384
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vendor 41/Sidewalk Green Space",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.697488,
+          43.0178061
+        ]
+      },
+      "notes": "folder=Vendors"
+    },
+    {
+      "category": "vendor",
+      "sublabel": "",
+      "label": "Vitamin T",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.6972293,
+          43.0179672
+        ]
+      },
+      "notes": "folder=Vendors | Vendor 8"
+    }
+  ]
+}
