@@ -11,6 +11,7 @@ import {
 import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
 import { LayerControls } from "@/components/atlas/LayerControls";
 import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
+import { ScenarioControls } from "@/components/atlas/ScenarioControls";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
 import {
   fetchPlaces,
@@ -50,6 +51,12 @@ import {
   reconstructionExistsInYear,
 } from "@/lib/atlas/atlas-time";
 import { useHistoricalReconstructions } from "@/lib/atlas/use-historical-reconstructions";
+import {
+  ATLAS_SCENARIOS,
+  getKpiBundle,
+  getKpiDelta,
+  getScenarioComparison,
+} from "@/lib/atlas/scenario-model";
 
 const ProvenancePanel = dynamic(
   () =>
@@ -87,6 +94,7 @@ const DEFAULT_LAYERS: Record<string, boolean> = {
   events: true,
   wards: true,
   infrastructure: true,
+  scenarioEnvelopes: true,
 };
 
 function initialRendererMode(): AtlasRendererMode {
@@ -132,6 +140,10 @@ export function OpenFlintAtlasScene(props: {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const [layerVisibility, setLayerVisibility] = useState(DEFAULT_LAYERS);
+  const [activeScenarioId, setActiveScenarioId] = useState("current");
+  const [compareScenarioId, setCompareScenarioId] = useState("current");
+  const [scenarioCompareEnabled, setScenarioCompareEnabled] = useState(false);
+  const [draftHeightBoostM, setDraftHeightBoostM] = useState(0);
   const [viewMode, setViewMode] = useState<AtlasSceneViewModeId>(() => {
     if (initialBookmark) {
       const bookmark = ATLAS_CAMERA_BOOKMARK_LOOKUP[initialBookmark];
@@ -333,6 +345,20 @@ export function OpenFlintAtlasScene(props: {
 
   useEffect(() => {
     setRendererMode(initialRendererMode());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const scenario = params.get("scenario");
+    const compare = params.get("compare");
+    if (scenario && ATLAS_SCENARIOS.some((item) => item.scenarioId === scenario)) {
+      setActiveScenarioId(scenario);
+      setScenarioCompareEnabled(scenario !== "current");
+    }
+    if (compare && ATLAS_SCENARIOS.some((item) => item.scenarioId === compare)) {
+      setCompareScenarioId(compare);
+    }
   }, []);
 
   useEffect(() => {
@@ -612,6 +638,37 @@ export function OpenFlintAtlasScene(props: {
     ).length;
   }, [atlasYear, historicalReconstructionsState.reconstructions]);
 
+  const scenarioDraftEdits = useMemo(
+    () => ({ heightBoostM: draftHeightBoostM }),
+    [draftHeightBoostM],
+  );
+  const scenarioComparison = useMemo(
+    () =>
+      getScenarioComparison(
+        compareScenarioId,
+        activeScenarioId,
+        scenarioDraftEdits,
+      ),
+    [activeScenarioId, compareScenarioId, scenarioDraftEdits],
+  );
+  const kpiScope = selectedPlaceId ? "place" : "city";
+  const kpiScopeId = selectedPlaceId ?? "flint";
+  const scenarioKpis = useMemo(
+    () => getKpiBundle(activeScenarioId, kpiScope, kpiScopeId, scenarioDraftEdits),
+    [activeScenarioId, kpiScope, kpiScopeId, scenarioDraftEdits],
+  );
+  const scenarioKpiDelta = useMemo(
+    () =>
+      getKpiDelta(
+        compareScenarioId,
+        activeScenarioId,
+        kpiScope,
+        kpiScopeId,
+        scenarioDraftEdits,
+      ),
+    [activeScenarioId, compareScenarioId, kpiScope, kpiScopeId, scenarioDraftEdits],
+  );
+
   const handlePlaceSelect = useCallback((placeId: string) => {
     setSelectedPlaceId(placeId);
   }, []);
@@ -622,6 +679,11 @@ export function OpenFlintAtlasScene(props: {
 
   const handleLayerChange = useCallback((key: string, visible: boolean) => {
     setLayerVisibility((prev) => ({ ...prev, [key]: visible }));
+  }, []);
+
+  const handleActiveScenarioChange = useCallback((scenarioId: string) => {
+    setActiveScenarioId(scenarioId);
+    setScenarioCompareEnabled(scenarioId !== "current");
   }, []);
 
   const handleLensChange = useCallback((lens: AtlasLensId) => {
@@ -871,6 +933,12 @@ export function OpenFlintAtlasScene(props: {
               historicalReconstructions={
                 historicalReconstructionsState.reconstructions
               }
+              scenarioDeltaFeatures={
+                scenarioComparison.deltaFeatureCollection
+              }
+              scenarioCompareEnabled={
+                scenarioCompareEnabled && activeScenarioId !== compareScenarioId
+              }
               className="w-full h-full"
               onMapReady={handleMapReady}
             />
@@ -889,6 +957,23 @@ export function OpenFlintAtlasScene(props: {
               className="w-full h-full"
             />
           )}
+          <ScenarioControls
+            scenarios={ATLAS_SCENARIOS}
+            activeScenarioId={activeScenarioId}
+            compareScenarioId={compareScenarioId}
+            compareEnabled={
+              scenarioCompareEnabled && activeScenarioId !== compareScenarioId
+            }
+            draftHeightBoostM={draftHeightBoostM}
+            comparison={scenarioComparison}
+            kpiBundle={scenarioKpis}
+            kpiDelta={scenarioKpiDelta}
+            selectedPlaceName={selectedPlaceName}
+            onActiveScenarioChange={handleActiveScenarioChange}
+            onCompareScenarioChange={setCompareScenarioId}
+            onCompareEnabledChange={setScenarioCompareEnabled}
+            onDraftHeightBoostChange={setDraftHeightBoostM}
+          />
           <AtlasSceneChrome
             activeLens={activeLens}
             onLensChange={handleLensChange}

@@ -30,6 +30,7 @@ const LAYERS = [
   { key: "places", label: "Places" },
   { key: "events", label: "Events" },
   { key: "freshSignals", label: "Fresh Signals" },
+  { key: "scenarioEnvelopes", label: "Scenario Envelopes" },
   { key: "wards", label: "Ward Boundaries" },
   { key: "infrastructure", label: "Infrastructure" },
 ] as const;

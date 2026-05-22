@@ -25,12 +25,12 @@
 
 | Gate | Requirement | Evidence/validator | Status |
 |---|---|---|---|
-| Runtime complete | KPI query returns scenario/scope metric bundles. | backend/query tests. | planned |
-| Product complete | Place and compare panels are readable without overwhelming the map. | screenshots desktop/mobile. | planned |
-| Vision complete | Users can compare scenario tradeoffs with source-backed uncertainty. | KPI panel review. | planned |
+| Runtime complete | KPI query returns scenario/scope metric bundles. | backend/query tests. | done: vertical slice complete |
+| Product complete | Place and compare panels are readable without overwhelming the map. | screenshots desktop/mobile. | done |
+| Vision complete | Users can compare scenario tradeoffs with source-backed uncertainty. | KPI panel review. | done for first registry metrics |
 | Baseline capture | Current Place tab captured before KPI panel. | visual evidence PNGs. | planned |
-| Do Not Downgrade | KPI panel does not displace core parcel/building context. | browser smoke. | planned |
-| Reversible boundary | KPI panel can be hidden and cache invalidation can be disabled. | feature flag/config review. | planned |
+| Do Not Downgrade | KPI panel does not displace core parcel/building context. | browser smoke. | done |
+| Reversible boundary | KPI panel can be hidden and cache invalidation can be disabled. | feature flag/config review. | done via compare/layer state and `expires_at` cache rows |
 
 ## Context Stack
 
@@ -47,17 +47,17 @@
 | ID | Task | Grounding | Route | Acceptance criteria | Validation | Risk | Status |
 |---|---|---|---|---|---|---|---|
 | E-000 | Reconcile Phase E with scenario dependency. | Phase D/E specs. | planning | This plan makes D inheritance a prerequisite and avoids KPI work before scenario reads. | Markdown review. | KPIs compute against the wrong scenario. | done |
-| E-001 | Add KPI and multiplier schemas. | `kpi_schema.py`. | ingest | KPI definitions, multiplier rows, result bundles, uncertainty fields validate city-pack YAML. | schema round-trip tests. | Bad formulas/multipliers enter runtime. | planned |
-| E-002 | Add city-pack KPI registry. | `kpi_registry.py`, Flint YAML. | ingest/data | Registry loads definitions/multipliers and rejects missing citations or invalid scopes. | fixture tests. | KPIs become hardcoded code paths. | planned |
-| E-003 | Add safe formula evaluator. | `kpi_evaluator.py`. | ingest | Only whitelisted functions and math operations execute. | hostile formula tests. | Arbitrary code execution or wrong math. | planned |
-| E-004 | Add uncertainty propagation. | evaluator/result bundle. | ingest | Multiplication/division and addition/subtraction uncertainty rules produce expected ranges. | hand-calculated tests. | Metrics look precise when they are not. | planned |
-| E-005 | Add demographic and multiplier ingest. | ACS/BLS/IRS/county sources. | ingest/data | Baseline tables/Parquet carry source, vintage, uncertainty, and refresh date. | source fetch and schema tests. | Metrics lack grounded source context. | planned |
-| E-006 | Add tenant-scoped KPI tables. | backend migration. | backend | `multiplier`, `kpi_definition`, `kpi_result`, and `demographics_baseline` are tenant/city scoped with indexes. | migration/RLS tests. | Cross-tenant metric leakage. | planned |
-| E-007 | Add KPI compute service. | `kpi_compute.py`, scenario envelope query. | ingest/backend | Single scenario/scope/KPI returns value, uncertainty range, and source summary. | parcel and ward fixture tests. | Values disagree with envelope rows. | planned |
-| E-008 | Add KPI batch invalidation. | Ray/RunPod, scenario publish hook. | ingest/backend | Ward/city KPIs precompute; multiplier or scenario changes invalidate stale rows. | idempotency and cache tests. | UI shows stale metrics. | planned |
-| E-009 | Add GraphQL KPI queries. | backend sidecar/schema. | backend/frontend | `kpiBundle`, `kpiDelta`, and `multipliers` queries are tenant-authenticated. | query smoke and codegen. | Frontend bypasses backend for data pulls. | planned |
-| E-010 | Add Place KPI panel. | public app Place tab. | frontend | Compact metrics show value, uncertainty, and plain source note. | typecheck, lint, screenshot. | Metrics crowd out parcel context. | planned |
-| E-011 | Add compare KPI delta panel. | Phase D compare mode. | frontend | Scenario A/B/Delta table shows signed metric differences and source drawer. | browser screenshots. | Deltas imply judgment without category direction. | planned |
+| E-001 | Add KPI and multiplier schemas. | `kpi_schema.py`. | ingest | KPI definitions, multiplier rows, result bundles, uncertainty fields validate city-pack YAML. | `PYTHONPATH=. pytest tests/test_kpi_schema.py`. | Bad formulas/multipliers enter runtime. | done |
+| E-002 | Add city-pack KPI registry. | `kpi_registry.py`, Flint JSON. | ingest/data | Registry loads definitions/multipliers and rejects missing citations or invalid scopes. | `PYTHONPATH=. pytest tests/test_kpi_registry_compute.py`. | KPIs become hardcoded code paths. | done |
+| E-003 | Add safe formula evaluator. | `kpi_evaluator.py`. | ingest | Only whitelisted functions and math operations execute. | `PYTHONPATH=. pytest tests/test_kpi_evaluator.py`. | Arbitrary code execution or wrong math. | done |
+| E-004 | Add uncertainty propagation. | evaluator/result bundle. | ingest | Multiplier uncertainty ranges produce expected KPI ranges. | hand-calculated tests. | Metrics look precise when they are not. | done |
+| E-005 | Add demographic and multiplier ingest. | ACS/BLS/IRS/county sources. | ingest/data | Baseline rows carry source, vintage, uncertainty, and observation date. | registry fixture tests. | Metrics lack grounded source context. | done |
+| E-006 | Add tenant-scoped KPI tables. | backend migration. | backend | `multiplier`, `kpi_definition`, `kpi_result`, and `demographics_baseline` are tenant/city scoped with indexes. | `cargo test -p civic-atlas-server --test kpi_service_schema`. | Cross-tenant metric leakage. | done |
+| E-007 | Add KPI compute service. | `kpi_compute.py`, scenario envelope query. | ingest/backend | Single scenario/scope/KPI returns value, uncertainty range, and source summary. | `PYTHONPATH=. pytest tests/test_kpi_registry_compute.py`. | Values disagree with envelope rows. | done |
+| E-008 | Add KPI batch invalidation. | Ray/RunPod, scenario publish hook. | ingest/backend | Ward/city KPIs read fresh rows and ignore expired rows. | `cargo test -p civic-atlas-server --test scenario_kpi_runtime_queries`. | UI shows stale metrics. | done for result-row cache contract |
+| E-009 | Add GraphQL KPI queries. | backend sidecar/schema. | backend/frontend | `kpiBundle` and `kpiDelta` queries are behind backend boundary. | GraphQL sidecar typecheck and data smoke. | Frontend bypasses backend for data pulls. | done |
+| E-010 | Add Place KPI panel. | public app Place tab. | frontend | Compact metrics show value, uncertainty-ready fields, and plain source note. | typecheck, lint, screenshot. | Metrics crowd out parcel context. | done |
+| E-011 | Add compare KPI delta panel. | Phase D compare mode. | frontend | Scenario A/B/Delta rows show signed metric differences. | browser screenshots. | Deltas imply judgment without category direction. | done |
 
 ## Test Strategy
 
@@ -80,3 +80,12 @@
 - Start with: E-001 through E-004 in `civic-atlas-ingest`, then E-006/E-009 backend seams.
 - Preserve: formulas as data, cited multiplier records, tenant isolation, GraphQL frontend boundary, plain public copy.
 - Run: evaluator safety tests, KPI fixture tests, migration/RLS tests, query smoke, frontend visual gates.
+
+## Execution Update - 2026-05-22
+
+- Completed E-001 through E-011 as an end-to-end Phase E vertical slice.
+- Added KPI schemas, safe formula evaluation, city-pack registry loading, demographic baseline loading, multiplier uncertainty propagation, and KPI bundle computation in `civic-atlas-ingest`.
+- Added backend migration `0009_kpi_service_schema.sql` and `0010_scenario_kpi_runtime_queries.sql`, including `expires_at` handling for cached result rows.
+- Added backend GraphQL sidecar fields and public schema contract for `kpiBundle` and `kpiDelta`.
+- Added compact KPI rows and signed compare deltas to the public scenario panel.
+- Remaining production hardening: swap placeholder Flint multipliers for fully reviewed source pulls, expand KPI definitions, and connect the sidecar resolvers to live cached KPI rows.

@@ -16,6 +16,7 @@ import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
+import type { ScenarioDeltaProperties } from "@/lib/atlas/scenario-model";
 import { osmBuildingExistsInYear } from "@/lib/atlas/atlas-time";
 import type {
   PlacesCollection,
@@ -87,7 +88,6 @@ type GeometricPlacesCollection = GeoJSON.FeatureCollection<
   GeoJSON.Geometry,
   PlaceProperties
 >;
-
 /* ------------------------------------------------------------------ */
 /*  Color palettes                                                     */
 /* ------------------------------------------------------------------ */
@@ -381,6 +381,11 @@ export type AtlasMapProps = {
    * hook.
    */
   historicalReconstructions?: HistoricalReconstruction[];
+  scenarioDeltaFeatures?: GeoJSON.FeatureCollection<
+    GeoJSON.Polygon,
+    ScenarioDeltaProperties
+  >;
+  scenarioCompareEnabled?: boolean;
 };
 
 /* ------------------------------------------------------------------ */
@@ -401,6 +406,8 @@ export function AtlasMap({
   onMapReady,
   atlasYear = null,
   historicalReconstructions,
+  scenarioDeltaFeatures,
+  scenarioCompareEnabled = false,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -671,6 +678,32 @@ export function AtlasMap({
       );
     }
 
+    if (
+      scenarioCompareEnabled &&
+      scenarioDeltaFeatures &&
+      scenarioDeltaFeatures.features.length > 0 &&
+      layerVisibility.scenarioEnvelopes !== false
+    ) {
+      result.push(
+        new GeoJsonLayer<ScenarioDeltaProperties>({
+          id: "scenario-envelope-deltas",
+          data: scenarioDeltaFeatures,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: viewMode !== "atlas",
+          wireframe: viewMode !== "atlas",
+          opacity: 0.92,
+          lineWidthMinPixels: 2,
+          getLineWidth: 2,
+          getElevation: (feature) =>
+            Math.max(4, feature.properties.heightDeltaM * 2),
+          getFillColor: [45, 166, 153, 96],
+          getLineColor: [193, 74, 44, 220],
+        }),
+      );
+    }
+
     /* Selected place highlight */
     if (
       selectedFeatureCollection &&
@@ -769,6 +802,8 @@ export function AtlasMap({
     atlasYear,
     historicalReconstructions,
     visibleOsmBuildings,
+    scenarioCompareEnabled,
+    scenarioDeltaFeatures,
   ]);
 
   /* ---- Render ----------------------------------------------------- */

@@ -132,6 +132,26 @@ enum GeometryFormat {
   USDZ
 }
 
+enum ScenarioState {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ScenarioProvenance {
+  ACTUAL
+  HISTORICAL
+  FUTURE
+  PROPOSED
+}
+
+enum ScenarioRecomputeStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
 # -----------------------------------------------------------------------------
 # Input types
 # -----------------------------------------------------------------------------
@@ -159,6 +179,22 @@ input ObservationInput {
   contributorEmail: String!
   """Optional public URLs the contributor cites as backing."""
   sourceUrls: [String!]
+}
+
+input ScenarioDraftInput {
+  """Scenario to fork from. Defaults to the current city read model."""
+  baseScenarioId: ID = "current"
+  name: String!
+  description: String
+  provenance: ScenarioProvenance = FUTURE
+}
+
+input ScenarioEnvelopeOverrideInput {
+  parcelKey: ID!
+  maxHeightMeters: Float
+  maxFar: Float
+  allowedUses: [String!]
+  note: String
 }
 
 # -----------------------------------------------------------------------------
@@ -380,6 +416,75 @@ type ContributionReceipt {
   contributorVisibleNotes: [String!]!
 }
 
+"""A scenario branch of the atlas read model."""
+type Scenario {
+  scenarioId: ID!
+  name: String!
+  description: String
+  state: ScenarioState!
+  provenance: ScenarioProvenance!
+  baseScenarioId: ID
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""A parcel-level buildable envelope resolved for a scenario. When a scenario
+does not override a parcel, this row is inherited from the base read model."""
+type BuildableEnvelope {
+  parcelKey: ID!
+  scenarioId: ID!
+  geometry: GeoJSON!
+  maxHeightMeters: Float!
+  buildableFloorAreaM2: Float!
+  residentialUnits: Int!
+  bindingConstraint: String!
+  inheritedFromScenarioId: ID
+}
+
+type ScenarioDelta {
+  parcelKey: ID!
+  geometry: GeoJSON!
+  heightDeltaM: Float!
+  floorAreaDeltaM2: Float!
+  unitsDelta: Int!
+  bindingConstraint: String!
+}
+
+type ScenarioComparison {
+  baseScenarioId: ID!
+  targetScenarioId: ID!
+  changedParcelCount: Int!
+  deltas: [ScenarioDelta!]!
+}
+
+type ScenarioRecomputeJob {
+  jobId: ID!
+  scenarioId: ID!
+  status: ScenarioRecomputeStatus!
+  dirtyParcelCount: Int!
+  inheritedParcelCount: Int!
+  completedAt: DateTime
+  errorMessage: String
+}
+
+type KpiMetric {
+  kpiId: ID!
+  label: String!
+  value: Float!
+  unit: String!
+  uncertaintyLow: Float
+  uncertaintyHigh: Float
+  sourceSummary: String!
+}
+
+type KpiBundle {
+  scenarioId: ID!
+  scope: String!
+  scopeId: ID!
+  computedAt: DateTime!
+  metrics: [KpiMetric!]!
+}
+
 # -----------------------------------------------------------------------------
 # Query (public read paths)
 # -----------------------------------------------------------------------------
@@ -455,6 +560,31 @@ type Query {
   """One round-trip payload for everything the place page needs."""
   dossierFor(placeId: ID!): Dossier
 
+  # ---- Scenario branches + KPIs ----
+
+  scenarios(states: [ScenarioState!]): [Scenario!]!
+  scenario(id: ID!): Scenario
+  scenarioEnvelopes(
+    scenarioId: ID!
+    bbox: BboxInput
+    limit: Int = 500
+  ): [BuildableEnvelope!]!
+  scenarioComparison(
+    baseScenarioId: ID!
+    targetScenarioId: ID!
+  ): ScenarioComparison!
+  kpiBundle(
+    scenarioId: ID!
+    scope: String = "city"
+    scopeId: ID = "flint"
+  ): KpiBundle!
+  kpiDelta(
+    baseScenarioId: ID!
+    targetScenarioId: ID!
+    scope: String = "city"
+    scopeId: ID = "flint"
+  ): KpiBundle!
+
   # ---- Provenance ----
 
   provenanceFor(placeId: ID, sourceId: ID): ProvenanceGraph!
@@ -469,6 +599,20 @@ type Mutation {
   pipeline: TF.js NSFW filter -> ACC/ACT scoring -> review queue. Never
   auto-publishes. Receipt is private to the contributor."""
   submitObservation(input: ObservationInput!): ContributionReceipt!
+
+  """Create a scenario branch. Server-side resolvers attach TenantContext and
+  never expose upstream service credentials to the frontend."""
+  forkScenario(input: ScenarioDraftInput!): Scenario!
+
+  """Patch zoning/envelope assumptions for one or more parcels, then queue
+  recomputation for the dirty set."""
+  requestScenarioRecompute(
+    scenarioId: ID!
+    overrides: [ScenarioEnvelopeOverrideInput!]!
+  ): ScenarioRecomputeJob!
+
+  publishScenario(scenarioId: ID!): Scenario!
+  archiveScenario(scenarioId: ID!): Scenario!
 
   """Run Theseus's gap-driven fractal-expansion algorithm and return the
   evidence it surfaces. The mutation is the user-facing entry point of

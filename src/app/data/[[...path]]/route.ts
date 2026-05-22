@@ -5,6 +5,12 @@ import placesGeoJson from "@/data/open-flint-atlas/fixtures/read-model/places.js
 import spatialEventIndex from "@/data/open-flint-atlas/fixtures/spatial-event-index/seed-events.json";
 import sourceRegistry from "@/data/open-flint-atlas/source-registry.json";
 import { getStaticAtlasPackage } from "@/lib/atlas/static-package";
+import {
+  ATLAS_SCENARIOS,
+  getKpiBundle,
+  getKpiDelta,
+  getScenarioComparison,
+} from "@/lib/atlas/scenario-model";
 import type {
   ReviewStatus,
   TimeShape,
@@ -111,6 +117,41 @@ export async function GET(_: Request, { params }: RouteContext) {
   if (segment === "scenario-manifests") {
     if (child === "index.json") return json(staticPackage.scenarioManifests);
     if (child === "flint-starter.json") return json(staticPackage.scenarioManifests[0]);
+  }
+  if (segment === "scenarios") {
+    if (child === "index.json" || !child) return json({ scenarios: ATLAS_SCENARIOS });
+    if (child === "comparison.json") {
+      const url = new URL(_.url);
+      return json(
+        getScenarioComparison(
+          url.searchParams.get("base") ?? "current",
+          url.searchParams.get("target") ?? "safe-routes-starter",
+        ),
+      );
+    }
+  }
+  if (segment === "kpis") {
+    if (child === "bundle.json") {
+      const url = new URL(_.url);
+      return json(
+        getKpiBundle(
+          url.searchParams.get("scenario") ?? "current",
+          url.searchParams.get("scope") === "place" ? "place" : "city",
+          url.searchParams.get("scopeId") ?? "flint",
+        ),
+      );
+    }
+    if (child === "delta.json") {
+      const url = new URL(_.url);
+      return json(
+        getKpiDelta(
+          url.searchParams.get("base") ?? "current",
+          url.searchParams.get("target") ?? "safe-routes-starter",
+          url.searchParams.get("scope") === "place" ? "place" : "city",
+          url.searchParams.get("scopeId") ?? "flint",
+        ),
+      );
+    }
   }
   if (segment === "well-known" && child === "our-civic-atlas.json" && !grandchild) {
     return json(staticPackage.discoveryManifest);

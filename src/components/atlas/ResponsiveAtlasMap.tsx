@@ -30,6 +30,7 @@ import type {
 } from "@/lib/api/openFlintAtlas";
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
+import type { ScenarioDeltaProperties } from "@/lib/atlas/scenario-model";
 import type {
   AtlasLensId,
   AtlasSceneViewModeId,
@@ -65,6 +66,11 @@ export type ResponsiveAtlasMapProps = {
    * `AtlasMap.historicalReconstructions` for the contract; this is a
    * pure passthrough. */
   historicalReconstructions?: HistoricalReconstruction[];
+  scenarioDeltaFeatures?: GeoJSON.FeatureCollection<
+    GeoJSON.Polygon,
+    ScenarioDeltaProperties
+  >;
+  scenarioCompareEnabled?: boolean;
 };
 
 function useHydrated(): boolean {

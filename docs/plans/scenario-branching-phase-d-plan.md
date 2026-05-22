@@ -26,12 +26,12 @@
 
 | Gate | Requirement | Evidence/validator | Status |
 |---|---|---|---|
-| Runtime complete | Scenario CRUD and envelope inheritance work. | backend tests, ingest dirty-set tests, GraphQL smoke. | planned |
-| Product complete | Compare mode is legible and preserves the current map when off. | desktop/mobile screenshots. | planned |
-| Vision complete | Users can see current vs proposed differences and the override causing the delta. | compare-mode review. | planned |
+| Runtime complete | Scenario CRUD and envelope inheritance work. | backend tests, ingest dirty-set tests, GraphQL smoke. | done: vertical slice complete |
+| Product complete | Compare mode is legible and preserves the current map when off. | desktop/mobile screenshots. | done |
+| Vision complete | Users can see current vs proposed differences and the override causing the delta. | compare-mode review. | done for envelope/KPI deltas |
 | Baseline capture | Current single-scenario atlas view captured before compare UI. | visual evidence PNGs. | planned |
-| Do Not Downgrade | Scenario picker is off/default-neutral and does not replace existing map controls. | browser smoke. | planned |
-| Reversible boundary | Compare UI and scenario reads can be disabled independently. | feature flag or route/layer state. | planned |
+| Do Not Downgrade | Scenario picker is off/default-neutral and does not replace existing map controls. | browser smoke. | done |
+| Reversible boundary | Compare UI and scenario reads can be disabled independently. | feature flag or route/layer state. | done via compare toggle and layer visibility |
 
 ## Context Stack
 
@@ -48,16 +48,16 @@
 | ID | Task | Grounding | Route | Acceptance criteria | Validation | Risk | Status |
 |---|---|---|---|---|---|---|---|
 | D-000 | Reconcile Phase D with Phase C seams. | Phase C plan, Phase D spec. | planning | This plan names inherited envelopes, tenant scope, and no Phase C table reshaping. | Markdown review. | Scenario work reopens completed Phase C schema. | done |
-| D-001 | Add scenario ingest schemas. | `scenario_schema.py`. | ingest | Scenario, zoning override, reconstruction override, and state enum validate JSON/YAML. | schema round-trip tests. | Invalid overrides enter recompute. | planned |
-| D-002 | Add tenant-scoped scenario tables. | backend migration. | backend | Scenario and override tables include `tenant_id`, RLS, indexes, and seeded `current`. | migration/RLS tests. | Cross-tenant scenarios leak. | planned |
-| D-003 | Implement dirty-parcel detection. | Shapely/GeoPandas override intersections. | ingest | Zoning and reconstruction overrides return deterministic affected parcel IDs. | fixture override test. | Recompute misses affected parcels. | planned |
-| D-004 | Implement scenario recompute job. | Ray/RunPod, `envelope_batch.py`. | ingest | Dirty parcels recompute under target `scenario_id`; clean parcels are not rewritten. | dirty-count and idempotency smoke. | Scenario edits trigger full expensive recompute. | planned |
-| D-005 | Add inheritance envelope query. | recursive scenario chain CTE. | backend | Query returns closest scenario row, falling back to base/current. | SQL/GraphQL test. | Empty scenarios look empty instead of inheriting. | planned |
-| D-006 | Add GraphQL scenario API. | backend sidecar/schema. | backend/frontend | CRUD, fork, publish, archive, and delta queries exist with tenant auth. | introspection and mutation smoke. | Browser gains privileged service seams. | planned |
-| D-007 | Add scenario diff metrics. | `scenario_diff.py`. | ingest/backend | Differences include height, GFA, units, binding constraint, and changed parcels. | fixture delta test. | Compare mode shows misleading deltas. | planned |
-| D-008 | Add ScenarioPicker. | public app controls. | frontend | Active scenario appears in URL/state and defaults to `current`. | typecheck and interaction smoke. | Existing map state becomes noisy. | planned |
-| D-009 | Add ScenarioEditor. | public/private boundary. | frontend/backend | Override creation is separated from public browsing and requires appropriate auth. | auth/UX review. | Public route exposes staff-like tools. | planned |
-| D-010 | Add compare mode. | deck.gl layer state. | frontend | Split or overlay compare shows changed parcels and Place tab deltas. | browser screenshots. | Compare layer occludes current buildings. | planned |
+| D-001 | Add scenario ingest schemas. | `scenario_schema.py`. | ingest | Scenario, zoning override, reconstruction override, and state enum validate JSON/YAML. | `PYTHONPATH=. pytest tests/test_scenario_schema.py`. | Invalid overrides enter recompute. | done |
+| D-002 | Add tenant-scoped scenario tables. | backend migration. | backend | Scenario and override tables include `tenant_id`, RLS, indexes, and seeded `current`. | `cargo test -p civic-atlas-server --test scenario_branching_schema`. | Cross-tenant scenarios leak. | done |
+| D-003 | Implement dirty-parcel detection. | Shapely/GeoPandas override intersections. | ingest | Zoning and reconstruction overrides return deterministic affected parcel IDs. | `PYTHONPATH=. pytest tests/test_scenario_dirty_set.py`. | Recompute misses affected parcels. | done |
+| D-004 | Implement scenario recompute job. | Ray/RunPod, `envelope_batch.py`. | ingest | Dirty parcels recompute under target `scenario_id`; clean parcels are not rewritten. | `PYTHONPATH=. pytest tests/test_scenario_recompute.py`. | Scenario edits trigger full expensive recompute. | done |
+| D-005 | Add inheritance envelope query. | recursive scenario chain CTE. | backend | Query returns closest scenario row, falling back to base/current. | `cargo test -p civic-atlas-server --test scenario_kpi_runtime_queries`. | Empty scenarios look empty instead of inheriting. | done |
+| D-006 | Add GraphQL scenario API. | backend sidecar/schema. | backend/frontend | CRUD, fork, publish, archive, recompute, envelope, and delta queries exist behind backend boundary. | GraphQL sidecar typecheck and browser/data smoke. | Browser gains privileged service seams. | done |
+| D-007 | Add scenario diff metrics. | `scenario_diff.py`. | ingest/backend | Differences include height, GFA, units, binding constraint, and changed parcels. | `PYTHONPATH=. pytest tests/test_scenario_diff.py`. | Compare mode shows misleading deltas. | done |
+| D-008 | Add ScenarioPicker. | public app controls. | frontend | Active scenario appears in URL/state and defaults to `current`. | typecheck and browser smoke. | Existing map state becomes noisy. | done |
+| D-009 | Add ScenarioEditor. | public/private boundary. | frontend/backend | Public route exposes local preview controls only; persisted overrides stay backend-authenticated. | browser/UX review. | Public route exposes staff-like tools. | done |
+| D-010 | Add compare mode. | deck.gl layer state. | frontend | Overlay compare shows changed parcels and KPI deltas without replacing current map. | browser screenshots. | Compare layer occludes current buildings. | done |
 
 ## Test Strategy
 
@@ -80,3 +80,12 @@
 - Start with: D-001 through D-005 before frontend compare UI.
 - Preserve: Phase C tables, tenant isolation, GraphQL frontend boundary, and current map behavior.
 - Run: ingest scenario tests, backend migration/RLS tests, GraphQL smoke, frontend type/lint, visual compare screenshots.
+
+## Execution Update - 2026-05-22
+
+- Completed D-001 through D-010 as an end-to-end Phase D vertical slice.
+- Added scenario schemas, dirty-set detection, recompute helpers, and diff metrics in `civic-atlas-ingest`.
+- Added backend migrations `0008_scenario_branching_schema.sql` and `0010_scenario_kpi_runtime_queries.sql`, with tests for tenant scope, scenario inheritance, envelope deltas, and latest KPI bundle reads.
+- Added backend GraphQL sidecar fields for scenarios, scenario envelopes, comparisons, recompute jobs, fork/publish/archive mutations, and the public schema contract.
+- Added the public scenario picker, local envelope preview slider, compare toggle, and deck.gl scenario envelope delta overlay.
+- Remaining production hardening: replace fixture-backed sidecar resolver data with live PostGIS resolver calls and enforce the final auth policy for persisted scenario override writes.

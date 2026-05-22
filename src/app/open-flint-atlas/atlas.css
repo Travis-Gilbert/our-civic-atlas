@@ -226,6 +226,177 @@
   -webkit-backdrop-filter: blur(12px) saturate(115%);
 }
 
+.civic-atlas .atlas-scenario-controls {
+  position: absolute;
+  right: 14px;
+  top: 154px;
+  z-index: 1380;
+  width: min(324px, calc(100vw - 28px));
+  border: 1px solid rgba(42, 36, 25, 0.12);
+  border-radius: 7px;
+  background: rgba(246, 244, 238, 0.78);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 8px 28px -18px rgba(42, 36, 25, 0.42);
+  color: var(--ctx-ink);
+  padding: 12px;
+  backdrop-filter: blur(9px) saturate(108%);
+  -webkit-backdrop-filter: blur(9px) saturate(108%);
+}
+
+.civic-atlas .atlas-scenario-controls__header,
+.civic-atlas .atlas-scenario-editor__title,
+.civic-atlas .atlas-scenario-kpis__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.civic-atlas .atlas-scenario-controls__icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 5px;
+  background: rgba(45, 166, 153, 0.12);
+  color: var(--atlas-infrastructure);
+}
+
+.civic-atlas .atlas-scenario-controls__eyebrow,
+.civic-atlas .atlas-scenario-editor__title,
+.civic-atlas .atlas-scenario-kpis__title,
+.civic-atlas .atlas-scenario-controls label > span {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ctx-ink-mute);
+}
+
+.civic-atlas .atlas-scenario-controls h2 {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--ctx-ink);
+}
+
+.civic-atlas .atlas-scenario-controls__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.civic-atlas .atlas-scenario-controls label {
+  display: grid;
+  gap: 5px;
+}
+
+.civic-atlas .atlas-scenario-controls select,
+.civic-atlas .atlas-scenario-controls input[type="range"] {
+  width: 100%;
+}
+
+.civic-atlas .atlas-scenario-controls select {
+  min-width: 0;
+  border: 1px solid var(--ctx-rule-soft);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.34);
+  color: var(--ctx-ink);
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 6px 7px;
+}
+
+.civic-atlas .atlas-scenario-controls__toggle {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  border: 1px solid var(--ctx-rule-soft);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.24);
+  padding: 8px;
+}
+
+.civic-atlas .atlas-scenario-controls__toggle strong,
+.civic-atlas .atlas-scenario-kpi-row strong {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--ctx-ink);
+}
+
+.civic-atlas .atlas-scenario-editor,
+.civic-atlas .atlas-scenario-kpis {
+  margin-top: 10px;
+  border-top: 1px solid var(--ctx-rule-soft);
+  padding-top: 10px;
+}
+
+.civic-atlas .atlas-scenario-editor label {
+  grid-template-columns: 72px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.civic-atlas .atlas-scenario-editor output {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ctx-ink);
+  text-align: right;
+}
+
+.civic-atlas .atlas-scenario-kpis__title {
+  margin-bottom: 4px;
+}
+
+.civic-atlas .atlas-scenario-kpi-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid rgba(42, 36, 25, 0.08);
+  padding: 6px 0;
+}
+
+.civic-atlas .atlas-scenario-kpi-row:last-child {
+  border-bottom: 0;
+}
+
+.civic-atlas .atlas-scenario-kpi-row > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ctx-ink-soft);
+  font-size: 12px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.civic-atlas .atlas-scenario-kpi-row em {
+  font-style: normal;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--atlas-infrastructure);
+}
+
+@media (max-width: 767px) {
+  .civic-atlas .atlas-scenario-controls {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 88px;
+    width: auto;
+    max-height: 38vh;
+    overflow-y: auto;
+  }
+}
+
 .civic-atlas .atlas-scene-brand {
   background:
     linear-gradient(135deg, rgba(246, 244, 238, 0.84), rgba(239, 236, 228, 0.68)),
