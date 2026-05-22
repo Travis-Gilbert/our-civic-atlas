@@ -1055,12 +1055,30 @@ export function OpenFlintAtlasScene(props: {
       name: "Buildable Envelopes",
       extension: "geojson",
       countLabel: `${activeScenarioEnvelopes.features.length} envelopes`,
+      // Envelope-type legend chips live here, in the Layers panel — they're
+      // a render setting (which colored volume means what), not a scenario
+      // property. Re-homed from the Scenarios panel's prior __chips strip
+      // so the Scenarios surface stays focused on scenario *selection* and
+      // *editing* and the Layers panel owns the legend.
       controls: (
         <div className="space-y-2">
           <p className="text-[11px] leading-[1.5]">
             Transparent zoning and scenario volumes. Use the scenario panel to
             compare active and draft envelopes.
           </p>
+          {envelopeTypeCounts.some((item) => item.count > 0) ? (
+            <div className="atlas-scenario-envelope-types">
+              {envelopeTypeCounts
+                .filter((item) => item.count > 0)
+                .map((item) => (
+                  <span key={item.type} data-envelope-type={item.type}>
+                    <i aria-hidden="true" />
+                    {item.label}
+                    <strong>{item.count}</strong>
+                  </span>
+                ))}
+            </div>
+          ) : null}
         </div>
       ),
     },
