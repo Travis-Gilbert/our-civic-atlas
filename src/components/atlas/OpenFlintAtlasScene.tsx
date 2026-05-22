@@ -8,6 +8,7 @@ import {
   AtlasSceneChrome,
   type AtlasSceneSearchResult,
 } from "@/components/atlas/AtlasSceneChrome";
+import type { UrbanDesignMaterialMode } from "@/components/atlas/AtlasMap";
 import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
 import { LayerControls } from "@/components/atlas/LayerControls";
 import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
@@ -192,6 +193,8 @@ export function OpenFlintAtlasScene(props: {
   const [compareScenarioId, setCompareScenarioId] = useState("current");
   const [scenarioCompareEnabled, setScenarioCompareEnabled] = useState(false);
   const [draftHeightBoostM, setDraftHeightBoostM] = useState(0);
+  const [urbanDesignMaterialMode, setUrbanDesignMaterialMode] =
+    useState<UrbanDesignMaterialMode>("typology");
   const [viewMode, setViewMode] = useState<AtlasSceneViewModeId>(() => {
     if (initialBookmark) {
       const bookmark = ATLAS_CAMERA_BOOKMARK_LOOKUP[initialBookmark];
@@ -905,13 +908,17 @@ export function OpenFlintAtlasScene(props: {
               Mode
             </label>
             <select
-              defaultValue="forms"
+              value={urbanDesignMaterialMode}
+              onChange={(event) =>
+                setUrbanDesignMaterialMode(
+                  event.target.value as UrbanDesignMaterialMode,
+                )
+              }
               className="flex-1 px-2 py-1 text-[11px] rounded-[2px] bg-transparent"
               style={{ border: "1px solid var(--ctx-rule-soft)", color: "var(--ctx-ink)" }}
             >
-              <option value="forms">Form primitives</option>
-              <option value="confidence">Confidence color</option>
-              <option value="height">Height color</option>
+              <option value="typology">Typology colors</option>
+              <option value="sketch_model">Sketch model</option>
             </select>
           </div>
         </div>
@@ -1042,7 +1049,7 @@ export function OpenFlintAtlasScene(props: {
             presets={controlDossierPresets}
             visibility={layerVisibility}
             onToggle={handleLayerChange}
-            defaultOpenId={selectedPlaceId ? "places" : undefined}
+            defaultOpenId={selectedPlaceId ? "places" : "urbanDesignModel"}
           />
         }
         timeline={
@@ -1086,6 +1093,7 @@ export function OpenFlintAtlasScene(props: {
               scenarioCompareEnabled={
                 scenarioCompareEnabled && activeScenarioId !== compareScenarioId
               }
+              urbanDesignMaterialMode={urbanDesignMaterialMode}
               className="w-full h-full"
               onMapReady={handleMapReady}
             />

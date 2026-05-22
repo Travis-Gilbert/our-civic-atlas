@@ -210,6 +210,44 @@ const URBAN_PART_LINE: Partial<
   row_roof: [126, 57, 35, 248],
 };
 
+const URBAN_SKETCH_FORM_FILL: Record<
+  UrbanDesignFormType,
+  [number, number, number, number]
+> = {
+  civic_anchor: [224, 214, 197, 244],
+  courtyard_compact: [229, 224, 211, 238],
+  courtyard_open: [232, 226, 214, 236],
+  industrial_shed: [211, 213, 209, 232],
+  mixed_use_street_wall: [226, 218, 202, 240],
+  row_infill: [232, 221, 202, 242],
+  single_lot: [236, 228, 212, 238],
+  slab: [221, 222, 216, 236],
+  tower_podium: [224, 218, 210, 242],
+};
+
+const URBAN_SKETCH_PART_FILL: Partial<
+  Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
+> = {
+  courtyard_yard: [163, 184, 142, 214],
+  front_porch: [214, 188, 139, 236],
+  party_wall: [78, 72, 63, 224],
+  porch_or_rear_ell: [222, 204, 173, 232],
+  roof_monitor: [169, 176, 175, 232],
+  roof_plane: [210, 194, 168, 240],
+  roof_ridge: [82, 74, 62, 236],
+  row_roof: [204, 184, 157, 242],
+};
+
+const URBAN_SKETCH_PART_LINE: Partial<
+  Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
+> = {
+  courtyard_yard: [93, 115, 78, 230],
+  party_wall: [42, 39, 35, 246],
+  roof_ridge: [42, 38, 32, 248],
+};
+
+const URBAN_SKETCH_LINE: [number, number, number, number] = [68, 64, 58, 232];
+
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
 /* ------------------------------------------------------------------ */
@@ -441,7 +479,12 @@ function urbanDesignModelElevation(
 function urbanDesignFillColor(
   props: UrbanDesignModelProperties,
   atlasYear: number | null,
+  materialMode: UrbanDesignMaterialMode,
 ): [number, number, number, number] {
+  if (materialMode === "sketch_model") {
+    return urbanDesignSketchFillColor(props, atlasYear);
+  }
+
   const roleColor = URBAN_PART_FILL[props.part_role];
   if (roleColor) {
     return [
@@ -470,8 +513,28 @@ function urbanDesignFillColor(
 
 function urbanDesignLineColor(
   props: UrbanDesignModelProperties,
+  materialMode: UrbanDesignMaterialMode,
 ): [number, number, number, number] {
+  if (materialMode === "sketch_model") {
+    return URBAN_SKETCH_PART_LINE[props.part_role] ?? URBAN_SKETCH_LINE;
+  }
+
   return URBAN_PART_LINE[props.part_role] ?? URBAN_FORM_LINE[props.form_type];
+}
+
+function urbanDesignSketchFillColor(
+  props: UrbanDesignModelProperties,
+  atlasYear: number | null,
+): [number, number, number, number] {
+  const color =
+    URBAN_SKETCH_PART_FILL[props.part_role] ??
+    URBAN_SKETCH_FORM_FILL[props.form_type];
+  return [
+    color[0],
+    color[1],
+    color[2],
+    atlasYear === null ? color[3] : Math.max(132, color[3] - 46),
+  ];
 }
 
 function clampByte(value: number): number {
@@ -544,7 +607,10 @@ export type AtlasMapProps = {
     ScenarioDeltaProperties
   >;
   scenarioCompareEnabled?: boolean;
+  urbanDesignMaterialMode?: UrbanDesignMaterialMode;
 };
+
+export type UrbanDesignMaterialMode = "typology" | "sketch_model";
 
 /* ------------------------------------------------------------------ */
 /*  AtlasMap                                                           */
@@ -567,6 +633,7 @@ export function AtlasMap({
   scenarioEnvelopeFeatures,
   scenarioDeltaFeatures,
   scenarioCompareEnabled = false,
+  urbanDesignMaterialMode = "typology",
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -899,9 +966,16 @@ export function AtlasMap({
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
-            urbanDesignFillColor(feature.properties, atlasYear),
+            urbanDesignFillColor(
+              feature.properties,
+              atlasYear,
+              urbanDesignMaterialMode,
+            ),
           getLineColor: (feature) =>
-            urbanDesignLineColor(feature.properties),
+            urbanDesignLineColor(
+              feature.properties,
+              urbanDesignMaterialMode,
+            ),
           material: {
             ambient: 0.62,
             diffuse: 0.46,
@@ -910,8 +984,8 @@ export function AtlasMap({
           },
           updateTriggers: {
             getElevation: [viewMode],
-            getFillColor: [atlasYear],
-            getLineColor: [],
+            getFillColor: [atlasYear, urbanDesignMaterialMode],
+            getLineColor: [urbanDesignMaterialMode],
           },
         }),
       );
@@ -1095,6 +1169,7 @@ export function AtlasMap({
     historicalReconstructions,
     visibleOsmBuildings,
     urbanDesignModel,
+    urbanDesignMaterialMode,
     scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,

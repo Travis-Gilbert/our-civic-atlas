@@ -38,6 +38,7 @@ import type {
   AtlasLensId,
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import type { UrbanDesignMaterialMode } from "./AtlasMap";
 
 const AtlasMap = dynamic(
   () => import("./AtlasMap").then((m) => m.AtlasMap),
@@ -78,6 +79,7 @@ export type ResponsiveAtlasMapProps = {
     ScenarioDeltaProperties
   >;
   scenarioCompareEnabled?: boolean;
+  urbanDesignMaterialMode?: UrbanDesignMaterialMode;
 };
 
 function useHydrated(): boolean {
