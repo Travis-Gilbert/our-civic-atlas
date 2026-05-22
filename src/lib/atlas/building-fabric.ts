@@ -74,6 +74,16 @@ type BuildingFabricInput = {
   footprintRing: [number, number][];
   footprintAreaM2: number;
   footprintRatio: number;
+  /**
+   * Real parcel-front bearing in compass degrees, when known. Written
+   * by the Phase A pipeline's parcel-edge classifier (OSMnx
+   * nearest-road derived). Null/undefined means the caller has no
+   * real parcel signal, and `front_edge_bearing_degrees` falls back
+   * to `longestEdgeBearingDegrees(ring)`. The longest-edge proxy is
+   * correct for rectangular buildings whose long edge happens to
+   * face the street and fails on L-shaped footprints + corner lots.
+   */
+  parcelFrontBearingDegrees?: number | null;
   hasParcelFrontEdge?: boolean;
 };
 
@@ -116,13 +126,19 @@ export function deriveBuildingFabricSpec(
       : prior.height_m_override ?? stories * BUILDING_FABRIC_HEIGHT_PRIORS.story_height_m;
   const roofPitchDegrees = inferRoofPitch(prior, variationSeed);
   const windowSpacingM = inferWindowSpacing(prior, variationSeed);
+  // Prefer the real parcel-front bearing when the caller has it
+  // (Phase A pipeline output); fall back to the longest-edge proxy
+  // otherwise. Either way, OrientedFootprint downstream uses
+  // params.front_edge_bearing_degrees with no special-case branching.
+  const frontEdgeBearingDegrees =
+    typeof input.parcelFrontBearingDegrees === "number"
+      ? input.parcelFrontBearingDegrees
+      : longestEdgeBearingDegrees(input.footprintRing);
   const params: BuildingFabricParams = {
     footprint_polygon: normalizeRing(input.footprintRing),
     height_m: Number(clamp(heightM, 2.5, 80).toFixed(2)),
     stories,
-    front_edge_bearing_degrees: Number(
-      longestEdgeBearingDegrees(input.footprintRing).toFixed(2),
-    ),
+    front_edge_bearing_degrees: Number(frontEdgeBearingDegrees.toFixed(2)),
     roof_pitch_degrees: roofPitchDegrees,
     cornice_height_m: prior.cornice_height_m,
     window_spacing_m: windowSpacingM,

@@ -173,6 +173,19 @@ type OsmBuildingProperties = {
    */
   typology_class?: string | null;
   typology_confidence?: number | null;
+  /**
+   * Parcel-front bearing in compass degrees (0 = N, 90 = E). Written
+   * by the Phase A pipeline's parcel-edge classifier — derived from
+   * the bearing of the parcel front edge nearest the building
+   * centroid (OSMnx nearest-road). Today the pipeline doesn't run, so
+   * this field is absent and the frontend falls back to
+   * `longestEdgeBearingDegrees(ring)`. The longest-edge proxy works
+   * for rectangular buildings whose long edge happens to face the
+   * street; it fails for L-shaped footprints and corner lots. When
+   * the parcel-front field is present, the OrientedFootprint frame
+   * (and therefore all part placement) uses it directly.
+   */
+  parcel_front_bearing_degrees?: number | null;
 };
 
 type SourceBuildingFeature = GeoJSON.Feature<
@@ -310,6 +323,14 @@ function createBuildingFormSpec(
     typeof props.typology_confidence === "number"
       ? props.typology_confidence
       : null;
+  // Parcel-front bearing: when the Phase A pipeline writes it (from
+  // OSMnx nearest-road analysis), the bearing-aware OrientedFootprint
+  // frame uses it directly. Otherwise deriveBuildingFabricSpec falls
+  // back to longestEdgeBearingDegrees(ring).
+  const parcelFrontBearingDegrees =
+    typeof props.parcel_front_bearing_degrees === "number"
+      ? props.parcel_front_bearing_degrees
+      : null;
   const hash = stableHash(`${sourceOsmId}:${buildingTag ?? ""}:${normalizedName}`);
   const sourceHeightM =
     typeof props.height_meters === "number"
@@ -327,6 +348,8 @@ function createBuildingFormSpec(
     footprintRing: getPlanRing(feature.geometry),
     footprintAreaM2: bounds.areaM2,
     footprintRatio: bounds.ratio,
+    parcelFrontBearingDegrees,
+    hasParcelFrontEdge: parcelFrontBearingDegrees != null,
   });
   const formType = classifyUrbanForm({
     buildingTag,
