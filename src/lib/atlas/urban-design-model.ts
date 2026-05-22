@@ -70,6 +70,9 @@ export type BuildingFormSpec = {
   footprint_area_m2: number;
   footprint_ratio: number;
   fabric: BuildingFabricSpec;
+  /** Phase A classifier outputs, threaded through from OSM source. */
+  typology_class: string | null;
+  typology_confidence: number | null;
 };
 
 export type UrbanDesignModelProperties = {
@@ -107,6 +110,16 @@ export type UrbanDesignModelProperties = {
   fabric_glb_uri: string;
   fabric_glb_sha256: string | null;
   fabric_glb_status: BuildingFabricSpec["glb_status"];
+  /**
+   * Phase A classifier outputs, threaded through from the OSM source
+   * properties. Null until the Phase A backend writes
+   * `building_typology` rows and the OSM fixture is enriched via
+   * `osm_id` join. The renderer reads these to compute effective
+   * confidence (taking min with `fabric_feature_completeness`) and
+   * to support the opt-in typology overlay's coloring.
+   */
+  typology_class: string | null;
+  typology_confidence: number | null;
 };
 
 export type UrbanDesignModelFeature = GeoJSON.Feature<
@@ -137,6 +150,29 @@ type OsmBuildingProperties = {
   height_meters?: number | null;
   levels?: number | null;
   use?: string | null;
+  /**
+   * Phase A typology classifier outputs. These are written by the
+   * backend pipeline that joins `building_typology` rows onto the OSM
+   * footprint collection (via `osm_id`). Today the join doesn't yet
+   * happen — the OSM fixture has these absent — and the frontend
+   * reads `null` everywhere. The renderer's low-confidence styling
+   * (`applyFabricCompletenessAlpha`) is wired to consult
+   * `typology_confidence` when present and take the minimum with
+   * `fabric_feature_completeness`, so the moment the backend writes
+   * these fields they take effect without a renderer change.
+   *
+   * `typology_class` is the classifier's argmax label (residential /
+   * commercial / industrial / civic / mixed_use / unknown per Phase A
+   * §2). It is intentionally NOT the same enum as `UrbanDesignFormType`,
+   * which is the geometric/spatial form taxonomy used for part
+   * decomposition. A building can be `typology_class="commercial"`
+   * (Phase A says: commercial use) and `form_type="mixed_use_street_wall"`
+   * (urban-design says: this footprint reads as a street wall) at the
+   * same time. The two answers don't conflict; they're separate
+   * dimensions.
+   */
+  typology_class?: string | null;
+  typology_confidence?: number | null;
 };
 
 type SourceBuildingFeature = GeoJSON.Feature<
@@ -266,6 +302,14 @@ function createBuildingFormSpec(
   const buildingTag = props.building?.toLowerCase() ?? null;
   const name = props.name ?? null;
   const normalizedName = name?.toLowerCase() ?? "";
+  // Phase A typology fields are absent until the backend join lands.
+  // Reading them as `?? null` here means every feature carries them
+  // through the renderer with no special-case branching.
+  const typologyClass = props.typology_class ?? null;
+  const typologyConfidence =
+    typeof props.typology_confidence === "number"
+      ? props.typology_confidence
+      : null;
   const hash = stableHash(`${sourceOsmId}:${buildingTag ?? ""}:${normalizedName}`);
   const sourceHeightM =
     typeof props.height_meters === "number"
@@ -307,6 +351,8 @@ function createBuildingFormSpec(
     footprint_area_m2: Math.round(bounds.areaM2),
     footprint_ratio: Number(bounds.ratio.toFixed(2)),
     fabric,
+    typology_class: typologyClass,
+    typology_confidence: typologyConfidence,
   };
 }
 
@@ -442,6 +488,8 @@ function createFormParts(
         fabric_glb_uri: spec.fabric.glb_uri,
         fabric_glb_sha256: spec.fabric.glb_sha256,
         fabric_glb_status: spec.fabric.glb_status,
+        typology_class: spec.typology_class,
+        typology_confidence: spec.typology_confidence,
       },
     });
   };

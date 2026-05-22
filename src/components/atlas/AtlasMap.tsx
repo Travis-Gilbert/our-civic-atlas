@@ -572,11 +572,33 @@ function clampByte(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
+/**
+ * Drop alpha when the effective confidence for this building is low.
+ *
+ * Effective confidence is the minimum of:
+ *  - `fabric_feature_completeness`: 0-1 score from which OSM tags +
+ *    parcel signals were available when the fabric spec was derived.
+ *  - `typology_confidence`: Phase A classifier's softmax-max for this
+ *    building. Null today — until the Phase A pipeline runs and the
+ *    OSM fixture is enriched via `osm_id` join with
+ *    `building_typology` rows — and treated as 1.0 (don't pull alpha
+ *    down on its own absence) until then.
+ *
+ * Either signal being low pulls the alpha down so low-confidence
+ * buildings render with the uncertainty signal, never silently as
+ * confident. The threshold (0.5) matches Phase A spec §10 MUST.
+ */
 function applyFabricCompletenessAlpha(
   props: UrbanDesignModelProperties,
   color: [number, number, number, number],
 ): [number, number, number, number] {
-  if (props.fabric_feature_completeness >= 0.5) return color;
+  const fabricConfidence = props.fabric_feature_completeness;
+  const typologyConfidence =
+    typeof props.typology_confidence === "number"
+      ? props.typology_confidence
+      : 1.0;
+  const effectiveConfidence = Math.min(fabricConfidence, typologyConfidence);
+  if (effectiveConfidence >= 0.5) return color;
   return [color[0], color[1], color[2], Math.max(78, color[3] - 56)];
 }
 
