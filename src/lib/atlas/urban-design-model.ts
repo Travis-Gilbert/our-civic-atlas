@@ -15,7 +15,15 @@ export type UrbanDesignFormType =
   | "industrial_shed"
   | "civic_anchor"
   | "mixed_use_street_wall"
-  | "tower_podium";
+  | "tower_podium"
+  /**
+   * Honest fallback when no tag or shape signal supports a specific form.
+   * Renders as a plain extruded mass with no part decomposition. Existed
+   * implicitly in the prior code as the `hash % N` lottery's default; now
+   * surfaced as a first-class form so the renderer can stop pretending
+   * unclassified buildings are courtyards or towers.
+   */
+  | "unknown";
 
 export type UrbanDesignPartRole =
   | "courtyard_ring"
@@ -149,6 +157,39 @@ type PlanBounds = {
   ratio: number;
 };
 
+/**
+ * A footprint expressed in a local (u, v) frame whose u-axis is aligned to
+ * the front-edge bearing (street-parallel) and v-axis is perpendicular
+ * (front-to-back). Part-placement helpers operate on (u, v) ∈ [0, 1]² and
+ * project back to (lng, lat) via `projectUV`.
+ *
+ * Replaces the prior `bounds.widthM >= bounds.depthM` axis-picking branch
+ * with a single canonical local frame. Two consequences:
+ *
+ *  1. Parts orient to the actual front edge, not to the lng-aligned
+ *     bounding box's longer axis. A house at 30° to the cardinals now
+ *     puts its porch on the front edge instead of whichever bbox diagonal
+ *     happens to be longer.
+ *
+ *  2. Every part-placement helper that previously had a widthM >= depthM
+ *     conditional collapses to a single (u, v) layout — the rotation
+ *     handles what the conditional was approximating.
+ *
+ * The front bearing comes from `spec.fabric.params.front_edge_bearing_degrees`,
+ * which today defaults to the longest-edge bearing of the OSM footprint.
+ * Once Phase A's parcel-edge classifier ships, this gets replaced with the
+ * actual parcel-front bearing (closest road from OSMnx), which is the
+ * geometrically correct answer.
+ */
+type OrientedFootprint = {
+  center: [number, number]; // lng, lat
+  bearingRad: number; // front-edge compass bearing (0 = north, π/2 = east)
+  frontageM: number; // extent along u
+  depthM: number; // extent along v
+  metersPerLng: number;
+  metersPerLat: number;
+};
+
 export const URBAN_DESIGN_FORM_LABELS: Record<UrbanDesignFormType, string> = {
   civic_anchor: "Civic anchor",
   courtyard_compact: "Courtyard compact",
@@ -159,6 +200,7 @@ export const URBAN_DESIGN_FORM_LABELS: Record<UrbanDesignFormType, string> = {
   single_lot: "Single-lot house",
   slab: "Slab",
   tower_podium: "Tower and podium",
+  unknown: "Unclassified",
 };
 
 export function createUrbanDesignModelCollection(
@@ -181,7 +223,12 @@ export function createUrbanDesignModelCollection(
     }
 
     const spec = createBuildingFormSpec(feature, bounds, sourceIndex);
-    features.push(...createFormParts(spec, bounds));
+    const oriented = getOrientedFootprint(
+      spec.fabric.params.footprint_polygon,
+      spec.fabric.params.front_edge_bearing_degrees,
+      bounds,
+    );
+    features.push(...createFormParts(spec, bounds, oriented));
   });
 
   return {
@@ -263,6 +310,23 @@ function createBuildingFormSpec(
   };
 }
 
+/**
+ * Map an OSM footprint to an urban-design form using ONLY signals that
+ * actually correlate with form: tag/name/use regexes and footprint shape.
+ *
+ * The prior version of this function used `input.hash % N` branches as
+ * tiebreakers across the area-based fallback paths. That made the form a
+ * deterministic-but-arbitrary function of `osm_id`: every Nth building
+ * became a "tower_podium," every other Nth a "courtyard_compact," etc.,
+ * regardless of what was on the parcel. The visible result was the Lego
+ * carnival render — every screen full of multi-colored "form types" was
+ * mostly hash output, not classification.
+ *
+ * This version returns `"unknown"` whenever the tags and shape provide no
+ * basis for a specific form. Most Flint footprints will end up there until
+ * Phase A's real LightGBM classifier (Ray/RunPod batch, not Modal) writes
+ * `building_typology` rows that this function can consult.
+ */
 function classifyUrbanForm(input: {
   buildingTag: string | null;
   bounds: PlanBounds;
@@ -288,33 +352,20 @@ function classifyUrbanForm(input: {
   }
 
   if (/(retail|commercial|office|hotel|apartments|mixed|store)/.test(combined)) {
-    return area > 2400 || input.hash % 7 === 0
-      ? "tower_podium"
-      : "mixed_use_street_wall";
+    return "mixed_use_street_wall";
   }
 
-  if (area > 5600) {
-    if (input.hash % 5 === 0) return "courtyard_compact";
-    return ratio > 2.2 ? "industrial_shed" : "civic_anchor";
-  }
-
-  if (area > 2200) {
-    if (input.hash % 4 === 0) return "courtyard_open";
-    if (input.hash % 3 === 0) return "tower_podium";
-    return ratio > 2.1 ? "slab" : "courtyard_compact";
-  }
-
-  if (area > 900) {
-    if (ratio > 2.6) return "slab";
-    if (input.hash % 5 === 0) return "courtyard_open";
-    return input.hash % 2 === 0 ? "mixed_use_street_wall" : "row_infill";
+  // Shape-only signal: very large, long-and-narrow footprints look industrial
+  // even when untagged. Everything else with no real tag is honest "unknown."
+  if (area > 5600 && ratio > 2.2) {
+    return "industrial_shed";
   }
 
   if (/(house|residential|detached|semidetached|terrace|apartments)/.test(tag)) {
-    return input.hash % 4 === 0 ? "row_infill" : "single_lot";
+    return "single_lot";
   }
 
-  return input.hash % 5 === 0 ? "row_infill" : "single_lot";
+  return "unknown";
 }
 
 function confidenceForForm(
@@ -322,6 +373,17 @@ function confidenceForForm(
   buildingTag: string | null,
   sourceHeightM: number | null,
 ): number {
+  // "unknown" must report low confidence so the renderer can treat it
+  // honestly. Once Phase A's real classifier writes per-row probabilities,
+  // this scalar gets replaced with `max(per_class_proba)` and the
+  // hand-tuned tag/height bumps go away.
+  if (formType === "unknown") {
+    let confidence = 0.18;
+    if (buildingTag && buildingTag !== "yes") confidence += 0.04;
+    if (sourceHeightM != null) confidence += 0.02;
+    return Math.min(0.32, Number(confidence.toFixed(2)));
+  }
+
   let confidence = 0.56;
   if (buildingTag && buildingTag !== "yes") confidence += 0.12;
   if (sourceHeightM != null) confidence += 0.08;
@@ -332,6 +394,7 @@ function confidenceForForm(
 function createFormParts(
   spec: BuildingFormSpec,
   bounds: PlanBounds,
+  oriented: OrientedFootprint,
 ): UrbanDesignModelFeature[] {
   const parts: UrbanDesignModelFeature[] = [];
   const add = (
@@ -383,53 +446,48 @@ function createFormParts(
     });
   };
 
+  // All (u, v) values below are in the front-edge-aligned local frame:
+  //   u = 0..1 from left to right along the front edge (street-parallel)
+  //   v = 0..1 from front (street side) to back
+  // `orientedRect` rotates + translates these back into (lng, lat) using
+  // the building's actual bearing.
   switch (spec.form_type) {
     case "courtyard_compact":
       add(
-        rectWithHole(bounds, 0.06, 0.06, 0.94, 0.94, 0.32, 0.32, 0.68, 0.68),
+        orientedRectWithHole(oriented, 0.06, 0.06, 0.94, 0.94, 0.32, 0.32, 0.68, 0.68),
         "courtyard_ring",
         "Perimeter block around a courtyard",
       );
       add(
-        rect(bounds, 0.34, 0.34, 0.66, 0.66),
+        orientedRect(oriented, 0.34, 0.34, 0.66, 0.66),
         "courtyard_yard",
         "Courtyard yard",
         spec.generated_height_m * 0.08,
       );
       break;
     case "courtyard_open":
-      add(rect(bounds, 0.06, 0.08, 0.94, 0.3), "street_wall", "Street wall");
-      add(rect(bounds, 0.06, 0.3, 0.28, 0.9), "side_wing", "Left courtyard wing");
-      add(rect(bounds, 0.72, 0.3, 0.94, 0.9), "side_wing", "Right courtyard wing");
+      add(orientedRect(oriented, 0.06, 0.08, 0.94, 0.3), "street_wall", "Street wall");
+      add(orientedRect(oriented, 0.06, 0.3, 0.28, 0.9), "side_wing", "Left courtyard wing");
+      add(orientedRect(oriented, 0.72, 0.3, 0.94, 0.9), "side_wing", "Right courtyard wing");
       add(
-        rect(bounds, 0.32, 0.34, 0.68, 0.84),
+        orientedRect(oriented, 0.32, 0.34, 0.68, 0.84),
         "courtyard_yard",
         "Open courtyard yard",
         spec.generated_height_m * 0.08,
       );
       break;
     case "slab":
-      if (bounds.widthM >= bounds.depthM) {
-        add(rect(bounds, 0.05, 0.36, 0.95, 0.64), "slab_bar", "Long slab");
-      } else {
-        add(rect(bounds, 0.36, 0.05, 0.64, 0.95), "slab_bar", "Long slab");
-      }
+      // Slab runs along the front (u-axis), thin across depth — the long
+      // axis of a slab points along the street. The prior code had two
+      // branches that approximated this with bounding-box axis-picking;
+      // rotation handles it without a conditional.
+      add(orientedRect(oriented, 0.05, 0.36, 0.95, 0.64), "slab_bar", "Long slab");
       break;
     case "row_infill":
-      createRowParts(bounds, 3 + (stableHash(spec.source_osm_id) % 3)).forEach(
+      createOrientedRowParts(oriented, 3 + (stableHash(spec.source_osm_id) % 3)).forEach(
         (part, index) => {
-          add(
-            part.body,
-            "row_unit",
-            `Row unit ${index + 1}`,
-            spec.generated_height_m,
-          );
-          add(
-            part.roof,
-            "row_roof",
-            `Row roof ${index + 1}`,
-            spec.generated_height_m + 0.7,
-          );
+          add(part.body, "row_unit", `Row unit ${index + 1}`, spec.generated_height_m);
+          add(part.roof, "row_roof", `Row roof ${index + 1}`, spec.generated_height_m + 0.7);
           if (part.partyWall) {
             add(
               part.partyWall,
@@ -442,104 +500,133 @@ function createFormParts(
       );
       break;
     case "single_lot":
-      add(rect(bounds, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
-      if (bounds.widthM >= bounds.depthM) {
-        add(
-          rect(bounds, 0.28, 0.32, 0.72, 0.62),
-          "roof_plane",
-          "Gable roof",
-          spec.generated_height_m + 0.7,
-        );
-        add(
-          rect(bounds, 0.46, 0.2, 0.54, 0.75),
-          "roof_ridge",
-          "Roof ridge",
-          spec.generated_height_m + 1.2,
-        );
-        add(
-          rect(bounds, 0.36, 0.08, 0.64, 0.22),
-          "front_porch",
-          "Front porch",
-          spec.generated_height_m * 0.34,
-        );
-      } else {
-        add(
-          rect(bounds, 0.32, 0.26, 0.62, 0.7),
-          "roof_plane",
-          "Gable roof",
-          spec.generated_height_m + 0.7,
-        );
-        add(
-          rect(bounds, 0.2, 0.46, 0.75, 0.54),
-          "roof_ridge",
-          "Roof ridge",
-          spec.generated_height_m + 1.2,
-        );
-        add(
-          rect(bounds, 0.08, 0.36, 0.22, 0.64),
-          "front_porch",
-          "Front porch",
-          spec.generated_height_m * 0.34,
-        );
-      }
+      add(orientedRect(oriented, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
       add(
-        rect(bounds, 0.34, 0.7, 0.66, 0.92),
+        orientedRect(oriented, 0.18, 0.32, 0.82, 0.62),
+        "roof_plane",
+        "Gable roof",
+        spec.generated_height_m + 0.7,
+      );
+      // Residential ridge runs PARALLEL to the front edge (along u), per
+      // the spec's "ridges run parallel to the front edge for residential"
+      // rule. The prior code had the ridge perpendicular to the front
+      // (gable-end-to-street), which is one valid style but not the
+      // dominant Flint pattern. Spans most of the building width, thin
+      // band centered at half depth.
+      add(
+        orientedRect(oriented, 0.2, 0.46, 0.8, 0.54),
+        "roof_ridge",
+        "Roof ridge",
+        spec.generated_height_m + 1.2,
+      );
+      // Porch on the front edge (low v), centered along u (street-frontage).
+      add(
+        orientedRect(oriented, 0.36, 0.08, 0.64, 0.22),
+        "front_porch",
+        "Front porch",
+        spec.generated_height_m * 0.34,
+      );
+      // Rear ell at the back of the building (high v).
+      add(
+        orientedRect(oriented, 0.34, 0.7, 0.66, 0.92),
         "porch_or_rear_ell",
         "Porch or rear ell",
         spec.generated_height_m * 0.62,
       );
       break;
     case "industrial_shed":
-      add(rect(bounds, 0.04, 0.06, 0.96, 0.94), "shed_body", "Industrial shed body");
-      if (bounds.widthM >= bounds.depthM) {
-        add(
-          rect(bounds, 0.18, 0.44, 0.82, 0.56),
-          "roof_monitor",
-          "Roof monitor",
-          spec.generated_height_m + 2,
-        );
-      } else {
-        add(
-          rect(bounds, 0.44, 0.18, 0.56, 0.82),
-          "roof_monitor",
-          "Roof monitor",
-          spec.generated_height_m + 2,
-        );
-      }
+      add(orientedRect(oriented, 0.04, 0.06, 0.96, 0.94), "shed_body", "Industrial shed body");
+      add(
+        orientedRect(oriented, 0.18, 0.44, 0.82, 0.56),
+        "roof_monitor",
+        "Roof monitor",
+        spec.generated_height_m + 2,
+      );
       break;
     case "civic_anchor":
-      add(rect(bounds, 0.18, 0.16, 0.82, 0.84), "civic_body", "Civic body");
+      add(orientedRect(oriented, 0.18, 0.16, 0.82, 0.84), "civic_body", "Civic body");
+      // Civic cross wing runs along the front (u-axis): the dominant
+      // facade gesture for a civic anchor is street-parallel breadth.
       add(
-        rect(bounds, 0.06, 0.42, 0.94, 0.58),
+        orientedRect(oriented, 0.06, 0.42, 0.94, 0.58),
         "civic_wing",
         "Civic cross wing",
         spec.generated_height_m * 0.72,
       );
       break;
     case "mixed_use_street_wall":
-      add(rect(bounds, 0.06, 0.06, 0.94, 0.38), "street_wall", "Mixed-use street wall");
       add(
-        rect(bounds, 0.12, 0.1, 0.88, 0.18),
+        orientedRect(oriented, 0.06, 0.06, 0.94, 0.38),
+        "street_wall",
+        "Mixed-use street wall",
+      );
+      add(
+        orientedRect(oriented, 0.12, 0.1, 0.88, 0.18),
         "roof_ridge",
         "Street-wall cornice",
         spec.generated_height_m + 0.8,
       );
       add(
-        rect(bounds, 0.36, 0.38, 0.66, 0.9),
+        orientedRect(oriented, 0.36, 0.38, 0.66, 0.9),
         "rear_wing",
         "Rear wing",
         spec.generated_height_m * 0.72,
       );
       break;
     case "tower_podium":
-      add(rect(bounds, 0.08, 0.08, 0.92, 0.92), "podium", "Podium", spec.generated_height_m * 0.45);
-      add(rect(bounds, 0.34, 0.34, 0.66, 0.72), "tower", "Tower", spec.generated_height_m);
+      add(
+        orientedRect(oriented, 0.08, 0.08, 0.92, 0.92),
+        "podium",
+        "Podium",
+        spec.generated_height_m * 0.45,
+      );
+      add(
+        orientedRect(oriented, 0.34, 0.34, 0.66, 0.72),
+        "tower",
+        "Tower",
+        spec.generated_height_m,
+      );
+      break;
+    case "unknown":
+      // The honest answer for buildings without a real classification: emit
+      // the actual footprint outline as a single mass extrusion. No porch,
+      // no roof plane, no cornice — the chipboard model says "this is a
+      // building shape with a height, and we don't yet know what's inside."
+      add(
+        footprintAsPolygon(spec.fabric.params.footprint_polygon, bounds),
+        "house_body",
+        "Unclassified mass",
+      );
       break;
   }
 
-  createFabricDetailParts(spec, bounds, add);
+  // Skip fabric decoration entirely for unclassified buildings. The fabric
+  // detail pass expects the form switch above to have laid down body parts
+  // its dormers / cornices / sawtooths can land on; for "unknown" there's
+  // no body to decorate, only the raw footprint mass.
+  if (spec.form_type !== "unknown") {
+    createFabricDetailParts(spec, oriented, add);
+  }
 
   return parts;
+}
+
+/**
+ * Convert the OSM-derived footprint ring into a GeoJSON polygon. Falls back
+ * to a bounding-box rectangle if the ring is empty or degenerate (which
+ * `getPlanBounds` would have already rejected upstream, but defensive).
+ */
+function footprintAsPolygon(
+  ring: [number, number][],
+  bounds: PlanBounds,
+): GeoJSON.Polygon {
+  if (ring.length < 4) {
+    return rect(bounds, 0.02, 0.02, 0.98, 0.98);
+  }
+  return {
+    type: "Polygon",
+    coordinates: [ring.map(([lng, lat]) => [lng, lat] as [number, number])],
+  };
 }
 
 type AddUrbanDesignPart = (
@@ -551,53 +638,62 @@ type AddUrbanDesignPart = (
 
 function createFabricDetailParts(
   spec: BuildingFormSpec,
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
 ) {
   const baseHeight = spec.generated_height_m;
-  const bayCount = facadeBayCount(bounds, spec);
+  const bayCount = facadeBayCount(oriented, spec);
 
   switch (spec.fabric.archetype) {
     case "present_residential_single":
-      addFrontBand(bounds, add, "porch_step", "Porch step", 0.08, 0.13, baseHeight * 0.16);
+      addFrontBand(oriented, add, "porch_step", "Porch step", 0.08, 0.13, baseHeight * 0.16);
       if (spec.fabric.params.variation_seed % 3 !== 0) {
-        addDormers(bounds, add, baseHeight + 1.15);
+        addDormers(oriented, add, baseHeight + 1.15);
       }
       break;
     case "present_residential_multi":
-      addFrontBand(bounds, add, "cornice_band", "Apartment cornice", 0.18, 0.23, baseHeight + 0.45);
-      addFacadeBays(bounds, add, "facade_rhythm", "Apartment facade bay", bayCount, 0.28, 0.36, baseHeight + 0.2);
+      addFrontBand(oriented, add, "cornice_band", "Apartment cornice", 0.18, 0.23, baseHeight + 0.45);
+      addFacadeBays(oriented, add, "facade_rhythm", "Apartment facade bay", bayCount, 0.28, 0.36, baseHeight + 0.2);
       break;
     case "present_commercial":
-      addFrontBand(bounds, add, "parapet", "Commercial parapet", 0.08, 0.13, baseHeight + 0.9);
-      addFacadeBays(bounds, add, "storefront_bay", "Storefront bay", bayCount, 0.13, 0.25, baseHeight * 0.42);
-      addFrontBand(bounds, add, "cornice_band", "Commercial cornice", 0.25, 0.3, baseHeight + 0.35);
+      addFrontBand(oriented, add, "parapet", "Commercial parapet", 0.08, 0.13, baseHeight + 0.9);
+      addFacadeBays(oriented, add, "storefront_bay", "Storefront bay", bayCount, 0.13, 0.25, baseHeight * 0.42);
+      addFrontBand(oriented, add, "cornice_band", "Commercial cornice", 0.25, 0.3, baseHeight + 0.35);
       break;
     case "present_industrial":
-      addSawtoothRoof(bounds, add, baseHeight + 1.2, spec.fabric.params.roof_pitch_degrees);
+      addSawtoothRoof(oriented, add, baseHeight + 1.2, spec.fabric.params.roof_pitch_degrees);
       break;
     case "present_civic":
-      addCenterFront(bounds, add, "civic_entry", "Civic entry", 0.16, 0.26, baseHeight * 0.72);
-      addCenterRoof(bounds, add, "civic_roof", "Civic roof", baseHeight + 1.15);
+      addCenterFront(oriented, add, "civic_entry", "Civic entry", 0.16, 0.26, baseHeight * 0.72);
+      addCenterRoof(oriented, add, "civic_roof", "Civic roof", baseHeight + 1.15);
       break;
     case "present_mixed_use":
-      addFacadeBays(bounds, add, "storefront_bay", "Ground-floor storefront bay", bayCount, 0.1, 0.22, baseHeight * 0.36);
-      addFacadeBays(bounds, add, "facade_rhythm", "Upper-floor facade rhythm", bayCount, 0.34, 0.42, baseHeight + 0.18);
-      addFrontBand(bounds, add, "cornice_band", "Mixed-use cornice", 0.22, 0.27, baseHeight + 0.5);
+      addFacadeBays(oriented, add, "storefront_bay", "Ground-floor storefront bay", bayCount, 0.1, 0.22, baseHeight * 0.36);
+      addFacadeBays(oriented, add, "facade_rhythm", "Upper-floor facade rhythm", bayCount, 0.34, 0.42, baseHeight + 0.18);
+      addFrontBand(oriented, add, "cornice_band", "Mixed-use cornice", 0.22, 0.27, baseHeight + 0.5);
+      break;
+    case "present_unknown":
+      // No decoration on unclassified buildings — handled by the caller
+      // skipping createFabricDetailParts. This case present only for
+      // type-exhaustiveness; never reached at runtime.
       break;
   }
 }
 
-function facadeBayCount(bounds: PlanBounds, spec: BuildingFormSpec): number {
-  const frontageM = Math.max(bounds.widthM, bounds.depthM);
+function facadeBayCount(oriented: OrientedFootprint, spec: BuildingFormSpec): number {
+  // Bay count is now scaled by the bearing-aligned frontage (along the
+  // front edge, the street-parallel extent), not the lng-aligned bbox max.
+  // For a building diagonal to the cardinals, the old `Math.max(widthM,
+  // depthM)` would overestimate frontage by up to √2, producing too many
+  // bays for the visible facade.
   return Math.max(
     2,
-    Math.min(8, Math.floor(frontageM / spec.fabric.params.window_spacing_m)),
+    Math.min(8, Math.floor(oriented.frontageM / spec.fabric.params.window_spacing_m)),
   );
 }
 
 function addFacadeBays(
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
   role: UrbanDesignPartRole,
   label: string,
@@ -606,15 +702,15 @@ function addFacadeBays(
   depth1: number,
   heightM: number,
 ) {
-  const horizontalFront = bounds.widthM >= bounds.depthM;
+  // Bays distributed evenly along the front edge (u-axis), with v-extent
+  // pinned at the requested depth band. No more "horizontalFront" branch:
+  // u is always along the front by construction.
   const step = 0.72 / count;
   for (let index = 0; index < count; index += 1) {
     const start = 0.14 + index * step + 0.008;
     const end = 0.14 + (index + 1) * step - 0.008;
     add(
-      horizontalFront
-        ? rect(bounds, start, depth0, end, depth1)
-        : rect(bounds, depth0, start, depth1, end),
+      orientedRect(oriented, start, depth0, end, depth1),
       role,
       `${label} ${index + 1}`,
       heightM,
@@ -623,7 +719,7 @@ function addFacadeBays(
 }
 
 function addFrontBand(
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
   role: UrbanDesignPartRole,
   label: string,
@@ -631,15 +727,12 @@ function addFrontBand(
   depth1: number,
   heightM: number,
 ) {
-  if (bounds.widthM >= bounds.depthM) {
-    add(rect(bounds, 0.12, depth0, 0.88, depth1), role, label, heightM);
-    return;
-  }
-  add(rect(bounds, depth0, 0.12, depth1, 0.88), role, label, heightM);
+  // Full-width band at front depth (low v). u spans most of the frontage.
+  add(orientedRect(oriented, 0.12, depth0, 0.88, depth1), role, label, heightM);
 }
 
 function addCenterFront(
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
   role: UrbanDesignPartRole,
   label: string,
@@ -647,53 +740,64 @@ function addCenterFront(
   depth1: number,
   heightM: number,
 ) {
-  if (bounds.widthM >= bounds.depthM) {
-    add(rect(bounds, 0.4, depth0, 0.6, depth1), role, label, heightM);
-    return;
-  }
-  add(rect(bounds, depth0, 0.4, depth1, 0.6), role, label, heightM);
+  // Centered band at front depth — used for civic entries (one prominent
+  // central door) rather than the full storefront-bay distribution.
+  add(orientedRect(oriented, 0.4, depth0, 0.6, depth1), role, label, heightM);
 }
 
 function addCenterRoof(
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
   role: UrbanDesignPartRole,
   label: string,
   heightM: number,
 ) {
-  add(rect(bounds, 0.28, 0.28, 0.72, 0.72), role, label, heightM);
+  add(orientedRect(oriented, 0.28, 0.28, 0.72, 0.72), role, label, heightM);
 }
 
 function addDormers(
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
   heightM: number,
 ) {
-  if (bounds.widthM >= bounds.depthM) {
-    add(rect(bounds, 0.34, 0.28, 0.42, 0.38), "dormer", "Front dormer", heightM);
-    add(rect(bounds, 0.58, 0.28, 0.66, 0.38), "dormer", "Front dormer", heightM);
-    return;
-  }
-  add(rect(bounds, 0.28, 0.34, 0.38, 0.42), "dormer", "Front dormer", heightM);
-  add(rect(bounds, 0.28, 0.58, 0.38, 0.66), "dormer", "Front dormer", heightM);
+  // Two front dormers, both on the front roof slope (low v), spaced along
+  // the front edge (u). Front-edge placement makes residential houses
+  // read with their roof articulation FACING the street, not facing
+  // whichever bounding-box axis was longer.
+  add(
+    orientedRect(oriented, 0.34, 0.28, 0.42, 0.38),
+    "dormer",
+    "Front dormer",
+    heightM,
+  );
+  add(
+    orientedRect(oriented, 0.58, 0.28, 0.66, 0.38),
+    "dormer",
+    "Front dormer",
+    heightM,
+  );
 }
 
 function addSawtoothRoof(
-  bounds: PlanBounds,
+  oriented: OrientedFootprint,
   add: AddUrbanDesignPart,
   heightM: number,
   roofPitchDegrees: number,
 ) {
-  const count = Math.max(2, Math.min(7, Math.floor(Math.max(bounds.widthM, bounds.depthM) / 18)));
+  // Industrial sawtooth bays distributed along the long axis (frontage,
+  // u). Each bay is a thin slice along u, spanning roughly half the depth
+  // (v in [0.28, 0.72]). The lift parameter encodes roof-pitch elevation.
+  const count = Math.max(
+    2,
+    Math.min(7, Math.floor(Math.max(oriented.frontageM, oriented.depthM) / 18)),
+  );
   const lift = Math.max(0.4, roofPitchDegrees / 12);
   const step = 0.78 / count;
   for (let index = 0; index < count; index += 1) {
     const start = 0.11 + index * step;
     const end = Math.min(0.89, start + step * 0.42);
     add(
-      bounds.widthM >= bounds.depthM
-        ? rect(bounds, start, 0.28, end, 0.72)
-        : rect(bounds, 0.28, start, 0.72, end),
+      orientedRect(oriented, start, 0.28, end, 0.72),
       "sawtooth_roof",
       `Sawtooth roof bay ${index + 1}`,
       heightM + lift,
@@ -707,37 +811,31 @@ type RowPart = {
   partyWall: GeoJSON.Polygon | null;
 };
 
-function createRowParts(bounds: PlanBounds, count: number): RowPart[] {
+/**
+ * Row units distributed along the front edge (u-axis). Each unit's body
+ * fills the depth (v in [0.12, 0.88]); party walls are thin u-slivers
+ * between adjacent units. The prior implementation had two layouts
+ * (widthM >= depthM vs. else); under the oriented frame these collapse
+ * to one, because u is always the street-parallel axis.
+ */
+function createOrientedRowParts(
+  oriented: OrientedFootprint,
+  count: number,
+): RowPart[] {
   const parts: RowPart[] = [];
   const gap = 0.028;
-  if (bounds.widthM >= bounds.depthM) {
-    const step = 0.9 / count;
-    for (let index = 0; index < count; index += 1) {
-      const start = 0.05 + index * step + gap;
-      const end = 0.05 + (index + 1) * step - gap;
-      parts.push({
-        body: rect(bounds, start, 0.12, end, 0.88),
-        roof: rect(bounds, start + 0.012, 0.22, end - 0.012, 0.78),
-        partyWall:
-          index === 0
-            ? null
-            : rect(bounds, start - 0.008, 0.12, start + 0.008, 0.88),
-      });
-    }
-  } else {
-    const step = 0.9 / count;
-    for (let index = 0; index < count; index += 1) {
-      const start = 0.05 + index * step + gap;
-      const end = 0.05 + (index + 1) * step - gap;
-      parts.push({
-        body: rect(bounds, 0.12, start, 0.88, end),
-        roof: rect(bounds, 0.22, start + 0.012, 0.78, end - 0.012),
-        partyWall:
-          index === 0
-            ? null
-            : rect(bounds, 0.12, start - 0.008, 0.88, start + 0.008),
-      });
-    }
+  const step = 0.9 / count;
+  for (let index = 0; index < count; index += 1) {
+    const start = 0.05 + index * step + gap;
+    const end = 0.05 + (index + 1) * step - gap;
+    parts.push({
+      body: orientedRect(oriented, start, 0.12, end, 0.88),
+      roof: orientedRect(oriented, start + 0.012, 0.22, end - 0.012, 0.78),
+      partyWall:
+        index === 0
+          ? null
+          : orientedRect(oriented, start - 0.008, 0.12, start + 0.008, 0.88),
+    });
   }
   return parts;
 }
@@ -897,6 +995,167 @@ function pointInRing(
   return inside;
 }
 
+/**
+ * Build the front-aligned local coordinate frame for a footprint. Projects
+ * every vertex onto the bearing axis (u, along front) and its perpendicular
+ * (v, front-to-back) to derive the rotated-bbox extents `frontageM` and
+ * `depthM`. These are the dimensions a part-placement helper actually
+ * cares about — the lng-aligned `bounds.widthM` / `bounds.depthM` are
+ * irrelevant once we know the building's orientation.
+ *
+ * The bearing comes from `front_edge_bearing_degrees` upstream, which today
+ * is the longest-edge bearing (an OK proxy because most rectangular
+ * buildings have their longest edge along the street). Once Phase A's
+ * parcel-front classifier writes per-row bearings, this function reads
+ * those instead, with no API change.
+ */
+function getOrientedFootprint(
+  ring: [number, number][],
+  bearingDegrees: number,
+  bounds: PlanBounds,
+): OrientedFootprint {
+  const centerLat = (bounds.south + bounds.north) / 2;
+  const metersPerLat = 111_320;
+  const metersPerLng = Math.cos((centerLat * Math.PI) / 180) * metersPerLat;
+  const center: [number, number] = [
+    bounds.west + bounds.widthLng / 2,
+    bounds.south + bounds.heightLat / 2,
+  ];
+  const bearingRad = (bearingDegrees * Math.PI) / 180;
+  const sinB = Math.sin(bearingRad);
+  const cosB = Math.cos(bearingRad);
+
+  let uMin = Number.POSITIVE_INFINITY;
+  let uMax = Number.NEGATIVE_INFINITY;
+  let vMin = Number.POSITIVE_INFINITY;
+  let vMax = Number.NEGATIVE_INFINITY;
+
+  for (const [lng, lat] of ring) {
+    if (typeof lng !== "number" || typeof lat !== "number") continue;
+    const east = (lng - center[0]) * metersPerLng;
+    const north = (lat - center[1]) * metersPerLat;
+    // Compass bearing 0 = north, π/2 = east. u-axis points "along bearing":
+    //   u =  east·sin(b) + north·cos(b)
+    // v-axis is 90° clockwise from u (so v points into the building from
+    // the front edge when the front lies along bearing):
+    //   v =  east·cos(b) - north·sin(b)
+    const u = east * sinB + north * cosB;
+    const v = east * cosB - north * sinB;
+    if (u < uMin) uMin = u;
+    if (u > uMax) uMax = u;
+    if (v < vMin) vMin = v;
+    if (v > vMax) vMax = v;
+  }
+
+  // Defensive: if the ring was empty or degenerate, fall back to the
+  // lng-aligned bounds so part placement still has finite extents.
+  const frontageM =
+    Number.isFinite(uMax - uMin) && uMax > uMin
+      ? uMax - uMin
+      : Math.max(bounds.widthM, bounds.depthM);
+  const depthM =
+    Number.isFinite(vMax - vMin) && vMax > vMin
+      ? vMax - vMin
+      : Math.min(bounds.widthM, bounds.depthM);
+
+  return {
+    center,
+    bearingRad,
+    frontageM,
+    depthM,
+    metersPerLng,
+    metersPerLat,
+  };
+}
+
+/**
+ * Project (u, v) ∈ [0, 1]² local coordinates back to (lng, lat). u=0 is the
+ * left edge of the front face, u=1 the right edge; v=0 is the front edge,
+ * v=1 the back.
+ */
+function projectUV(
+  o: OrientedFootprint,
+  u: number,
+  v: number,
+): [number, number] {
+  const localU = (u - 0.5) * o.frontageM;
+  const localV = (v - 0.5) * o.depthM;
+  const sinB = Math.sin(o.bearingRad);
+  const cosB = Math.cos(o.bearingRad);
+  const east = localU * sinB + localV * cosB;
+  const north = localU * cosB - localV * sinB;
+  return [
+    o.center[0] + east / o.metersPerLng,
+    o.center[1] + north / o.metersPerLat,
+  ];
+}
+
+function orientedRect(
+  o: OrientedFootprint,
+  u0: number,
+  v0: number,
+  u1: number,
+  v1: number,
+): GeoJSON.Polygon {
+  const cu0 = clamp01(u0);
+  const cu1 = clamp01(u1);
+  const cv0 = clamp01(v0);
+  const cv1 = clamp01(v1);
+  return {
+    type: "Polygon",
+    coordinates: [
+      [
+        projectUV(o, cu0, cv0),
+        projectUV(o, cu1, cv0),
+        projectUV(o, cu1, cv1),
+        projectUV(o, cu0, cv1),
+        projectUV(o, cu0, cv0),
+      ],
+    ],
+  };
+}
+
+function orientedRectWithHole(
+  o: OrientedFootprint,
+  u0: number,
+  v0: number,
+  u1: number,
+  v1: number,
+  hu0: number,
+  hv0: number,
+  hu1: number,
+  hv1: number,
+): GeoJSON.Polygon {
+  const cu0 = clamp01(u0);
+  const cu1 = clamp01(u1);
+  const cv0 = clamp01(v0);
+  const cv1 = clamp01(v1);
+  const chu0 = clamp01(hu0);
+  const chu1 = clamp01(hu1);
+  const chv0 = clamp01(hv0);
+  const chv1 = clamp01(hv1);
+  return {
+    type: "Polygon",
+    coordinates: [
+      [
+        projectUV(o, cu0, cv0),
+        projectUV(o, cu1, cv0),
+        projectUV(o, cu1, cv1),
+        projectUV(o, cu0, cv1),
+        projectUV(o, cu0, cv0),
+      ],
+      // Hole ring with reversed winding for GeoJSON convention.
+      [
+        projectUV(o, chu0, chv0),
+        projectUV(o, chu0, chv1),
+        projectUV(o, chu1, chv1),
+        projectUV(o, chu1, chv0),
+        projectUV(o, chu0, chv0),
+      ],
+    ],
+  };
+}
+
 function rect(
   bounds: PlanBounds,
   x0: number,
@@ -907,26 +1166,6 @@ function rect(
   return {
     type: "Polygon",
     coordinates: [rectRing(bounds, x0, y0, x1, y1)],
-  };
-}
-
-function rectWithHole(
-  bounds: PlanBounds,
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  hx0: number,
-  hy0: number,
-  hx1: number,
-  hy1: number,
-): GeoJSON.Polygon {
-  return {
-    type: "Polygon",
-    coordinates: [
-      rectRing(bounds, x0, y0, x1, y1),
-      rectRing(bounds, hx0, hy0, hx1, hy1).reverse(),
-    ],
   };
 }
 

@@ -78,5 +78,28 @@ export const BUILDING_FABRIC_HEIGHT_PRIOR_CATALOG = {
       facade_color: "#d9cab0",
       roof_material: "membrane",
     },
+    /**
+     * Honest fallback for footprints without a real typology signal.
+     * Renders as a plain extruded mass with no part decomposition. Replaces
+     * the prior hash-modulo "classification" that pretended every footprint
+     * fell into one of the six archetypes. Once Phase A's real LightGBM
+     * classifier ships (Ray/RunPod batch), most "unknown" rows will be
+     * reclassified from honest gray mass into a real archetype with
+     * confidence; the render path stays the same.
+     */
+    present_unknown: {
+      label: "Unknown",
+      baseline_stories: 1,
+      area_story_steps: [
+        { min_area_m2: 400, stories: 2 },
+        { min_area_m2: 1600, stories: 3 },
+      ],
+      roof_pitch_default_degrees: 0,
+      roof_pitch_variation_degrees: 0,
+      cornice_height_m: 0,
+      window_spacing_range_m: [3, 4],
+      facade_color: "#d8d3c5",
+      roof_material: "membrane",
+    },
   },
 } as const;

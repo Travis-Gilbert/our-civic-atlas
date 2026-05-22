@@ -6,7 +6,8 @@ export type BuildingFabricArchetype =
   | "present_commercial"
   | "present_industrial"
   | "present_civic"
-  | "present_mixed_use";
+  | "present_mixed_use"
+  | "present_unknown";
 
 export type RoofMaterial = "asphalt" | "metal" | "tile" | "membrane";
 
@@ -145,6 +146,22 @@ export function deriveBuildingFabricSpec(
   };
 }
 
+/**
+ * Map an OSM footprint to a present-day archetype using ONLY signals that
+ * actually correlate with building use: explicit OSM tags, the building's
+ * declared name, and footprint shape. The prior version of this function
+ * scattered `seed % N` branches across the area-based fallback, which made
+ * the archetype a deterministic-but-arbitrary function of `osm_id` rather
+ * than of the building. Every "courtyard" or "tower" produced by that path
+ * was structural noise wearing the costume of classification.
+ *
+ * Until Phase A's real LightGBM classifier ships, the honest answer for
+ * any footprint without a real tag signal is `"present_unknown"`, which
+ * renders as a plain extruded mass. We keep the shape-based fallback only
+ * for the cases where the geometry itself is the signal (very large
+ * footprints with a long, narrow ratio look industrial; large square
+ * footprints look civic).
+ */
 function classifyPresentArchetype(input: {
   buildingTag: string | null;
   footprintAreaM2: number;
@@ -166,23 +183,15 @@ function classifyPresentArchetype(input: {
     return "present_residential_multi";
   }
   if (/(retail|commercial|office|hotel|shop|store|restaurant|bank)/.test(combined)) {
-    return area > 900 || input.seed % 4 === 0
-      ? "present_mixed_use"
-      : "present_commercial";
+    return "present_commercial";
   }
   if (/(house|detached|semidetached|terrace|residential|garage)/.test(combined)) {
     return area > 600 ? "present_residential_multi" : "present_residential_single";
   }
-  if (area > 5600) {
-    return input.footprintRatio > 2.2 ? "present_industrial" : "present_civic";
+  if (area > 5600 && input.footprintRatio > 2.2) {
+    return "present_industrial";
   }
-  if (area > 1800) {
-    return input.seed % 3 === 0 ? "present_mixed_use" : "present_commercial";
-  }
-  if (area > 650) {
-    return input.seed % 5 === 0 ? "present_mixed_use" : "present_residential_multi";
-  }
-  return "present_residential_single";
+  return "present_unknown";
 }
 
 function inferStories(input: {
