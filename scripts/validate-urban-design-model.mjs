@@ -47,7 +47,7 @@ const partRoles = new Set(
 );
 
 assert.ok(
-  collection.features.length > source.features.length * 1.5,
+  collection.features.length > source.features.length * 3,
   "urban model should split in-boundary OSM footprints into multiple design parts",
 );
 assert.ok(
@@ -70,8 +70,14 @@ for (const formType of [
 
 for (const partRole of [
   "courtyard_ring",
+  "courtyard_yard",
+  "front_porch",
+  "party_wall",
   "podium",
   "roof_monitor",
+  "roof_plane",
+  "roof_ridge",
+  "row_roof",
   "row_unit",
   "street_wall",
   "tower",
@@ -85,6 +91,13 @@ const courtyard = collection.features.find(
 assert.ok(
   courtyard?.geometry.coordinates.length === 2,
   "compact courtyard blocks should include a courtyard void",
+);
+
+assert.ok(
+  collection.features.filter(
+    (feature) => feature.properties.part_role === "roof_ridge",
+  ).length > 10_000,
+  "residential fabric should expose thousands of roof ridges, not only mass boxes",
 );
 
 assert.ok(

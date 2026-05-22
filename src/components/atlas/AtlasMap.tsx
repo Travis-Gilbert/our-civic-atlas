@@ -167,7 +167,7 @@ const URBAN_FORM_FILL: Record<UrbanDesignFormType, [number, number, number, numb
   industrial_shed: [112, 119, 124, 202],
   mixed_use_street_wall: [42, 147, 141, 218],
   row_infill: [202, 143, 56, 222],
-  single_lot: [175, 128, 86, 198],
+  single_lot: [190, 106, 72, 226],
   slab: [86, 112, 150, 210],
   tower_podium: [126, 86, 150, 224],
 };
@@ -182,6 +182,32 @@ const URBAN_FORM_LINE: Record<UrbanDesignFormType, [number, number, number, numb
   single_lot: [124, 88, 58, 222],
   slab: [55, 80, 116, 232],
   tower_podium: [92, 59, 121, 242],
+};
+
+const URBAN_PART_FILL: Partial<
+  Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
+> = {
+  courtyard_yard: [74, 150, 96, 238],
+  front_porch: [224, 178, 95, 238],
+  party_wall: [70, 60, 52, 235],
+  porch_or_rear_ell: [214, 150, 82, 226],
+  roof_monitor: [54, 92, 118, 238],
+  roof_plane: [143, 77, 58, 244],
+  roof_ridge: [76, 54, 44, 250],
+  row_roof: [172, 88, 50, 246],
+};
+
+const URBAN_PART_LINE: Partial<
+  Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
+> = {
+  courtyard_yard: [44, 106, 66, 245],
+  front_porch: [164, 111, 42, 242],
+  party_wall: [48, 42, 37, 242],
+  porch_or_rear_ell: [158, 94, 43, 230],
+  roof_monitor: [31, 67, 91, 246],
+  roof_plane: [99, 50, 39, 248],
+  roof_ridge: [42, 31, 26, 252],
+  row_roof: [126, 57, 35, 248],
 };
 
 /* ------------------------------------------------------------------ */
@@ -362,14 +388,24 @@ function osmBuildingElevation(
 function lensFillColor(
   placeType: string,
   activeLens: AtlasLensId,
+  asContext = false,
 ): [number, number, number, number] {
   const base = PLACE_TYPE_FILL[placeType] ?? PLACE_TYPE_FILL_DEFAULT;
   const tint = LENS_FILL_TINT[activeLens];
+  const alpha = asContext
+    ? {
+        ward: 18,
+        parcel: 26,
+        building: 34,
+        infrastructure: 30,
+      }[placeType] ?? 22
+    : Math.max(base[3], tint[3]);
+
   return [
     Math.round(base[0] * 0.72 + tint[0] * 0.28),
     Math.round(base[1] * 0.72 + tint[1] * 0.28),
     Math.round(base[2] * 0.72 + tint[2] * 0.28),
-    Math.max(base[3], tint[3]),
+    alpha,
   ];
 }
 
@@ -406,11 +442,21 @@ function urbanDesignFillColor(
   props: UrbanDesignModelProperties,
   atlasYear: number | null,
 ): [number, number, number, number] {
+  const roleColor = URBAN_PART_FILL[props.part_role];
+  if (roleColor) {
+    return [
+      roleColor[0],
+      roleColor[1],
+      roleColor[2],
+      atlasYear === null ? roleColor[3] : Math.max(128, roleColor[3] - 48),
+    ];
+  }
+
   const color = URBAN_FORM_FILL[props.form_type];
   const partLift =
-    props.part_role === "tower" || props.part_role === "roof_monitor"
+    props.part_role === "tower"
       ? 18
-      : props.part_role === "porch_or_rear_ell" || props.part_role === "rear_wing"
+      : props.part_role === "rear_wing"
         ? -12
         : 0;
   const alpha = atlasYear === null ? color[3] : Math.max(108, color[3] - 54);
@@ -425,7 +471,7 @@ function urbanDesignFillColor(
 function urbanDesignLineColor(
   props: UrbanDesignModelProperties,
 ): [number, number, number, number] {
-  return URBAN_FORM_LINE[props.form_type];
+  return URBAN_PART_LINE[props.part_role] ?? URBAN_FORM_LINE[props.form_type];
 }
 
 function clampByte(value: number): number {
@@ -719,6 +765,12 @@ export function AtlasMap({
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
     const result: Layer[] = [];
+    const urbanDesignModelVisible =
+      urbanDesignModel.features.length > 0 &&
+      layerVisibility.urbanDesignModel !== false &&
+      layerVisibility.buildings !== false;
+    const placesAsCivicContext =
+      urbanDesignModelVisible && viewMode !== "atlas";
 
     /* OSM building footprints — extruded in non-atlas (3D) view modes.
      * Renders 6671 Flint buildings from Carriage Town + downtown as warm
@@ -778,17 +830,26 @@ export function AtlasMap({
           pickable: true,
           stroked: true,
           filled: true,
-          extruded: viewMode !== "atlas",
-          wireframe: viewMode !== "atlas",
-          lineWidthMinPixels: viewMode === "atlas" ? 1 : 0.7,
+          extruded: viewMode !== "atlas" && !placesAsCivicContext,
+          wireframe: viewMode !== "atlas" && !placesAsCivicContext,
+          lineWidthMinPixels: placesAsCivicContext
+            ? 1.15
+            : viewMode === "atlas"
+              ? 1
+              : 0.7,
           getLineWidth: 1,
           getElevation: (f) => {
+            if (placesAsCivicContext) return 0;
             const ft = f as PlaceFeature;
             return placeElevation(ft.properties.place_type, viewMode);
           },
           getFillColor: (f) => {
             const ft = f as PlaceFeature;
-            return lensFillColor(ft.properties.place_type, activeLens);
+            return lensFillColor(
+              ft.properties.place_type,
+              activeLens,
+              placesAsCivicContext,
+            );
           },
           getLineColor: (f) => {
             const ft = f as PlaceFeature;
@@ -808,8 +869,8 @@ export function AtlasMap({
           },
           onClick: handleClick,
           updateTriggers: {
-            getElevation: [viewMode],
-            getFillColor: [activeLens],
+            getElevation: [placesAsCivicContext, viewMode],
+            getFillColor: [activeLens, placesAsCivicContext],
             getLineColor: [],
           },
         }),
@@ -817,9 +878,7 @@ export function AtlasMap({
     }
 
     if (
-      urbanDesignModel.features.length > 0 &&
-      layerVisibility.urbanDesignModel !== false &&
-      layerVisibility.buildings !== false
+      urbanDesignModelVisible
     ) {
       result.push(
         new GeoJsonLayer<UrbanDesignModelProperties>({
@@ -831,8 +890,12 @@ export function AtlasMap({
           extruded: viewMode !== "atlas",
           wireframe: false,
           opacity: 0.98,
-          lineWidthMinPixels: viewMode === "atlas" ? 0.8 : 0.45,
-          getLineWidth: viewMode === "atlas" ? 0.8 : 0.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+          lineWidthMinPixels: viewMode === "atlas" ? 0.9 : 0.7,
+          getLineWidth: viewMode === "atlas" ? 0.9 : 0.75,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>

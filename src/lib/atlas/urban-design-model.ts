@@ -16,8 +16,14 @@ export type UrbanDesignPartRole =
   | "rear_wing"
   | "slab_bar"
   | "row_unit"
+  | "row_roof"
+  | "party_wall"
   | "house_body"
+  | "front_porch"
   | "porch_or_rear_ell"
+  | "roof_plane"
+  | "roof_ridge"
+  | "courtyard_yard"
   | "shed_body"
   | "roof_monitor"
   | "civic_body"
@@ -353,11 +359,23 @@ function createFormParts(
         "courtyard_ring",
         "Perimeter block around a courtyard",
       );
+      add(
+        rect(bounds, 0.34, 0.34, 0.66, 0.66),
+        "courtyard_yard",
+        "Courtyard yard",
+        spec.generated_height_m * 0.08,
+      );
       break;
     case "courtyard_open":
       add(rect(bounds, 0.06, 0.08, 0.94, 0.3), "street_wall", "Street wall");
       add(rect(bounds, 0.06, 0.3, 0.28, 0.9), "side_wing", "Left courtyard wing");
       add(rect(bounds, 0.72, 0.3, 0.94, 0.9), "side_wing", "Right courtyard wing");
+      add(
+        rect(bounds, 0.32, 0.34, 0.68, 0.84),
+        "courtyard_yard",
+        "Open courtyard yard",
+        spec.generated_height_m * 0.08,
+      );
       break;
     case "slab":
       if (bounds.widthM >= bounds.depthM) {
@@ -368,12 +386,71 @@ function createFormParts(
       break;
     case "row_infill":
       createRowParts(bounds, 3 + (stableHash(spec.source_osm_id) % 3)).forEach(
-        (geometry, index) =>
-          add(geometry, "row_unit", `Row unit ${index + 1}`, spec.generated_height_m),
+        (part, index) => {
+          add(
+            part.body,
+            "row_unit",
+            `Row unit ${index + 1}`,
+            spec.generated_height_m,
+          );
+          add(
+            part.roof,
+            "row_roof",
+            `Row roof ${index + 1}`,
+            spec.generated_height_m + 0.7,
+          );
+          if (part.partyWall) {
+            add(
+              part.partyWall,
+              "party_wall",
+              `Party wall ${index + 1}`,
+              spec.generated_height_m + 0.3,
+            );
+          }
+        },
       );
       break;
     case "single_lot":
       add(rect(bounds, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
+      if (bounds.widthM >= bounds.depthM) {
+        add(
+          rect(bounds, 0.28, 0.32, 0.72, 0.62),
+          "roof_plane",
+          "Gable roof",
+          spec.generated_height_m + 0.7,
+        );
+        add(
+          rect(bounds, 0.46, 0.2, 0.54, 0.75),
+          "roof_ridge",
+          "Roof ridge",
+          spec.generated_height_m + 1.2,
+        );
+        add(
+          rect(bounds, 0.36, 0.08, 0.64, 0.22),
+          "front_porch",
+          "Front porch",
+          spec.generated_height_m * 0.34,
+        );
+      } else {
+        add(
+          rect(bounds, 0.32, 0.26, 0.62, 0.7),
+          "roof_plane",
+          "Gable roof",
+          spec.generated_height_m + 0.7,
+        );
+        add(
+          rect(bounds, 0.2, 0.46, 0.75, 0.54),
+          "roof_ridge",
+          "Roof ridge",
+          spec.generated_height_m + 1.2,
+        );
+        add(
+          rect(bounds, 0.08, 0.36, 0.22, 0.64),
+          "front_porch",
+          "Front porch",
+          spec.generated_height_m * 0.34,
+        );
+      }
       add(
         rect(bounds, 0.34, 0.7, 0.66, 0.92),
         "porch_or_rear_ell",
@@ -411,6 +488,12 @@ function createFormParts(
     case "mixed_use_street_wall":
       add(rect(bounds, 0.06, 0.06, 0.94, 0.38), "street_wall", "Mixed-use street wall");
       add(
+        rect(bounds, 0.12, 0.1, 0.88, 0.18),
+        "roof_ridge",
+        "Street-wall cornice",
+        spec.generated_height_m + 0.8,
+      );
+      add(
         rect(bounds, 0.36, 0.38, 0.66, 0.9),
         "rear_wing",
         "Rear wing",
@@ -426,22 +509,42 @@ function createFormParts(
   return parts;
 }
 
-function createRowParts(bounds: PlanBounds, count: number): GeoJSON.Polygon[] {
-  const parts: GeoJSON.Polygon[] = [];
-  const gap = 0.018;
+type RowPart = {
+  body: GeoJSON.Polygon;
+  roof: GeoJSON.Polygon;
+  partyWall: GeoJSON.Polygon | null;
+};
+
+function createRowParts(bounds: PlanBounds, count: number): RowPart[] {
+  const parts: RowPart[] = [];
+  const gap = 0.028;
   if (bounds.widthM >= bounds.depthM) {
     const step = 0.9 / count;
     for (let index = 0; index < count; index += 1) {
       const start = 0.05 + index * step + gap;
       const end = 0.05 + (index + 1) * step - gap;
-      parts.push(rect(bounds, start, 0.12, end, 0.88));
+      parts.push({
+        body: rect(bounds, start, 0.12, end, 0.88),
+        roof: rect(bounds, start + 0.012, 0.22, end - 0.012, 0.78),
+        partyWall:
+          index === 0
+            ? null
+            : rect(bounds, start - 0.008, 0.12, start + 0.008, 0.88),
+      });
     }
   } else {
     const step = 0.9 / count;
     for (let index = 0; index < count; index += 1) {
       const start = 0.05 + index * step + gap;
       const end = 0.05 + (index + 1) * step - gap;
-      parts.push(rect(bounds, 0.12, start, 0.88, end));
+      parts.push({
+        body: rect(bounds, 0.12, start, 0.88, end),
+        roof: rect(bounds, 0.22, start + 0.012, 0.78, end - 0.012),
+        partyWall:
+          index === 0
+            ? null
+            : rect(bounds, 0.12, start - 0.008, 0.88, start + 0.008),
+      });
     }
   }
   return parts;

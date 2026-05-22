@@ -58,6 +58,7 @@ import {
   getScenarioEnvelopeCollection,
   getScenarioComparison,
   SCENARIO_ENVELOPE_TYPE_LABELS,
+  type ScenarioEnvelopeCollection,
   type ScenarioEnvelopeType,
 } from "@/lib/atlas/scenario-model";
 
@@ -101,6 +102,11 @@ const DEFAULT_LAYERS: Record<string, boolean> = {
   wards: true,
   infrastructure: true,
   scenarioEnvelopes: true,
+};
+
+const EMPTY_SCENARIO_ENVELOPES: ScenarioEnvelopeCollection = {
+  type: "FeatureCollection",
+  features: [],
 };
 
 function initialRendererMode(): AtlasRendererMode {
@@ -697,6 +703,12 @@ export function OpenFlintAtlasScene(props: {
     () => getScenarioEnvelopeCollection(activeScenarioId, scenarioDraftEdits),
     [activeScenarioId, scenarioDraftEdits],
   );
+  const visibleScenarioEnvelopes = useMemo(() => {
+    if (activeScenarioId === "current" && !scenarioCompareEnabled) {
+      return EMPTY_SCENARIO_ENVELOPES;
+    }
+    return activeScenarioEnvelopes;
+  }, [activeScenarioEnvelopes, activeScenarioId, scenarioCompareEnabled]);
   const scenarioFocusBounds = useMemo(
     () => getScenarioEnvelopeBounds(getScenarioEnvelopeCollection(activeScenarioId)),
     [activeScenarioId],
@@ -1070,7 +1082,7 @@ export function OpenFlintAtlasScene(props: {
               scenarioDeltaFeatures={
                 scenarioComparison.deltaFeatureCollection
               }
-              scenarioEnvelopeFeatures={activeScenarioEnvelopes}
+              scenarioEnvelopeFeatures={visibleScenarioEnvelopes}
               scenarioCompareEnabled={
                 scenarioCompareEnabled && activeScenarioId !== compareScenarioId
               }
