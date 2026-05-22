@@ -114,6 +114,12 @@ export interface AtlasEventPlannerLayerOptions {
    * 1 leaves it undefined so every category is on.
    */
   readonly visibility?: Partial<Record<AtlasEventPlannerCategory, boolean>>;
+  /**
+   * Phase 3 — pop pins above extruded OSM buildings in oblique
+   * (3D) mode. Default "flat" keeps pins at z=0 for backward
+   * compatibility.
+   */
+  readonly viewMode?: "flat" | "oblique";
 }
 
 interface PlacementFeatureProperties {
@@ -137,8 +143,17 @@ export function createAtlasEventPlannerLayers({
   onClickPlacement,
   layerIdPrefix = "atlas-event-planner",
   visibility,
+  viewMode = "flat",
 }: AtlasEventPlannerLayerOptions): Layer[] {
   if (placements.length === 0) return [];
+
+  // In oblique (3D) mode, extruded OSM buildings can rise tens of
+  // meters above ground. Lifting the pins by a small constant above
+  // the tallest expected building keeps them visible from any
+  // camera angle. The lift is applied via a 3D coordinate on each
+  // Point's `coordinates` ([lng, lat, z]); deck.gl's GeoJsonLayer
+  // honors that as elevation in meters.
+  const POINT_LIFT_METERS = viewMode === "oblique" ? 60 : 0;
 
   const byCategory = new Map<string, AtlasEventPlannerPlacement[]>();
   for (const placement of placements) {
@@ -164,19 +179,29 @@ export function createAtlasEventPlannerLayers({
           const geom = placement.geometry as { type?: string } | null;
           return geom?.type === "Point";
         })
-        .map((placement) => ({
-          type: "Feature",
-          geometry: placement.geometry as unknown as Point,
-          properties: {
-            placement_id: placement.id,
-            event_layer_id: placement.eventLayerId,
-            category: placement.category,
-            sublabel: placement.sublabel,
-            label: placement.label,
-            status: placement.status,
-            notes: placement.notes,
-          },
-        })),
+        .map((placement) => {
+          const sourceGeom = placement.geometry as unknown as Point;
+          const [lng, lat] = sourceGeom.coordinates as [number, number, number?];
+          // Apply the oblique-mode lift to every point. Keeps the
+          // input geometry immutable (creates a new array).
+          const liftedGeometry: Point = {
+            ...sourceGeom,
+            coordinates: [lng, lat, POINT_LIFT_METERS],
+          };
+          return {
+            type: "Feature",
+            geometry: liftedGeometry,
+            properties: {
+              placement_id: placement.id,
+              event_layer_id: placement.eventLayerId,
+              category: placement.category,
+              sublabel: placement.sublabel,
+              label: placement.label,
+              status: placement.status,
+              notes: placement.notes,
+            },
+          };
+        }),
     };
 
     const color =

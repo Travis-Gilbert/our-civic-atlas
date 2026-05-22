@@ -1,28 +1,36 @@
 "use client";
 
 /**
- * Phase 2 right rail — full task list with filters, inline edit, and
- * camera fly-to from placement breadcrumbs.
+ * Phase 2 + 3 right rail.
+ *
+ * Sections (top to bottom):
+ *   1. Filters (status, restrict to selected pin)
+ *   2. Task list with inline edit + delete
+ *   3. New-task form
+ *   4. (Phase 3) Notes thread for the selected placement
+ *
+ * Notes panel appears only when a placement is selected. It's the
+ * conversation thread that lives with the pin — append-only by
+ * design, with self-service delete for the author.
  *
  * Filters:
  *   - status: open | in_progress | done | all
  *   - linkedPlacementId: when a pin is selected, the list narrows
  *     to that pin's tasks (the "tasks for BBQ Steve" affordance).
  *
- * Each row is a small card; clicking the breadcrumb calls the
+ * Each task row is a small card; clicking the breadcrumb calls the
  * parent's `onFlyTo(placementId)` which uses the existing MapRef.
- *
- * Optimistic UX: new tasks appear immediately with a soft pulse;
- * the urql mutation result reconciles with the server. Stale-write
- * toasts are owned by the parent — this component just hands its
- * inputs back via the props interface.
  */
 
 import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "urql";
 
-import type {
-  EventPlacementsQuery,
-  EventTasksListQuery,
+import {
+  CreatePlacementNoteDocument,
+  DeletePlacementNoteDocument,
+  PlacementNotesDocument,
+  type EventPlacementsQuery,
+  type EventTasksListQuery,
 } from "@/lib/api/graphql/generated/graphql";
 
 type Placement = EventPlacementsQuery["placements"][number];
@@ -245,6 +253,134 @@ export function PlannerTaskRail({
           Sign in to add tasks.
         </p>
       )}
+
+      {selectedPlacementId ? (
+        <PlacementNotesPanel
+          placementId={selectedPlacementId}
+          placementLabel={
+            placements.find((p) => p.id === selectedPlacementId)?.label ?? ""
+          }
+          canEdit={canEdit}
+          onError={(message) => {
+            // Hook into the parent's toast system if needed in Phase 4;
+            // for now log to console so dev tooling can pick it up.
+            console.warn("[notes]", message);
+          }}
+        />
+      ) : null}
     </aside>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Phase 3: placement notes panel                                     */
+/* ------------------------------------------------------------------ */
+
+interface PlacementNotesPanelProps {
+  readonly placementId: string;
+  readonly placementLabel: string;
+  readonly canEdit: boolean;
+  readonly onError: (message: string) => void;
+}
+
+function PlacementNotesPanel({
+  placementId,
+  placementLabel,
+  canEdit,
+  onError,
+}: PlacementNotesPanelProps) {
+  const [draft, setDraft] = useState("");
+  const [notesResult] = useQuery({
+    query: PlacementNotesDocument,
+    variables: { tenantSlug: "flint", placementId },
+    requestPolicy: "cache-and-network",
+  });
+  const [, createNote] = useMutation(CreatePlacementNoteDocument);
+  const [, deleteNote] = useMutation(DeletePlacementNoteDocument);
+
+  const notes = notesResult.data?.placementNotes ?? [];
+
+  const post = () => {
+    const body = draft.trim();
+    if (!body) return;
+    void createNote({ input: { placementId, body } }).then((result) => {
+      if (result.error) {
+        onError(result.error.message);
+        return;
+      }
+      setDraft("");
+    });
+  };
+
+  return (
+    <section className="mt-3 border-t border-stone-300/60 pt-3">
+      <header className="mb-2 flex items-baseline justify-between">
+        <p className="text-xs uppercase tracking-wider text-stone-500">Notes</p>
+        <p className="text-[10px] text-stone-500">{placementLabel}</p>
+      </header>
+
+      {notes.length === 0 ? (
+        <p className="text-xs text-stone-500">No notes yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {notes.map((note) => (
+            <li
+              key={note.id}
+              className="rounded-md border border-stone-200/70 bg-white/80 p-2 text-xs text-stone-700"
+            >
+              <p className="font-medium text-stone-800">{note.authorDisplay}</p>
+              <p className="mt-0.5 text-[10px] text-stone-500">
+                {new Date(note.createdAt).toLocaleString()}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap">{note.body}</p>
+              {canEdit ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!window.confirm("Delete this note?")) return;
+                    void deleteNote({
+                      input: { noteId: note.id },
+                    }).then((result) => {
+                      if (result.error) onError(result.error.message);
+                    });
+                  }}
+                  className="mt-1 text-[10px] text-stone-500 hover:text-red-700"
+                >
+                  delete
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {canEdit ? (
+        <div className="mt-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add a note (cmd-enter to post)…"
+            rows={3}
+            className="w-full resize-y rounded border border-stone-300 bg-white px-2 py-1.5 text-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                post();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={post}
+            disabled={!draft.trim()}
+            className="mt-1 w-full rounded bg-stone-900 px-3 py-1.5 text-sm text-amber-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Post note
+          </button>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-stone-500">Sign in to post notes.</p>
+      )}
+    </section>
   );
 }

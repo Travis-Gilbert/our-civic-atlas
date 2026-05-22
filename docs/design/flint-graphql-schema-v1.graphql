@@ -607,6 +607,18 @@ type Query {
     tenantSlug: String! = "flint"
     eventSlug: String!
   ): [EventTask!]!
+
+  # ---- Phase 3: notes + bookmarks ----
+
+  placementNotes(
+    tenantSlug: String! = "flint"
+    placementId: ID!
+  ): [PlacementNote!]!
+
+  cameraBookmarks(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+  ): [CameraBookmark!]!
 }
 
 # -----------------------------------------------------------------------------
@@ -720,6 +732,90 @@ type Mutation {
   createTask(input: TaskCreateInput!): TaskMutationResult!
   updateTask(input: TaskUpdateInput!): TaskMutationResult!
   deleteTask(input: TaskDeleteInput!): TaskMutationResult!
+
+  # ---- Phase 3 ----
+
+  createPlacementNote(input: CreatePlacementNoteInput!): PlacementNoteMutationResult!
+  deletePlacementNote(input: DeletePlacementNoteInput!): PlacementNoteMutationResult!
+
+  createBookmark(input: BookmarkCreateInput!): BookmarkMutationResult!
+  updateBookmark(input: BookmarkUpdateInput!): BookmarkMutationResult!
+  deleteBookmark(input: BookmarkDeleteInput!): BookmarkMutationResult!
+}
+
+# -----------------------------------------------------------------------------
+# Phase 3: notes + bookmarks
+# -----------------------------------------------------------------------------
+
+type PlacementNote {
+  id: ID!
+  placementId: ID!
+  eventLayerId: ID!
+  authorUserId: ID!
+  authorDisplay: String!
+  body: String!
+  createdAt: DateTime!
+  version: Int!
+}
+
+type PlacementNoteMutationResult {
+  note: PlacementNote
+  deleted: Boolean!
+}
+
+input CreatePlacementNoteInput {
+  placementId: ID!
+  body: String!
+}
+
+input DeletePlacementNoteInput {
+  noteId: ID!
+}
+
+type CameraBookmark {
+  id: ID!
+  eventLayerId: ID!
+  name: String!
+  centerLng: Float!
+  centerLat: Float!
+  zoom: Float!
+  pitch: Float!
+  bearing: Float!
+  createdByUserId: ID
+  createdAt: DateTime!
+  version: Int!
+}
+
+type BookmarkMutationResult {
+  bookmark: CameraBookmark
+  staleWrite: Boolean!
+  deleted: Boolean!
+}
+
+input BookmarkCreateInput {
+  eventSlug: String!
+  name: String!
+  centerLng: Float!
+  centerLat: Float!
+  zoom: Float!
+  pitch: Float = 0
+  bearing: Float = 0
+}
+
+input BookmarkUpdateInput {
+  bookmarkId: ID!
+  expectedVersion: Int!
+  name: String
+  centerLng: Float
+  centerLat: Float
+  zoom: Float
+  pitch: Float
+  bearing: Float
+}
+
+input BookmarkDeleteInput {
+  bookmarkId: ID!
+  expectedVersion: Int!
 }
 
 # -----------------------------------------------------------------------------

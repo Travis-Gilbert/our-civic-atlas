@@ -41,6 +41,7 @@ import {
   PlannerLayerControls,
   type PlannerLayerVisibility,
 } from "@/components/atlas/PlannerLayerControls";
+import { PlannerBookmarks } from "@/components/atlas/PlannerBookmarks";
 import { PlannerTaskRail } from "@/components/atlas/PlannerTaskRail";
 import { PlannerClientProvider } from "@/lib/api/graphql/PlannerClientProvider";
 import { usePlannerStream } from "@/lib/atlas/plannerStream";
@@ -136,6 +137,20 @@ function PlannerClientInner({
   );
   const [toast, setToast] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
+  // Phase 3 — Map / 3D toggle. atlas == flat, oblique == tilted.
+  const [viewMode, setViewMode] = useState<"atlas" | "oblique">("atlas");
+  // Phase 3 — detect coarse-pointer (touch) clients to swap the
+  // palette to a bottom-sheet layout. matchMedia handles the live
+  // case (rotate, plug in mouse, etc.); SSR falls back to desktop.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 768px), (pointer: coarse)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // When edit is off, the palette should idle in view mode.
   useEffect(() => {
@@ -320,8 +335,9 @@ function PlannerClientInner({
           visibility[p.category as keyof PlannerLayerVisibility] !== false,
       ),
       onClickPlacement: handleClickPlacement,
+      viewMode: viewMode === "oblique" ? "oblique" : "flat",
     });
-  }, [plannerPlacements, visibility, handleClickPlacement]);
+  }, [plannerPlacements, visibility, handleClickPlacement, viewMode]);
 
   const extraDeckLayers = useMemo(
     () => (editableLayer ? [...readOnlyLayers, editableLayer] : readOnlyLayers),
@@ -377,10 +393,28 @@ function PlannerClientInner({
           setVisibility={setVisibility}
           placementCountByCategory={placementCountByCategory}
         />
-        <p className="mt-auto text-[10px] text-stone-500">
-          Edits write to Postgres and broadcast over SSE. Other planners see
-          your moves within a second.
-        </p>
+        <PlannerBookmarks
+          eventSlug={eventSlug}
+          mapRef={mapRef}
+          canEdit={canEdit}
+          onError={(message) => setToast(message)}
+        />
+        <form
+          action="/open-flint-atlas/plan/auth/sign-out"
+          method="post"
+          className="mt-auto"
+        >
+          <button
+            type="submit"
+            className="w-full rounded-md border border-stone-300 bg-white/70 px-3 py-1.5 text-xs text-stone-600 hover:border-stone-500"
+          >
+            Sign out
+          </button>
+          <p className="mt-2 text-[10px] text-stone-500">
+            Edits write to Postgres and broadcast over SSE. Other planners see
+            your moves within a second.
+          </p>
+        </form>
       </aside>
 
       <div className="planner-map relative flex-1">
@@ -389,18 +423,71 @@ function PlannerClientInner({
           events={[]}
           onPlaceSelect={() => {}}
           selectedPlaceId={null}
-          layerVisibility={{ osmBuildings: false, places: false }}
+          // OSM buildings only ride in oblique (3D) mode; in flat
+          // mode the carriage town basemap reads cleaner without
+          // extrusions.
+          layerVisibility={{
+            osmBuildings: viewMode === "oblique",
+            places: false,
+          }}
           initialBounds={CARRIAGE_TOWN_BOUNDS}
-          viewMode="atlas"
+          viewMode={viewMode}
+          mobileSurface={isMobile ? "planner_mobile" : undefined}
           onMapReady={(ref) => setMapRef(ref)}
           extraDeckLayers={extraDeckLayers}
         />
+        <div className="planner-top-chrome pointer-events-none absolute left-4 top-4 z-[20] flex gap-2">
+          <div className="pointer-events-auto flex gap-1 rounded-md border border-stone-300 bg-amber-50/95 p-1 text-xs shadow">
+            <button
+              type="button"
+              onClick={() => setViewMode("atlas")}
+              className={`rounded px-2 py-1 transition-colors ${
+                viewMode === "atlas"
+                  ? "bg-stone-900 text-amber-50"
+                  : "text-stone-700 hover:bg-stone-200/60"
+              }`}
+              aria-pressed={viewMode === "atlas"}
+            >
+              Map
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("oblique")}
+              className={`rounded px-2 py-1 transition-colors ${
+                viewMode === "oblique"
+                  ? "bg-stone-900 text-amber-50"
+                  : "text-stone-700 hover:bg-stone-200/60"
+              }`}
+              aria-pressed={viewMode === "oblique"}
+            >
+              3D
+            </button>
+          </div>
+          <a
+            href={`/open-flint-atlas/plan/${eventSlug}/print`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto rounded-md border border-stone-300 bg-amber-50/95 px-3 py-1.5 text-xs text-stone-700 shadow hover:border-stone-500"
+          >
+            Print
+          </a>
+        </div>
         {editEnabled ? (
-          <PlannerPalette
-            mode={paletteMode}
-            setMode={setPaletteMode}
-            canEdit={canEdit}
-          />
+          isMobile ? (
+            <div className="planner-bottom-sheet pointer-events-auto absolute inset-x-2 bottom-2 z-[20] rounded-t-lg border border-stone-300 bg-amber-50/95 shadow-lg">
+              <PlannerPalette
+                mode={paletteMode}
+                setMode={setPaletteMode}
+                canEdit={canEdit}
+              />
+            </div>
+          ) : (
+            <PlannerPalette
+              mode={paletteMode}
+              setMode={setPaletteMode}
+              canEdit={canEdit}
+            />
+          )
         ) : null}
         {toast ? (
           <div

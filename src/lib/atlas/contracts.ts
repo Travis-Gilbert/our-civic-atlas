@@ -267,7 +267,11 @@ export type ReadModelFormatsManifest = {
 
 export type MobileRuntimeSurfaceId =
   | "leaflet_baseline"
-  | "deck_mobile_candidate";
+  | "deck_mobile_candidate"
+  // Phase 3: porchfest planner mobile flavor. Drives the bottom-sheet
+  // palette + larger touch targets in PlannerClient. The default
+  // (desktop) surface stays leaflet_baseline.
+  | "planner_mobile";
 
 export type MobileRuntimeStatus =
   | "baseline_only"

@@ -1,0 +1,111 @@
+# Phase 3 — notes + bookmarks queries and mutations.
+#
+# Operations are grouped here (instead of split across multiple
+# files) because they share the same audience: the planner client
+# loads notes when a placement is selected and bookmarks on chrome
+# mount. Co-locating keeps the codegen import surface small.
+
+# ---- notes ----
+
+query PlacementNotes($tenantSlug: String! = "flint", $placementId: ID!) {
+  placementNotes(tenantSlug: $tenantSlug, placementId: $placementId) {
+    id
+    placementId
+    eventLayerId
+    authorUserId
+    authorDisplay
+    body
+    createdAt
+    version
+  }
+}
+
+mutation CreatePlacementNote($input: CreatePlacementNoteInput!) {
+  createPlacementNote(input: $input) {
+    note {
+      id
+      placementId
+      eventLayerId
+      authorUserId
+      authorDisplay
+      body
+      createdAt
+      version
+    }
+    deleted
+  }
+}
+
+mutation DeletePlacementNote($input: DeletePlacementNoteInput!) {
+  deletePlacementNote(input: $input) {
+    note {
+      id
+    }
+    deleted
+  }
+}
+
+# ---- bookmarks ----
+
+query CameraBookmarks($tenantSlug: String! = "flint", $eventSlug: String!) {
+  cameraBookmarks(tenantSlug: $tenantSlug, eventSlug: $eventSlug) {
+    id
+    eventLayerId
+    name
+    centerLng
+    centerLat
+    zoom
+    pitch
+    bearing
+    createdByUserId
+    createdAt
+    version
+  }
+}
+
+mutation CreateBookmark($input: BookmarkCreateInput!) {
+  createBookmark(input: $input) {
+    bookmark {
+      id
+      eventLayerId
+      name
+      centerLng
+      centerLat
+      zoom
+      pitch
+      bearing
+      createdByUserId
+      createdAt
+      version
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation UpdateBookmark($input: BookmarkUpdateInput!) {
+  updateBookmark(input: $input) {
+    bookmark {
+      id
+      name
+      centerLng
+      centerLat
+      zoom
+      pitch
+      bearing
+      version
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation DeleteBookmark($input: BookmarkDeleteInput!) {
+  deleteBookmark(input: $input) {
+    bookmark {
+      id
+    }
+    staleWrite
+    deleted
+  }
+}
