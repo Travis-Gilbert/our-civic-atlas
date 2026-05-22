@@ -560,43 +560,35 @@
   margin-top: 10px;
 }
 
+/*
+ * Scenario panel inside the dynamic island. The island IS the card —
+ * subsections are separated by hairline rules, never by nested card
+ * chrome (border + tinted background + radius). The prior layout
+ * stacked six card-styled subdivs inside the island, which produced
+ * the cards-inside-cards-inside-cards look. Each section here now
+ * inherits the island background and is delimited only by a top
+ * hairline + section padding.
+ */
+
 .civic-atlas .atlas-scenario-island {
   display: grid;
-  gap: 9px;
+  gap: 0;
 }
 
-.civic-atlas .atlas-scenario-island__hero {
+.civic-atlas .atlas-scenario-island__header {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.25);
-  padding: 9px;
-}
-
-.civic-atlas .atlas-scenario-island h2 {
-  margin: 2px 0 0;
-  overflow: hidden;
-  color: var(--ctx-ink);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 8px;
+  padding-bottom: 9px;
 }
 
 .civic-atlas .atlas-scenario-island__count {
-  align-self: start;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.34);
   color: var(--ctx-ink-soft);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 10px;
   line-height: 1;
-  padding: 6px 8px;
+  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
@@ -604,22 +596,26 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 4px;
+  /* No surrounding border / background / radius — the segment buttons
+     read as a group by virtue of their shared row and their own
+     active-state fill. */
 }
 
 .civic-atlas .atlas-scenario-island__segments button {
   min-width: 0;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
   color: var(--ctx-ink-soft);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
-  padding: 8px;
+  padding: 7px 8px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.civic-atlas .atlas-scenario-island__segments button:hover {
+  background: rgba(42, 36, 25, 0.05);
 }
 
 .civic-atlas .atlas-scenario-island__segments button[data-active="true"] {
@@ -633,76 +629,41 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+  border-top: 1px solid rgba(42, 36, 25, 0.08);
+  padding-top: 9px;
 }
 
 .civic-atlas .atlas-scenario-island__check {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.24);
+  /* Flat label, not a pill. The checkbox is the affordance. */
   color: var(--ctx-ink-soft);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 10px;
   letter-spacing: 0.1em;
   line-height: 1;
-  padding: 8px 10px;
+  padding: 4px 0;
   text-transform: uppercase;
 }
 
 .civic-atlas .atlas-scenario-island__compare select {
   min-width: 0;
   width: 100%;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(42, 36, 25, 0.12);
+  border-radius: 8px;
+  background: transparent;
   color: var(--ctx-ink);
   font-size: 12px;
   line-height: 1.2;
-  padding: 8px 10px;
-}
-
-.civic-atlas .atlas-scenario-island__chips {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 1px;
-}
-
-.civic-atlas .atlas-scenario-island__chips span {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 6px;
-  min-width: 136px;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.22);
-  color: var(--ctx-ink-soft);
-  font-size: 11px;
-  line-height: 1.15;
-  padding: 7px 8px;
-}
-
-.civic-atlas .atlas-scenario-island__chips i {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--atlas-envelope-swatch, var(--atlas-infrastructure));
-}
-
-.civic-atlas .atlas-scenario-island__chips strong {
-  color: var(--ctx-ink);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10px;
+  padding: 6px 8px;
 }
 
 .civic-atlas .atlas-scenario-island__slider,
 .civic-atlas .atlas-scenario-island__kpis {
   border-top: 1px solid rgba(42, 36, 25, 0.08);
   padding-top: 9px;
+  margin-top: 9px;
 }
 
 .civic-atlas .atlas-scenario-island__section-title {
@@ -733,16 +694,16 @@
 .civic-atlas .atlas-scenario-island__kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 10px;
   margin-top: 8px;
 }
 
 .civic-atlas .atlas-scenario-island__kpi {
   min-width: 0;
-  border: 1px solid rgba(42, 36, 25, 0.08);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.22);
-  padding: 8px 7px;
+  /* Flat rows — no per-cell border/background. The KPI grid reads as
+     three columns of label/value pairs aligned on a common baseline,
+     not as three little nested cards. */
+  padding: 0;
 }
 
 .civic-atlas .atlas-scenario-island__kpi span,

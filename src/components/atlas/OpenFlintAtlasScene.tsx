@@ -193,8 +193,16 @@ export function OpenFlintAtlasScene(props: {
   const [compareScenarioId, setCompareScenarioId] = useState("current");
   const [scenarioCompareEnabled, setScenarioCompareEnabled] = useState(false);
   const [draftHeightBoostM, setDraftHeightBoostM] = useState(0);
+  // Sketch model is the default render: every building reads as a uniform
+  // chipboard mass, with form distinguishing it instead of hue. Typology
+  // remains available as an opt-in overlay, but its colors derive from a
+  // classifier that does not yet exist (Phase A's LightGBM job on
+  // Ray/RunPod is the next track). Defaulting to typology surfaced 9
+  // saturated colors keyed to hash-modulo "form types" — the Lego carnival
+  // render. Sketch model tells the truth: same color everywhere, height
+  // and massing do the work.
   const [urbanDesignMaterialMode, setUrbanDesignMaterialMode] =
-    useState<UrbanDesignMaterialMode>("typology");
+    useState<UrbanDesignMaterialMode>("sketch_model");
   const [viewMode, setViewMode] = useState<AtlasSceneViewModeId>(() => {
     if (initialBookmark) {
       const bookmark = ATLAS_CAMERA_BOOKMARK_LOOKUP[initialBookmark];

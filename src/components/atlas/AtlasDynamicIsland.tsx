@@ -470,36 +470,41 @@ export function AtlasDynamicIsland({
               ) : null}
 
               {activeTab === "time" ? (
+                /*
+                 * Flat Time tab: no nested card chrome. The tab label
+                 * already names this surface (the eyebrow "NOW / Time
+                 * travel" was redundant), and the slider position +
+                 * caption are the canonical year display (the
+                 * giant 32px year heading was a second redundant
+                 * display). The historical-reconstruction count is
+                 * the one piece of context-only info worth surfacing,
+                 * pinned right under the slider caption.
+                 */
                 <section className="space-y-3">
-                  <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                      {atlasYear === null ? "Now" : "Time travel"}
-                    </p>
-                    <p className="mt-1 text-[32px] font-semibold leading-none text-[color:var(--ctx-ink)]">
-                      {atlasYear ?? "Now"}
-                    </p>
-                    {visibleHistoricalReconstructionCount !== null ? (
-                      <p className="mt-2 text-[12px] leading-[1.4] text-[color:var(--ctx-ink-soft)]">
-                        {visibleHistoricalReconstructionCount} / {totalHistoricalReconstructionCount} Lost Flint
-                      </p>
-                    ) : null}
-                    <label className="mt-3 block">
-                      <span className="sr-only">Set atlas year</span>
-                      <input
-                        type="range"
-                        min={ATLAS_TIME_MIN_YEAR}
-                        max={ATLAS_TIME_MAX_YEAR}
-                        value={timeSliderYear}
-                        onChange={(event) => onSearchValueChange(event.target.value)}
-                        className="w-full"
-                        style={{ accentColor: "var(--ctx-accent)" }}
-                      />
-                      <span className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                        <span>{ATLAS_TIME_MIN_YEAR}</span>
-                        <span>{ATLAS_TIME_MAX_YEAR}</span>
+                  <label className="block">
+                    <span className="sr-only">Set atlas year</span>
+                    <input
+                      type="range"
+                      min={ATLAS_TIME_MIN_YEAR}
+                      max={ATLAS_TIME_MAX_YEAR}
+                      value={timeSliderYear}
+                      onChange={(event) => onSearchValueChange(event.target.value)}
+                      className="w-full"
+                      style={{ accentColor: "var(--ctx-accent)" }}
+                    />
+                    <span className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                      <span>{ATLAS_TIME_MIN_YEAR}</span>
+                      <span className="text-[color:var(--ctx-ink)]">
+                        {atlasYear ?? "Now"}
                       </span>
-                    </label>
-                  </div>
+                      <span>{ATLAS_TIME_MAX_YEAR}</span>
+                    </span>
+                  </label>
+                  {visibleHistoricalReconstructionCount !== null ? (
+                    <p className="text-[12px] leading-[1.4] text-[color:var(--ctx-ink-soft)]">
+                      {visibleHistoricalReconstructionCount} / {totalHistoricalReconstructionCount} Lost Flint reconstructions visible
+                    </p>
+                  ) : null}
                   <div className="grid grid-cols-4 gap-2">
                     {["Now", "1925", "1950", "1975"].map((year) => (
                       <button
