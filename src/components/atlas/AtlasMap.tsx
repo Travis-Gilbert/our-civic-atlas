@@ -113,6 +113,13 @@ const BASEMAP_STYLE: StyleSpecification = {
 /*  generous enough to cover any practical viewport, cheap enough     */
 /*  that the mask polygon stays a handful of vertices.                */
 /* ------------------------------------------------------------------ */
+/* Cached terracotta boundary outline — the Flint city perimeter as a
+ * stroke-only layer. Spec PR 3: terracotta at alpha 180/255, width
+ * 1.5px. Module-level so we don't recompute it on every render.
+ */
+const FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION =
+  getAtlasBoundaryOutlineFeature();
+
 const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
   | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
   | null => {
@@ -1299,6 +1306,39 @@ export function AtlasMap({
           getLineColor: [242, 241, 236, 180],
           lineWidthMinPixels: 14,
           getLineWidth: 14,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Terracotta city perimeter. Spec PR 3: `--ctx-accent` at alpha
+     * 180/255, 1.5px. The boundary should suggest, not insist. Sits
+     * above the vignette mask but below the building layers so
+     * buildings near the perimeter still occlude the line where they
+     * extrude past it.
+     *
+     * Note: prior to PR 3 there was no dedicated city-perimeter layer
+     * in AtlasMap — the only "blue boundaries" on screen were the
+     * ward outlines (places layer), which are intrinsic to the place
+     * model and not recolored here. This new layer is the spec's
+     * "Flint emerges from the paper" affordance.
+     */
+    if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-flint-boundary-outline",
+          data: FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [193, 74, 44, 180],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
