@@ -127,9 +127,9 @@ function triNormal(v0: Vec3, v1: Vec3, v2: Vec3): Vec3 {
   const bx = v2[0] - v0[0];
   const by = v2[1] - v0[1];
   const bz = v2[2] - v0[2];
-  let nx = ay * bz - az * by;
-  let ny = az * bx - ax * bz;
-  let nz = ax * by - ay * bx;
+  const nx = ay * bz - az * by;
+  const ny = az * bx - ax * bz;
+  const nz = ax * by - ay * bx;
   const len = Math.hypot(nx, ny, nz) || 1;
   return [nx / len, ny / len, nz / len] as const;
 }
@@ -590,7 +590,7 @@ const geometryCache = new Map<BuildingFabricArchetype, Geometry>();
 export function getArchetypeGeometry(
   archetype: BuildingFabricArchetype,
 ): Geometry {
-  let cached = geometryCache.get(archetype);
+  const cached = geometryCache.get(archetype);
   if (cached) return cached;
 
   let geometry: Geometry;
