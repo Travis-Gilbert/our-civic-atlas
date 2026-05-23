@@ -611,8 +611,8 @@ function createFormParts(
   // the building's actual bearing.
   switch (spec.form_type) {
     case "courtyard_compact":
-      // Spec PR 2: 3 parts max. Closed perimeter mass + annular roof
-      // plane + courtyard yard (the inner ground signature detail).
+      // Spec PR 4 (map-body-and-discipline): flat roof + parapet edge,
+      // NO pitched geometry. Lift drops from +0.3m to +0.2m.
       add(
         orientedRectWithHole(oriented, 0.06, 0.06, 0.94, 0.94, 0.32, 0.32, 0.68, 0.68),
         "courtyard_ring",
@@ -622,7 +622,7 @@ function createFormParts(
         orientedRectWithHole(oriented, 0.08, 0.08, 0.92, 0.92, 0.32, 0.32, 0.68, 0.68),
         "roof_plane",
         "Compact courtyard roof",
-        spec.generated_height_m + 0.3,
+        spec.generated_height_m + 0.2,
       );
       add(
         orientedRect(oriented, 0.34, 0.34, 0.66, 0.66),
@@ -632,12 +632,9 @@ function createFormParts(
       );
       break;
     case "courtyard_open":
-      // Spec PR 2: 3 parts max. Collapse the prior street-wall + two
-      // wings into one L/U-shaped mass (perimeter with the front wall
-      // missing) + one roof plane on the same footprint + the open
-      // courtyard yard. The hole on the inside represents the open
-      // front side: roof + mass both have an inset rect at the front
-      // (low v) so the open face reads as a courtyard mouth.
+      // Spec PR 4: flat roof + parapet edge, NO pitched geometry.
+      // Lift drops from +0.3m to +0.2m. L/U-shaped mass (perimeter
+      // with the front wall missing) is unchanged from PR 2.
       add(
         orientedRectWithHole(oriented, 0.06, 0.08, 0.94, 0.9, 0.32, 0.34, 0.68, 0.84),
         "courtyard_ring",
@@ -647,7 +644,7 @@ function createFormParts(
         orientedRectWithHole(oriented, 0.08, 0.1, 0.92, 0.88, 0.32, 0.34, 0.68, 0.84),
         "roof_plane",
         "Open courtyard roof",
-        spec.generated_height_m + 0.3,
+        spec.generated_height_m + 0.2,
       );
       add(
         orientedRect(oriented, 0.32, 0.34, 0.68, 0.84),
@@ -657,35 +654,26 @@ function createFormParts(
       );
       break;
     case "slab":
-      // Spec PR 2: 3 parts max. Slab body + roof plane + ONE continuous
-      // parapet edge along the front. Slab runs along the front
-      // (u-axis), thin across depth — the long axis of a slab points
-      // along the street.
+      // Spec PR 4: flat roof + parapet line. Lift drops to +0.2m.
       add(orientedRect(oriented, 0.05, 0.36, 0.95, 0.64), "slab_bar", "Long slab");
       add(
         orientedRect(oriented, 0.06, 0.38, 0.94, 0.62),
         "roof_plane",
         "Slab roof",
-        spec.generated_height_m + 0.3,
+        spec.generated_height_m + 0.2,
       );
       add(
         orientedRect(oriented, 0.06, 0.34, 0.94, 0.38),
         "parapet",
         "Front parapet edge",
-        spec.generated_height_m + 0.3,
+        spec.generated_height_m + 0.2,
       );
       break;
     case "row_infill":
-      // Spec PR 2: 3 parts max. The per-unit decomposition (3-5 row
-      // bodies, 3-5 roofs, 2-4 party walls = up to 14 parts) is the
-      // worst paper-craft offender in the old model. Replace with:
-      //   1. ONE continuous row body
-      //   2. ONE continuous row roof
-      //   3. ONE single vertical party-wall hint line (the centerline,
-      //      a thin u-sliver standing in for the whole row's rhythm)
-      // The `createOrientedRowParts` helper is no longer called for
-      // this form, but kept in the file for the fabric detail pass and
-      // future per-unit re-introduction if needed.
+      // Spec PR 4: single continuous flat-pitched plane across all row
+      // units (NOT per-unit gables). The PR 2 implementation already
+      // emits one continuous flat plane; unchanged here. Lift stays
+      // +0.3m as called out explicitly by the new spec table.
       add(
         orientedRect(oriented, 0.05, 0.12, 0.95, 0.88),
         "row_unit",
@@ -705,20 +693,27 @@ function createFormParts(
       );
       break;
     case "single_lot":
-      // Spec PR 2: 3 parts max. Mass (house body) + Roof (gable plane
-      // and ridge collapsed into ONE topping plane, lifted +0.3m) +
-      // Detail (front porch). The prior 5-part decomposition (body,
-      // roof plane, separate ridge, front porch, rear ell) read as a
-      // paper-craft kit instead of a basswood chipboard model.
+      // Spec PR 4: "Flat gable with horizontal ridge — NOT pyramidal."
+      // Approximated in flat-top GeoJsonLayer extrusion as: a wide
+      // gable PLANE at eaves height (mass_top + 0.3) plus a narrow
+      // RIDGE strip along the longer footprint axis at mass_top + 0.6.
+      // Reads as a stepped low gable from above — residential-feeling,
+      // not pyramidal. This raises single_lot to 4 parts (mass + eaves
+      // + ridge + porch), explicitly overriding PR 2's 3-part-max for
+      // this form. The porch detail stays.
       add(orientedRect(oriented, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
       add(
         orientedRect(oriented, 0.18, 0.32, 0.82, 0.62),
         "roof_plane",
-        "Gable roof",
+        "Gable eaves plane",
         spec.generated_height_m + 0.3,
       );
-      // Detail: porch on the front edge (low v), centered along u
-      // (street-frontage). One signature detail per the spec table.
+      add(
+        orientedRect(oriented, 0.2, 0.45, 0.8, 0.49),
+        "roof_ridge",
+        "Gable ridge line",
+        spec.generated_height_m + 0.6,
+      );
       add(
         orientedRect(oriented, 0.36, 0.08, 0.64, 0.22),
         "front_porch",
@@ -727,27 +722,39 @@ function createFormParts(
       );
       break;
     case "industrial_shed":
-      // Spec PR 2: 2 parts total acceptable here. Shed body + ONE
-      // sawtooth piece oriented to the front edge. No separate
-      // parapet or monitor; the sawtooth IS the signature roof.
+      // Spec PR 4: FLAT ROOF only. No sawtooth, no monitor, no pitched
+      // geometry in this PR. Flint industrial buildings predominantly
+      // read flat. Sawtooth/monitor come back in a future phase when
+      // there's a classifier signal for them (e.g. tagged as a Buick
+      // warehouse vs generic industrial). 2 parts total: body + flat
+      // roof. Lift drops to +0.2m.
       add(orientedRect(oriented, 0.04, 0.06, 0.96, 0.94), "shed_body", "Industrial shed body");
       add(
-        orientedRect(oriented, 0.06, 0.18, 0.94, 0.86),
-        "sawtooth_roof",
-        "Sawtooth roof",
-        spec.generated_height_m + 0.3,
+        orientedRect(oriented, 0.06, 0.08, 0.94, 0.92),
+        "roof_plane",
+        "Industrial roof",
+        spec.generated_height_m + 0.2,
       );
       break;
     case "civic_anchor":
-      // Spec PR 2: 3 parts max. Body + ONE pitched/hipped roof + civic
-      // entry at the front edge. Drops the prior cross-wing in favor
-      // of a single roof plane.
+      // Spec PR 4: low-pitched hipped roof — gentle four-sided slope,
+      // NOT a steep pyramid. Approximated as: a wide eaves plane at
+      // mass_top + 0.2 (the perimeter slope) plus a centered plateau
+      // at mass_top + 0.5 (the converging top, ~0.4×footprint per
+      // axis, NOT a single point). Plus civic_entry detail. 4 parts.
+      // Explicitly overrides PR 2's 3-part-max for this form.
       add(orientedRect(oriented, 0.18, 0.16, 0.82, 0.84), "civic_body", "Civic body");
       add(
         orientedRect(oriented, 0.2, 0.2, 0.8, 0.8),
-        "civic_roof",
-        "Civic roof",
-        spec.generated_height_m + 0.3,
+        "roof_plane",
+        "Hipped eaves plane",
+        spec.generated_height_m + 0.2,
+      );
+      add(
+        orientedRect(oriented, 0.4, 0.4, 0.6, 0.6),
+        "roof_ridge",
+        "Hipped plateau",
+        spec.generated_height_m + 0.5,
       );
       add(
         orientedRect(oriented, 0.4, 0.06, 0.6, 0.16),
@@ -757,9 +764,8 @@ function createFormParts(
       );
       break;
     case "mixed_use_street_wall":
-      // Spec PR 2: 3 parts max. Street wall body + cornice band + ONE
-      // continuous storefront strip at ground (not per-bay). Drops
-      // the prior rear wing in favor of the storefront strip signature.
+      // Spec PR 4: flat roof with parapet line as the detail. Cornice
+      // band repurposed as the parapet line. Lift drops to +0.2m.
       add(
         orientedRect(oriented, 0.06, 0.06, 0.94, 0.38),
         "street_wall",
@@ -767,9 +773,9 @@ function createFormParts(
       );
       add(
         orientedRect(oriented, 0.06, 0.34, 0.94, 0.4),
-        "cornice_band",
-        "Street-wall cornice",
-        spec.generated_height_m + 0.3,
+        "parapet",
+        "Street-wall parapet",
+        spec.generated_height_m + 0.2,
       );
       add(
         orientedRect(oriented, 0.1, 0.04, 0.9, 0.1),
@@ -779,8 +785,11 @@ function createFormParts(
       );
       break;
     case "tower_podium":
-      // Spec PR 2: 3 parts max — exception form where the tower IS the
-      // detail (a second mass). Podium + podium roof + tower.
+      // Spec PR 4: tower roof flat, podium roof flat. Two flat planes
+      // at different heights. Tower body sits at full height — the
+      // "tower roof" is the top of the tower mass (no separate plane
+      // needed because the tower is itself extruded flat). Lift drops
+      // to +0.2m for the podium roof.
       add(
         orientedRect(oriented, 0.08, 0.08, 0.92, 0.92),
         "podium",
@@ -791,7 +800,7 @@ function createFormParts(
         orientedRect(oriented, 0.1, 0.1, 0.9, 0.9),
         "roof_plane",
         "Podium roof",
-        spec.generated_height_m * 0.45 + 0.3,
+        spec.generated_height_m * 0.45 + 0.2,
       );
       add(
         orientedRect(oriented, 0.34, 0.34, 0.66, 0.72),

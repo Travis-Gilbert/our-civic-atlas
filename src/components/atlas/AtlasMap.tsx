@@ -12,6 +12,7 @@ import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
+import { PathStyleExtension } from "@deck.gl/extensions";
 import difference from "@turf/difference";
 import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
@@ -20,6 +21,7 @@ import {
   getAtlasBoundaryOutlineFeature,
 } from "@/lib/atlas/atlas-boundary";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
+import osmInfrastructure from "@/data/open-flint-atlas/fixtures/osm-infrastructure.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
@@ -119,6 +121,57 @@ const BASEMAP_STYLE: StyleSpecification = {
  */
 const FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION =
   getAtlasBoundaryOutlineFeature();
+
+/* ------------------------------------------------------------------ */
+/*  Infrastructure layers (PR 4)                                       */
+/*                                                                     */
+/*  Parks, water bodies + waterways, rail (active and disused), and    */
+/*  highway corridors. Sourced from OSM via                            */
+/*  `scripts/fetch-osm-infrastructure.mjs`. Each feature carries a     */
+/*  `properties.layer_class` tag so the renderer can partition by      */
+/*  class without re-tag-matching every render. Partitioning happens   */
+/*  once at module load (the fixture is static). Spec:                 */
+/*  docs/design-2026-05-map-body-discipline.md Change 3.               */
+/* ------------------------------------------------------------------ */
+
+type InfrastructureLayerClass =
+  | "park"
+  | "water_body"
+  | "water_way"
+  | "rail_active"
+  | "rail_disused"
+  | "highway_corridor";
+
+type InfrastructureFeature = GeoJSON.Feature<
+  GeoJSON.Polygon | GeoJSON.LineString,
+  { osm_id: number; layer_class: InfrastructureLayerClass; name: string | null }
+>;
+
+const OSM_INFRASTRUCTURE = osmInfrastructure as unknown as GeoJSON.FeatureCollection<
+  GeoJSON.Polygon | GeoJSON.LineString,
+  InfrastructureFeature["properties"]
+>;
+
+function partitionInfrastructure(
+  klass: InfrastructureLayerClass,
+): GeoJSON.FeatureCollection<
+  GeoJSON.Polygon | GeoJSON.LineString,
+  InfrastructureFeature["properties"]
+> {
+  return {
+    type: "FeatureCollection",
+    features: OSM_INFRASTRUCTURE.features.filter(
+      (f) => f.properties.layer_class === klass,
+    ),
+  };
+}
+
+const OSM_PARKS = partitionInfrastructure("park");
+const OSM_WATER_BODIES = partitionInfrastructure("water_body");
+const OSM_WATERWAYS = partitionInfrastructure("water_way");
+const OSM_RAIL_ACTIVE = partitionInfrastructure("rail_active");
+const OSM_RAIL_DISUSED = partitionInfrastructure("rail_disused");
+const OSM_HIGHWAY_CORRIDORS = partitionInfrastructure("highway_corridor");
 
 const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
   | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
@@ -653,17 +706,21 @@ function clampByte(value: number): number {
  * confident. The threshold (0.5) matches Phase A spec §10 MUST.
  */
 function applyFabricCompletenessAlpha(
-  props: UrbanDesignModelProperties,
+  _props: UrbanDesignModelProperties,
   color: [number, number, number, number],
 ): [number, number, number, number] {
-  const fabricConfidence = props.fabric_feature_completeness;
-  const typologyConfidence =
-    typeof props.typology_confidence === "number"
-      ? props.typology_confidence
-      : 1.0;
-  const effectiveConfidence = Math.min(fabricConfidence, typologyConfidence);
-  if (effectiveConfidence >= 0.5) return color;
-  return [color[0], color[1], color[2], Math.max(78, color[3] - 56)];
+  // Spec PR 4 confidence-discipline rule: "Confidence shapes WHAT we
+  // render, never HOW." Previously this function dimmed alpha when
+  // typology_confidence or fabric_feature_completeness fell below
+  // 0.5, letting the chrome editorialise about classifier uncertainty.
+  // The new rule routes confidence to archetype selection upstream
+  // (high confidence -> use predicted typology, low confidence ->
+  // fall back to `unknown` as a plain chipboard mass). Once that
+  // decision is made the building renders at full chrome alpha. Kept
+  // as a pass-through so the five call-sites stay structurally
+  // compatible; renaming it across the file is outside this PR's
+  // render+chrome scope.
+  return color;
 }
 
 function smoothstep(edge0: number, edge1: number, value: number): number {
@@ -1295,15 +1352,16 @@ export function AtlasMap({
     const result: Layer[] = [];
 
     /*
-     * Bound-world vignette mask. Spec PR 3: pushed first so it sits
-     * directly above the basemap raster (the carto-base style layer)
-     * and below every deck.gl building/place/event layer. The fill at
-     * alpha 220/255 leaves ~14% of the surrounding basemap visible
-     * (faint ghosts of Frankenmuth / Burton / Mt Morris labels and
-     * roads, since those are baked into the raster tiles). The 14px
-     * line at alpha 180/255 acts as a poor-man's feathered edge — a
-     * true gaussian feather would require a custom layer shader; this
-     * substitute is cheap and reads as a soft transition.
+     * Bound-world vignette mask. Spec PR 3 introduced this; PR 4
+     * (map-body-and-discipline) walks back its opacity so Flint is
+     * "lit against something, not floating in nothing." Fill drops
+     * from alpha 220 to 160 (surrounding basemap goes from ~14%
+     * visible to ~37% visible — faint Frankenmuth / Mt Morris /
+     * Burton / Clio labels readable as ghosts, Flint River trace
+     * visible upstream and downstream, major highways outside Flint
+     * barely visible). Boundary band line drops 180 to 140 (softer
+     * feather). Still the poor-man's substitute for a true gaussian
+     * edge, just dialed back.
      */
     if (BOUND_WORLD_MASK_FEATURE_COLLECTION) {
       result.push(
@@ -1314,8 +1372,8 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [242, 241, 236, 220],
-          getLineColor: [242, 241, 236, 180],
+          getFillColor: [242, 241, 236, 160],
+          getLineColor: [242, 241, 236, 140],
           lineWidthMinPixels: 14,
           getLineWidth: 14,
           parameters: {
@@ -1327,25 +1385,182 @@ export function AtlasMap({
     }
 
     /*
+     * Parks and green space. Spec PR 4 Change 3: OSM features tagged
+     * `leisure=park|garden`, `landuse=recreation_ground|cemetery`.
+     * Sage green fill #9eb89e at alpha 140 + stroke #7d9a7d 0.5px
+     * alpha 100. Pushed above the vignette mask so parks inside Flint
+     * read as visibly green; parks outside Flint are muted by the
+     * mask above the basemap.
+     */
+    if (OSM_PARKS.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-parks",
+          data: OSM_PARKS,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: false,
+          getFillColor: [158, 184, 158, 140],
+          getLineColor: [125, 154, 125, 100],
+          lineWidthMinPixels: 0.5,
+          getLineWidth: 0.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Water bodies. Spec PR 4 Change 3: `natural=water`. Cool slate
+     * fill #6b8a9e at alpha 140 + stroke #5a7585 1px alpha 180. Pushed
+     * after parks so water sits visibly above any park polygon it
+     * overlaps with (e.g. ponds inside parks).
+     */
+    if (OSM_WATER_BODIES.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-water-bodies",
+          data: OSM_WATER_BODIES,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: false,
+          getFillColor: [107, 138, 158, 140],
+          getLineColor: [90, 117, 133, 180],
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Waterways (Flint River system). Spec PR 4 Change 3:
+     * `waterway=*`. Cool slate #6b8a9e at alpha 200, 2-3px line.
+     * Should read as the second-most visible feature on the map after
+     * the city boundary — currently nearly invisible without this
+     * layer.
+     */
+    if (OSM_WATERWAYS.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-waterways",
+          data: OSM_WATERWAYS,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [107, 138, 158, 200],
+          lineWidthMinPixels: 2,
+          lineWidthMaxPixels: 3,
+          getLineWidth: 2.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Active rail lines. Spec PR 4 Change 3: `railway=rail` at
+     * #7a6a52 alpha 180, 1.5px line. Renders solid (no dash).
+     */
+    if (OSM_RAIL_ACTIVE.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-rail-active",
+          data: OSM_RAIL_ACTIVE,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [122, 106, 82, 180],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Disused / abandoned rail lines. Spec PR 4 Change 3: same warm
+     * gray-brown #7a6a52 alpha 180 1.5px BUT dashed (4px on, 3px off)
+     * via PathStyleExtension. Significant for Flint's industrial
+     * history — abandoned beds carry meaning the active grid doesn't.
+     */
+    if (OSM_RAIL_DISUSED.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-rail-disused",
+          data: OSM_RAIL_DISUSED,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [122, 106, 82, 180],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          getDashArray: [4, 3],
+          dashJustified: true,
+          extensions: [new PathStyleExtension({ dash: true })],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Highway corridors. Spec PR 4 Change 3: `highway=motorway|trunk`
+     * at #b8a888 alpha 100, 4px line. For I-475, UAW Freeway,
+     * Chevrolet-Buick Freeway. Reads as visible corridors against the
+     * dialed-back vignette, not as basemap ghosts. No labels rendered
+     * by this layer — the basemap raster handles those.
+     */
+    if (OSM_HIGHWAY_CORRIDORS.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-highway-corridors",
+          data: OSM_HIGHWAY_CORRIDORS,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [184, 168, 136, 100],
+          lineWidthMinPixels: 4,
+          getLineWidth: 4,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
      * Terracotta city perimeter. Spec PR 3: `--ctx-accent` at alpha
      * 180/255, 1.5px. The boundary should suggest, not insist. Sits
-     * above the vignette mask but below the building layers so
-     * buildings near the perimeter still occlude the line where they
-     * extrude past it.
-     *
-     * Note: prior to PR 3 there was no dedicated city-perimeter layer
-     * in AtlasMap — the only "blue boundaries" on screen were the
-     * ward outlines (places layer), which are intrinsic to the place
-     * model and not recolored here. This new layer is the spec's
-     * "Flint emerges from the paper" affordance.
-     *
-     * The 3px inner-glow layer immediately precedes the 1.5px line
-     * so the boundary reads with a faint terracotta halo from inside
-     * Flint — pushed in this order so the sharp 1.5px line wins the
-     * top of the stack. Spec PR 3 marks the inner glow as optional /
-     * recommended; included here for the "lit island" affordance.
+     * Spec PR 4 layer-order table puts both boundary layers ABOVE
+     * the building stack so the perimeter wins the top of the render
+     * (Flint emerges from paper, not occluded by skyline). The pushes
+     * have moved further down in this function — see the
+     * `pushBoundaryLayers` invocation after the buildingFabric block.
      */
-    if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length > 0) {
+    function pushBoundaryLayers() {
+      if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length === 0) {
+        return;
+      }
       result.push(
         new GeoJsonLayer({
           id: "atlas-flint-boundary-inner-glow",
@@ -1640,6 +1855,13 @@ export function AtlasMap({
         }),
       );
     }
+
+    // Spec PR 4 layer-order table: city boundary stroke + inner glow
+    // render ABOVE the building stack. Pushed here, after the last
+    // building layer (buildingFabric), so the terracotta perimeter
+    // wins the top of the render and Flint reads as a lit island
+    // emerging from the paper without skyline occlusion.
+    pushBoundaryLayers();
 
     if (
       scenarioEnvelopeFeatures &&
@@ -1961,14 +2183,16 @@ export function AtlasMap({
             maxWidth: 220,
           }}
         >
+          {/*
+            Spec PR 4 confidence-discipline rule: hover tooltip shows
+            what the building IS (the noun-phrase typology) and where
+            (address or osm_id fallback). No confidence percentage —
+            once the archetype was selected upstream, the chrome
+            commits to it.
+          */}
           <div className="text-[color:var(--ctx-ink)]">
             {hoverState.building.typology_class ?? "Unclassified"}
           </div>
-          {typeof hoverState.building.typology_confidence === "number" ? (
-            <div className="text-[color:var(--ctx-ink-mute)]">
-              {`${Math.round(hoverState.building.typology_confidence * 100)}% confidence`}
-            </div>
-          ) : null}
           <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
             {hoverState.building.address ?? `Building #${hoverState.building.osm_id}`}
           </div>

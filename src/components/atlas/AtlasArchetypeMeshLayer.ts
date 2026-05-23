@@ -243,22 +243,25 @@ const ARCHETYPE_TONE_NUDGE: Record<
 
 function archetypeColor(
   archetype: BuildingFabricArchetype,
-  confidence: number,
+  _confidence: number,
 ): [number, number, number, number] {
+  // Spec PR 4 confidence-discipline rule: "Confidence shapes WHAT we
+  // render, never HOW." The prior implementation mapped confidence to
+  // alpha (low confidence = dimmer). That makes the chrome editorialise
+  // the classifier's uncertainty inline, which the new rule forbids.
+  // Confidence still routes to archetype selection upstream — the
+  // classifier and promotion pipeline decide whether to use the
+  // predicted archetype or fall back to `unknown` — but once the
+  // archetype is chosen the building renders at full chrome alpha.
+  // `_confidence` is retained as a parameter only for the call-site
+  // signature; the void reference is just to silence the unused-vars
+  // lint rule (which doesn't honor the leading underscore here).
+  void _confidence;
   const nudge = ARCHETYPE_TONE_NUDGE[archetype];
   const r = Math.max(0, Math.min(255, SKETCH_TONE_MASS[0] + nudge[0]));
   const g = Math.max(0, Math.min(255, SKETCH_TONE_MASS[1] + nudge[1]));
   const b = Math.max(0, Math.min(255, SKETCH_TONE_MASS[2] + nudge[2]));
-  // Confidence below 0.5 drops alpha down to 152 (matches the existing
-  // applyFabricCompletenessAlpha curve), telling the eye "we're less
-  // sure about this one." At full confidence we get the full SKETCH
-  // alpha.
-  const minAlpha = 152;
-  const maxAlpha = SKETCH_TONE_MASS[3];
-  const alpha = Math.round(
-    minAlpha + (maxAlpha - minAlpha) * Math.max(0, Math.min(1, confidence)),
-  );
-  return [r, g, b, alpha];
+  return [r, g, b, SKETCH_TONE_MASS[3]];
 }
 
 /* ------------------------------------------------------------------ */
