@@ -103,6 +103,16 @@ export const BUILDING_FABRIC_LOD = {
   extrusionMinZoom: 13,
   fabricFadeStartZoom: 15.2,
   fabricFullZoom: 16,
+  /**
+   * Zoom at which the procedural archetype mesh layer (sloped roofs,
+   * sawtooth, parapet, storefront recess) takes over from the flat
+   * GeoJsonLayer extrusion. Below this zoom, individual roof profiles
+   * are too small to read against the substrate, and the simpler
+   * GeoJsonLayer extrusion renders faster (one draw call instead of
+   * one per archetype). Above this zoom, the roof profiles become
+   * visible and dominate the silhouette read.
+   */
+  proceduralMeshMinZoom: 15,
 } as const;
 
 export const BUILDING_FABRIC_HEIGHT_PRIORS =

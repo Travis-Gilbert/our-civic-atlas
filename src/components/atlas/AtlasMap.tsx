@@ -15,6 +15,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
+import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
 import type {
   ScenarioDeltaProperties,
@@ -944,6 +945,15 @@ export function AtlasMap({
     const fabricOpacity = buildingFabricVisible ? fabricFade : 0;
     const urbanExtruded =
       viewMode !== "atlas" && mapZoom >= BUILDING_FABRIC_LOD.extrusionMinZoom;
+    // At residential zoom (>= 15) we replace the flat GeoJsonLayer
+    // mass extrusion with a procedural archetype mesh layer (gable,
+    // hipped, sawtooth, parapet, storefront). The GeoJsonLayer reads
+    // as "Lego brick" once individual houses are visible; the
+    // procedural mesh carries roof profile.
+    const useProceduralMesh =
+      urbanDesignModelVisible &&
+      urbanExtruded &&
+      mapZoom >= BUILDING_FABRIC_LOD.proceduralMeshMinZoom;
     const placesAsCivicContext =
       urbanDesignModelVisible && viewMode !== "atlas";
 
@@ -1052,8 +1062,12 @@ export function AtlasMap({
       );
     }
 
+    // GeoJsonLayer mass extrusion: renders the flat-topped building
+    // body at mid-zoom (13 <= z < 15). At z >= 15 the procedural
+    // archetype mesh layer (mounted below) takes over so individual
+    // houses get real roof profiles instead of flat tops.
     if (
-      urbanDesignModelVisible
+      urbanDesignModelVisible && !useProceduralMesh
     ) {
       result.push(
         new GeoJsonLayer<UrbanDesignModelProperties>({
@@ -1097,6 +1111,22 @@ export function AtlasMap({
           },
         }),
       );
+    }
+
+    // Procedural archetype mesh layers (one per archetype). Takes over
+    // from the GeoJsonLayer mass extrusion at zoom >= 15 so individual
+    // buildings carry their typology's roof profile (gable, hipped,
+    // sawtooth, parapet, storefront) instead of all reading as flat
+    // boxes. See AtlasArchetypeMeshLayer for the per-archetype mesh
+    // catalog and instance derivation.
+    if (useProceduralMesh) {
+      const meshLayers = buildArchetypeMeshLayersFromCollection(
+        urbanDesignMassModel,
+        { pickable: true },
+      );
+      for (const meshLayer of meshLayers) {
+        result.push(meshLayer);
+      }
     }
 
     if (buildingFabricVisible && fabricOpacity > 0.01) {
