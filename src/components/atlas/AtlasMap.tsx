@@ -12,6 +12,7 @@ import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
+import { PathStyleExtension } from "@deck.gl/extensions";
 import difference from "@turf/difference";
 import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
@@ -1452,25 +1453,98 @@ export function AtlasMap({
     }
 
     /*
+     * Active rail lines. Spec PR 4 Change 3: `railway=rail` at
+     * #7a6a52 alpha 180, 1.5px line. Renders solid (no dash).
+     */
+    if (OSM_RAIL_ACTIVE.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-rail-active",
+          data: OSM_RAIL_ACTIVE,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [122, 106, 82, 180],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Disused / abandoned rail lines. Spec PR 4 Change 3: same warm
+     * gray-brown #7a6a52 alpha 180 1.5px BUT dashed (4px on, 3px off)
+     * via PathStyleExtension. Significant for Flint's industrial
+     * history — abandoned beds carry meaning the active grid doesn't.
+     */
+    if (OSM_RAIL_DISUSED.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-rail-disused",
+          data: OSM_RAIL_DISUSED,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [122, 106, 82, 180],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          getDashArray: [4, 3],
+          dashJustified: true,
+          extensions: [new PathStyleExtension({ dash: true })],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Highway corridors. Spec PR 4 Change 3: `highway=motorway|trunk`
+     * at #b8a888 alpha 100, 4px line. For I-475, UAW Freeway,
+     * Chevrolet-Buick Freeway. Reads as visible corridors against the
+     * dialed-back vignette, not as basemap ghosts. No labels rendered
+     * by this layer — the basemap raster handles those.
+     */
+    if (OSM_HIGHWAY_CORRIDORS.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-highway-corridors",
+          data: OSM_HIGHWAY_CORRIDORS,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [184, 168, 136, 100],
+          lineWidthMinPixels: 4,
+          getLineWidth: 4,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
      * Terracotta city perimeter. Spec PR 3: `--ctx-accent` at alpha
      * 180/255, 1.5px. The boundary should suggest, not insist. Sits
-     * above the vignette mask but below the building layers so
-     * buildings near the perimeter still occlude the line where they
-     * extrude past it.
-     *
-     * Note: prior to PR 3 there was no dedicated city-perimeter layer
-     * in AtlasMap — the only "blue boundaries" on screen were the
-     * ward outlines (places layer), which are intrinsic to the place
-     * model and not recolored here. This new layer is the spec's
-     * "Flint emerges from the paper" affordance.
-     *
-     * The 3px inner-glow layer immediately precedes the 1.5px line
-     * so the boundary reads with a faint terracotta halo from inside
-     * Flint — pushed in this order so the sharp 1.5px line wins the
-     * top of the stack. Spec PR 3 marks the inner glow as optional /
-     * recommended; included here for the "lit island" affordance.
+     * Spec PR 4 layer-order table puts both boundary layers ABOVE
+     * the building stack so the perimeter wins the top of the render
+     * (Flint emerges from paper, not occluded by skyline). The pushes
+     * have moved further down in this function — see the
+     * `pushBoundaryLayers` invocation after the buildingFabric block.
      */
-    if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length > 0) {
+    function pushBoundaryLayers() {
+      if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length === 0) {
+        return;
+      }
       result.push(
         new GeoJsonLayer({
           id: "atlas-flint-boundary-inner-glow",
@@ -1765,6 +1839,13 @@ export function AtlasMap({
         }),
       );
     }
+
+    // Spec PR 4 layer-order table: city boundary stroke + inner glow
+    // render ABOVE the building stack. Pushed here, after the last
+    // building layer (buildingFabric), so the terracotta perimeter
+    // wins the top of the render and Flint reads as a lit island
+    // emerging from the paper without skyline occlusion.
+    pushBoundaryLayers();
 
     if (
       scenarioEnvelopeFeatures &&
