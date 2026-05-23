@@ -297,6 +297,11 @@ export type ArchetypeMeshLayerOptions = {
    * design model. Spec: PR 1 building click interactions.
    */
   onClick?: (info: PickingInfo) => boolean | void;
+  /**
+   * Per-layer hover handler. Same payload shape as `onClick`. Spec PR 1:
+   * desktop-only hover hint outline + tooltip.
+   */
+  onHover?: (info: PickingInfo) => boolean | void;
 };
 
 const DEFAULT_MATERIAL: ArchetypeMeshLayerOptions["material"] = {
@@ -324,6 +329,7 @@ export function buildArchetypeMeshLayers(
     pickable = true,
     material = DEFAULT_MATERIAL,
     onClick,
+    onHover,
   } = options;
 
   // Group by archetype so each layer carries one geometry.
@@ -347,6 +353,7 @@ export function buildArchetypeMeshLayers(
         sizeScale,
         pickable,
         onClick,
+        onHover,
         // Centroid: SimpleMeshLayer treats [lng, lat] as the
         // instance origin. The mesh extends in [-0.5, +0.5] on each
         // axis BEFORE getScale; after scaling by [widthM, depthM,

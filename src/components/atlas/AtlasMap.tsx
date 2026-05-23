@@ -726,6 +726,41 @@ export function AtlasMap({
   const [mapZoom, setMapZoom] = useState(camera.zoom);
   const appliedMobileFitKeyRef = useRef<string | null>(null);
 
+  /*
+   * Hover capability detection. Spec PR 1: hover state (1px terracotta
+   * outline + tooltip) is desktop-only. Touch devices treat the touch
+   * event as the click and skip hover handling entirely.
+   *
+   * matchMedia(`(hover: hover)`) is the canonical test for "the primary
+   * input device can hover" — true for mouse / trackpad, false for
+   * touchscreens. Initialised to false on the server so SSR never
+   * generates hover affordances that would be wrong on touch devices.
+   */
+  const [canHover, setCanHover] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia("(hover: hover)");
+    setCanHover(mql.matches);
+    const listener = (event: MediaQueryListEvent) => setCanHover(event.matches);
+    mql.addEventListener("change", listener);
+    return () => mql.removeEventListener("change", listener);
+  }, []);
+
+  /*
+   * Hover state for the building layers. Carries the resolved
+   * `SelectedBuilding` payload (so the tooltip can render typology +
+   * confidence + address without a second pick) and the cursor x/y
+   * (PickingInfo screen-space coords, in CSS pixels relative to the
+   * map container). Cleared whenever the cursor leaves a building
+   * footprint. Spec PR 1.
+   */
+  type HoverState = {
+    building: SelectedBuilding;
+    x: number;
+    y: number;
+  };
+  const [hoverState, setHoverState] = useState<HoverState | null>(null);
+
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
     return {
@@ -960,6 +995,43 @@ export function AtlasMap({
     return null;
   }, [selectedBuilding, urbanDesignMassModel, visibleOsmBuildings]);
 
+  /*
+   * Hovered-building footprint, used for the soft 1px hint outline.
+   * Renders only when the hover target is distinct from the selected
+   * building, so the heavier selection outline always wins. Same
+   * lookup pattern as `selectedBuildingFeatureCollection`. Spec PR 1.
+   */
+  const hoveredBuildingFeatureCollection = useMemo<GeoJSON.FeatureCollection<
+    GeoJSON.Geometry
+  > | null>(() => {
+    if (!hoverState) return null;
+    if (
+      selectedBuilding &&
+      String(selectedBuilding.osm_id) === String(hoverState.building.osm_id)
+    ) {
+      return null;
+    }
+    const osmIdStr = String(hoverState.building.osm_id);
+    const fromUrbanModel = urbanDesignMassModel.features.find(
+      (f) => String(f.properties.source_osm_id) === osmIdStr,
+    );
+    if (fromUrbanModel) {
+      return { type: "FeatureCollection", features: [fromUrbanModel] };
+    }
+    const fromOsm = (
+      visibleOsmBuildings as GeoJSON.FeatureCollection
+    ).features.find(
+      (f) =>
+        String(
+          (f.properties as OsmFootprintProperties | null)?.osm_id ?? "",
+        ) === osmIdStr,
+    );
+    if (fromOsm) {
+      return { type: "FeatureCollection", features: [fromOsm] };
+    }
+    return null;
+  }, [hoverState, selectedBuilding, urbanDesignMassModel, visibleOsmBuildings]);
+
   /* ---- Click handler ---------------------------------------------- */
   const handleClick = useCallback(
     (info: PickingInfo) => {
@@ -1063,6 +1135,87 @@ export function AtlasMap({
     [onBuildingSelect],
   );
 
+  /*
+   * Hover handler shared by all three building layers. Mirrors the
+   * normalisation logic in `handleBuildingClick`. Updates the screen-
+   * positioned tooltip + the 1px terracotta hint outline. Returning
+   * `true` is unnecessary here — hover events don't propagate to a
+   * top-level handler in the same way clicks do. Spec PR 1.
+   */
+  const handleBuildingHover = useCallback(
+    (info: PickingInfo) => {
+      if (!canHover) return;
+      if (!info.object) {
+        setHoverState(null);
+        return;
+      }
+      const candidate = info.object as {
+        anchorFeature?: GeoJSON.Feature;
+        properties?: Record<string, unknown>;
+        geometry?: GeoJSON.Geometry;
+      };
+      const feature: GeoJSON.Feature | undefined = candidate.anchorFeature
+        ? candidate.anchorFeature
+        : candidate.properties
+          ? (candidate as unknown as GeoJSON.Feature)
+          : undefined;
+      if (!feature || !feature.properties) {
+        setHoverState(null);
+        return;
+      }
+      const props = feature.properties as Record<string, unknown>;
+      const rawOsmId = props.osm_id ?? props.source_osm_id;
+      if (rawOsmId === undefined || rawOsmId === null) {
+        setHoverState(null);
+        return;
+      }
+      const position =
+        geometryCentroid(feature.geometry) ??
+        (info.coordinate
+          ? ([info.coordinate[0], info.coordinate[1]] as [number, number])
+          : null);
+      if (!position) {
+        setHoverState(null);
+        return;
+      }
+      setHoverState({
+        building: {
+          osm_id: rawOsmId as string | number,
+          name:
+            typeof props.name === "string" && props.name.trim().length > 0
+              ? props.name.trim()
+              : null,
+          address:
+            typeof props.address === "string" && props.address.trim().length > 0
+              ? props.address.trim()
+              : null,
+          typology_class:
+            typeof props.typology_class === "string"
+              ? props.typology_class
+              : null,
+          typology_confidence:
+            typeof props.typology_confidence === "number"
+              ? props.typology_confidence
+              : null,
+          fabric_archetype:
+            typeof props.fabric_archetype === "string"
+              ? props.fabric_archetype
+              : null,
+          position,
+        },
+        x: info.x,
+        y: info.y,
+      });
+    },
+    [canHover],
+  );
+
+  // Clear hover state immediately if hover capability flips off (rare,
+  // but happens when a paired Bluetooth mouse disconnects on a tablet).
+  useEffect(() => {
+    if (!canHover) setHoverState(null);
+  }, [canHover]);
+
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
     const result: Layer[] = [];
@@ -1113,6 +1266,7 @@ export function AtlasMap({
           data: visibleOsmBuildings,
           pickable: true,
           onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
           stroked: false,
           filled: true,
           extruded: true,
@@ -1217,6 +1371,7 @@ export function AtlasMap({
           data: urbanDesignMassModel,
           pickable: true,
           onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
           stroked: true,
           filled: true,
           extruded: urbanExtruded,
@@ -1265,7 +1420,11 @@ export function AtlasMap({
     if (useProceduralMesh) {
       const meshLayers = buildArchetypeMeshLayersFromCollection(
         urbanDesignMassModel,
-        { pickable: true, onClick: handleBuildingClick },
+        {
+          pickable: true,
+          onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
+        },
       );
       for (const meshLayer of meshLayers) {
         result.push(meshLayer);
@@ -1279,6 +1438,7 @@ export function AtlasMap({
           data: buildingFabricModel,
           pickable: true,
           onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
           stroked: true,
           filled: true,
           extruded: urbanExtruded,
@@ -1444,6 +1604,33 @@ export function AtlasMap({
       );
     }
 
+    /*
+     * Hover-hint outline. Spec PR 1: 1px terracotta at alpha 140 on the
+     * currently hovered building. Lighter than the selection outline so
+     * the two are visually distinguishable when the cursor moves over a
+     * non-selected building. Desktop-only by virtue of `canHover` gating
+     * `handleBuildingHover`.
+     */
+    if (hoveredBuildingFeatureCollection) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-hovered-building-outline",
+          data: hoveredBuildingFeatureCollection,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          getLineColor: [193, 74, 44, 140],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
     /* Lost Flint historical reconstructions. Each reconstruction is
      * dispatched to a renderer by what artifact it carries:
      *   - geometry_url null → ConfidenceMixMeshLayer (procedural box
@@ -1514,9 +1701,11 @@ export function AtlasMap({
     positionedEvents,
     selectedFeatureCollection,
     selectedBuildingFeatureCollection,
+    hoveredBuildingFeatureCollection,
     layerVisibility,
     handleClick,
     handleBuildingClick,
+    handleBuildingHover,
     onPlaceSelect,
     viewMode,
     activeLens,
@@ -1582,6 +1771,38 @@ export function AtlasMap({
             "radial-gradient(circle at 50% 52%, rgba(246,244,238,0) 0%, rgba(246,244,238,0) 38%, rgba(46,34,22,0.08) 62%, rgba(34,24,14,0.22) 88%, rgba(28,20,12,0.32) 100%)",
         }}
       />
+
+      {/*
+        Building hover tooltip. Spec PR 1: typology class + confidence
+        percentage + address (or osm_id when no address). Rendered above
+        the basemap and below the chrome (z-index between vignette and
+        AtlasShell controls). Pointer-events:none so it never intercepts
+        map gestures. Desktop-only via the `canHover` gate on
+        `handleBuildingHover`; hoverState is never set on touch devices.
+      */}
+      {hoverState ? (
+        <div
+          aria-hidden="true"
+          className="atlas-building-hover-tooltip pointer-events-none absolute z-[10] rounded-[10px] border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.92)] px-3 py-2 font-mono text-[10px] uppercase leading-[1.4] tracking-[0.08em] text-[color:var(--ctx-ink)] shadow-[0_8px_18px_-12px_rgba(42,36,25,0.45)]"
+          style={{
+            left: Math.min(hoverState.x + 14, 2000),
+            top: Math.max(hoverState.y - 56, 8),
+            maxWidth: 220,
+          }}
+        >
+          <div className="text-[color:var(--ctx-ink)]">
+            {hoverState.building.typology_class ?? "Unclassified"}
+          </div>
+          {typeof hoverState.building.typology_confidence === "number" ? (
+            <div className="text-[color:var(--ctx-ink-mute)]">
+              {`${Math.round(hoverState.building.typology_confidence * 100)}% confidence`}
+            </div>
+          ) : null}
+          <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
+            {hoverState.building.address ?? `Building #${hoverState.building.osm_id}`}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
