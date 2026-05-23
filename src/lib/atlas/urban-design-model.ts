@@ -642,19 +642,32 @@ function createFormParts(
       add(orientedRect(oriented, 0.05, 0.36, 0.95, 0.64), "slab_bar", "Long slab");
       break;
     case "row_infill":
-      createOrientedRowParts(oriented, 3 + (stableHash(spec.source_osm_id) % 3)).forEach(
-        (part, index) => {
-          add(part.body, "row_unit", `Row unit ${index + 1}`, spec.generated_height_m);
-          add(part.roof, "row_roof", `Row roof ${index + 1}`, spec.generated_height_m + 0.7);
-          if (part.partyWall) {
-            add(
-              part.partyWall,
-              "party_wall",
-              `Party wall ${index + 1}`,
-              spec.generated_height_m + 0.3,
-            );
-          }
-        },
+      // Spec PR 2: 3 parts max. The per-unit decomposition (3-5 row
+      // bodies, 3-5 roofs, 2-4 party walls = up to 14 parts) is the
+      // worst paper-craft offender in the old model. Replace with:
+      //   1. ONE continuous row body
+      //   2. ONE continuous row roof
+      //   3. ONE single vertical party-wall hint line (the centerline,
+      //      a thin u-sliver standing in for the whole row's rhythm)
+      // The `createOrientedRowParts` helper is no longer called for
+      // this form, but kept in the file for the fabric detail pass and
+      // future per-unit re-introduction if needed.
+      add(
+        orientedRect(oriented, 0.05, 0.12, 0.95, 0.88),
+        "row_unit",
+        "Row body",
+      );
+      add(
+        orientedRect(oriented, 0.06, 0.22, 0.94, 0.78),
+        "row_roof",
+        "Row roof",
+        spec.generated_height_m + 0.3,
+      );
+      add(
+        orientedRect(oriented, 0.498, 0.12, 0.502, 0.88),
+        "party_wall",
+        "Party wall hint",
+        spec.generated_height_m + 0.3,
       );
       break;
     case "single_lot":
