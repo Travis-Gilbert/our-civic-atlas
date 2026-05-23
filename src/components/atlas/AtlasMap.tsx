@@ -1409,10 +1409,12 @@ export function AtlasMap({
     }
 
     /*
-     * Water bodies. Spec PR 4 Change 3: `natural=water`. Cool slate
-     * fill #6b8a9e at alpha 140 + stroke #5a7585 1px alpha 180. Pushed
-     * after parks so water sits visibly above any park polygon it
-     * overlaps with (e.g. ponds inside parks).
+     * Water bodies. Cool slate #6b8a9e. Spec PR 4 originally pinned
+     * fill alpha 140 + stroke alpha 180; user feedback was that the
+     * water read too opaque against the rest of the body, so all
+     * three water alphas drop 25%: fill 140→105, stroke 180→135,
+     * waterway 200→150 (below). Pushed after parks so water sits
+     * visibly above any park polygon it overlaps with.
      */
     if (OSM_WATER_BODIES.features.length > 0) {
       result.push(
@@ -1423,8 +1425,8 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [107, 138, 158, 140],
-          getLineColor: [90, 117, 133, 180],
+          getFillColor: [107, 138, 158, 105],
+          getLineColor: [90, 117, 133, 135],
           lineWidthMinPixels: 1,
           getLineWidth: 1,
           parameters: {
@@ -1436,11 +1438,11 @@ export function AtlasMap({
     }
 
     /*
-     * Waterways (Flint River system). Spec PR 4 Change 3:
-     * `waterway=*`. Cool slate #6b8a9e at alpha 200, 2-3px line.
-     * Should read as the second-most visible feature on the map after
-     * the city boundary — currently nearly invisible without this
-     * layer.
+     * Waterways (Flint River system). `waterway=*`. Cool slate #6b8a9e
+     * at alpha 150 (down from 200 — see the water-bodies comment
+     * above for the 25%-reduction rationale). Still the second most
+     * visible feature on the map after the city boundary, just less
+     * saturated.
      */
     if (OSM_WATERWAYS.features.length > 0) {
       result.push(
@@ -1451,7 +1453,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [107, 138, 158, 200],
+          getLineColor: [107, 138, 158, 150],
           lineWidthMinPixels: 2,
           lineWidthMaxPixels: 3,
           getLineWidth: 2.5,
