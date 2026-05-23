@@ -15,6 +15,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
+import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
 import type {
   ScenarioDeltaProperties,
@@ -171,6 +172,10 @@ const URBAN_FORM_FILL: Record<UrbanDesignFormType, [number, number, number, numb
   single_lot: [190, 106, 72, 226],
   slab: [86, 112, 150, 210],
   tower_podium: [126, 86, 150, 224],
+  // Unknown is paper-faint in typology mode too — coloring an
+  // unclassified building like it has a known form is precisely the
+  // failure the prior hash-modulo classifier produced.
+  unknown: [216, 211, 197, 196],
 };
 
 const URBAN_FORM_LINE: Record<UrbanDesignFormType, [number, number, number, number]> = {
@@ -183,6 +188,7 @@ const URBAN_FORM_LINE: Record<UrbanDesignFormType, [number, number, number, numb
   single_lot: [124, 88, 58, 222],
   slab: [55, 80, 116, 232],
   tower_podium: [92, 59, 121, 242],
+  unknown: [112, 104, 90, 220],
 };
 
 const URBAN_PART_FILL: Partial<
@@ -229,56 +235,44 @@ const URBAN_PART_LINE: Partial<
   storefront_bay: [35, 112, 108, 232],
 };
 
-const URBAN_SKETCH_FORM_FILL: Record<
-  UrbanDesignFormType,
+/**
+ * Sketch-model palette: a single chipboard tone keyed by detail level, not
+ * by form_type. The prior implementation stored nine beige tones per form
+ * and seventeen per part role — a desaturated version of the same lie the
+ * colored palette tells, since `form_type` itself was hash-derived. A real
+ * physical massing model reads as ONE material, with subtle tonal layering
+ * by part role (mass → facade → roof), not as a different color per form.
+ *
+ * Variation by height happens in the 3D lighting layer (deck.gl's
+ * ambient/diffuse/specular), not in the base tone. Taller masses catch
+ * more shadow naturally; we don't pre-bake that into the tone.
+ */
+const SKETCH_TONE_BY_DETAIL_LEVEL: Record<
+  UrbanDesignModelProperties["fabric_detail_level"],
   [number, number, number, number]
 > = {
-  civic_anchor: [224, 214, 197, 244],
-  courtyard_compact: [229, 224, 211, 238],
-  courtyard_open: [232, 226, 214, 236],
-  industrial_shed: [211, 213, 209, 232],
-  mixed_use_street_wall: [226, 218, 202, 240],
-  row_infill: [232, 221, 202, 242],
-  single_lot: [236, 228, 212, 238],
-  slab: [221, 222, 216, 236],
-  tower_podium: [224, 218, 210, 242],
+  // Main basswood block: the warmest near-white.
+  mass: [236, 230, 218, 234],
+  // Relief carving against the mass: one tonal step darker, slightly cooler.
+  facade: [220, 213, 198, 228],
+  // Separate basswood plate stacked on top: two tonal steps darker so the
+  // chipboard layering reads from camera distance.
+  roof: [200, 191, 175, 232],
+  // The model base — the only chromatic accent in the whole palette, a
+  // muted sage that lets courtyard yards and lawns read as "ground" not
+  // "building." Lower alpha so the substrate underneath still shows.
+  site: [176, 188, 158, 202],
 };
 
-const URBAN_SKETCH_PART_FILL: Partial<
-  Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
-> = {
-  civic_entry: [210, 188, 154, 232],
-  civic_roof: [205, 188, 160, 238],
-  cornice_band: [189, 169, 132, 232],
-  courtyard_yard: [163, 184, 142, 214],
-  dormer: [180, 158, 132, 236],
-  facade_rhythm: [214, 202, 178, 218],
-  front_porch: [214, 188, 139, 236],
-  parapet: [175, 163, 145, 236],
-  party_wall: [78, 72, 63, 224],
-  porch_or_rear_ell: [222, 204, 173, 232],
-  porch_step: [218, 196, 154, 232],
-  roof_monitor: [169, 176, 175, 232],
-  roof_plane: [210, 194, 168, 240],
-  roof_ridge: [82, 74, 62, 236],
-  row_roof: [204, 184, 157, 242],
-  sawtooth_roof: [170, 174, 169, 238],
-  storefront_bay: [181, 198, 191, 226],
-};
+// Single uniform pencil line for every chipboard part. Architect's-pencil
+// brown-gray, low enough alpha that crisp short edges don't dominate but
+// long silhouette edges still read at zoom-out.
+const SKETCH_LINE: [number, number, number, number] = [96, 90, 78, 204];
 
-const URBAN_SKETCH_PART_LINE: Partial<
-  Record<UrbanDesignModelProperties["part_role"], [number, number, number, number]>
-> = {
-  civic_entry: [92, 75, 58, 238],
-  cornice_band: [96, 84, 65, 232],
-  courtyard_yard: [93, 115, 78, 230],
-  facade_rhythm: [118, 104, 78, 216],
-  party_wall: [42, 39, 35, 246],
-  roof_ridge: [42, 38, 32, 248],
-  storefront_bay: [76, 96, 88, 226],
-};
-
-const URBAN_SKETCH_LINE: [number, number, number, number] = [68, 64, 58, 232];
+// Party walls deserve their own darker line because they read as a
+// structural seam between row units, not a silhouette edge. This is the
+// one part-role exception to the uniform-line rule — sparingly used.
+const SKETCH_LINE_PARTY_WALL: [number, number, number, number] = [54, 50, 44, 234];
 
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
@@ -551,10 +545,9 @@ function urbanDesignLineColor(
   materialMode: UrbanDesignMaterialMode,
 ): [number, number, number, number] {
   if (materialMode === "sketch_model") {
-    return applyFabricCompletenessAlpha(
-      props,
-      URBAN_SKETCH_PART_LINE[props.part_role] ?? URBAN_SKETCH_LINE,
-    );
+    const line =
+      props.part_role === "party_wall" ? SKETCH_LINE_PARTY_WALL : SKETCH_LINE;
+    return applyFabricCompletenessAlpha(props, line);
   }
 
   return applyFabricCompletenessAlpha(
@@ -567,9 +560,7 @@ function urbanDesignSketchFillColor(
   props: UrbanDesignModelProperties,
   atlasYear: number | null,
 ): [number, number, number, number] {
-  const color =
-    URBAN_SKETCH_PART_FILL[props.part_role] ??
-    URBAN_SKETCH_FORM_FILL[props.form_type];
+  const color = SKETCH_TONE_BY_DETAIL_LEVEL[props.fabric_detail_level];
   return [
     color[0],
     color[1],
@@ -582,11 +573,33 @@ function clampByte(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
+/**
+ * Drop alpha when the effective confidence for this building is low.
+ *
+ * Effective confidence is the minimum of:
+ *  - `fabric_feature_completeness`: 0-1 score from which OSM tags +
+ *    parcel signals were available when the fabric spec was derived.
+ *  - `typology_confidence`: Phase A classifier's softmax-max for this
+ *    building. Null today — until the Phase A pipeline runs and the
+ *    OSM fixture is enriched via `osm_id` join with
+ *    `building_typology` rows — and treated as 1.0 (don't pull alpha
+ *    down on its own absence) until then.
+ *
+ * Either signal being low pulls the alpha down so low-confidence
+ * buildings render with the uncertainty signal, never silently as
+ * confident. The threshold (0.5) matches Phase A spec §10 MUST.
+ */
 function applyFabricCompletenessAlpha(
   props: UrbanDesignModelProperties,
   color: [number, number, number, number],
 ): [number, number, number, number] {
-  if (props.fabric_feature_completeness >= 0.5) return color;
+  const fabricConfidence = props.fabric_feature_completeness;
+  const typologyConfidence =
+    typeof props.typology_confidence === "number"
+      ? props.typology_confidence
+      : 1.0;
+  const effectiveConfidence = Math.min(fabricConfidence, typologyConfidence);
+  if (effectiveConfidence >= 0.5) return color;
   return [color[0], color[1], color[2], Math.max(78, color[3] - 56)];
 }
 
@@ -944,6 +957,15 @@ export function AtlasMap({
     const fabricOpacity = buildingFabricVisible ? fabricFade : 0;
     const urbanExtruded =
       viewMode !== "atlas" && mapZoom >= BUILDING_FABRIC_LOD.extrusionMinZoom;
+    // At residential zoom (>= 15) we replace the flat GeoJsonLayer
+    // mass extrusion with a procedural archetype mesh layer (gable,
+    // hipped, sawtooth, parapet, storefront). The GeoJsonLayer reads
+    // as "Lego brick" once individual houses are visible; the
+    // procedural mesh carries roof profile.
+    const useProceduralMesh =
+      urbanDesignModelVisible &&
+      urbanExtruded &&
+      mapZoom >= BUILDING_FABRIC_LOD.proceduralMeshMinZoom;
     const placesAsCivicContext =
       urbanDesignModelVisible && viewMode !== "atlas";
 
@@ -1052,8 +1074,12 @@ export function AtlasMap({
       );
     }
 
+    // GeoJsonLayer mass extrusion: renders the flat-topped building
+    // body at mid-zoom (13 <= z < 15). At z >= 15 the procedural
+    // archetype mesh layer (mounted below) takes over so individual
+    // houses get real roof profiles instead of flat tops.
     if (
-      urbanDesignModelVisible
+      urbanDesignModelVisible && !useProceduralMesh
     ) {
       result.push(
         new GeoJsonLayer<UrbanDesignModelProperties>({
@@ -1097,6 +1123,22 @@ export function AtlasMap({
           },
         }),
       );
+    }
+
+    // Procedural archetype mesh layers (one per archetype). Takes over
+    // from the GeoJsonLayer mass extrusion at zoom >= 15 so individual
+    // buildings carry their typology's roof profile (gable, hipped,
+    // sawtooth, parapet, storefront) instead of all reading as flat
+    // boxes. See AtlasArchetypeMeshLayer for the per-archetype mesh
+    // catalog and instance derivation.
+    if (useProceduralMesh) {
+      const meshLayers = buildArchetypeMeshLayersFromCollection(
+        urbanDesignMassModel,
+        { pickable: true },
+      );
+      for (const meshLayer of meshLayers) {
+        result.push(meshLayer);
+      }
     }
 
     if (buildingFabricVisible && fabricOpacity > 0.01) {

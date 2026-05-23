@@ -55,39 +55,43 @@ export function ScenarioControls({
   }`;
 
   if (variant === "island") {
+    // The dynamic island shell IS the card. Sections inside are separated
+    // by hairline rules, not by their own card chrome. The prior layout
+    // nested half a dozen bordered+tinted subdivs (hero / segments /
+    // compare / chips / slider / kpis / kpi-cells), producing the
+    // cards-inside-cards-inside-cards stack the rebuild brief called out.
+    //
+    // The "SCENARIO / [name]" eyebrow + giant h2 are gone: the dynamic
+    // island's tab label already names the surface, and the segmented
+    // control below shows which scenario is active. The envelope-type
+    // legend chips are gone too — they're a render setting that belongs
+    // in the Layers panel, not a scenario property. (Follow-up: surface
+    // the same counts inside Layers > Building fabric.)
     return (
       <section
         className="atlas-scenario-island"
         aria-label="Scenario controls"
       >
-        <div className="atlas-scenario-island__hero">
-          <span className="atlas-scenario-controls__icon">
-            <Layers3 className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <p className="atlas-scenario-controls__eyebrow">Scenario</p>
-            <h2>{activeScenario?.name ?? activeScenarioId}</h2>
+        <div className="atlas-scenario-island__header">
+          <div
+            className="atlas-scenario-island__segments"
+            role="group"
+            aria-label="Active scenario"
+          >
+            {scenarios.map((scenario) => (
+              <button
+                key={scenario.scenarioId}
+                type="button"
+                data-active={scenario.scenarioId === activeScenarioId ? "true" : "false"}
+                onClick={() => onActiveScenarioChange(scenario.scenarioId)}
+              >
+                {scenario.name}
+              </button>
+            ))}
           </div>
           <span className="atlas-scenario-island__count">
             {comparisonLabel}
           </span>
-        </div>
-
-        <div
-          className="atlas-scenario-island__segments"
-          role="group"
-          aria-label="Active scenario"
-        >
-          {scenarios.map((scenario) => (
-            <button
-              key={scenario.scenarioId}
-              type="button"
-              data-active={scenario.scenarioId === activeScenarioId ? "true" : "false"}
-              onClick={() => onActiveScenarioChange(scenario.scenarioId)}
-            >
-              {scenario.name}
-            </button>
-          ))}
         </div>
 
         <div className="atlas-scenario-island__compare">
@@ -110,18 +114,6 @@ export function ScenarioControls({
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="atlas-scenario-island__chips">
-          {envelopeTypeCounts
-            .filter((item) => item.count > 0)
-            .map((item) => (
-              <span key={item.type} data-envelope-type={item.type}>
-                <i aria-hidden="true" />
-                {item.label}
-                <strong>{item.count}</strong>
-              </span>
-            ))}
         </div>
 
         <div className="atlas-scenario-island__slider">

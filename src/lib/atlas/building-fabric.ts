@@ -6,7 +6,8 @@ export type BuildingFabricArchetype =
   | "present_commercial"
   | "present_industrial"
   | "present_civic"
-  | "present_mixed_use";
+  | "present_mixed_use"
+  | "present_unknown";
 
 export type RoofMaterial = "asphalt" | "metal" | "tile" | "membrane";
 
@@ -73,7 +74,28 @@ type BuildingFabricInput = {
   footprintRing: [number, number][];
   footprintAreaM2: number;
   footprintRatio: number;
+  /**
+   * Real parcel-front bearing in compass degrees, when known. Written
+   * by the Phase A pipeline's parcel-edge classifier (OSMnx
+   * nearest-road derived). Null/undefined means the caller has no
+   * real parcel signal, and `front_edge_bearing_degrees` falls back
+   * to `longestEdgeBearingDegrees(ring)`. The longest-edge proxy is
+   * correct for rectangular buildings whose long edge happens to
+   * face the street and fails on L-shaped footprints + corner lots.
+   */
+  parcelFrontBearingDegrees?: number | null;
   hasParcelFrontEdge?: boolean;
+  /**
+   * Phase A classifier output, threaded through from OSM source via
+   * createBuildingFormSpec. When typologyConfidence >= 0.6,
+   * classifyPresentArchetype routes the archetype assignment through
+   * the classifier's class (mapping to present_civic / _commercial /
+   * _industrial / _residential_single / _residential_multi /
+   * _mixed_use) instead of the OSM-tag regex. The OSM-tag regex
+   * remains the fallback for low-confidence and parcel-less rows.
+   */
+  typologyClass?: string | null;
+  typologyConfidence?: number | null;
 };
 
 export const BUILDING_FABRIC_LOD = {
@@ -81,6 +103,16 @@ export const BUILDING_FABRIC_LOD = {
   extrusionMinZoom: 13,
   fabricFadeStartZoom: 15.2,
   fabricFullZoom: 16,
+  /**
+   * Zoom at which the procedural archetype mesh layer (sloped roofs,
+   * sawtooth, parapet, storefront recess) takes over from the flat
+   * GeoJsonLayer extrusion. Below this zoom, individual roof profiles
+   * are too small to read against the substrate, and the simpler
+   * GeoJsonLayer extrusion renders faster (one draw call instead of
+   * one per archetype). Above this zoom, the roof profiles become
+   * visible and dominate the silhouette read.
+   */
+  proceduralMeshMinZoom: 15,
 } as const;
 
 export const BUILDING_FABRIC_HEIGHT_PRIORS =
@@ -100,6 +132,11 @@ export function deriveBuildingFabricSpec(
     name: normalizedName,
     seed: variationSeed,
     use: normalizedUse,
+    typologyClass: input.typologyClass ?? null,
+    typologyConfidence:
+      typeof input.typologyConfidence === "number"
+        ? input.typologyConfidence
+        : null,
   });
   const prior = BUILDING_FABRIC_HEIGHT_PRIORS.archetypes[archetype];
   const stories = inferStories({
@@ -115,13 +152,19 @@ export function deriveBuildingFabricSpec(
       : prior.height_m_override ?? stories * BUILDING_FABRIC_HEIGHT_PRIORS.story_height_m;
   const roofPitchDegrees = inferRoofPitch(prior, variationSeed);
   const windowSpacingM = inferWindowSpacing(prior, variationSeed);
+  // Prefer the real parcel-front bearing when the caller has it
+  // (Phase A pipeline output); fall back to the longest-edge proxy
+  // otherwise. Either way, OrientedFootprint downstream uses
+  // params.front_edge_bearing_degrees with no special-case branching.
+  const frontEdgeBearingDegrees =
+    typeof input.parcelFrontBearingDegrees === "number"
+      ? input.parcelFrontBearingDegrees
+      : longestEdgeBearingDegrees(input.footprintRing);
   const params: BuildingFabricParams = {
     footprint_polygon: normalizeRing(input.footprintRing),
     height_m: Number(clamp(heightM, 2.5, 80).toFixed(2)),
     stories,
-    front_edge_bearing_degrees: Number(
-      longestEdgeBearingDegrees(input.footprintRing).toFixed(2),
-    ),
+    front_edge_bearing_degrees: Number(frontEdgeBearingDegrees.toFixed(2)),
     roof_pitch_degrees: roofPitchDegrees,
     cornice_height_m: prior.cornice_height_m,
     window_spacing_m: windowSpacingM,
@@ -145,6 +188,37 @@ export function deriveBuildingFabricSpec(
   };
 }
 
+/**
+ * Map an OSM footprint to a present-day archetype.
+ *
+ * Hierarchy of signals (most-reliable first):
+ *
+ *  1. Phase A typology classifier output when confidence ≥ 0.6 and
+ *     footprint is large enough for archetype decomposition to be
+ *     meaningful (≥ 60 m²). Classifier class drives archetype family;
+ *     footprint area / height pick the specific sub-archetype within
+ *     residential (single vs multi) and the mixed-use variant for
+ *     commercial.
+ *
+ *  2. OSM tag / name regex for the ~20% of buildings without a parcel
+ *     match (low-confidence classifier output). Same signals the
+ *     classifier trained on, used here as a backup direct path.
+ *
+ *  3. Shape-only fallback (large + long-narrow → industrial).
+ *
+ *  4. `"present_unknown"` when nothing supports a specific archetype —
+ *     renders as a plain extruded mass.
+ *
+ * The prior version (before this commit) only used signal #2.
+ * Buildings with `building=yes` (the OSM catch-all, ~87% of Flint's
+ * fixture) fell to `present_unknown` regardless of what the
+ * classifier knew. Civic buildings without an OSM tag, industrial
+ * warehouses without an `industrial` tag — all rendered as plain
+ * mass with no decoration. The wiring fixes that.
+ */
+const ARCHETYPE_TYPOLOGY_CONFIDENCE_FLOOR = 0.6;
+const ARCHETYPE_MIN_AREA_M2 = 60;
+
 function classifyPresentArchetype(input: {
   buildingTag: string | null;
   footprintAreaM2: number;
@@ -152,10 +226,41 @@ function classifyPresentArchetype(input: {
   name: string | null;
   seed: number;
   use: string | null;
+  typologyClass: string | null;
+  typologyConfidence: number | null;
 }): BuildingFabricArchetype {
   const combined = `${input.buildingTag ?? ""} ${input.name ?? ""} ${input.use ?? ""}`;
   const area = input.footprintAreaM2;
 
+  // ── Tier 1: classifier-driven path ──────────────────────────────
+  const useTypology =
+    typeof input.typologyConfidence === "number" &&
+    input.typologyConfidence >= ARCHETYPE_TYPOLOGY_CONFIDENCE_FLOOR &&
+    input.typologyClass != null &&
+    area >= ARCHETYPE_MIN_AREA_M2;
+
+  if (useTypology) {
+    switch (input.typologyClass) {
+      case "civic":
+        return "present_civic";
+      case "industrial":
+        return "present_industrial";
+      case "commercial":
+        // Larger commercial footprints in Flint's downtown pattern
+        // typically have ground-floor retail + apartments above. The
+        // small-storefront pattern still uses the pure commercial
+        // archetype (single-story parapet + storefront bays).
+        return area > 600 ? "present_mixed_use" : "present_commercial";
+      case "residential":
+        // Single-family vs multifamily slab by footprint scale.
+        return area > 600 ? "present_residential_multi" : "present_residential_single";
+      case "mixed_use":
+        return "present_mixed_use";
+      // "unknown" falls through to the regex tier.
+    }
+  }
+
+  // ── Tier 2: regex on high-precision OSM signals ─────────────────
   if (/(church|school|college|university|library|hospital|clinic|city|county|government|courthouse|museum|theatre|theater)/.test(combined)) {
     return "present_civic";
   }
@@ -166,23 +271,17 @@ function classifyPresentArchetype(input: {
     return "present_residential_multi";
   }
   if (/(retail|commercial|office|hotel|shop|store|restaurant|bank)/.test(combined)) {
-    return area > 900 || input.seed % 4 === 0
-      ? "present_mixed_use"
-      : "present_commercial";
+    return "present_commercial";
   }
   if (/(house|detached|semidetached|terrace|residential|garage)/.test(combined)) {
     return area > 600 ? "present_residential_multi" : "present_residential_single";
   }
-  if (area > 5600) {
-    return input.footprintRatio > 2.2 ? "present_industrial" : "present_civic";
+
+  // ── Tier 3: shape-only fallback ─────────────────────────────────
+  if (area > 5600 && input.footprintRatio > 2.2) {
+    return "present_industrial";
   }
-  if (area > 1800) {
-    return input.seed % 3 === 0 ? "present_mixed_use" : "present_commercial";
-  }
-  if (area > 650) {
-    return input.seed % 5 === 0 ? "present_mixed_use" : "present_residential_multi";
-  }
-  return "present_residential_single";
+  return "present_unknown";
 }
 
 function inferStories(input: {
