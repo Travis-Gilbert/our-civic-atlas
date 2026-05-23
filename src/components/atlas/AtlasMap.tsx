@@ -1283,15 +1283,16 @@ export function AtlasMap({
     const result: Layer[] = [];
 
     /*
-     * Bound-world vignette mask. Spec PR 3: pushed first so it sits
-     * directly above the basemap raster (the carto-base style layer)
-     * and below every deck.gl building/place/event layer. The fill at
-     * alpha 220/255 leaves ~14% of the surrounding basemap visible
-     * (faint ghosts of Frankenmuth / Burton / Mt Morris labels and
-     * roads, since those are baked into the raster tiles). The 14px
-     * line at alpha 180/255 acts as a poor-man's feathered edge — a
-     * true gaussian feather would require a custom layer shader; this
-     * substitute is cheap and reads as a soft transition.
+     * Bound-world vignette mask. Spec PR 3 introduced this; PR 4
+     * (map-body-and-discipline) walks back its opacity so Flint is
+     * "lit against something, not floating in nothing." Fill drops
+     * from alpha 220 to 160 (surrounding basemap goes from ~14%
+     * visible to ~37% visible — faint Frankenmuth / Mt Morris /
+     * Burton / Clio labels readable as ghosts, Flint River trace
+     * visible upstream and downstream, major highways outside Flint
+     * barely visible). Boundary band line drops 180 to 140 (softer
+     * feather). Still the poor-man's substitute for a true gaussian
+     * edge, just dialed back.
      */
     if (BOUND_WORLD_MASK_FEATURE_COLLECTION) {
       result.push(
@@ -1302,8 +1303,8 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [242, 241, 236, 220],
-          getLineColor: [242, 241, 236, 180],
+          getFillColor: [242, 241, 236, 160],
+          getLineColor: [242, 241, 236, 140],
           lineWidthMinPixels: 14,
           getLineWidth: 14,
           parameters: {
