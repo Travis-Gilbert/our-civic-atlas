@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import type {
   AtlasSceneCameraBand,
   AtlasSceneDetailLevel,
@@ -29,8 +29,21 @@ import {
   ATLAS_TIME_MIN_YEAR,
 } from "@/lib/atlas/atlas-time";
 import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
+import {
+  buildingDisplayTitle,
+  type SelectedBuilding,
+} from "@/lib/atlas/selected-building";
 import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
+
+type PlaceSubTab = "overview" | "evidence" | "history" | "comments";
+
+const PLACE_SUB_TAB_LABELS: Record<PlaceSubTab, string> = {
+  overview: "Overview",
+  evidence: "Evidence",
+  history: "History",
+  comments: "Comments",
+};
 
 type IslandTab = "ask" | "layers" | "scenarios" | "time" | "place" | "horizon";
 
@@ -70,6 +83,13 @@ type AtlasDynamicIslandProps = {
   visibleHistoricalReconstructionCount?: number | null;
   totalHistoricalReconstructionCount?: number;
   dossierContent?: ReactNode;
+  /** Currently selected building, if any. Spec PR 1. When non-null the
+   * Place tab is added to availableTabs and the collapsed-island title
+   * falls through to `name → address → Building #<osm_id>`. */
+  selectedBuilding?: SelectedBuilding | null;
+  /** Fired when the user clears the building selection. Wired to the
+   * Clear button in the Place tab header. Spec PR 1. */
+  onClearBuilding?: () => void;
   layerControlsContent?: ReactNode;
   scenarioControlsContent?: ReactNode;
 };
@@ -130,20 +150,41 @@ export function AtlasDynamicIsland({
   visibleHistoricalReconstructionCount = null,
   totalHistoricalReconstructionCount = 0,
   dossierContent,
+  selectedBuilding = null,
+  onClearBuilding,
   layerControlsContent,
   scenarioControlsContent,
 }: AtlasDynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<IslandTab>("ask");
+  const [placeSubTab, setPlaceSubTab] = useState<PlaceSubTab>("overview");
   const [selectedHorizonId, setSelectedHorizonId] = useState<string | null>(
     horizonNodes[0]?.atlasId ?? null,
   );
 
+  // When the building selection or place selection clears, leave the
+  // Place tab. The auto-expand effect below handles the inverse
+  // direction (selection appears -> open Place).
   useEffect(() => {
-    if (!selectedPlaceId && activeTab === "place") {
+    if (!selectedPlaceId && !selectedBuilding && activeTab === "place") {
       setActiveTab("ask");
     }
-  }, [activeTab, selectedPlaceId]);
+  }, [activeTab, selectedPlaceId, selectedBuilding]);
+
+  // Auto-expand + switch to Place when a building is freshly selected.
+  // Spec PR 1: clicking a building opens the island into the Place tab.
+  // Reset the sub-tab to Overview on every new building so the user
+  // always sees the headline content first.
+  const lastBuildingIdRef = useRef<string | number | null>(null);
+  useEffect(() => {
+    const nextId = selectedBuilding?.osm_id ?? null;
+    if (nextId !== null && nextId !== lastBuildingIdRef.current) {
+      setActiveTab("place");
+      setPlaceSubTab("overview");
+      setIsExpanded(true);
+    }
+    lastBuildingIdRef.current = nextId;
+  }, [selectedBuilding]);
 
   useEffect(() => {
     if (horizonNodes.length === 0) {
@@ -162,10 +203,15 @@ export function AtlasDynamicIsland({
     const tabs: IslandTab[] = ["ask", "layers"];
     if (hasScenarioControls) tabs.push("scenarios");
     tabs.push("time");
-    if (selectedPlaceId) tabs.push("place");
+    if (selectedPlaceId || selectedBuilding) tabs.push("place");
     if (horizonNodes.length > 0) tabs.push("horizon");
     return tabs;
-  }, [hasScenarioControls, horizonNodes.length, selectedPlaceId]);
+  }, [
+    hasScenarioControls,
+    horizonNodes.length,
+    selectedPlaceId,
+    selectedBuilding,
+  ]);
 
   const selectedHorizonNode = useMemo(
     () =>
@@ -177,7 +223,12 @@ export function AtlasDynamicIsland({
 
   const activeView = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
   const activeLensInfo = ATLAS_LENS_LOOKUP[activeLens];
-  const islandTitle = selectedPlaceName ?? "Flint, Michigan";
+  // Title fallback chain. Spec PR 1: building name -> address ->
+  // `Building #<osm_id>` when a building is selected; otherwise fall
+  // through to the existing place selection, then to the default.
+  const islandTitle = selectedBuilding
+    ? buildingDisplayTitle(selectedBuilding)
+    : (selectedPlaceName ?? "Flint, Michigan");
   const timeSliderYear =
     atlasYear ??
     Math.min(
@@ -199,7 +250,10 @@ export function AtlasDynamicIsland({
   function openIsland(tab?: IslandTab) {
     if (tab && availableTabs.includes(tab)) {
       setActiveTab(tab);
-    } else if (selectedPlaceId && availableTabs.includes("place")) {
+    } else if (
+      (selectedBuilding || selectedPlaceId) &&
+      availableTabs.includes("place")
+    ) {
       setActiveTab("place");
     } else {
       setActiveTab("ask");
@@ -524,7 +578,14 @@ export function AtlasDynamicIsland({
 
               {activeTab === "place" ? (
                 <section className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.24)]">
-                  {selectedPlaceId && dossierContent ? (
+                  {selectedBuilding ? (
+                    <BuildingDossier
+                      building={selectedBuilding}
+                      activeSubTab={placeSubTab}
+                      onSubTabChange={setPlaceSubTab}
+                      onClear={onClearBuilding}
+                    />
+                  ) : selectedPlaceId && dossierContent ? (
                     dossierContent
                   ) : (
                     <div className="px-4 py-4 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
@@ -801,4 +862,138 @@ function compassPointStyle(node: NodeHorizonEntry): { left: string; top: string 
     left: `${x}%`,
     top: `${y}%`,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/*  BuildingDossier                                                    */
+/*                                                                     */
+/*  Spec PR 1: rendered inside the Place tab when a building is        */
+/*  selected. Carries a Clear button (header), four sub-tabs           */
+/*  (Overview, Evidence, History, Comments), and the Overview content  */
+/*  with typology, confidence percentage, fabric archetype, address,   */
+/*  and a placeholder "Open dossier" button. Evidence/History/Comments */
+/*  are honest empty states until those data sources land.             */
+/* ------------------------------------------------------------------ */
+
+const PLACE_SUB_TABS: PlaceSubTab[] = [
+  "overview",
+  "evidence",
+  "history",
+  "comments",
+];
+
+function BuildingDossier({
+  building,
+  activeSubTab,
+  onSubTabChange,
+  onClear,
+}: {
+  building: SelectedBuilding;
+  activeSubTab: PlaceSubTab;
+  onSubTabChange: (tab: PlaceSubTab) => void;
+  onClear?: () => void;
+}) {
+  const title = buildingDisplayTitle(building);
+  return (
+    <div className="flex flex-col">
+      <header className="flex items-start justify-between gap-3 border-b border-[rgba(42,36,25,0.08)] px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+            Building
+          </p>
+          <p className="mt-1 truncate text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
+            {title}
+          </p>
+        </div>
+        {onClear ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="shrink-0 rounded-[8px] border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.55)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)] transition-colors hover:bg-[rgba(255,255,255,0.85)] hover:text-[color:var(--ctx-ink)]"
+            aria-label="Clear building selection"
+          >
+            Clear
+          </button>
+        ) : null}
+      </header>
+
+      <nav
+        aria-label="Building dossier sub-tabs"
+        className="flex gap-1 border-b border-[rgba(42,36,25,0.08)] px-3 pt-2"
+      >
+        {PLACE_SUB_TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => onSubTabChange(tab)}
+            className="atlas-dossier-tab"
+            data-active={activeSubTab === tab ? "true" : "false"}
+          >
+            {PLACE_SUB_TAB_LABELS[tab]}
+          </button>
+        ))}
+      </nav>
+
+      <div className="px-4 py-3 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+        {activeSubTab === "overview" ? (
+          <BuildingOverview building={building} />
+        ) : null}
+        {activeSubTab === "evidence" ? <p>No evidence loaded</p> : null}
+        {activeSubTab === "history" ? <p>No timeline</p> : null}
+        {activeSubTab === "comments" ? (
+          <p>No comments yet. Be the first.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function BuildingOverview({ building }: { building: SelectedBuilding }) {
+  return (
+    <div className="space-y-3">
+      <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1.5 text-[12px] leading-[1.5]">
+        <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+          Typology
+        </dt>
+        <dd className="text-[color:var(--ctx-ink)]">
+          {building.typology_class ?? "Unclassified"}
+        </dd>
+        {typeof building.typology_confidence === "number" ? (
+          <>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+              Confidence
+            </dt>
+            <dd className="text-[color:var(--ctx-ink)]">
+              {`${Math.round(building.typology_confidence * 100)}%`}
+            </dd>
+          </>
+        ) : null}
+        {building.fabric_archetype ? (
+          <>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+              Archetype
+            </dt>
+            <dd className="text-[color:var(--ctx-ink)]">
+              {building.fabric_archetype}
+            </dd>
+          </>
+        ) : null}
+        {building.address ? (
+          <>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+              Address
+            </dt>
+            <dd className="text-[color:var(--ctx-ink)]">{building.address}</dd>
+          </>
+        ) : null}
+      </dl>
+      <button
+        type="button"
+        className="atlas-horizon-action"
+        aria-label="Open building dossier"
+      >
+        Open dossier
+      </button>
+    </div>
+  );
 }

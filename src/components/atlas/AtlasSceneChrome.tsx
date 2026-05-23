@@ -9,6 +9,7 @@ import type {
 } from "@/lib/atlas/scene-detail-policy";
 import type { AtlasLensId, AtlasSceneViewModeId } from "@/lib/atlas/scene-view";
 import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 
 export type AtlasSceneSearchResult = {
   id: string;
@@ -44,6 +45,14 @@ type AtlasSceneChromeProps = {
   visibleHistoricalReconstructionCount?: number | null;
   totalHistoricalReconstructionCount?: number;
   dossierContent: ReactNode;
+  /**
+   * Currently selected building, if any. Spec PR 1: drives the Place
+   * tab dossier and the collapsed-island title fallback chain.
+   */
+  selectedBuilding?: SelectedBuilding | null;
+  /** Fired when the user clears the building selection (Clear button or
+   * empty-area click). Spec PR 1. */
+  onClearBuilding?: () => void;
   layerControlsContent: ReactNode;
   scenarioControlsContent: ReactNode;
 };
@@ -71,6 +80,8 @@ export function AtlasSceneChrome({
   visibleHistoricalReconstructionCount = null,
   totalHistoricalReconstructionCount = 0,
   dossierContent,
+  selectedBuilding = null,
+  onClearBuilding,
   layerControlsContent,
   scenarioControlsContent,
 }: AtlasSceneChromeProps) {
@@ -120,6 +131,8 @@ export function AtlasSceneChrome({
           totalHistoricalReconstructionCount
         }
         dossierContent={dossierContent}
+        selectedBuilding={selectedBuilding}
+        onClearBuilding={onClearBuilding}
         layerControlsContent={layerControlsContent}
         scenarioControlsContent={scenarioControlsContent}
       />

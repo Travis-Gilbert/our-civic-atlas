@@ -611,10 +611,18 @@ function createFormParts(
   // the building's actual bearing.
   switch (spec.form_type) {
     case "courtyard_compact":
+      // Spec PR 2: 3 parts max. Closed perimeter mass + annular roof
+      // plane + courtyard yard (the inner ground signature detail).
       add(
         orientedRectWithHole(oriented, 0.06, 0.06, 0.94, 0.94, 0.32, 0.32, 0.68, 0.68),
         "courtyard_ring",
         "Perimeter block around a courtyard",
+      );
+      add(
+        orientedRectWithHole(oriented, 0.08, 0.08, 0.92, 0.92, 0.32, 0.32, 0.68, 0.68),
+        "roof_plane",
+        "Compact courtyard roof",
+        spec.generated_height_m + 0.3,
       );
       add(
         orientedRect(oriented, 0.34, 0.34, 0.66, 0.66),
@@ -624,9 +632,23 @@ function createFormParts(
       );
       break;
     case "courtyard_open":
-      add(orientedRect(oriented, 0.06, 0.08, 0.94, 0.3), "street_wall", "Street wall");
-      add(orientedRect(oriented, 0.06, 0.3, 0.28, 0.9), "side_wing", "Left courtyard wing");
-      add(orientedRect(oriented, 0.72, 0.3, 0.94, 0.9), "side_wing", "Right courtyard wing");
+      // Spec PR 2: 3 parts max. Collapse the prior street-wall + two
+      // wings into one L/U-shaped mass (perimeter with the front wall
+      // missing) + one roof plane on the same footprint + the open
+      // courtyard yard. The hole on the inside represents the open
+      // front side: roof + mass both have an inset rect at the front
+      // (low v) so the open face reads as a courtyard mouth.
+      add(
+        orientedRectWithHole(oriented, 0.06, 0.08, 0.94, 0.9, 0.32, 0.34, 0.68, 0.84),
+        "courtyard_ring",
+        "Open courtyard mass",
+      );
+      add(
+        orientedRectWithHole(oriented, 0.08, 0.1, 0.92, 0.88, 0.32, 0.34, 0.68, 0.84),
+        "roof_plane",
+        "Open courtyard roof",
+        spec.generated_height_m + 0.3,
+      );
       add(
         orientedRect(oriented, 0.32, 0.34, 0.68, 0.84),
         "courtyard_yard",
@@ -635,108 +657,141 @@ function createFormParts(
       );
       break;
     case "slab":
-      // Slab runs along the front (u-axis), thin across depth — the long
-      // axis of a slab points along the street. The prior code had two
-      // branches that approximated this with bounding-box axis-picking;
-      // rotation handles it without a conditional.
+      // Spec PR 2: 3 parts max. Slab body + roof plane + ONE continuous
+      // parapet edge along the front. Slab runs along the front
+      // (u-axis), thin across depth — the long axis of a slab points
+      // along the street.
       add(orientedRect(oriented, 0.05, 0.36, 0.95, 0.64), "slab_bar", "Long slab");
+      add(
+        orientedRect(oriented, 0.06, 0.38, 0.94, 0.62),
+        "roof_plane",
+        "Slab roof",
+        spec.generated_height_m + 0.3,
+      );
+      add(
+        orientedRect(oriented, 0.06, 0.34, 0.94, 0.38),
+        "parapet",
+        "Front parapet edge",
+        spec.generated_height_m + 0.3,
+      );
       break;
     case "row_infill":
-      createOrientedRowParts(oriented, 3 + (stableHash(spec.source_osm_id) % 3)).forEach(
-        (part, index) => {
-          add(part.body, "row_unit", `Row unit ${index + 1}`, spec.generated_height_m);
-          add(part.roof, "row_roof", `Row roof ${index + 1}`, spec.generated_height_m + 0.7);
-          if (part.partyWall) {
-            add(
-              part.partyWall,
-              "party_wall",
-              `Party wall ${index + 1}`,
-              spec.generated_height_m + 0.3,
-            );
-          }
-        },
+      // Spec PR 2: 3 parts max. The per-unit decomposition (3-5 row
+      // bodies, 3-5 roofs, 2-4 party walls = up to 14 parts) is the
+      // worst paper-craft offender in the old model. Replace with:
+      //   1. ONE continuous row body
+      //   2. ONE continuous row roof
+      //   3. ONE single vertical party-wall hint line (the centerline,
+      //      a thin u-sliver standing in for the whole row's rhythm)
+      // The `createOrientedRowParts` helper is no longer called for
+      // this form, but kept in the file for the fabric detail pass and
+      // future per-unit re-introduction if needed.
+      add(
+        orientedRect(oriented, 0.05, 0.12, 0.95, 0.88),
+        "row_unit",
+        "Row body",
+      );
+      add(
+        orientedRect(oriented, 0.06, 0.22, 0.94, 0.78),
+        "row_roof",
+        "Row roof",
+        spec.generated_height_m + 0.3,
+      );
+      add(
+        orientedRect(oriented, 0.498, 0.12, 0.502, 0.88),
+        "party_wall",
+        "Party wall hint",
+        spec.generated_height_m + 0.3,
       );
       break;
     case "single_lot":
+      // Spec PR 2: 3 parts max. Mass (house body) + Roof (gable plane
+      // and ridge collapsed into ONE topping plane, lifted +0.3m) +
+      // Detail (front porch). The prior 5-part decomposition (body,
+      // roof plane, separate ridge, front porch, rear ell) read as a
+      // paper-craft kit instead of a basswood chipboard model.
       add(orientedRect(oriented, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
       add(
         orientedRect(oriented, 0.18, 0.32, 0.82, 0.62),
         "roof_plane",
         "Gable roof",
-        spec.generated_height_m + 0.7,
+        spec.generated_height_m + 0.3,
       );
-      // Residential ridge runs PARALLEL to the front edge (along u), per
-      // the spec's "ridges run parallel to the front edge for residential"
-      // rule. The prior code had the ridge perpendicular to the front
-      // (gable-end-to-street), which is one valid style but not the
-      // dominant Flint pattern. Spans most of the building width, thin
-      // band centered at half depth.
-      add(
-        orientedRect(oriented, 0.2, 0.46, 0.8, 0.54),
-        "roof_ridge",
-        "Roof ridge",
-        spec.generated_height_m + 1.2,
-      );
-      // Porch on the front edge (low v), centered along u (street-frontage).
+      // Detail: porch on the front edge (low v), centered along u
+      // (street-frontage). One signature detail per the spec table.
       add(
         orientedRect(oriented, 0.36, 0.08, 0.64, 0.22),
         "front_porch",
         "Front porch",
         spec.generated_height_m * 0.34,
       );
-      // Rear ell at the back of the building (high v).
-      add(
-        orientedRect(oriented, 0.34, 0.7, 0.66, 0.92),
-        "porch_or_rear_ell",
-        "Porch or rear ell",
-        spec.generated_height_m * 0.62,
-      );
       break;
     case "industrial_shed":
+      // Spec PR 2: 2 parts total acceptable here. Shed body + ONE
+      // sawtooth piece oriented to the front edge. No separate
+      // parapet or monitor; the sawtooth IS the signature roof.
       add(orientedRect(oriented, 0.04, 0.06, 0.96, 0.94), "shed_body", "Industrial shed body");
       add(
-        orientedRect(oriented, 0.18, 0.44, 0.82, 0.56),
-        "roof_monitor",
-        "Roof monitor",
-        spec.generated_height_m + 2,
+        orientedRect(oriented, 0.06, 0.18, 0.94, 0.86),
+        "sawtooth_roof",
+        "Sawtooth roof",
+        spec.generated_height_m + 0.3,
       );
       break;
     case "civic_anchor":
+      // Spec PR 2: 3 parts max. Body + ONE pitched/hipped roof + civic
+      // entry at the front edge. Drops the prior cross-wing in favor
+      // of a single roof plane.
       add(orientedRect(oriented, 0.18, 0.16, 0.82, 0.84), "civic_body", "Civic body");
-      // Civic cross wing runs along the front (u-axis): the dominant
-      // facade gesture for a civic anchor is street-parallel breadth.
       add(
-        orientedRect(oriented, 0.06, 0.42, 0.94, 0.58),
-        "civic_wing",
-        "Civic cross wing",
+        orientedRect(oriented, 0.2, 0.2, 0.8, 0.8),
+        "civic_roof",
+        "Civic roof",
+        spec.generated_height_m + 0.3,
+      );
+      add(
+        orientedRect(oriented, 0.4, 0.06, 0.6, 0.16),
+        "civic_entry",
+        "Civic entry",
         spec.generated_height_m * 0.72,
       );
       break;
     case "mixed_use_street_wall":
+      // Spec PR 2: 3 parts max. Street wall body + cornice band + ONE
+      // continuous storefront strip at ground (not per-bay). Drops
+      // the prior rear wing in favor of the storefront strip signature.
       add(
         orientedRect(oriented, 0.06, 0.06, 0.94, 0.38),
         "street_wall",
         "Mixed-use street wall",
       );
       add(
-        orientedRect(oriented, 0.12, 0.1, 0.88, 0.18),
-        "roof_ridge",
+        orientedRect(oriented, 0.06, 0.34, 0.94, 0.4),
+        "cornice_band",
         "Street-wall cornice",
-        spec.generated_height_m + 0.8,
+        spec.generated_height_m + 0.3,
       );
       add(
-        orientedRect(oriented, 0.36, 0.38, 0.66, 0.9),
-        "rear_wing",
-        "Rear wing",
-        spec.generated_height_m * 0.72,
+        orientedRect(oriented, 0.1, 0.04, 0.9, 0.1),
+        "storefront_bay",
+        "Ground-floor storefront strip",
+        spec.generated_height_m * 0.32,
       );
       break;
     case "tower_podium":
+      // Spec PR 2: 3 parts max — exception form where the tower IS the
+      // detail (a second mass). Podium + podium roof + tower.
       add(
         orientedRect(oriented, 0.08, 0.08, 0.92, 0.92),
         "podium",
         "Podium",
         spec.generated_height_m * 0.45,
+      );
+      add(
+        orientedRect(oriented, 0.1, 0.1, 0.9, 0.9),
+        "roof_plane",
+        "Podium roof",
+        spec.generated_height_m * 0.45 + 0.3,
       );
       add(
         orientedRect(oriented, 0.34, 0.34, 0.66, 0.72),
@@ -758,13 +813,17 @@ function createFormParts(
       break;
   }
 
-  // Skip fabric decoration entirely for unclassified buildings. The fabric
-  // detail pass expects the form switch above to have laid down body parts
-  // its dormers / cornices / sawtooths can land on; for "unknown" there's
-  // no body to decorate, only the raw footprint mass.
-  if (spec.form_type !== "unknown") {
-    createFabricDetailParts(spec, oriented, add);
-  }
+  // Spec PR 2: skip the fabric detail pass entirely. The dormers,
+  // cornices, sawtooth bays, storefront-per-bay rhythms, and apartment
+  // facade bays the old pass emitted are what pushed each building to
+  // 7-8 parts (paper-craft kit). The signature detail for each form
+  // is now defined by the form switch above (3 parts max). The
+  // `createFabricDetailParts` and `createOrientedRowParts` helpers
+  // stay in the file behind this gate so they can be reintroduced
+  // later under a higher-LOD render mode (e.g. a "facade detail"
+  // toggle past z >= 17) without churn.
+  void createFabricDetailParts;
+  void createOrientedRowParts;
 
   return parts;
 }

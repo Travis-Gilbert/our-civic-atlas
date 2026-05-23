@@ -42,6 +42,8 @@
     "@react-three/fiber": "^9.6.1",
     "@thatopen/components": "^3.4.6",
     "@thatopen/fragments": "^3.4.5",
+    "@turf/difference": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
     "@urql/next": "^2.0.0",
     "@uwdata/vgplot": "^0.15.0",
     "antd": "^5.29.3",

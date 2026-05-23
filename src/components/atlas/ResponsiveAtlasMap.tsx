@@ -29,6 +29,7 @@ import type {
   SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
 import type {
   ScenarioDeltaProperties,
@@ -53,6 +54,16 @@ export type ResponsiveAtlasMapProps = {
   onSignalSelect: (signalId: string) => void;
   selectedPlaceId: string | null;
   selectedSignalId: string | null;
+  /**
+   * Selected building, if any. Separate from `selectedPlaceId` (which
+   * carries civic places: wards, parcels, addresses). Spec PR 1.
+   */
+  selectedBuilding?: SelectedBuilding | null;
+  /**
+   * Fired when a building is picked on the map. Pass `null` to clear
+   * the selection (e.g. when the user clicks empty map area). Spec PR 1.
+   */
+  onBuildingSelect?: (building: SelectedBuilding | null) => void;
   layerVisibility: Record<string, boolean>;
   /**
    * Kept for backward compatibility with callers that still pass it.

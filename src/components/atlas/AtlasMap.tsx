@@ -12,7 +12,13 @@ import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
+import difference from "@turf/difference";
+import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
+import {
+  getAtlasBoundaryBbox,
+  getAtlasBoundaryOutlineFeature,
+} from "@/lib/atlas/atlas-boundary";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
@@ -41,6 +47,7 @@ import {
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -90,6 +97,62 @@ const BASEMAP_STYLE: StyleSpecification = {
     },
   ],
 };
+
+/* ------------------------------------------------------------------ */
+/*  Bound-world vignette (PR 3)                                        */
+/*                                                                     */
+/*  Spec docs/design-2026-05-atlas-feel-pass.md PR 3: Flint reads as   */
+/*  a bound world floating on paper. The mask is a polygon shaped as  */
+/*  (enclosing rect) MINUS (Flint city boundary). When rendered above  */
+/*  the basemap raster and below the deck.gl building/place layers,   */
+/*  it covers ~80% of the screen with a paper-tone fill, leaving      */
+/*  Flint as a punched-through stage where the basemap stays visible. */
+/*                                                                     */
+/*  Computed once at module load (boundary fixture is static). The    */
+/*  enclosing rectangle pads the Flint bbox by 0.5° on all sides —    */
+/*  generous enough to cover any practical viewport, cheap enough     */
+/*  that the mask polygon stays a handful of vertices.                */
+/* ------------------------------------------------------------------ */
+/* Cached terracotta boundary outline — the Flint city perimeter as a
+ * stroke-only layer. Spec PR 3: terracotta at alpha 180/255, width
+ * 1.5px. Module-level so we don't recompute it on every render.
+ */
+const FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION =
+  getAtlasBoundaryOutlineFeature();
+
+const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
+  | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
+  | null => {
+  const [minLng, minLat, maxLng, maxLat] = getAtlasBoundaryBbox();
+  const rect = turfPolygon([
+    [
+      [minLng - 0.5, minLat - 0.5],
+      [maxLng + 0.5, minLat - 0.5],
+      [maxLng + 0.5, maxLat + 0.5],
+      [minLng - 0.5, maxLat + 0.5],
+      [minLng - 0.5, minLat - 0.5],
+    ],
+  ]);
+  const boundary = getAtlasBoundaryOutlineFeature();
+  if (!boundary.features.length) return null;
+  // Iteratively subtract each boundary feature so a MultiPolygon city
+  // limit (rare, but possible) is fully accounted for. `difference`
+  // accepts a 2-feature FeatureCollection in turf 7.x; we pass the
+  // accumulating mask + the next subtractor on every iteration.
+  let mask:
+    | GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>
+    | null = rect;
+  for (const feature of boundary.features) {
+    if (!mask) break;
+    const subtractor = feature as GeoJSON.Feature<
+      GeoJSON.Polygon | GeoJSON.MultiPolygon
+    >;
+    mask = difference(featureCollection([mask, subtractor]));
+  }
+  if (!mask) return null;
+  return { type: "FeatureCollection", features: [mask] };
+})();
+
 
 type GeometricPlaceFeature = GeoJSON.Feature<
   GeoJSON.Geometry,
@@ -686,6 +749,20 @@ export type AtlasMapProps = {
    * nothing and behave exactly as before.
    */
   extraDeckLayers?: Layer[];
+  /**
+   * Currently selected building, if any. Drives the terracotta
+   * outline highlight layer. Distinct from `selectedPlaceId` which
+   * carries civic places. Spec: docs/design-2026-05-atlas-feel-pass.md
+   * PR 1.
+   */
+  selectedBuilding?: SelectedBuilding | null;
+  /**
+   * Fired when a building is picked on the map (osmBuildings,
+   * urbanDesignModel, or the procedural archetype mesh layer). Pass
+   * `null` to clear (called when the user clicks empty map area). Spec
+   * PR 1.
+   */
+  onBuildingSelect?: (building: SelectedBuilding | null) => void;
 };
 
 export type UrbanDesignMaterialMode = "typology" | "sketch_model";
@@ -713,6 +790,8 @@ export function AtlasMap({
   scenarioCompareEnabled = false,
   urbanDesignMaterialMode = "typology",
   extraDeckLayers,
+  selectedBuilding = null,
+  onBuildingSelect,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -720,6 +799,41 @@ export function AtlasMap({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapZoom, setMapZoom] = useState(camera.zoom);
   const appliedMobileFitKeyRef = useRef<string | null>(null);
+
+  /*
+   * Hover capability detection. Spec PR 1: hover state (1px terracotta
+   * outline + tooltip) is desktop-only. Touch devices treat the touch
+   * event as the click and skip hover handling entirely.
+   *
+   * matchMedia(`(hover: hover)`) is the canonical test for "the primary
+   * input device can hover" — true for mouse / trackpad, false for
+   * touchscreens. Initialised to false on the server so SSR never
+   * generates hover affordances that would be wrong on touch devices.
+   */
+  const [canHover, setCanHover] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia("(hover: hover)");
+    setCanHover(mql.matches);
+    const listener = (event: MediaQueryListEvent) => setCanHover(event.matches);
+    mql.addEventListener("change", listener);
+    return () => mql.removeEventListener("change", listener);
+  }, []);
+
+  /*
+   * Hover state for the building layers. Carries the resolved
+   * `SelectedBuilding` payload (so the tooltip can render typology +
+   * confidence + address without a second pick) and the cursor x/y
+   * (PickingInfo screen-space coords, in CSS pixels relative to the
+   * map container). Cleared whenever the cursor leaves a building
+   * footprint. Spec PR 1.
+   */
+  type HoverState = {
+    building: SelectedBuilding;
+    x: number;
+    y: number;
+  };
+  const [hoverState, setHoverState] = useState<HoverState | null>(null);
 
   const geometricPlaces = useMemo<GeometricPlacesCollection | null>(() => {
     if (!places) return null;
@@ -922,6 +1036,76 @@ export function AtlasMap({
     return { type: "FeatureCollection", features: [feature] };
   }, [selectedPlaceId, geometricPlaces]);
 
+  /*
+   * Selected building footprint, derived by looking up the osm_id in
+   * urbanDesignMassModel (preferred: carries fabric_archetype, typology
+   * etc.) and falling back to the raw osmBuildings fixture. The
+   * resulting FeatureCollection drives a stroke-only highlight layer
+   * rendered above the building layers. Spec PR 1: terracotta outline
+   * at `--ctx-accent` (#c14a2c), 2px width.
+   */
+  const selectedBuildingFeatureCollection = useMemo<GeoJSON.FeatureCollection<
+    GeoJSON.Geometry
+  > | null>(() => {
+    if (!selectedBuilding) return null;
+    const osmIdStr = String(selectedBuilding.osm_id);
+    const fromUrbanModel = urbanDesignMassModel.features.find(
+      (f) => String(f.properties.source_osm_id) === osmIdStr,
+    );
+    if (fromUrbanModel) {
+      return { type: "FeatureCollection", features: [fromUrbanModel] };
+    }
+    const fromOsm = (
+      visibleOsmBuildings as GeoJSON.FeatureCollection
+    ).features.find(
+      (f) =>
+        String(
+          (f.properties as OsmFootprintProperties | null)?.osm_id ?? "",
+        ) === osmIdStr,
+    );
+    if (fromOsm) {
+      return { type: "FeatureCollection", features: [fromOsm] };
+    }
+    return null;
+  }, [selectedBuilding, urbanDesignMassModel, visibleOsmBuildings]);
+
+  /*
+   * Hovered-building footprint, used for the soft 1px hint outline.
+   * Renders only when the hover target is distinct from the selected
+   * building, so the heavier selection outline always wins. Same
+   * lookup pattern as `selectedBuildingFeatureCollection`. Spec PR 1.
+   */
+  const hoveredBuildingFeatureCollection = useMemo<GeoJSON.FeatureCollection<
+    GeoJSON.Geometry
+  > | null>(() => {
+    if (!hoverState) return null;
+    if (
+      selectedBuilding &&
+      String(selectedBuilding.osm_id) === String(hoverState.building.osm_id)
+    ) {
+      return null;
+    }
+    const osmIdStr = String(hoverState.building.osm_id);
+    const fromUrbanModel = urbanDesignMassModel.features.find(
+      (f) => String(f.properties.source_osm_id) === osmIdStr,
+    );
+    if (fromUrbanModel) {
+      return { type: "FeatureCollection", features: [fromUrbanModel] };
+    }
+    const fromOsm = (
+      visibleOsmBuildings as GeoJSON.FeatureCollection
+    ).features.find(
+      (f) =>
+        String(
+          (f.properties as OsmFootprintProperties | null)?.osm_id ?? "",
+        ) === osmIdStr,
+    );
+    if (fromOsm) {
+      return { type: "FeatureCollection", features: [fromOsm] };
+    }
+    return null;
+  }, [hoverState, selectedBuilding, urbanDesignMassModel, visibleOsmBuildings]);
+
   /* ---- Click handler ---------------------------------------------- */
   const handleClick = useCallback(
     (info: PickingInfo) => {
@@ -934,9 +1118,270 @@ export function AtlasMap({
     [onPlaceSelect],
   );
 
+  /*
+   * Building click handler. Spec: docs/design-2026-05-atlas-feel-pass.md
+   * PR 1. Normalises three pick payloads into a single `SelectedBuilding`:
+   *
+   *   1. osmBuildings GeoJsonLayer -> `GeoJSON.Feature` with
+   *      `OsmFootprintProperties` (osm_id, name, building, levels…).
+   *   2. urbanDesignModel / buildingFabric GeoJsonLayer ->
+   *      `UrbanDesignModelFeature` with typology + archetype fields.
+   *   3. Archetype SimpleMeshLayer -> `ArchetypeMeshInstance`, whose
+   *      `anchorFeature` is the same UrbanDesignModelFeature.
+   *
+   * Returning `true` consumes the event so the top-level empty-area
+   * handler (which clears the selection) does not also fire.
+   */
+  const handleBuildingClick = useCallback(
+    (info: PickingInfo): boolean => {
+      if (!onBuildingSelect) return false;
+      if (!info.object) return false;
+
+      // Unwrap mesh instance -> anchor feature when present.
+      const candidate = info.object as {
+        anchorFeature?: GeoJSON.Feature;
+        properties?: Record<string, unknown>;
+        geometry?: GeoJSON.Geometry;
+      };
+      const feature: GeoJSON.Feature | undefined = candidate.anchorFeature
+        ? candidate.anchorFeature
+        : candidate.properties
+          ? (candidate as unknown as GeoJSON.Feature)
+          : undefined;
+      if (!feature || !feature.properties) return false;
+
+      const props = feature.properties as Record<string, unknown>;
+      const rawOsmId = props.osm_id ?? props.source_osm_id;
+      if (rawOsmId === undefined || rawOsmId === null) return false;
+
+      const name =
+        typeof props.name === "string" && props.name.trim().length > 0
+          ? props.name.trim()
+          : null;
+      const address =
+        typeof props.address === "string" && props.address.trim().length > 0
+          ? props.address.trim()
+          : null;
+      const typology_class =
+        typeof props.typology_class === "string" ? props.typology_class : null;
+      const typology_confidence =
+        typeof props.typology_confidence === "number"
+          ? props.typology_confidence
+          : null;
+      const fabric_archetype =
+        typeof props.fabric_archetype === "string"
+          ? props.fabric_archetype
+          : null;
+
+      const position =
+        geometryCentroid(feature.geometry) ??
+        (info.coordinate
+          ? ([info.coordinate[0], info.coordinate[1]] as [number, number])
+          : null);
+      if (!position) return false;
+
+      onBuildingSelect({
+        osm_id: rawOsmId as string | number,
+        name,
+        address,
+        typology_class,
+        typology_confidence,
+        fabric_archetype,
+        position,
+      });
+      return true;
+    },
+    [onBuildingSelect],
+  );
+
+  /*
+   * Overlay-level click. Per-layer onClick handlers run first; when a
+   * building or place is picked they consume the event by returning
+   * true. This handler only fires for picks that hit nothing — that's
+   * the empty-area clear gesture for the building selection. Spec PR 1.
+   */
+  const handleEmptyAreaClick = useCallback(
+    (info: PickingInfo) => {
+      if (info.object) return;
+      if (!onBuildingSelect) return;
+      onBuildingSelect(null);
+    },
+    [onBuildingSelect],
+  );
+
+  /*
+   * Hover handler shared by all three building layers. Mirrors the
+   * normalisation logic in `handleBuildingClick`. Updates the screen-
+   * positioned tooltip + the 1px terracotta hint outline. Returning
+   * `true` is unnecessary here — hover events don't propagate to a
+   * top-level handler in the same way clicks do. Spec PR 1.
+   */
+  const handleBuildingHover = useCallback(
+    (info: PickingInfo) => {
+      if (!canHover) return;
+      if (!info.object) {
+        setHoverState(null);
+        return;
+      }
+      const candidate = info.object as {
+        anchorFeature?: GeoJSON.Feature;
+        properties?: Record<string, unknown>;
+        geometry?: GeoJSON.Geometry;
+      };
+      const feature: GeoJSON.Feature | undefined = candidate.anchorFeature
+        ? candidate.anchorFeature
+        : candidate.properties
+          ? (candidate as unknown as GeoJSON.Feature)
+          : undefined;
+      if (!feature || !feature.properties) {
+        setHoverState(null);
+        return;
+      }
+      const props = feature.properties as Record<string, unknown>;
+      const rawOsmId = props.osm_id ?? props.source_osm_id;
+      if (rawOsmId === undefined || rawOsmId === null) {
+        setHoverState(null);
+        return;
+      }
+      const position =
+        geometryCentroid(feature.geometry) ??
+        (info.coordinate
+          ? ([info.coordinate[0], info.coordinate[1]] as [number, number])
+          : null);
+      if (!position) {
+        setHoverState(null);
+        return;
+      }
+      setHoverState({
+        building: {
+          osm_id: rawOsmId as string | number,
+          name:
+            typeof props.name === "string" && props.name.trim().length > 0
+              ? props.name.trim()
+              : null,
+          address:
+            typeof props.address === "string" && props.address.trim().length > 0
+              ? props.address.trim()
+              : null,
+          typology_class:
+            typeof props.typology_class === "string"
+              ? props.typology_class
+              : null,
+          typology_confidence:
+            typeof props.typology_confidence === "number"
+              ? props.typology_confidence
+              : null,
+          fabric_archetype:
+            typeof props.fabric_archetype === "string"
+              ? props.fabric_archetype
+              : null,
+          position,
+        },
+        x: info.x,
+        y: info.y,
+      });
+    },
+    [canHover],
+  );
+
+  // Clear hover state immediately if hover capability flips off (rare,
+  // but happens when a paired Bluetooth mouse disconnects on a tablet).
+  useEffect(() => {
+    if (!canHover) setHoverState(null);
+  }, [canHover]);
+
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
     const result: Layer[] = [];
+
+    /*
+     * Bound-world vignette mask. Spec PR 3: pushed first so it sits
+     * directly above the basemap raster (the carto-base style layer)
+     * and below every deck.gl building/place/event layer. The fill at
+     * alpha 220/255 leaves ~14% of the surrounding basemap visible
+     * (faint ghosts of Frankenmuth / Burton / Mt Morris labels and
+     * roads, since those are baked into the raster tiles). The 14px
+     * line at alpha 180/255 acts as a poor-man's feathered edge — a
+     * true gaussian feather would require a custom layer shader; this
+     * substitute is cheap and reads as a soft transition.
+     */
+    if (BOUND_WORLD_MASK_FEATURE_COLLECTION) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-bound-world-vignette-mask",
+          data: BOUND_WORLD_MASK_FEATURE_COLLECTION,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: false,
+          getFillColor: [242, 241, 236, 220],
+          getLineColor: [242, 241, 236, 180],
+          lineWidthMinPixels: 14,
+          getLineWidth: 14,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Terracotta city perimeter. Spec PR 3: `--ctx-accent` at alpha
+     * 180/255, 1.5px. The boundary should suggest, not insist. Sits
+     * above the vignette mask but below the building layers so
+     * buildings near the perimeter still occlude the line where they
+     * extrude past it.
+     *
+     * Note: prior to PR 3 there was no dedicated city-perimeter layer
+     * in AtlasMap — the only "blue boundaries" on screen were the
+     * ward outlines (places layer), which are intrinsic to the place
+     * model and not recolored here. This new layer is the spec's
+     * "Flint emerges from the paper" affordance.
+     *
+     * The 3px inner-glow layer immediately precedes the 1.5px line
+     * so the boundary reads with a faint terracotta halo from inside
+     * Flint — pushed in this order so the sharp 1.5px line wins the
+     * top of the stack. Spec PR 3 marks the inner glow as optional /
+     * recommended; included here for the "lit island" affordance.
+     */
+    if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-flint-boundary-inner-glow",
+          data: FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [193, 74, 44, 90],
+          lineWidthMinPixels: 3,
+          getLineWidth: 3,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-flint-boundary-outline",
+          data: FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [193, 74, 44, 180],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
     const urbanDesignModelVisible =
       urbanDesignMassModel.features.length > 0 &&
       layerVisibility.urbanDesignModel !== false &&
@@ -983,6 +1428,8 @@ export function AtlasMap({
           id: ATLAS_DECK_LAYER_IDS.osmBuildings,
           data: visibleOsmBuildings,
           pickable: true,
+          onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
           stroked: false,
           filled: true,
           extruded: true,
@@ -1086,6 +1533,8 @@ export function AtlasMap({
           id: ATLAS_DECK_LAYER_IDS.urbanDesignModel,
           data: urbanDesignMassModel,
           pickable: true,
+          onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
           stroked: true,
           filled: true,
           extruded: urbanExtruded,
@@ -1134,7 +1583,11 @@ export function AtlasMap({
     if (useProceduralMesh) {
       const meshLayers = buildArchetypeMeshLayersFromCollection(
         urbanDesignMassModel,
-        { pickable: true },
+        {
+          pickable: true,
+          onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
+        },
       );
       for (const meshLayer of meshLayers) {
         result.push(meshLayer);
@@ -1147,6 +1600,8 @@ export function AtlasMap({
           id: ATLAS_DECK_LAYER_IDS.buildingFabric,
           data: buildingFabricModel,
           pickable: true,
+          onClick: handleBuildingClick,
+          onHover: handleBuildingHover,
           stroked: true,
           filled: true,
           extruded: urbanExtruded,
@@ -1286,6 +1741,59 @@ export function AtlasMap({
       );
     }
 
+    /*
+     * Selected building outline. Spec PR 1: 2px terracotta stroke
+     * (`--ctx-accent`, #c14a2c -> RGB 193, 74, 44) on the picked
+     * building's footprint. Renders above the building layers so the
+     * highlight remains visible regardless of extrusion state.
+     */
+    if (selectedBuildingFeatureCollection) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-selected-building-outline",
+          data: selectedBuildingFeatureCollection,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 2,
+          getLineWidth: 2,
+          getLineColor: [193, 74, 44, 235],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Hover-hint outline. Spec PR 1: 1px terracotta at alpha 140 on the
+     * currently hovered building. Lighter than the selection outline so
+     * the two are visually distinguishable when the cursor moves over a
+     * non-selected building. Desktop-only by virtue of `canHover` gating
+     * `handleBuildingHover`.
+     */
+    if (hoveredBuildingFeatureCollection) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-hovered-building-outline",
+          data: hoveredBuildingFeatureCollection,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          getLineColor: [193, 74, 44, 140],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
     /* Lost Flint historical reconstructions. Each reconstruction is
      * dispatched to a renderer by what artifact it carries:
      *   - geometry_url null → ConfidenceMixMeshLayer (procedural box
@@ -1362,8 +1870,12 @@ export function AtlasMap({
     geometricPlaces,
     positionedEvents,
     selectedFeatureCollection,
+    selectedBuildingFeatureCollection,
+    hoveredBuildingFeatureCollection,
     layerVisibility,
     handleClick,
+    handleBuildingClick,
+    handleBuildingHover,
     onPlaceSelect,
     viewMode,
     activeLens,
@@ -1409,7 +1921,7 @@ export function AtlasMap({
         onMove={(event) => setMapZoom(event.viewState.zoom)}
         reuseMaps
       >
-        <DeckGLOverlay layers={layers} />
+        <DeckGLOverlay layers={layers} onClick={handleEmptyAreaClick} />
         <NavigationControl position="bottom-right" />
       </Map>
 
@@ -1430,6 +1942,38 @@ export function AtlasMap({
             "radial-gradient(circle at 50% 52%, rgba(246,244,238,0) 0%, rgba(246,244,238,0) 38%, rgba(46,34,22,0.08) 62%, rgba(34,24,14,0.22) 88%, rgba(28,20,12,0.32) 100%)",
         }}
       />
+
+      {/*
+        Building hover tooltip. Spec PR 1: typology class + confidence
+        percentage + address (or osm_id when no address). Rendered above
+        the basemap and below the chrome (z-index between vignette and
+        AtlasShell controls). Pointer-events:none so it never intercepts
+        map gestures. Desktop-only via the `canHover` gate on
+        `handleBuildingHover`; hoverState is never set on touch devices.
+      */}
+      {hoverState ? (
+        <div
+          aria-hidden="true"
+          className="atlas-building-hover-tooltip pointer-events-none absolute z-[10] rounded-[10px] border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.92)] px-3 py-2 font-mono text-[10px] uppercase leading-[1.4] tracking-[0.08em] text-[color:var(--ctx-ink)] shadow-[0_8px_18px_-12px_rgba(42,36,25,0.45)]"
+          style={{
+            left: Math.min(hoverState.x + 14, 2000),
+            top: Math.max(hoverState.y - 56, 8),
+            maxWidth: 220,
+          }}
+        >
+          <div className="text-[color:var(--ctx-ink)]">
+            {hoverState.building.typology_class ?? "Unclassified"}
+          </div>
+          {typeof hoverState.building.typology_confidence === "number" ? (
+            <div className="text-[color:var(--ctx-ink-mute)]">
+              {`${Math.round(hoverState.building.typology_confidence * 100)}% confidence`}
+            </div>
+          ) : null}
+          <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
+            {hoverState.building.address ?? `Building #${hoverState.building.osm_id}`}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
