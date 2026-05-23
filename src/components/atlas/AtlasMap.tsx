@@ -809,6 +809,12 @@ export type AtlasMapProps = {
    * PR 1.
    */
   onBuildingSelect?: (building: SelectedBuilding | null) => void;
+  /**
+   * Optional route-level deck.gl overlays layered above the atlas's
+   * built-in civic layers. Used by specialty surfaces such as the
+   * Porchfest planner without forking the shared map renderer.
+   */
+  extraDeckLayers?: Layer[];
 };
 
 export type UrbanDesignMaterialMode = "typology" | "sketch_model";
@@ -837,6 +843,7 @@ export function AtlasMap({
   urbanDesignMaterialMode = "typology",
   selectedBuilding = null,
   onBuildingSelect,
+  extraDeckLayers = [],
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -2060,6 +2067,10 @@ export function AtlasMap({
       );
     }
 
+    if (extraDeckLayers.length > 0) {
+      result.push(...extraDeckLayers);
+    }
+
     return result;
   }, [
     geometricPlaces,
@@ -2084,6 +2095,7 @@ export function AtlasMap({
     scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,
+    extraDeckLayers,
   ]);
 
   /* ---- Render ----------------------------------------------------- */

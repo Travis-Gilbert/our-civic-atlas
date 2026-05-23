@@ -73,17 +73,6 @@ type Vec3 = readonly [number, number, number];
 
 const ROOF_CAP_Z = 0.35;
 
-const BODY_CORNERS = {
-  bottomSW: [-0.5, -0.5, -0.5] as const,
-  bottomSE: [0.5, -0.5, -0.5] as const,
-  bottomNE: [0.5, 0.5, -0.5] as const,
-  bottomNW: [-0.5, 0.5, -0.5] as const,
-  capSW: [-0.5, -0.5, ROOF_CAP_Z] as const,
-  capSE: [0.5, -0.5, ROOF_CAP_Z] as const,
-  capNE: [0.5, 0.5, ROOF_CAP_Z] as const,
-  capNW: [-0.5, 0.5, ROOF_CAP_Z] as const,
-};
-
 function pushQuad(
   positions: number[],
   normals: number[],
