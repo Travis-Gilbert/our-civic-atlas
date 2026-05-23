@@ -939,6 +939,97 @@ export function AtlasMap({
     [onPlaceSelect],
   );
 
+  /*
+   * Building click handler. Spec: docs/design-2026-05-atlas-feel-pass.md
+   * PR 1. Normalises three pick payloads into a single `SelectedBuilding`:
+   *
+   *   1. osmBuildings GeoJsonLayer -> `GeoJSON.Feature` with
+   *      `OsmFootprintProperties` (osm_id, name, building, levels…).
+   *   2. urbanDesignModel / buildingFabric GeoJsonLayer ->
+   *      `UrbanDesignModelFeature` with typology + archetype fields.
+   *   3. Archetype SimpleMeshLayer -> `ArchetypeMeshInstance`, whose
+   *      `anchorFeature` is the same UrbanDesignModelFeature.
+   *
+   * Returning `true` consumes the event so the top-level empty-area
+   * handler (which clears the selection) does not also fire.
+   */
+  const handleBuildingClick = useCallback(
+    (info: PickingInfo): boolean => {
+      if (!onBuildingSelect) return false;
+      if (!info.object) return false;
+
+      // Unwrap mesh instance -> anchor feature when present.
+      const candidate = info.object as {
+        anchorFeature?: GeoJSON.Feature;
+        properties?: Record<string, unknown>;
+        geometry?: GeoJSON.Geometry;
+      };
+      const feature: GeoJSON.Feature | undefined = candidate.anchorFeature
+        ? candidate.anchorFeature
+        : candidate.properties
+          ? (candidate as unknown as GeoJSON.Feature)
+          : undefined;
+      if (!feature || !feature.properties) return false;
+
+      const props = feature.properties as Record<string, unknown>;
+      const rawOsmId = props.osm_id ?? props.source_osm_id;
+      if (rawOsmId === undefined || rawOsmId === null) return false;
+
+      const name =
+        typeof props.name === "string" && props.name.trim().length > 0
+          ? props.name.trim()
+          : null;
+      const address =
+        typeof props.address === "string" && props.address.trim().length > 0
+          ? props.address.trim()
+          : null;
+      const typology_class =
+        typeof props.typology_class === "string" ? props.typology_class : null;
+      const typology_confidence =
+        typeof props.typology_confidence === "number"
+          ? props.typology_confidence
+          : null;
+      const fabric_archetype =
+        typeof props.fabric_archetype === "string"
+          ? props.fabric_archetype
+          : null;
+
+      const position =
+        geometryCentroid(feature.geometry) ??
+        (info.coordinate
+          ? ([info.coordinate[0], info.coordinate[1]] as [number, number])
+          : null);
+      if (!position) return false;
+
+      onBuildingSelect({
+        osm_id: rawOsmId as string | number,
+        name,
+        address,
+        typology_class,
+        typology_confidence,
+        fabric_archetype,
+        position,
+      });
+      return true;
+    },
+    [onBuildingSelect],
+  );
+
+  /*
+   * Overlay-level click. Per-layer onClick handlers run first; when a
+   * building or place is picked they consume the event by returning
+   * true. This handler only fires for picks that hit nothing — that's
+   * the empty-area clear gesture for the building selection. Spec PR 1.
+   */
+  const handleEmptyAreaClick = useCallback(
+    (info: PickingInfo) => {
+      if (info.object) return;
+      if (!onBuildingSelect) return;
+      onBuildingSelect(null);
+    },
+    [onBuildingSelect],
+  );
+
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
     const result: Layer[] = [];
@@ -988,6 +1079,7 @@ export function AtlasMap({
           id: ATLAS_DECK_LAYER_IDS.osmBuildings,
           data: visibleOsmBuildings,
           pickable: true,
+          onClick: handleBuildingClick,
           stroked: false,
           filled: true,
           extruded: true,
@@ -1091,6 +1183,7 @@ export function AtlasMap({
           id: ATLAS_DECK_LAYER_IDS.urbanDesignModel,
           data: urbanDesignMassModel,
           pickable: true,
+          onClick: handleBuildingClick,
           stroked: true,
           filled: true,
           extruded: urbanExtruded,
@@ -1139,7 +1232,7 @@ export function AtlasMap({
     if (useProceduralMesh) {
       const meshLayers = buildArchetypeMeshLayersFromCollection(
         urbanDesignMassModel,
-        { pickable: true },
+        { pickable: true, onClick: handleBuildingClick },
       );
       for (const meshLayer of meshLayers) {
         result.push(meshLayer);
@@ -1152,6 +1245,7 @@ export function AtlasMap({
           id: ATLAS_DECK_LAYER_IDS.buildingFabric,
           data: buildingFabricModel,
           pickable: true,
+          onClick: handleBuildingClick,
           stroked: true,
           filled: true,
           extruded: urbanExtruded,
@@ -1362,6 +1456,7 @@ export function AtlasMap({
     selectedFeatureCollection,
     layerVisibility,
     handleClick,
+    handleBuildingClick,
     onPlaceSelect,
     viewMode,
     activeLens,
@@ -1406,7 +1501,7 @@ export function AtlasMap({
         onMove={(event) => setMapZoom(event.viewState.zoom)}
         reuseMaps
       >
-        <DeckGLOverlay layers={layers} />
+        <DeckGLOverlay layers={layers} onClick={handleEmptyAreaClick} />
         <NavigationControl position="bottom-right" />
       </Map>
 

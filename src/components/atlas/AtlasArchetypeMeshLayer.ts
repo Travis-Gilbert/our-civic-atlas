@@ -31,7 +31,7 @@
  */
 
 import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
-import type { Layer } from "@deck.gl/core";
+import type { Layer, PickingInfo } from "@deck.gl/core";
 
 import { getArchetypeGeometry } from "@/lib/atlas/procedural-archetype-meshes";
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
@@ -290,6 +290,13 @@ export type ArchetypeMeshLayerOptions = {
     shininess: number;
     specularColor: [number, number, number];
   };
+  /**
+   * Per-layer pick handler. The picking payload is the
+   * `ArchetypeMeshInstance`; the consumer reads `info.object.anchorFeature.properties`
+   * to land in the same shape as a GeoJsonLayer pick on the urban
+   * design model. Spec: PR 1 building click interactions.
+   */
+  onClick?: (info: PickingInfo) => boolean | void;
 };
 
 const DEFAULT_MATERIAL: ArchetypeMeshLayerOptions["material"] = {
@@ -316,6 +323,7 @@ export function buildArchetypeMeshLayers(
     sizeScale = 1,
     pickable = true,
     material = DEFAULT_MATERIAL,
+    onClick,
   } = options;
 
   // Group by archetype so each layer carries one geometry.
@@ -338,6 +346,7 @@ export function buildArchetypeMeshLayers(
         mesh: getArchetypeGeometry(archetype),
         sizeScale,
         pickable,
+        onClick,
         // Centroid: SimpleMeshLayer treats [lng, lat] as the
         // instance origin. The mesh extends in [-0.5, +0.5] on each
         // axis BEFORE getScale; after scaling by [widthM, depthM,
