@@ -1734,10 +1734,13 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: massOpacity,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
+          // Default deck.gl depth testing: write to the depth buffer and
+          // pass less-equal so extruded masses self-occlude and stack
+          // properly against neighboring buildings. The prior override
+          // (depthCompare:"always", depthWriteEnabled:false) flattened
+          // the silhouette — buildings rose geometrically but read as
+          // pasted-on shapes against the ground. Restoring defaults
+          // brings back the elevated chipboard feel the spec calls for.
           lineWidthMinPixels: viewMode === "atlas" ? 0.9 : 0.7,
           getLineWidth: viewMode === "atlas" ? 0.9 : 0.75,
           getElevation: (feature) =>
@@ -1801,10 +1804,8 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: fabricOpacity,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
+          // Default depth testing for the same reason as the mass
+          // layer above — buildings need to self-occlude to read 3D.
           lineWidthMinPixels: viewMode === "atlas" ? 0.7 : 0.55,
           getLineWidth: viewMode === "atlas" ? 0.7 : 0.55,
           getElevation: (feature) =>
