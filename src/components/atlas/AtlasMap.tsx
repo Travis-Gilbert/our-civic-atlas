@@ -927,6 +927,39 @@ export function AtlasMap({
     return { type: "FeatureCollection", features: [feature] };
   }, [selectedPlaceId, geometricPlaces]);
 
+  /*
+   * Selected building footprint, derived by looking up the osm_id in
+   * urbanDesignMassModel (preferred: carries fabric_archetype, typology
+   * etc.) and falling back to the raw osmBuildings fixture. The
+   * resulting FeatureCollection drives a stroke-only highlight layer
+   * rendered above the building layers. Spec PR 1: terracotta outline
+   * at `--ctx-accent` (#c14a2c), 2px width.
+   */
+  const selectedBuildingFeatureCollection = useMemo<GeoJSON.FeatureCollection<
+    GeoJSON.Geometry
+  > | null>(() => {
+    if (!selectedBuilding) return null;
+    const osmIdStr = String(selectedBuilding.osm_id);
+    const fromUrbanModel = urbanDesignMassModel.features.find(
+      (f) => String(f.properties.source_osm_id) === osmIdStr,
+    );
+    if (fromUrbanModel) {
+      return { type: "FeatureCollection", features: [fromUrbanModel] };
+    }
+    const fromOsm = (
+      visibleOsmBuildings as GeoJSON.FeatureCollection
+    ).features.find(
+      (f) =>
+        String(
+          (f.properties as OsmFootprintProperties | null)?.osm_id ?? "",
+        ) === osmIdStr,
+    );
+    if (fromOsm) {
+      return { type: "FeatureCollection", features: [fromOsm] };
+    }
+    return null;
+  }, [selectedBuilding, urbanDesignMassModel, visibleOsmBuildings]);
+
   /* ---- Click handler ---------------------------------------------- */
   const handleClick = useCallback(
     (info: PickingInfo) => {
@@ -1385,6 +1418,32 @@ export function AtlasMap({
       );
     }
 
+    /*
+     * Selected building outline. Spec PR 1: 2px terracotta stroke
+     * (`--ctx-accent`, #c14a2c -> RGB 193, 74, 44) on the picked
+     * building's footprint. Renders above the building layers so the
+     * highlight remains visible regardless of extrusion state.
+     */
+    if (selectedBuildingFeatureCollection) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-selected-building-outline",
+          data: selectedBuildingFeatureCollection,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 2,
+          getLineWidth: 2,
+          getLineColor: [193, 74, 44, 235],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
     /* Lost Flint historical reconstructions. Each reconstruction is
      * dispatched to a renderer by what artifact it carries:
      *   - geometry_url null → ConfidenceMixMeshLayer (procedural box
@@ -1454,6 +1513,7 @@ export function AtlasMap({
     geometricPlaces,
     positionedEvents,
     selectedFeatureCollection,
+    selectedBuildingFeatureCollection,
     layerVisibility,
     handleClick,
     handleBuildingClick,
