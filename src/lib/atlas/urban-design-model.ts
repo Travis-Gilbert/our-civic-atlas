@@ -813,13 +813,17 @@ function createFormParts(
       break;
   }
 
-  // Skip fabric decoration entirely for unclassified buildings. The fabric
-  // detail pass expects the form switch above to have laid down body parts
-  // its dormers / cornices / sawtooths can land on; for "unknown" there's
-  // no body to decorate, only the raw footprint mass.
-  if (spec.form_type !== "unknown") {
-    createFabricDetailParts(spec, oriented, add);
-  }
+  // Spec PR 2: skip the fabric detail pass entirely. The dormers,
+  // cornices, sawtooth bays, storefront-per-bay rhythms, and apartment
+  // facade bays the old pass emitted are what pushed each building to
+  // 7-8 parts (paper-craft kit). The signature detail for each form
+  // is now defined by the form switch above (3 parts max). The
+  // `createFabricDetailParts` and `createOrientedRowParts` helpers
+  // stay in the file behind this gate so they can be reintroduced
+  // later under a higher-LOD render mode (e.g. a "facade detail"
+  // toggle past z >= 17) without churn.
+  void createFabricDetailParts;
+  void createOrientedRowParts;
 
   return parts;
 }
