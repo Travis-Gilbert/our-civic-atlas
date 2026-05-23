@@ -1326,8 +1326,31 @@ export function AtlasMap({
      * ward outlines (places layer), which are intrinsic to the place
      * model and not recolored here. This new layer is the spec's
      * "Flint emerges from the paper" affordance.
+     *
+     * The 3px inner-glow layer immediately precedes the 1.5px line
+     * so the boundary reads with a faint terracotta halo from inside
+     * Flint — pushed in this order so the sharp 1.5px line wins the
+     * top of the stack. Spec PR 3 marks the inner glow as optional /
+     * recommended; included here for the "lit island" affordance.
      */
     if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-flint-boundary-inner-glow",
+          data: FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [193, 74, 44, 90],
+          lineWidthMinPixels: 3,
+          getLineWidth: 3,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
       result.push(
         new GeoJsonLayer({
           id: "atlas-flint-boundary-outline",
