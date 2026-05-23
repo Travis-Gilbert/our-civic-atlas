@@ -1537,35 +1537,26 @@ export function AtlasMap({
     }
 
     /*
-     * Terracotta city perimeter. Spec PR 3: `--ctx-accent` at alpha
-     * 180/255, 1.5px. The boundary should suggest, not insist. Sits
-     * Spec PR 4 layer-order table puts both boundary layers ABOVE
-     * the building stack so the perimeter wins the top of the render
-     * (Flint emerges from paper, not occluded by skyline). The pushes
-     * have moved further down in this function — see the
-     * `pushBoundaryLayers` invocation after the buildingFabric block.
+     * Teal city perimeter. Prior versions of this surface ran a
+     * terracotta line + a terracotta inner-glow halo to mark the
+     * Flint boundary (PR 3, "Flint emerges from the paper" affordance);
+     * in live use the terracotta-on-paper combination read as
+     * vascular against the new infrastructure layers, so we retire
+     * the inner-glow halo entirely and recolor the perimeter to the
+     * existing infrastructure teal (#2DA699 = RGB 45, 166, 153) at
+     * alpha 200, 1.5px. The boundary still suggests rather than
+     * insists; the calmer hue lets the parks/water/rail layers carry
+     * the chromatic weight of the map body.
+     *
+     * Pushed after the building stack so the perimeter wins the top
+     * of the render — Flint reads as a contained shape without skyline
+     * occluding its outline. Invoked by name below after the
+     * buildingFabric block.
      */
     function pushBoundaryLayers() {
       if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length === 0) {
         return;
       }
-      result.push(
-        new GeoJsonLayer({
-          id: "atlas-flint-boundary-inner-glow",
-          data: FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION,
-          pickable: false,
-          stroked: true,
-          filled: false,
-          extruded: false,
-          getLineColor: [193, 74, 44, 90],
-          lineWidthMinPixels: 3,
-          getLineWidth: 3,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
-        }),
-      );
       result.push(
         new GeoJsonLayer({
           id: "atlas-flint-boundary-outline",
@@ -1574,7 +1565,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [193, 74, 44, 180],
+          getLineColor: [45, 166, 153, 200],
           lineWidthMinPixels: 1.5,
           getLineWidth: 1.5,
           parameters: {
