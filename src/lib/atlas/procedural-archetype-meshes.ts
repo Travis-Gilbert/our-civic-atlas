@@ -571,7 +571,7 @@ export function createStorefrontBoxGeometry(): Geometry {
 /*                                                                     */
 /*  SimpleMeshLayer reads the Geometry once when the layer mounts and  */
 /*  uploads it to the GPU. Caching the Geometry instances at module    */
-/*  scope means React re-renders don't rebuild buffers — the same      */
+/*  scope means React re-renders don't rebuild buffers: the same       */
 /*  Geometry pointer flows back through every render.                  */
 /* ------------------------------------------------------------------ */
 

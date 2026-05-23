@@ -1,5 +1,5 @@
 /**
- * AtlasArchetypeMeshLayer — procedural archetype mesh layers for the
+ * AtlasArchetypeMeshLayer: procedural archetype mesh layers for the
  * Phase A.5 sketch-model render.
  *
  * The existing `urbanDesignModel` GeoJsonLayer extrudes each building's
