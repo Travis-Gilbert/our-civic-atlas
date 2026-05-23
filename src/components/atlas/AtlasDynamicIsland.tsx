@@ -36,15 +36,6 @@ import {
 import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
-type PlaceSubTab = "overview" | "evidence" | "history" | "comments";
-
-const PLACE_SUB_TAB_LABELS: Record<PlaceSubTab, string> = {
-  overview: "Overview",
-  evidence: "Evidence",
-  history: "History",
-  comments: "Comments",
-};
-
 type IslandTab = "ask" | "layers" | "scenarios" | "time" | "place" | "horizon";
 
 type AtlasDynamicIslandProps = {
@@ -157,7 +148,6 @@ export function AtlasDynamicIsland({
 }: AtlasDynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<IslandTab>("ask");
-  const [placeSubTab, setPlaceSubTab] = useState<PlaceSubTab>("overview");
   const [selectedHorizonId, setSelectedHorizonId] = useState<string | null>(
     horizonNodes[0]?.atlasId ?? null,
   );
@@ -173,14 +163,15 @@ export function AtlasDynamicIsland({
 
   // Auto-expand + switch to Place when a building is freshly selected.
   // Spec PR 1: clicking a building opens the island into the Place tab.
-  // Reset the sub-tab to Overview on every new building so the user
-  // always sees the headline content first.
+  // The PR 4 dossier rewrite removed the sub-tab state — the dossier
+  // now renders all three sections vertically in one panel, so the
+  // only thing to reset on a fresh selection is which top-level tab
+  // is active.
   const lastBuildingIdRef = useRef<string | number | null>(null);
   useEffect(() => {
     const nextId = selectedBuilding?.osm_id ?? null;
     if (nextId !== null && nextId !== lastBuildingIdRef.current) {
       setActiveTab("place");
-      setPlaceSubTab("overview");
       setIsExpanded(true);
     }
     lastBuildingIdRef.current = nextId;
@@ -581,8 +572,6 @@ export function AtlasDynamicIsland({
                   {selectedBuilding ? (
                     <BuildingDossier
                       building={selectedBuilding}
-                      activeSubTab={placeSubTab}
-                      onSubTabChange={setPlaceSubTab}
                       onClear={onClearBuilding}
                     />
                   ) : selectedPlaceId && dossierContent ? (
@@ -865,45 +854,78 @@ function compassPointStyle(node: NodeHorizonEntry): { left: string; top: string 
 }
 
 /* ------------------------------------------------------------------ */
-/*  BuildingDossier                                                    */
+/*  BuildingDossier (Spec PR 4 / map-body-and-discipline)              */
 /*                                                                     */
-/*  Spec PR 1: rendered inside the Place tab when a building is        */
-/*  selected. Carries a Clear button (header), four sub-tabs           */
-/*  (Overview, Evidence, History, Comments), and the Overview content  */
-/*  with typology, confidence percentage, fabric archetype, address,   */
-/*  and a placeholder "Open dossier" button. Evidence/History/Comments */
-/*  are honest empty states until those data sources land.             */
+/*  Three vertical sections, no sub-tabs:                              */
+/*    1. "What it is" — noun-phrase typology + location descriptor.   */
+/*       No confidence chip, no osm_id chip (unless name AND address  */
+/*       are both missing, in which case osm_id renders as a small    */
+/*       muted subtitle).                                              */
+/*    2. EVIDENCE — empty state today; this is where the atelier      */
+/*       eventually hooks source citations in.                         */
+/*    3. EXPLORE — three placeholder buttons (Open dossier,            */
+/*       Reconstruct historical view, Comments) that signal future    */
+/*       capability without faking the implementation.                 */
+/*                                                                     */
+/*  Confidence-discipline rule: this card never editorialises the     */
+/*  classifier's uncertainty. Once the typology was selected upstream,*/
+/*  the chrome commits to it.                                          */
 /* ------------------------------------------------------------------ */
 
-const PLACE_SUB_TABS: PlaceSubTab[] = [
-  "overview",
-  "evidence",
-  "history",
-  "comments",
-];
+const TYPOLOGY_NOUN_PHRASE: Record<string, string> = {
+  residential: "Residence",
+  residential_single: "Single-family house",
+  residential_multi: "Multi-family residence",
+  commercial: "Commercial building",
+  industrial: "Industrial structure",
+  civic: "Civic building",
+  mixed_use: "Mixed-use building",
+};
+
+function nounPhraseFor(typologyClass: string | null): string {
+  if (!typologyClass) return "Building";
+  const key = typologyClass.toLowerCase();
+  return TYPOLOGY_NOUN_PHRASE[key] ?? "Building";
+}
+
+function locationDescriptorFor(building: SelectedBuilding): string {
+  // Address is the strongest descriptor when present (carries the
+  // street name implicitly). Otherwise fall back to a city label —
+  // a proper nearest-corridor / nearest-ward spatial join is a
+  // follow-up; for now "Flint, Michigan" is the honest minimum that
+  // doesn't fake a precision we don't have.
+  if (building.address) return building.address;
+  return "Flint, Michigan";
+}
 
 function BuildingDossier({
   building,
-  activeSubTab,
-  onSubTabChange,
   onClear,
 }: {
   building: SelectedBuilding;
-  activeSubTab: PlaceSubTab;
-  onSubTabChange: (tab: PlaceSubTab) => void;
   onClear?: () => void;
 }) {
-  const title = buildingDisplayTitle(building);
+  const noun = nounPhraseFor(building.typology_class);
+  const location = locationDescriptorFor(building);
+  const hasName = Boolean(building.name?.trim());
+  const hasAddress = Boolean(building.address?.trim());
+  const showOsmIdSubtitle = !hasName && !hasAddress;
+
   return (
     <div className="flex flex-col">
       <header className="flex items-start justify-between gap-3 border-b border-[rgba(42,36,25,0.08)] px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-            Building
+          <p className="text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
+            {noun}
           </p>
-          <p className="mt-1 truncate text-[14px] font-medium leading-[1.3] text-[color:var(--ctx-ink)]">
-            {title}
+          <p className="mt-0.5 text-[12px] leading-[1.4] text-[color:var(--ctx-ink-soft)]">
+            {location}
           </p>
+          {showOsmIdSubtitle ? (
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+              {`#${building.osm_id}`}
+            </p>
+          ) : null}
         </div>
         {onClear ? (
           <button
@@ -917,83 +939,54 @@ function BuildingDossier({
         ) : null}
       </header>
 
-      <nav
-        aria-label="Building dossier sub-tabs"
-        className="flex gap-1 border-b border-[rgba(42,36,25,0.08)] px-3 pt-2"
+      <section
+        aria-labelledby="building-dossier-evidence-heading"
+        className="border-b border-[rgba(42,36,25,0.08)] px-4 py-3"
       >
-        {PLACE_SUB_TABS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => onSubTabChange(tab)}
-            className="atlas-dossier-tab"
-            data-active={activeSubTab === tab ? "true" : "false"}
-          >
-            {PLACE_SUB_TAB_LABELS[tab]}
-          </button>
-        ))}
-      </nav>
+        <h3
+          id="building-dossier-evidence-heading"
+          className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]"
+        >
+          Evidence
+        </h3>
+        <p className="mt-1.5 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+          No evidence loaded yet.
+        </p>
+      </section>
 
-      <div className="px-4 py-3 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
-        {activeSubTab === "overview" ? (
-          <BuildingOverview building={building} />
-        ) : null}
-        {activeSubTab === "evidence" ? <p>No evidence loaded</p> : null}
-        {activeSubTab === "history" ? <p>No timeline</p> : null}
-        {activeSubTab === "comments" ? (
-          <p>No comments yet. Be the first.</p>
-        ) : null}
-      </div>
+      <section
+        aria-labelledby="building-dossier-explore-heading"
+        className="px-4 py-3"
+      >
+        <h3
+          id="building-dossier-explore-heading"
+          className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]"
+        >
+          Explore
+        </h3>
+        <div className="mt-2 flex flex-col gap-1.5">
+          <DossierDisabledAction label="Open dossier" />
+          <DossierDisabledAction label="Reconstruct historical view" />
+          <DossierDisabledAction label="Comments" />
+        </div>
+      </section>
     </div>
   );
 }
 
-function BuildingOverview({ building }: { building: SelectedBuilding }) {
+function DossierDisabledAction({ label }: { label: string }) {
   return (
-    <div className="space-y-3">
-      <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1.5 text-[12px] leading-[1.5]">
-        <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-          Typology
-        </dt>
-        <dd className="text-[color:var(--ctx-ink)]">
-          {building.typology_class ?? "Unclassified"}
-        </dd>
-        {typeof building.typology_confidence === "number" ? (
-          <>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-              Confidence
-            </dt>
-            <dd className="text-[color:var(--ctx-ink)]">
-              {`${Math.round(building.typology_confidence * 100)}%`}
-            </dd>
-          </>
-        ) : null}
-        {building.fabric_archetype ? (
-          <>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-              Archetype
-            </dt>
-            <dd className="text-[color:var(--ctx-ink)]">
-              {building.fabric_archetype}
-            </dd>
-          </>
-        ) : null}
-        {building.address ? (
-          <>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-              Address
-            </dt>
-            <dd className="text-[color:var(--ctx-ink)]">{building.address}</dd>
-          </>
-        ) : null}
-      </dl>
-      <button
-        type="button"
-        className="atlas-horizon-action"
-        aria-label="Open building dossier"
-      >
-        Open dossier
-      </button>
-    </div>
+    <button
+      type="button"
+      disabled
+      title="Coming soon"
+      aria-disabled="true"
+      className="flex w-full items-center justify-between rounded-[8px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.4)] px-3 py-2 text-left text-[12px] leading-[1.3] text-[color:var(--ctx-ink-soft)] opacity-70 transition-colors cursor-not-allowed"
+    >
+      <span>{label}</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+        Coming soon
+      </span>
+    </button>
   );
 }

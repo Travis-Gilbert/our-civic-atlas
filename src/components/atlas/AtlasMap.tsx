@@ -706,17 +706,21 @@ function clampByte(value: number): number {
  * confident. The threshold (0.5) matches Phase A spec §10 MUST.
  */
 function applyFabricCompletenessAlpha(
-  props: UrbanDesignModelProperties,
+  _props: UrbanDesignModelProperties,
   color: [number, number, number, number],
 ): [number, number, number, number] {
-  const fabricConfidence = props.fabric_feature_completeness;
-  const typologyConfidence =
-    typeof props.typology_confidence === "number"
-      ? props.typology_confidence
-      : 1.0;
-  const effectiveConfidence = Math.min(fabricConfidence, typologyConfidence);
-  if (effectiveConfidence >= 0.5) return color;
-  return [color[0], color[1], color[2], Math.max(78, color[3] - 56)];
+  // Spec PR 4 confidence-discipline rule: "Confidence shapes WHAT we
+  // render, never HOW." Previously this function dimmed alpha when
+  // typology_confidence or fabric_feature_completeness fell below
+  // 0.5, letting the chrome editorialise about classifier uncertainty.
+  // The new rule routes confidence to archetype selection upstream
+  // (high confidence -> use predicted typology, low confidence ->
+  // fall back to `unknown` as a plain chipboard mass). Once that
+  // decision is made the building renders at full chrome alpha. Kept
+  // as a pass-through so the five call-sites stay structurally
+  // compatible; renaming it across the file is outside this PR's
+  // render+chrome scope.
+  return color;
 }
 
 function smoothstep(edge0: number, edge1: number, value: number): number {
@@ -2159,14 +2163,16 @@ export function AtlasMap({
             maxWidth: 220,
           }}
         >
+          {/*
+            Spec PR 4 confidence-discipline rule: hover tooltip shows
+            what the building IS (the noun-phrase typology) and where
+            (address or osm_id fallback). No confidence percentage —
+            once the archetype was selected upstream, the chrome
+            commits to it.
+          */}
           <div className="text-[color:var(--ctx-ink)]">
             {hoverState.building.typology_class ?? "Unclassified"}
           </div>
-          {typeof hoverState.building.typology_confidence === "number" ? (
-            <div className="text-[color:var(--ctx-ink-mute)]">
-              {`${Math.round(hoverState.building.typology_confidence * 100)}% confidence`}
-            </div>
-          ) : null}
           <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
             {hoverState.building.address ?? `Building #${hoverState.building.osm_id}`}
           </div>
