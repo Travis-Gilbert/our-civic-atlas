@@ -29,6 +29,7 @@ import {
   ATLAS_TIME_MIN_YEAR,
 } from "@/lib/atlas/atlas-time";
 import type { NodeHorizonEntry } from "@/lib/atlas/node-horizon";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +71,13 @@ type AtlasDynamicIslandProps = {
   visibleHistoricalReconstructionCount?: number | null;
   totalHistoricalReconstructionCount?: number;
   dossierContent?: ReactNode;
+  /** Currently selected building, if any. Spec PR 1. When non-null the
+   * Place tab is added to availableTabs and the collapsed-island title
+   * falls through to `name → address → Building #<osm_id>`. */
+  selectedBuilding?: SelectedBuilding | null;
+  /** Fired when the user clears the building selection. Wired to the
+   * Clear button in the Place tab header. Spec PR 1. */
+  onClearBuilding?: () => void;
   layerControlsContent?: ReactNode;
   scenarioControlsContent?: ReactNode;
 };
@@ -130,6 +138,8 @@ export function AtlasDynamicIsland({
   visibleHistoricalReconstructionCount = null,
   totalHistoricalReconstructionCount = 0,
   dossierContent,
+  selectedBuilding = null,
+  onClearBuilding,
   layerControlsContent,
   scenarioControlsContent,
 }: AtlasDynamicIslandProps) {

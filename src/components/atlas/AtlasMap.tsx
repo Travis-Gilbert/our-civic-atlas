@@ -41,6 +41,7 @@ import {
   type AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -675,6 +676,20 @@ export type AtlasMapProps = {
   >;
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
+  /**
+   * Currently selected building, if any. Drives the terracotta
+   * outline highlight layer. Distinct from `selectedPlaceId` which
+   * carries civic places. Spec: docs/design-2026-05-atlas-feel-pass.md
+   * PR 1.
+   */
+  selectedBuilding?: SelectedBuilding | null;
+  /**
+   * Fired when a building is picked on the map (osmBuildings,
+   * urbanDesignModel, or the procedural archetype mesh layer). Pass
+   * `null` to clear (called when the user clicks empty map area). Spec
+   * PR 1.
+   */
+  onBuildingSelect?: (building: SelectedBuilding | null) => void;
 };
 
 export type UrbanDesignMaterialMode = "typology" | "sketch_model";
@@ -701,6 +716,8 @@ export function AtlasMap({
   scenarioDeltaFeatures,
   scenarioCompareEnabled = false,
   urbanDesignMaterialMode = "typology",
+  selectedBuilding = null,
+  onBuildingSelect,
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;

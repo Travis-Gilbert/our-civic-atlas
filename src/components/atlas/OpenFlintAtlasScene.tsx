@@ -31,6 +31,7 @@ import { loadAtlasTables, eventStartIso } from "@/lib/atlas/atlas-data";
 import { getAtlasMosaic, type AtlasMosaic } from "@/lib/atlas/mosaic";
 import { getNodeHorizonEntries } from "@/lib/atlas/node-horizon";
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import {
   getAtlasRendererBridge,
   type AtlasRendererMode,
@@ -188,6 +189,12 @@ export function OpenFlintAtlasScene(props: {
   const router = useRouter();
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
+  // Building selection is its own state, separate from `selectedPlaceId`
+  // (which represents civic places: wards, parcels, addresses). A
+  // building selection carries OSM footprint metadata + urban design
+  // model typology. Spec: docs/design-2026-05-atlas-feel-pass.md PR 1.
+  const [selectedBuilding, setSelectedBuilding] =
+    useState<SelectedBuilding | null>(null);
   const [layerVisibility, setLayerVisibility] = useState(DEFAULT_LAYERS);
   const [activeScenarioId, setActiveScenarioId] = useState("current");
   const [compareScenarioId, setCompareScenarioId] = useState("current");
@@ -760,6 +767,17 @@ export function OpenFlintAtlasScene(props: {
     setSelectedPlaceId(placeId);
   }, []);
 
+  const handleBuildingSelect = useCallback(
+    (building: SelectedBuilding | null) => {
+      setSelectedBuilding(building);
+    },
+    [],
+  );
+
+  const handleClearBuilding = useCallback(() => {
+    setSelectedBuilding(null);
+  }, []);
+
   const handleSignalSelect = useCallback((signalId: string) => {
     setSelectedSignalId(signalId);
   }, []);
@@ -1157,6 +1175,8 @@ export function OpenFlintAtlasScene(props: {
               onSignalSelect={handleSignalSelect}
               selectedPlaceId={selectedPlaceId}
               selectedSignalId={selectedSignalId}
+              selectedBuilding={selectedBuilding}
+              onBuildingSelect={handleBuildingSelect}
               layerVisibility={layerVisibility}
               mobileSurface={mobileSurface}
               initialBounds={mobileCandidateBounds}
@@ -1225,6 +1245,8 @@ export function OpenFlintAtlasScene(props: {
                 showCloseButton={false}
               />
             }
+            selectedBuilding={selectedBuilding}
+            onClearBuilding={handleClearBuilding}
             layerControlsContent={layerControlsContent}
             scenarioControlsContent={scenarioControlsContent}
           />
