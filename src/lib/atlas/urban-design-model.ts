@@ -658,38 +658,25 @@ function createFormParts(
       );
       break;
     case "single_lot":
+      // Spec PR 2: 3 parts max. Mass (house body) + Roof (gable plane
+      // and ridge collapsed into ONE topping plane, lifted +0.3m) +
+      // Detail (front porch). The prior 5-part decomposition (body,
+      // roof plane, separate ridge, front porch, rear ell) read as a
+      // paper-craft kit instead of a basswood chipboard model.
       add(orientedRect(oriented, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
       add(
         orientedRect(oriented, 0.18, 0.32, 0.82, 0.62),
         "roof_plane",
         "Gable roof",
-        spec.generated_height_m + 0.7,
+        spec.generated_height_m + 0.3,
       );
-      // Residential ridge runs PARALLEL to the front edge (along u), per
-      // the spec's "ridges run parallel to the front edge for residential"
-      // rule. The prior code had the ridge perpendicular to the front
-      // (gable-end-to-street), which is one valid style but not the
-      // dominant Flint pattern. Spans most of the building width, thin
-      // band centered at half depth.
-      add(
-        orientedRect(oriented, 0.2, 0.46, 0.8, 0.54),
-        "roof_ridge",
-        "Roof ridge",
-        spec.generated_height_m + 1.2,
-      );
-      // Porch on the front edge (low v), centered along u (street-frontage).
+      // Detail: porch on the front edge (low v), centered along u
+      // (street-frontage). One signature detail per the spec table.
       add(
         orientedRect(oriented, 0.36, 0.08, 0.64, 0.22),
         "front_porch",
         "Front porch",
         spec.generated_height_m * 0.34,
-      );
-      // Rear ell at the back of the building (high v).
-      add(
-        orientedRect(oriented, 0.34, 0.7, 0.66, 0.92),
-        "porch_or_rear_ell",
-        "Porch or rear ell",
-        spec.generated_height_m * 0.62,
       );
       break;
     case "industrial_shed":
