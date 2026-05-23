@@ -20,6 +20,7 @@ import {
   getAtlasBoundaryOutlineFeature,
 } from "@/lib/atlas/atlas-boundary";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
+import osmInfrastructure from "@/data/open-flint-atlas/fixtures/osm-infrastructure.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
@@ -119,6 +120,57 @@ const BASEMAP_STYLE: StyleSpecification = {
  */
 const FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION =
   getAtlasBoundaryOutlineFeature();
+
+/* ------------------------------------------------------------------ */
+/*  Infrastructure layers (PR 4)                                       */
+/*                                                                     */
+/*  Parks, water bodies + waterways, rail (active and disused), and    */
+/*  highway corridors. Sourced from OSM via                            */
+/*  `scripts/fetch-osm-infrastructure.mjs`. Each feature carries a     */
+/*  `properties.layer_class` tag so the renderer can partition by      */
+/*  class without re-tag-matching every render. Partitioning happens   */
+/*  once at module load (the fixture is static). Spec:                 */
+/*  docs/design-2026-05-map-body-discipline.md Change 3.               */
+/* ------------------------------------------------------------------ */
+
+type InfrastructureLayerClass =
+  | "park"
+  | "water_body"
+  | "water_way"
+  | "rail_active"
+  | "rail_disused"
+  | "highway_corridor";
+
+type InfrastructureFeature = GeoJSON.Feature<
+  GeoJSON.Polygon | GeoJSON.LineString,
+  { osm_id: number; layer_class: InfrastructureLayerClass; name: string | null }
+>;
+
+const OSM_INFRASTRUCTURE = osmInfrastructure as unknown as GeoJSON.FeatureCollection<
+  GeoJSON.Polygon | GeoJSON.LineString,
+  InfrastructureFeature["properties"]
+>;
+
+function partitionInfrastructure(
+  klass: InfrastructureLayerClass,
+): GeoJSON.FeatureCollection<
+  GeoJSON.Polygon | GeoJSON.LineString,
+  InfrastructureFeature["properties"]
+> {
+  return {
+    type: "FeatureCollection",
+    features: OSM_INFRASTRUCTURE.features.filter(
+      (f) => f.properties.layer_class === klass,
+    ),
+  };
+}
+
+const OSM_PARKS = partitionInfrastructure("park");
+const OSM_WATER_BODIES = partitionInfrastructure("water_body");
+const OSM_WATERWAYS = partitionInfrastructure("water_way");
+const OSM_RAIL_ACTIVE = partitionInfrastructure("rail_active");
+const OSM_RAIL_DISUSED = partitionInfrastructure("rail_disused");
+const OSM_HIGHWAY_CORRIDORS = partitionInfrastructure("highway_corridor");
 
 const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
   | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
@@ -1307,6 +1359,90 @@ export function AtlasMap({
           getLineColor: [242, 241, 236, 140],
           lineWidthMinPixels: 14,
           getLineWidth: 14,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Parks and green space. Spec PR 4 Change 3: OSM features tagged
+     * `leisure=park|garden`, `landuse=recreation_ground|cemetery`.
+     * Sage green fill #9eb89e at alpha 140 + stroke #7d9a7d 0.5px
+     * alpha 100. Pushed above the vignette mask so parks inside Flint
+     * read as visibly green; parks outside Flint are muted by the
+     * mask above the basemap.
+     */
+    if (OSM_PARKS.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-parks",
+          data: OSM_PARKS,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: false,
+          getFillColor: [158, 184, 158, 140],
+          getLineColor: [125, 154, 125, 100],
+          lineWidthMinPixels: 0.5,
+          getLineWidth: 0.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Water bodies. Spec PR 4 Change 3: `natural=water`. Cool slate
+     * fill #6b8a9e at alpha 140 + stroke #5a7585 1px alpha 180. Pushed
+     * after parks so water sits visibly above any park polygon it
+     * overlaps with (e.g. ponds inside parks).
+     */
+    if (OSM_WATER_BODIES.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-water-bodies",
+          data: OSM_WATER_BODIES,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: false,
+          getFillColor: [107, 138, 158, 140],
+          getLineColor: [90, 117, 133, 180],
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
+    /*
+     * Waterways (Flint River system). Spec PR 4 Change 3:
+     * `waterway=*`. Cool slate #6b8a9e at alpha 200, 2-3px line.
+     * Should read as the second-most visible feature on the map after
+     * the city boundary — currently nearly invisible without this
+     * layer.
+     */
+    if (OSM_WATERWAYS.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-waterways",
+          data: OSM_WATERWAYS,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [107, 138, 158, 200],
+          lineWidthMinPixels: 2,
+          lineWidthMaxPixels: 3,
+          getLineWidth: 2.5,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
