@@ -12,7 +12,13 @@ import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
+import difference from "@turf/difference";
+import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
+import {
+  getAtlasBoundaryBbox,
+  getAtlasBoundaryOutlineFeature,
+} from "@/lib/atlas/atlas-boundary";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
@@ -91,6 +97,55 @@ const BASEMAP_STYLE: StyleSpecification = {
     },
   ],
 };
+
+/* ------------------------------------------------------------------ */
+/*  Bound-world vignette (PR 3)                                        */
+/*                                                                     */
+/*  Spec docs/design-2026-05-atlas-feel-pass.md PR 3: Flint reads as   */
+/*  a bound world floating on paper. The mask is a polygon shaped as  */
+/*  (enclosing rect) MINUS (Flint city boundary). When rendered above  */
+/*  the basemap raster and below the deck.gl building/place layers,   */
+/*  it covers ~80% of the screen with a paper-tone fill, leaving      */
+/*  Flint as a punched-through stage where the basemap stays visible. */
+/*                                                                     */
+/*  Computed once at module load (boundary fixture is static). The    */
+/*  enclosing rectangle pads the Flint bbox by 0.5° on all sides —    */
+/*  generous enough to cover any practical viewport, cheap enough     */
+/*  that the mask polygon stays a handful of vertices.                */
+/* ------------------------------------------------------------------ */
+const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
+  | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
+  | null => {
+  const [minLng, minLat, maxLng, maxLat] = getAtlasBoundaryBbox();
+  const rect = turfPolygon([
+    [
+      [minLng - 0.5, minLat - 0.5],
+      [maxLng + 0.5, minLat - 0.5],
+      [maxLng + 0.5, maxLat + 0.5],
+      [minLng - 0.5, maxLat + 0.5],
+      [minLng - 0.5, minLat - 0.5],
+    ],
+  ]);
+  const boundary = getAtlasBoundaryOutlineFeature();
+  if (!boundary.features.length) return null;
+  // Iteratively subtract each boundary feature so a MultiPolygon city
+  // limit (rare, but possible) is fully accounted for. `difference`
+  // accepts a 2-feature FeatureCollection in turf 7.x; we pass the
+  // accumulating mask + the next subtractor on every iteration.
+  let mask:
+    | GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>
+    | null = rect;
+  for (const feature of boundary.features) {
+    if (!mask) break;
+    const subtractor = feature as GeoJSON.Feature<
+      GeoJSON.Polygon | GeoJSON.MultiPolygon
+    >;
+    mask = difference(featureCollection([mask, subtractor]));
+  }
+  if (!mask) return null;
+  return { type: "FeatureCollection", features: [mask] };
+})();
+
 
 type GeometricPlaceFeature = GeoJSON.Feature<
   GeoJSON.Geometry,
@@ -1219,6 +1274,39 @@ export function AtlasMap({
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
     const result: Layer[] = [];
+
+    /*
+     * Bound-world vignette mask. Spec PR 3: pushed first so it sits
+     * directly above the basemap raster (the carto-base style layer)
+     * and below every deck.gl building/place/event layer. The fill at
+     * alpha 220/255 leaves ~14% of the surrounding basemap visible
+     * (faint ghosts of Frankenmuth / Burton / Mt Morris labels and
+     * roads, since those are baked into the raster tiles). The 14px
+     * line at alpha 180/255 acts as a poor-man's feathered edge — a
+     * true gaussian feather would require a custom layer shader; this
+     * substitute is cheap and reads as a soft transition.
+     */
+    if (BOUND_WORLD_MASK_FEATURE_COLLECTION) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-bound-world-vignette-mask",
+          data: BOUND_WORLD_MASK_FEATURE_COLLECTION,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          extruded: false,
+          getFillColor: [242, 241, 236, 220],
+          getLineColor: [242, 241, 236, 180],
+          lineWidthMinPixels: 14,
+          getLineWidth: 14,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
     const urbanDesignModelVisible =
       urbanDesignMassModel.features.length > 0 &&
       layerVisibility.urbanDesignModel !== false &&
