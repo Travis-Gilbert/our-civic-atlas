@@ -1,0 +1,22 @@
+query ConflictsForReconstruction($reconstructionId: ID!) {
+  conflictsForReconstruction(reconstructionId: $reconstructionId) {
+    id
+    reconstructionId
+    targetNodeId
+    fieldLabel
+    resolvedValue
+    resolutionExplanation
+    resolutionThreshold
+    disagreements {
+      statedValue
+      confidence
+      evidenceItemId
+      source {
+        id
+        name
+        sourceType
+        trustTier
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+query BlockSubgraphForReconstruction($reconstructionId: ID!) {
+  blockSubgraphForReconstruction(reconstructionId: $reconstructionId) {
+    reconstructionId
+    neighbors {
+      relation
+      strength
+      reconstruction {
+        id
+        civicObjectId
+        name
+        description
+        position
+        footprint {
+          widthMeters
+          depthMeters
+        }
+        heightMeters
+        bearingDegrees
+        confidence
+        timeStart
+        timeEnd
+      }
+    }
+  }
+}

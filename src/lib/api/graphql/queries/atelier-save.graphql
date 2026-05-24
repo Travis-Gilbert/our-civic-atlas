@@ -1,0 +1,21 @@
+mutation SaveReconstruction($input: SaveReconstructionInput!) {
+  saveReconstruction(input: $input) {
+    id
+    reconstructionId
+    year
+    shareUrl
+    savedAt
+    contributorEmailDigest
+  }
+}
+
+query SavedReconstruction($id: ID!) {
+  savedReconstruction(id: $id) {
+    id
+    reconstructionId
+    year
+    shareUrl
+    savedAt
+    contributorEmailDigest
+  }
+}

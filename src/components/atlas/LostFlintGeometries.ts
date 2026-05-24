@@ -23,7 +23,7 @@
  * Hipped roof = pyramid apex at (0, 0, +0.5).
  */
 
-import { CubeGeometry, Geometry } from "@luma.gl/engine";
+import { Geometry } from "@luma.gl/engine";
 
 /** Where the body box ends and the roof cap begins, in mesh-local z. */
 const ROOF_CAP_Z = 0.35;
@@ -150,13 +150,74 @@ function appendBodyBox(
 }
 
 /**
- * Flat-roof box: unit cube. Identical to luma.gl's `CubeGeometry()`,
- * exported here as a function so the dispatch in
- * `AtlasLostFlintDeckLayer.ts` has one symmetric API for all three
- * roof forms.
+ * Flat-roof box. Body box up to z=+0.35, then a 4-wall parapet between
+ * z=+0.35 and z=+0.5, capped with a top quad at z=+0.5.
+ *
+ * Prior implementation returned `new CubeGeometry()` which spans
+ * [-1, +1] (side length 2) rather than the [-0.5, +0.5] convention the
+ * other two factories use. Result: flat-roof reconstructions rendered
+ * 2x larger than gable/hipped at identical reconstruction.scale values
+ * (visible in both the deck.gl Lost Flint overlay AND the atelier R3F
+ * scene that bridges through `lumaGeometryToBufferGeometry`). Now
+ * unified at [-0.5, +0.5] so all three roof variants share scale,
+ * z-band shader convention, and confidence-zone semantics.
  */
 export function createFlatBoxGeometry(): Geometry {
-  return new CubeGeometry();
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+
+  appendBodyBox(positions, normals, indices);
+
+  const c = BODY_CORNERS;
+  const topSW: Vec3 = [-0.5, -0.5, 0.5];
+  const topSE: Vec3 = [0.5, -0.5, 0.5];
+  const topNE: Vec3 = [0.5, 0.5, 0.5];
+  const topNW: Vec3 = [-0.5, 0.5, 0.5];
+
+  // Parapet walls between cap (z=+0.35) and top (z=+0.5). Mirrors the
+  // building-wall winding from appendBodyBox so the parapet face normals
+  // point outward.
+  // South parapet (normal -y)
+  pushQuad(
+    positions, normals, indices,
+    c.capSW, c.capSE, topSE, topSW,
+    [0, -1, 0],
+  );
+  // East parapet (+x)
+  pushQuad(
+    positions, normals, indices,
+    c.capSE, c.capNE, topNE, topSE,
+    [1, 0, 0],
+  );
+  // North parapet (+y)
+  pushQuad(
+    positions, normals, indices,
+    c.capNE, c.capNW, topNW, topNE,
+    [0, 1, 0],
+  );
+  // West parapet (-x)
+  pushQuad(
+    positions, normals, indices,
+    c.capNW, c.capSW, topSW, topNW,
+    [-1, 0, 0],
+  );
+  // Top face at z=+0.5 (normal +z). Winding CCW looking down from +z:
+  // SW -> SE -> NE -> NW.
+  pushQuad(
+    positions, normals, indices,
+    topSW, topSE, topNE, topNW,
+    [0, 0, 1],
+  );
+
+  return new Geometry({
+    topology: "triangle-list",
+    attributes: {
+      POSITION: { size: 3, value: new Float32Array(positions) },
+      NORMAL: { size: 3, value: new Float32Array(normals) },
+    },
+    indices: { size: 1, value: new Uint16Array(indices) },
+  });
 }
 
 /**
