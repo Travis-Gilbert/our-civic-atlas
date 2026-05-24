@@ -23,9 +23,14 @@ import {
 } from "@/lib/atlas/atlas-boundary";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import osmInfrastructure from "@/data/open-flint-atlas/fixtures/osm-infrastructure.json";
+import { useRouter } from "next/navigation";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
 import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
+import {
+  buildAtelierHref,
+  resolveAtelierEntryYear,
+} from "@/lib/atlas/atelier-route";
 import type {
   ScenarioDeltaProperties,
   ScenarioEnvelopeProperties,
@@ -735,11 +740,29 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
 /*  DeckGL overlay hook                                                */
 /* ------------------------------------------------------------------ */
 
-function DeckGLOverlay(props: MapboxOverlayProps) {
-  const overlay = useControl<MapboxOverlay>(
-    () => new MapboxOverlay(props),
-  );
-  overlay.setProps(props);
+function DeckGLOverlay(
+  props: MapboxOverlayProps & { onReady?: (overlay: MapboxOverlay) => void },
+) {
+  const { onReady, ...overlayProps } = props;
+  const onReadyRef = useRef(onReady);
+  // Update the ref in an effect, not during render, to avoid React's
+  // "Cannot update ref during render" rule. The latest onReady is
+  // captured for the useEffect below to invoke once the overlay is
+  // ready, then again if onReady itself changes.
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+  const overlay = useControl<MapboxOverlay>(() => new MapboxOverlay(overlayProps));
+  overlay.setProps(overlayProps);
+  // Fire onReady once the overlay control is available. The useControl
+  // hook returns the same instance for the lifetime of the parent Map,
+  // so a single notification is sufficient. PT-504 reads the overlay
+  // out so a contextmenu/long-press handler can run `pickObject`
+  // against the picking buffer without re-routing through layer
+  // onClick (which is left-click only in deck.gl).
+  useEffect(() => {
+    onReadyRef.current?.(overlay);
+  }, [overlay]);
   return null;
 }
 
@@ -854,6 +877,149 @@ export function AtlasMap({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapZoom, setMapZoom] = useState(camera.zoom);
   const appliedMobileFitKeyRef = useRef<string | null>(null);
+
+  /*
+   * Atelier entry (PT-504). Right-click on desktop or long-press on
+   * touch over a Lost Flint reconstruction navigates to
+   * `/open-flint-atlas/atelier/[parcelId]/[year]`.
+   *
+   * We bind native pointer events on the map container rather than
+   * adding deck.gl layer-level `onContextMenu` (which the deck.gl
+   * Layer API does not expose) and use the underlying
+   * `MapboxOverlay.pickObject` call against the picking buffer. The
+   * overlay is captured via `onReady` on `<DeckGLOverlay>`.
+   *
+   * The long-press contract: 600ms pointerdown without > 8px move and
+   * without pointerup. That window is wide enough to feel intentional
+   * on touch but short enough that desktop mouse users who hold the
+   * left button briefly do not trigger it (they will pan first).
+   */
+  const router = useRouter();
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<MapboxOverlay | null>(null);
+  const handleOverlayReady = useCallback((overlay: MapboxOverlay) => {
+    overlayRef.current = overlay;
+  }, []);
+  const atlasYearRef = useRef<number | null>(atlasYear);
+  useEffect(() => {
+    atlasYearRef.current = atlasYear;
+  }, [atlasYear]);
+
+  const navigateToAtelierForPick = useCallback(
+    (clientX: number, clientY: number): boolean => {
+      const overlay = overlayRef.current;
+      const container = mapContainerRef.current;
+      if (!overlay || !container) return false;
+      const rect = container.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return false;
+      const info = overlay.pickObject({ x, y, radius: 12 });
+      if (!info || !info.layer) return false;
+      const layerId =
+        typeof info.layer.id === "string" ? info.layer.id : null;
+      if (!layerId || !layerId.startsWith(ATLAS_DECK_LAYER_IDS.lostFlint)) {
+        return false;
+      }
+      const reconstruction = info.object as HistoricalReconstruction | undefined;
+      if (!reconstruction || !reconstruction.civic_object_id) return false;
+      const year = resolveAtelierEntryYear(
+        reconstruction,
+        atlasYearRef.current,
+      );
+      router.push(buildAtelierHref(reconstruction, year));
+      return true;
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+    if (typeof window === "undefined") return;
+
+    const handleContextMenu = (event: MouseEvent) => {
+      // Only intercept when the pick hits a Lost Flint reconstruction.
+      // Empty-area right-click still allows the browser's default
+      // context menu so users keep "Inspect", "Save image", etc.
+      const handled = navigateToAtelierForPick(event.clientX, event.clientY);
+      if (handled) event.preventDefault();
+    };
+
+    const LONG_PRESS_MS = 600;
+    const LONG_PRESS_MOVE_TOLERANCE_PX = 8;
+    let longPressTimer: number | null = null;
+    let longPressStart: { x: number; y: number; pointerId: number } | null =
+      null;
+
+    const cancelLongPress = () => {
+      if (longPressTimer !== null) {
+        window.clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+      longPressStart = null;
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      // Only touch / pen — mouse uses the contextmenu path.
+      if (event.pointerType === "mouse") return;
+      // Single-finger only; multi-touch is a map gesture.
+      if (!event.isPrimary) return;
+      cancelLongPress();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const pointerId = event.pointerId;
+      longPressStart = { x: startX, y: startY, pointerId };
+      longPressTimer = window.setTimeout(() => {
+        longPressTimer = null;
+        if (!longPressStart) return;
+        const handled = navigateToAtelierForPick(
+          longPressStart.x,
+          longPressStart.y,
+        );
+        longPressStart = null;
+        if (!handled) {
+          // No reconstruction under the press: noop. The user gets the
+          // map's default gesture handling (no haptic, no menu).
+        }
+      }, LONG_PRESS_MS);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!longPressStart || event.pointerId !== longPressStart.pointerId) {
+        return;
+      }
+      const dx = event.clientX - longPressStart.x;
+      const dy = event.clientY - longPressStart.y;
+      if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_TOLERANCE_PX) {
+        cancelLongPress();
+      }
+    };
+
+    const handlePointerEnd = (event: PointerEvent) => {
+      if (longPressStart && event.pointerId !== longPressStart.pointerId) {
+        return;
+      }
+      cancelLongPress();
+    };
+
+    container.addEventListener("contextmenu", handleContextMenu);
+    container.addEventListener("pointerdown", handlePointerDown);
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerup", handlePointerEnd);
+    container.addEventListener("pointercancel", handlePointerEnd);
+    container.addEventListener("pointerleave", handlePointerEnd);
+
+    return () => {
+      cancelLongPress();
+      container.removeEventListener("contextmenu", handleContextMenu);
+      container.removeEventListener("pointerdown", handlePointerDown);
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerup", handlePointerEnd);
+      container.removeEventListener("pointercancel", handlePointerEnd);
+      container.removeEventListener("pointerleave", handlePointerEnd);
+    };
+  }, [navigateToAtelierForPick]);
 
   /*
    * Hover capability detection. Spec PR 1: hover state (1px terracotta
@@ -2243,6 +2409,7 @@ export function AtlasMap({
   /* ---- Render ----------------------------------------------------- */
   return (
     <div
+      ref={mapContainerRef}
       className={cn("atlas-scene-map relative w-full h-full", className)}
       data-atlas-view-mode={viewMode}
       data-atlas-lens={activeLens}
@@ -2269,7 +2436,11 @@ export function AtlasMap({
         onMove={(event) => setMapZoom(event.viewState.zoom)}
         reuseMaps
       >
-        <DeckGLOverlay layers={layers} onClick={handleEmptyAreaClick} />
+        <DeckGLOverlay
+          layers={layers}
+          onClick={handleEmptyAreaClick}
+          onReady={handleOverlayReady}
+        />
         <NavigationControl position="bottom-right" />
       </Map>
 

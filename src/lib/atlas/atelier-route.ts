@@ -70,6 +70,34 @@ export function buildAtelierHref(
 }
 
 /**
+ * Pick the year an atelier entry should open against.
+ *
+ * Resolution order (highest priority first):
+ *   1. The active atlas year if the user is in time-travel mode
+ *      (`atlasYear !== null`). Honors the user's current temporal
+ *      context: if they have scrubbed to 1925, atelier opens at 1925.
+ *   2. The reconstruction's `time_start` parsed as an integer (e.g.,
+ *      "1885" for Whaley House).
+ *   3. A 1925 fallback when neither signal is available. 1925 is the
+ *      spec's worked example (`SPEC-THE-ATELIER.md` line 59).
+ *
+ * Shared by PT-501 (`BuildingDossier` "Reconstruct" link in the dynamic
+ * island) and PT-504 (right-click / long-press atelier entry on the
+ * map). Centralizing the rule keeps the two entry points consistent.
+ */
+export function resolveAtelierEntryYear(
+  reconstruction: HistoricalReconstruction,
+  atlasYear: number | null = null,
+): number {
+  if (atlasYear !== null) return atlasYear;
+  if (reconstruction.time_start) {
+    const parsed = Number.parseInt(reconstruction.time_start, 10);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return 1925;
+}
+
+/**
  * Decode the URL-encoded parcelId. Next.js delivers `params` already
  * decoded once; this is a defensive second decode in case the source
  * URL was double-encoded.

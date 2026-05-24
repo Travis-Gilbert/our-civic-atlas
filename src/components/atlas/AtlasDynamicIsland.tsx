@@ -37,6 +37,7 @@ import {
   FLINT_LOST_RECONSTRUCTIONS,
   buildAtelierHref,
   findNearestReconstruction,
+  resolveAtelierEntryYear,
 } from "@/lib/atlas/atelier-route";
 import { reconstructionExistsInYear } from "@/lib/atlas/atlas-time";
 import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
@@ -959,13 +960,16 @@ function BuildingDossier({
 
   // PT-501: find nearest historical reconstruction; if within range,
   // expose a real link to the Atelier instead of the disabled action.
+  // Year resolution shared with PT-504 (right-click entry) via
+  // `resolveAtelierEntryYear` in `atelier-route.ts`.
   const nearestReconstruction = findNearestReconstruction(building.position);
-  const atelierYear = nearestReconstruction?.time_start
-    ? Number.parseInt(nearestReconstruction.time_start, 10) || 1925
-    : 1925;
-  const atelierHref = nearestReconstruction
-    ? buildAtelierHref(nearestReconstruction, atelierYear)
+  const atelierYear = nearestReconstruction
+    ? resolveAtelierEntryYear(nearestReconstruction)
     : null;
+  const atelierHref =
+    nearestReconstruction && atelierYear !== null
+      ? buildAtelierHref(nearestReconstruction, atelierYear)
+      : null;
 
   return (
     <div className="flex flex-col">
