@@ -8,7 +8,7 @@ import {
   type MapRef,
 } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
@@ -1046,6 +1046,46 @@ export function AtlasMap({
     };
   }, [atlasYear]);
 
+  /*
+   * Drop-shadow geometry. Spec PR 5 (buildings-as-sketch): each
+   * building gets a soft shadow offset ~3m southeast at low alpha.
+   * Computed as a translated copy of `visibleOsmBuildings` so the
+   * shadow respects year filtering. The translation is constant in
+   * lng/lat (3m / 111320m latitude, 3m / (111320 * cos(43 deg))
+   * longitude) which is accurate within ~1% at Flint's latitude
+   * across the city extent. Rendered as a SolidPolygonLayer below
+   * the building layers; no extrusion, no stroke, just a filled
+   * footprint at building-level z=0.
+   */
+  const buildingShadowFeatures = useMemo<
+    GeoJSON.FeatureCollection<GeoJSON.Polygon>
+  >(() => {
+    // 3m south = -3 / 111320 latitude. 3m east = 3 / (111320 * cos(43))
+    // longitude. Pre-computed for Flint's centroid; constant across
+    // the city extent.
+    const dLat = -3 / 111320;
+    const dLng = 3 / (111320 * Math.cos((43 * Math.PI) / 180));
+    const shift = (coords: GeoJSON.Position[][]): GeoJSON.Position[][] =>
+      coords.map((ring) =>
+        ring.map(([lng, lat]) => [lng + dLng, lat + dLat]),
+      );
+    const features: GeoJSON.Feature<GeoJSON.Polygon>[] = [];
+    for (const f of visibleOsmBuildings.features) {
+      if (!f.geometry) continue;
+      if (f.geometry.type === "Polygon") {
+        features.push({
+          type: "Feature",
+          properties: f.properties ?? {},
+          geometry: {
+            type: "Polygon",
+            coordinates: shift(f.geometry.coordinates),
+          },
+        });
+      }
+    }
+    return { type: "FeatureCollection", features };
+  }, [visibleOsmBuildings]);
+
   const urbanDesignModel = useMemo(
     () =>
       createUrbanDesignModelCollection(visibleOsmBuildings, {
@@ -1626,6 +1666,26 @@ export function AtlasMap({
       layerVisibility.osmBuildings !== false &&
       layerVisibility.buildings !== false
     ) {
+      // Drop shadow first: rendered beneath the buildings so the
+      // 3m southeast offset reads as a soft cast. Spec PR 5 (cheap
+      // path): offset SolidPolygonLayer, not GPU shadow-mapping.
+      // Filled at #3a3328 alpha 56 (~0.22), no stroke, no extrusion.
+      result.push(
+        new SolidPolygonLayer({
+          id: "atlas-building-drop-shadow",
+          data: buildingShadowFeatures.features,
+          pickable: false,
+          filled: true,
+          extruded: false,
+          getPolygon: (feature: GeoJSON.Feature<GeoJSON.Polygon>) =>
+            feature.geometry.coordinates,
+          getFillColor: [58, 51, 40, 56],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
       result.push(
         new GeoJsonLayer({
           id: ATLAS_DECK_LAYER_IDS.osmBuildings,
@@ -1633,11 +1693,18 @@ export function AtlasMap({
           pickable: true,
           onClick: handleBuildingClick,
           onHover: handleBuildingHover,
-          stroked: false,
+          // Edge lines: every building gets a 1.5px outline at
+          // #7a8696 alpha 220 (warm gray with a slight indigo lean).
+          // Spec PR 5: "polygons with edges read as drawings;
+          // polygons without edges read as fills." This is the
+          // single largest perceptual change in the PR.
+          stroked: true,
           filled: true,
           extruded: true,
           opacity: atlasYear === null ? 1 : 0.42,
           wireframe: false,
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           getElevation: (f) =>
             osmBuildingElevation(
               (f as GeoJSON.Feature).properties as OsmFootprintProperties,
@@ -1651,8 +1718,7 @@ export function AtlasMap({
           // alpha for solid presence.
           getFillColor:
             atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 132],
-          getLineColor:
-            atlasYear === null ? [82, 64, 50, 200] : [82, 64, 50, 118],
+          getLineColor: [122, 134, 150, 220],
           material: {
             ambient: 0.58,
             diffuse: 0.48,
@@ -1662,7 +1728,6 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear === null],
-            getLineColor: [atlasYear === null],
           },
         }),
       );
@@ -1743,15 +1808,12 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: massOpacity,
-          // Default deck.gl depth testing: write to the depth buffer and
-          // pass less-equal so extruded masses self-occlude and stack
-          // properly against neighboring buildings. The prior override
-          // (depthCompare:"always", depthWriteEnabled:false) flattened
-          // the silhouette — buildings rose geometrically but read as
-          // pasted-on shapes against the ground. Restoring defaults
-          // brings back the elevated chipboard feel the spec calls for.
-          lineWidthMinPixels: viewMode === "atlas" ? 0.9 : 0.7,
-          getLineWidth: viewMode === "atlas" ? 0.9 : 0.75,
+          // Edge lines per spec PR 5: uniform #7a8696 alpha 220 at
+          // 1.5px. Overrides the prior typology-based line color
+          // (urbanDesignLineColor) — buildings now share one drawing
+          // edge instead of per-typology stroke variation.
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
@@ -1760,11 +1822,7 @@ export function AtlasMap({
               atlasYear,
               urbanDesignMaterialMode,
             ),
-          getLineColor: (feature) =>
-            urbanDesignLineColor(
-              feature.properties,
-              urbanDesignMaterialMode,
-            ),
+          getLineColor: [122, 134, 150, 220],
           material: {
             ambient: 0.62,
             diffuse: 0.46,
@@ -1774,7 +1832,6 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear, urbanDesignMaterialMode],
-            getLineColor: [urbanDesignMaterialMode],
           },
         }),
       );
@@ -1813,10 +1870,10 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: fabricOpacity,
-          // Default depth testing for the same reason as the mass
-          // layer above — buildings need to self-occlude to read 3D.
-          lineWidthMinPixels: viewMode === "atlas" ? 0.7 : 0.55,
-          getLineWidth: viewMode === "atlas" ? 0.7 : 0.55,
+          // Edge lines per spec PR 5: same uniform #7a8696 alpha 220
+          // as the mass layer above. 1.5px across the board.
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
@@ -1825,11 +1882,7 @@ export function AtlasMap({
               atlasYear,
               urbanDesignMaterialMode,
             ),
-          getLineColor: (feature) =>
-            urbanDesignLineColor(
-              feature.properties,
-              urbanDesignMaterialMode,
-            ),
+          getLineColor: [122, 134, 150, 220],
           material: {
             ambient: 0.64,
             diffuse: 0.44,
@@ -1839,7 +1892,6 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear, urbanDesignMaterialMode],
-            getLineColor: [urbanDesignMaterialMode],
           },
         }),
       );
