@@ -28,6 +28,24 @@ const ROUTES = [
     path: "/open-flint-atlas/lost-flint/carriage-town",
     expect: "Flint Atlas",
   },
+  // PT-701: atelier route smoke. Two of the five Carriage Town fixture
+  // buildings are exercised: Whaley House (1885, hipped roof) and
+  // Carriage Town Storefront (1925, flat roof). The civic_object_id
+  // contains colons that must be URL-encoded. The expectation matches
+  // the metadata title set in
+  // `src/app/open-flint-atlas/atelier/[parcelId]/[year]/page.tsx`
+  // which renders server-side even before the client-side surface
+  // mounts. Saved-id route is intentionally NOT smoked because it
+  // depends on the GraphQL `savedReconstruction` resolver (PT-104b,
+  // blocked-by-backend).
+  {
+    path: "/open-flint-atlas/atelier/building%3Acarriage-town%3A1/1885",
+    expect: "Whaley House",
+  },
+  {
+    path: "/open-flint-atlas/atelier/building%3Acarriage-town%3A3/1925",
+    expect: "Carriage Town Storefront",
+  },
 ];
 
 const API_ROUTES = [
