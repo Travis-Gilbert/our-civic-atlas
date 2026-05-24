@@ -105,7 +105,6 @@ export function createChoreographer(
   const baseTotalMs = prefersReducedMotion
     ? ATELIER_TOTAL_REDUCED_DURATION_MS
     : ATELIER_TOTAL_DURATION_MS;
-  const scaledTotalMs = baseTotalMs / playbackSpeed;
   const stageOffsets = buildStageEndOffsets(prefersReducedMotion);
 
   function buildState(elapsedMs: number): ChoreographerState {

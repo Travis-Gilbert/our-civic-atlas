@@ -58,9 +58,21 @@ export function AtelierDustMotes({
   const reducedMotion = useReducedMotion();
   const pointsRef = useRef<Points>(null);
 
-  // Initial particle state. Seeded with deterministic-ish randomness so
-  // motes don't all snap to the same line on first frame.
+  // Initial particle state. Seeded with a deterministic PRNG so the
+  // useMemo factory stays pure (Math.random() is impure and tripped
+  // the react-hooks/purity rule). Same visual outcome — motes spread
+  // pseudo-randomly across the extent and don't all snap to a line
+  // on first frame.
   const { positions, swayPhases, swaySpeeds } = useMemo(() => {
+    let state = 0x9e3779b9 ^ (count * 2654435761);
+    const rand = () => {
+      // Mulberry32: cheap, decent distribution, fully deterministic.
+      state = (state + 0x6d2b79f5) | 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     const pos = new Float32Array(count * 3);
     const phases = new Float32Array(count);
     const speeds = new Float32Array(count);
@@ -68,11 +80,11 @@ export function AtelierDustMotes({
       // Spread across extent x extent x extent, biased slightly toward
       // the camera-facing front so particles read against the dark
       // background.
-      pos[i * 3] = (Math.random() - 0.5) * extent;
-      pos[i * 3 + 1] = Math.random() * extent * 0.8;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * extent;
-      phases[i] = Math.random() * Math.PI * 2;
-      speeds[i] = 0.8 + Math.random() * 0.4; // 0.8-1.2x sway period
+      pos[i * 3] = (rand() - 0.5) * extent;
+      pos[i * 3 + 1] = rand() * extent * 0.8;
+      pos[i * 3 + 2] = (rand() - 0.5) * extent;
+      phases[i] = rand() * Math.PI * 2;
+      speeds[i] = 0.8 + rand() * 0.4; // 0.8-1.2x sway period
     }
     return { positions: pos, swayPhases: phases, swaySpeeds: speeds };
   }, [count, extent]);
