@@ -177,6 +177,22 @@ export function AtelierSurface({
               />
             ))}
             <AtelierProvenanceLines choreographyState={choreographyState} />
+            {/*
+              Stage 4 pulse rings. Spec lines 106-110: a soft expanding
+              ring radiates twice from the focus building. CSS-driven
+              via .atelier-surface[data-stage="pairformer_inference"]
+              attribute selector. Inert under reduced-motion (atelier.css
+              hides the rings and the scene darken in that media query).
+              aria-hidden because the inference event is already
+              announced via the dossier label transition.
+            */}
+            <div
+              className="atelier-surface__pulse-rings"
+              aria-hidden="true"
+            >
+              <div className="atelier-surface__pulse-ring atelier-surface__pulse-ring--a" />
+              <div className="atelier-surface__pulse-ring atelier-surface__pulse-ring--b" />
+            </div>
           </>
         ) : null}
       </div>

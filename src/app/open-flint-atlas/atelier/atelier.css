@@ -277,6 +277,93 @@
 }
 
 /* ============================================================
+ * STAGE 4 PAIRFORMER INFERENCE PULSE RINGS
+ *
+ * Spec lines 106-110:
+ *   "A different visual language. The screen darkens slightly. A
+ *    faint computational pulse — a soft expanding ring centered on
+ *    the focus building — radiates twice."
+ *
+ * Two terracotta rings centered on the scene area expand outward.
+ * One at 0ms, one at 250ms, each 600ms long, both fitting inside
+ * Stage 4's 1000ms budget. Triggered by the
+ * data-stage="pairformer_inference" attribute set by the
+ * choreographer on .atelier-surface. Pure CSS — no React state
+ * required (per atelier-animation-proposal.md refinement #5).
+ *
+ * The scene also gets a faint dark wash via ::after on the scene
+ * cell during this stage. Honors "screen darkens slightly."
+ *
+ * Removed entirely under prefers-reduced-motion: reduce; Stage 4's
+ * 250ms reduced budget keeps the label transition as the visible
+ * signal and skips the expanding ring (vestibular safety per
+ * animation-choreography.md gate).
+ * ============================================================ */
+.atelier-theme .atelier-surface__pulse-rings {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 4; /* above scene canvas (auto/0), below evidence cards */
+}
+
+.atelier-theme .atelier-surface__pulse-ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  border: 1px solid var(--atelier-accent);
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.atelier-theme
+  .atelier-surface[data-stage="pairformer_inference"]
+  .atelier-surface__pulse-ring--a {
+  animation: atelier-pulse-ring 600ms var(--atelier-ease) 0ms 1 both;
+}
+
+.atelier-theme
+  .atelier-surface[data-stage="pairformer_inference"]
+  .atelier-surface__pulse-ring--b {
+  animation: atelier-pulse-ring 600ms var(--atelier-ease) 250ms 1 both;
+}
+
+.atelier-theme
+  .atelier-surface[data-stage="pairformer_inference"]
+  .atelier-surface__scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  z-index: 3;
+  animation: atelier-pulse-darken 1000ms var(--atelier-ease) both;
+}
+
+@keyframes atelier-pulse-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  18% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(8);
+  }
+}
+
+@keyframes atelier-pulse-darken {
+  0%, 100% { opacity: 0; }
+  35%, 65% { opacity: 1; }
+}
+
+/* ============================================================
  * TOP CHROME LABEL - "RECONSTRUCTING / 1500 N SAGINAW ST · CIRCA 1925"
  * Uses uppercase tracked mono treatment matching the existing atlas
  * --text-mono pattern.
@@ -771,6 +858,17 @@
      <AtelierDustMotes>; the component checks the media query and
      mounts null). No CSS rule needed here since the component is
      responsible for the removal. */
+
+  /* Stage 4 pulse rings + scene darken are removed under reduced
+     motion. The Stage 4 label transition stays as the visible signal
+     (per animation-choreography.md vestibular gate). */
+  .atelier-theme .atelier-surface__pulse-ring,
+  .atelier-theme
+    .atelier-surface[data-stage="pairformer_inference"]
+    .atelier-surface__scene::after {
+    display: none;
+    animation: none;
+  }
 }
 
 /* ============================================================
