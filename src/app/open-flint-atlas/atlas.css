@@ -1176,8 +1176,42 @@
   }
 
   .civic-atlas .atlas-scene-header {
-    left: 20px;
-    right: 20px;
+    left: 12px;
+    right: 12px;
+    top: 10px;
+  }
+
+  /* Mobile top-strip: tighter padding, condensed nav, smaller wordmark
+     so the wordmark plus four nav links fit at 360px without
+     overflowing. The full strip stays visible — the prior implementation
+     hid the entire header on mobile, which left no atlas branding above
+     the dynamic island. */
+  .civic-atlas .atlas-scene-top-strip {
+    height: auto;
+    min-height: var(--s-10);
+    padding: var(--s-2) var(--s-3);
+    gap: var(--s-2);
+  }
+
+  .civic-atlas .atlas-scene-wordmark {
+    font-size: 16px;
+    letter-spacing: 0.02em;
+  }
+
+  .civic-atlas .atlas-scene-top-actions {
+    gap: var(--s-2);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  /* At very narrow widths (<400px), drop the About link and let
+     Methodology/Atelier/Contribute carry the nav. Those three are the
+     load-bearing entry points; About duplicates the Methodology page's
+     introduction. */
+  @media (max-width: 400px) {
+    .civic-atlas .atlas-scene-top-actions a[href$="/sources"] {
+      display: none;
+    }
   }
 
   .civic-atlas .atlas-scene-search-shell {

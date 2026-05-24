@@ -87,28 +87,35 @@ export function AtlasSceneChrome({
 }: AtlasSceneChromeProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1400]">
-      {!isMobileViewport ? (
-        <header className="atlas-scene-header pointer-events-auto absolute left-5 right-5 top-4">
-          <div className="atlas-scene-top-strip">
-            <Link href="/open-flint-atlas" className="atlas-scene-wordmark">
-              Flint Atlas
+      {/*
+        Top-strip chrome ships on every viewport. Mobile gets a tighter
+        version via the @media (max-width: 767px) block in atlas.css
+        (smaller wordmark, condensed nav). Without this, the mobile
+        experience drops to a bare URL bar with only the dynamic
+        island for navigation, which the real-reconstruction plan
+        (docs/plans/atelier-real-reconstruction-plan.md, Task H)
+        flagged as a regression from the desktop chrome.
+      */}
+      <header className="atlas-scene-header pointer-events-auto absolute left-5 right-5 top-4">
+        <div className="atlas-scene-top-strip">
+          <Link href="/open-flint-atlas" className="atlas-scene-wordmark">
+            Flint Atlas
+          </Link>
+          <nav aria-label="Flint Atlas links" className="atlas-scene-top-actions">
+            <Link href="/open-flint-atlas/sources">About</Link>
+            <Link href="/open-flint-atlas/methodology">Methodology</Link>
+            <Link
+              href="/open-flint-atlas/atelier/building%3Acarriage-town%3A1/1925"
+              aria-label="Open the Atelier on the Whaley House circa 1925"
+            >
+              Atelier
             </Link>
-            <nav aria-label="Flint Atlas links" className="atlas-scene-top-actions">
-              <Link href="/open-flint-atlas/sources">About</Link>
-              <Link href="/open-flint-atlas/methodology">Methodology</Link>
-              <Link
-                href="/open-flint-atlas/atelier/building%3Acarriage-town%3A1/1925"
-                aria-label="Open the Atelier on the Whaley House circa 1925"
-              >
-                Atelier
-              </Link>
-              <Link href="/open-flint-atlas/contribute" data-commit="true">
-                Contribute
-              </Link>
-            </nav>
-          </div>
-        </header>
-      ) : null}
+            <Link href="/open-flint-atlas/contribute" data-commit="true">
+              Contribute
+            </Link>
+          </nav>
+        </div>
+      </header>
 
       <AtlasDynamicIsland
         activeLens={activeLens}
