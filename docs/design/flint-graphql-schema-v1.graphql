@@ -940,3 +940,273 @@ type CivicResearchPayload {
   algorithm finds nothing, never null."""
   results: SearchResults!
 }
+
+# =============================================================================
+# Atelier extensions (added 2026-05-23)
+# =============================================================================
+#
+# The Atelier is the workshop surface where the reconstruction engine's
+# eight stages become visible, cinematic, and clickable. See:
+#   - SPEC-THE-ATELIER.md (304-line spec)
+#   - docs/plans/the-atelier/graphql-contract.md (Extensions 1-7)
+#   - docs/plans/the-atelier/implementation-plan.md (PT-101)
+#
+# All resolvers attach TenantContext server-side via the Axum
+# civic-atlas-server (no frontend-held tokens). Same architectural
+# pattern as the civicResearch mutation above.
+#
+# Extension 6 (ReconstructionPipelineTrace) is DEFERRED to v1.x and
+# intentionally omitted from this schema until the Rust engine instruments
+# per-stage events. Until then the frontend choreographer synthesizes the
+# 8 stages deterministically from ReconstructionDossier output.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Extension 1: Per-part confidence on HistoricalReconstruction
+# -----------------------------------------------------------------------------
+
+enum RoofForm {
+  FLAT
+  GABLE
+  HIPPED
+}
+
+extend type HistoricalReconstruction {
+  """Per-part confidence in [0, 1]. When null, the consumer falls back to
+  the top-level `confidence` (Mass) for that zone. Maps to
+  ReconstructionSpec.facades[0].provenance.confidence in the backend."""
+  facadeConfidence: Float
+
+  """Per-part confidence in [0, 1]. Maps to
+  ReconstructionSpec.roof.provenance.confidence."""
+  roofConfidence: Float
+
+  """Per-part confidence in [0, 1]. Maps to
+  ReconstructionSpec.ground_floor.provenance.confidence."""
+  groundFloorConfidence: Float
+
+  """Drives mesh dispatch: flat / gable / hipped. Maps to
+  ReconstructionSpec.roof.form. Defaults to FLAT when omitted."""
+  roofForm: RoofForm
+}
+
+# -----------------------------------------------------------------------------
+# Extension 2: Evidence (source cards)
+# -----------------------------------------------------------------------------
+
+enum EvidenceType {
+  SANBORN
+  PHOTOGRAPH
+  DIRECTORY
+  CITY_DIRECTORY
+  TEXT_MENTION
+  PLAT_MAP
+  HABS_RECORD
+  OTHER
+}
+
+"""A single piece of archival evidence that fed into a reconstruction.
+The atelier renders one source card per item with visual identity
+dispatched on `evidenceType`."""
+type EvidenceItem {
+  """Stable id. Prefix: 'evidence:'."""
+  id: ID!
+
+  """Which reconstruction this evidence supports."""
+  reconstructionId: ID!
+
+  """The source this evidence is drawn from."""
+  source: Source!
+
+  """The type of evidence. Drives card visual identity per spec lines 36-38."""
+  evidenceType: EvidenceType!
+
+  """Where in the reconstruction node tree this evidence applies. Null
+  when the evidence is whole-building. Format matches ReconstructionNodeId
+  in src/lib/atlas/reconstruction-node-tree.ts."""
+  targetNodeId: String
+
+  """Confidence the engine assigned to this evidence item, in [0, 1]."""
+  confidence: Float!
+
+  """Optional URL to a thumbnail. Null when the card renders text-only."""
+  thumbnailUrl: String
+
+  """Brief plain-language summary the card surfaces under the source name."""
+  summary: String
+
+  """ISO 8601 date the source originates from."""
+  sourceDateLabel: String
+}
+
+"""Bundle of all evidence backing one reconstruction."""
+type EvidenceBundle {
+  reconstructionId: ID!
+  items: [EvidenceItem!]!
+  totalCount: Int!
+}
+
+# -----------------------------------------------------------------------------
+# Extension 3: MergeConflict
+# -----------------------------------------------------------------------------
+
+"""A disagreement between evidence sources resolved by the merge step.
+Surfaces on the building as a clickable terracotta marker."""
+type MergeConflict {
+  """Stable id. Prefix: 'merge-conflict:'."""
+  id: ID!
+
+  reconstructionId: ID!
+
+  """Which part of the reconstruction the conflict targets. Stable
+  reconstruction-node-tree id."""
+  targetNodeId: String!
+
+  """Plain civic-language field name (e.g., 'Stories', 'Roof material')."""
+  fieldLabel: String!
+
+  """One entry per disagreeing source. Order: most-confident first."""
+  disagreements: [MergeDisagreement!]!
+
+  """The value the merge step chose."""
+  resolvedValue: String!
+
+  """Plain-language explanation of WHY this value won."""
+  resolutionExplanation: String!
+
+  """The confidence threshold the merge step applied (default 0.7)."""
+  resolutionThreshold: Float!
+}
+
+type MergeDisagreement {
+  source: Source!
+
+  """Plain-language label of what this source said."""
+  statedValue: String!
+
+  """Engine confidence in this evidence item."""
+  confidence: Float!
+
+  """Reference to the underlying evidence item."""
+  evidenceItemId: ID!
+}
+
+# -----------------------------------------------------------------------------
+# Extension 4: BlockSubgraph
+# -----------------------------------------------------------------------------
+
+"""The block-scope subgraph the engine consulted when reconstructing a
+building. Used by atelier Stage 3 highlight pulse."""
+type BlockSubgraph {
+  reconstructionId: ID!
+  neighbors: [BlockNeighbor!]!
+}
+
+type BlockNeighbor {
+  reconstruction: HistoricalReconstruction!
+
+  """The relation between focus and neighbor. From the CivicPairformerConfig
+  10-relation vocabulary."""
+  relation: String!
+
+  """Strength of the relation in [0, 1]."""
+  strength: Float!
+}
+
+# -----------------------------------------------------------------------------
+# Extension 5: ReconstructionDossier (one-shot atelier payload)
+# -----------------------------------------------------------------------------
+
+"""One-shot atelier payload. Bundles the reconstruction itself, its
+evidence, its conflicts, its block subgraph. Used by the atelier on
+open. Empty arrays when the engine has no data; never null."""
+type ReconstructionDossier {
+  reconstruction: HistoricalReconstruction!
+  evidence: EvidenceBundle!
+  conflicts: [MergeConflict!]!
+  blockSubgraph: BlockSubgraph!
+
+  """The Pascal-node tree the atelier uses to address parts."""
+  nodeTree: JSON!
+
+  """Plain civic-language summary the dossier renders at the top."""
+  summary: String!
+
+  """Optional debug metadata for telemetry. Never user-facing."""
+  debug: JSON
+}
+
+# -----------------------------------------------------------------------------
+# Extension 7: saveReconstruction (v1, real backend wiring)
+# -----------------------------------------------------------------------------
+
+"""A saved reconstruction view. The id and shareUrl let the user return to
+the exact atelier surface they saved."""
+type SavedReconstruction {
+  """Stable id. Prefix: 'saved-reconstruction:'."""
+  id: ID!
+
+  reconstructionId: ID!
+
+  """The atlas year at the moment of save."""
+  year: Int!
+
+  """Stable URL the user can bookmark or share."""
+  shareUrl: String!
+
+  """ISO 8601 timestamp the save was created."""
+  savedAt: DateTime!
+
+  """Optional: when contributor_email was provided, the email a receipt
+  was sent to. Always null in v1 reads."""
+  contributorEmailDigest: String
+}
+
+input SaveReconstructionInput {
+  reconstructionId: ID!
+  year: Int!
+  contributorEmail: String
+  caption: String
+}
+
+# -----------------------------------------------------------------------------
+# Atelier queries + mutations
+# -----------------------------------------------------------------------------
+
+extend type Query {
+  """Returns the evidence bundle for one reconstruction. Used by the atelier
+  to render source cards around the building footprint."""
+  evidenceForReconstruction(reconstructionId: ID!): EvidenceBundle!
+
+  """Returns the conflicts the merge step surfaced. Empty array when no
+  conflicts. Markers stay visible as long as the atelier is open."""
+  conflictsForReconstruction(reconstructionId: ID!): [MergeConflict!]!
+
+  """Returns the block-scope subgraph the engine consulted. Used by
+  atelier Stage 3."""
+  blockSubgraphForReconstruction(reconstructionId: ID!): BlockSubgraph!
+
+  """Returns the full atelier-open payload for one reconstruction.
+  Single round-trip so the atelier can prepare side panel + animation
+  stage data without N+1 fetches."""
+  reconstructionDossier(reconstructionId: ID!): ReconstructionDossier!
+
+  """Returns a saved reconstruction by its id. Used by the
+  /open-flint-atlas/atelier/saved/<saved-id> route. Public read; no
+  auth required."""
+  savedReconstruction(id: ID!): SavedReconstruction
+}
+
+extend type Mutation {
+  """Persist a reconstruction view so the user can return to it. Follows
+  the same anonymous-but-receipt-able write pattern as submitObservation
+  (no auth required; optional email for receipt). Resolver writes to a
+  new Postgres table `saved_reconstructions` via the Axum
+  civic-atlas-server resolver; TenantContext attached server-side.
+
+  Uses ONLY existing Axum + Postgres + PostGIS infrastructure. Does NOT
+  block on the upcoming files SDK or the in-deployment RustyRed graph
+  DB. v2 extends with user-edited corrections per spec line 169
+  parenthetical."""
+  saveReconstruction(input: SaveReconstructionInput!): SavedReconstruction!
+}

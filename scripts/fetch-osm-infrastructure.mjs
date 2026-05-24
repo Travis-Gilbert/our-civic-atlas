@@ -41,9 +41,10 @@ const OUT_PATH = path.join(
 const BBOX = [42.965, -83.795, 43.085, -83.595];
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
-// One union query covers all four layer classes. `out geom` returns
+// One union query covers all layer classes. `out geom` returns
 // inlined geometry per way/relation, sparing us the second-pass
-// node-resolution loop.
+// node-resolution loop. Highway tiers extended PR 5 (buildings-as-sketch)
+// from motorway/trunk only to three tiers: arterial, collector, local.
 const QUERY = `
 [out:json][timeout:180];
 (
@@ -52,7 +53,7 @@ const QUERY = `
   way["waterway"](${BBOX.join(",")});
   way["natural"="water"](${BBOX.join(",")});
   way["railway"~"^(rail|disused|abandoned)$"](${BBOX.join(",")});
-  way["highway"~"^(motorway|trunk)$"](${BBOX.join(",")});
+  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|service)$"](${BBOX.join(",")});
 );
 out geom;
 `.trim();
@@ -68,7 +69,21 @@ function layerClassFor(tags) {
     }
     return "rail_active";
   }
-  if (typeof tags.highway === "string" && tags.highway.length > 0) return "highway_corridor";
+  if (typeof tags.highway === "string" && tags.highway.length > 0) {
+    if (tags.highway === "motorway" || tags.highway === "trunk" || tags.highway === "primary") {
+      return "highway_arterial";
+    }
+    if (tags.highway === "secondary" || tags.highway === "tertiary") {
+      return "highway_collector";
+    }
+    if (
+      tags.highway === "residential" ||
+      tags.highway === "unclassified" ||
+      tags.highway === "service"
+    ) {
+      return "highway_local";
+    }
+  }
   return null;
 }
 
@@ -142,9 +157,13 @@ async function main() {
   const elapsed = Math.round((Date.now() - start) / 100) / 10;
 
   const ways = (data.elements ?? []).filter((el) => el.type === "way");
+  // Sort by osm_id so the JSON output is order-stable across refetches.
+  // Without this the diff balloons every regenerate because Overpass
+  // doesn't guarantee response order.
   const features = ways
     .map(osmWayToFeature)
-    .filter((f) => f !== null);
+    .filter((f) => f !== null)
+    .sort((a, b) => a.properties.osm_id - b.properties.osm_id);
 
   const classCounts = features.reduce((acc, f) => {
     acc[f.properties.layer_class] = (acc[f.properties.layer_class] ?? 0) + 1;

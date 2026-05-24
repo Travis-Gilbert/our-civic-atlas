@@ -609,98 +609,58 @@ function createFormParts(
   //   v = 0..1 from front (street side) to back
   // `orientedRect` rotates + translates these back into (lng, lat) using
   // the building's actual bearing.
+  // Spec PR 5 (buildings-as-sketch): reduce every form to confident
+  // massing. Most forms collapse to a single extruded mass; only
+  // single_lot keeps a low gable, only civic_anchor keeps a low
+  // hipped roof. The previous per-form parts (porches, cornices,
+  // sawtooths, monitors, party walls, parapets, dormers, courtyard
+  // yards) all come back later when the classifier produces fine
+  // enough signal to drive them. For now, surface character (edge
+  // lines + drop shadow + paper grain) carries the architectural
+  // reading, not sub-decomposition. This walks back parts of PR 2
+  // and PR 4 by design.
   switch (spec.form_type) {
     case "courtyard_compact":
-      // Spec PR 4 (map-body-and-discipline): flat roof + parapet edge,
-      // NO pitched geometry. Lift drops from +0.3m to +0.2m.
+      // Single extruded mass with courtyard cutout. Flat roof. No
+      // parapet detail, no inner courtyard_yard surface part.
       add(
         orientedRectWithHole(oriented, 0.06, 0.06, 0.94, 0.94, 0.32, 0.32, 0.68, 0.68),
         "courtyard_ring",
-        "Perimeter block around a courtyard",
-      );
-      add(
-        orientedRectWithHole(oriented, 0.08, 0.08, 0.92, 0.92, 0.32, 0.32, 0.68, 0.68),
-        "roof_plane",
-        "Compact courtyard roof",
-        spec.generated_height_m + 0.2,
-      );
-      add(
-        orientedRect(oriented, 0.34, 0.34, 0.66, 0.66),
-        "courtyard_yard",
-        "Courtyard yard",
-        spec.generated_height_m * 0.08,
+        "Compact courtyard mass",
       );
       break;
     case "courtyard_open":
-      // Spec PR 4: flat roof + parapet edge, NO pitched geometry.
-      // Lift drops from +0.3m to +0.2m. L/U-shaped mass (perimeter
-      // with the front wall missing) is unchanged from PR 2.
+      // Single extruded mass with courtyard cutout. Flat roof. No
+      // parapet detail, no inner courtyard_yard surface part. Same
+      // L/U-shaped perimeter from PR 2 (front wall missing).
       add(
         orientedRectWithHole(oriented, 0.06, 0.08, 0.94, 0.9, 0.32, 0.34, 0.68, 0.84),
         "courtyard_ring",
         "Open courtyard mass",
       );
-      add(
-        orientedRectWithHole(oriented, 0.08, 0.1, 0.92, 0.88, 0.32, 0.34, 0.68, 0.84),
-        "roof_plane",
-        "Open courtyard roof",
-        spec.generated_height_m + 0.2,
-      );
-      add(
-        orientedRect(oriented, 0.32, 0.34, 0.68, 0.84),
-        "courtyard_yard",
-        "Open courtyard yard",
-        spec.generated_height_m * 0.08,
-      );
       break;
     case "slab":
-      // Spec PR 4: flat roof + parapet line. Lift drops to +0.2m.
+      // Single extruded mass. Flat roof. No separate parapet line.
       add(orientedRect(oriented, 0.05, 0.36, 0.95, 0.64), "slab_bar", "Long slab");
-      add(
-        orientedRect(oriented, 0.06, 0.38, 0.94, 0.62),
-        "roof_plane",
-        "Slab roof",
-        spec.generated_height_m + 0.2,
-      );
-      add(
-        orientedRect(oriented, 0.06, 0.34, 0.94, 0.38),
-        "parapet",
-        "Front parapet edge",
-        spec.generated_height_m + 0.2,
-      );
       break;
     case "row_infill":
-      // Spec PR 4: single continuous flat-pitched plane across all row
-      // units (NOT per-unit gables). The PR 2 implementation already
-      // emits one continuous flat plane; unchanged here. Lift stays
-      // +0.3m as called out explicitly by the new spec table.
+      // Single continuous extruded mass across all row units. Flat
+      // roof. No party-wall hint geometry (PR 4 added one; PR 5
+      // drops it). Rhythm and unit articulation will be carried by
+      // the edge lines + drop shadow added in C4.
       add(
         orientedRect(oriented, 0.05, 0.12, 0.95, 0.88),
         "row_unit",
         "Row body",
       );
-      add(
-        orientedRect(oriented, 0.06, 0.22, 0.94, 0.78),
-        "row_roof",
-        "Row roof",
-        spec.generated_height_m + 0.3,
-      );
-      add(
-        orientedRect(oriented, 0.498, 0.12, 0.502, 0.88),
-        "party_wall",
-        "Party wall hint",
-        spec.generated_height_m + 0.3,
-      );
       break;
     case "single_lot":
-      // Spec PR 4: "Flat gable with horizontal ridge — NOT pyramidal."
-      // Approximated in flat-top GeoJsonLayer extrusion as: a wide
-      // gable PLANE at eaves height (mass_top + 0.3) plus a narrow
-      // RIDGE strip along the longer footprint axis at mass_top + 0.6.
-      // Reads as a stepped low gable from above — residential-feeling,
-      // not pyramidal. This raises single_lot to 4 parts (mass + eaves
-      // + ridge + porch), explicitly overriding PR 2's 3-part-max for
-      // this form. The porch detail stays.
+      // Single extruded mass + low gable roof. Eaves at mass_top +
+      // 0.3m, ridge at mass_top + 0.6m. No porch, no detail parts.
+      // The gable is approximated by a wide eaves plane plus a thin
+      // ridge strip (deck.gl's flat-top extrusion cannot make actual
+      // sloped planes; this is the cheapest reading that still looks
+      // residential).
       add(orientedRect(oriented, 0.2, 0.18, 0.8, 0.76), "house_body", "House body");
       add(
         orientedRect(oriented, 0.18, 0.32, 0.82, 0.62),
@@ -714,35 +674,19 @@ function createFormParts(
         "Gable ridge line",
         spec.generated_height_m + 0.6,
       );
-      add(
-        orientedRect(oriented, 0.36, 0.08, 0.64, 0.22),
-        "front_porch",
-        "Front porch",
-        spec.generated_height_m * 0.34,
-      );
       break;
     case "industrial_shed":
-      // Spec PR 4: FLAT ROOF only. No sawtooth, no monitor, no pitched
-      // geometry in this PR. Flint industrial buildings predominantly
-      // read flat. Sawtooth/monitor come back in a future phase when
-      // there's a classifier signal for them (e.g. tagged as a Buick
-      // warehouse vs generic industrial). 2 parts total: body + flat
-      // roof. Lift drops to +0.2m.
+      // Single extruded mass. Flat roof. No sawtooth, no monitor.
+      // Drops the PR 4 separate roof_plane part — the extruded mass
+      // top IS the flat roof.
       add(orientedRect(oriented, 0.04, 0.06, 0.96, 0.94), "shed_body", "Industrial shed body");
-      add(
-        orientedRect(oriented, 0.06, 0.08, 0.94, 0.92),
-        "roof_plane",
-        "Industrial roof",
-        spec.generated_height_m + 0.2,
-      );
       break;
     case "civic_anchor":
-      // Spec PR 4: low-pitched hipped roof — gentle four-sided slope,
-      // NOT a steep pyramid. Approximated as: a wide eaves plane at
-      // mass_top + 0.2 (the perimeter slope) plus a centered plateau
-      // at mass_top + 0.5 (the converging top, ~0.4×footprint per
-      // axis, NOT a single point). Plus civic_entry detail. 4 parts.
-      // Explicitly overrides PR 2's 3-part-max for this form.
+      // Single extruded mass + low hipped roof. Four planes
+      // converging to a small flat plateau at mass_top + 0.5m
+      // (NOT a single point). Approximated as a wide eaves plane
+      // at mass_top + 0.2 plus a centered plateau at mass_top +
+      // 0.5. Drops the civic_entry detail per spec.
       add(orientedRect(oriented, 0.18, 0.16, 0.82, 0.84), "civic_body", "Civic body");
       add(
         orientedRect(oriented, 0.2, 0.2, 0.8, 0.8),
@@ -756,51 +700,27 @@ function createFormParts(
         "Hipped plateau",
         spec.generated_height_m + 0.5,
       );
-      add(
-        orientedRect(oriented, 0.4, 0.06, 0.6, 0.16),
-        "civic_entry",
-        "Civic entry",
-        spec.generated_height_m * 0.72,
-      );
       break;
     case "mixed_use_street_wall":
-      // Spec PR 4: flat roof with parapet line as the detail. Cornice
-      // band repurposed as the parapet line. Lift drops to +0.2m.
+      // Single extruded mass. Flat roof. No cornice band, no
+      // storefront strip. The street-wall character will read
+      // through the edge lines + drop shadow + paper grain layered
+      // on top in C4 and C5.
       add(
         orientedRect(oriented, 0.06, 0.06, 0.94, 0.38),
         "street_wall",
         "Mixed-use street wall",
       );
-      add(
-        orientedRect(oriented, 0.06, 0.34, 0.94, 0.4),
-        "parapet",
-        "Street-wall parapet",
-        spec.generated_height_m + 0.2,
-      );
-      add(
-        orientedRect(oriented, 0.1, 0.04, 0.9, 0.1),
-        "storefront_bay",
-        "Ground-floor storefront strip",
-        spec.generated_height_m * 0.32,
-      );
       break;
     case "tower_podium":
-      // Spec PR 4: tower roof flat, podium roof flat. Two flat planes
-      // at different heights. Tower body sits at full height — the
-      // "tower roof" is the top of the tower mass (no separate plane
-      // needed because the tower is itself extruded flat). Lift drops
-      // to +0.2m for the podium roof.
+      // Two stacked extruded masses (podium + tower). Flat roofs on
+      // both (the extruded tops ARE the roofs; no separate roof_plane
+      // parts). Drops the PR 4 separate podium roof_plane.
       add(
         orientedRect(oriented, 0.08, 0.08, 0.92, 0.92),
         "podium",
         "Podium",
         spec.generated_height_m * 0.45,
-      );
-      add(
-        orientedRect(oriented, 0.1, 0.1, 0.9, 0.9),
-        "roof_plane",
-        "Podium roof",
-        spec.generated_height_m * 0.45 + 0.2,
       );
       add(
         orientedRect(oriented, 0.34, 0.34, 0.66, 0.72),
@@ -810,10 +730,9 @@ function createFormParts(
       );
       break;
     case "unknown":
-      // The honest answer for buildings without a real classification: emit
-      // the actual footprint outline as a single mass extrusion. No porch,
-      // no roof plane, no cornice — the chipboard model says "this is a
-      // building shape with a height, and we don't yet know what's inside."
+      // The honest answer for buildings without a real classification:
+      // emit the actual footprint outline as a single mass extrusion.
+      // Same as previous PRs.
       add(
         footprintAsPolygon(spec.fabric.params.footprint_polygon, bounds),
         "house_body",

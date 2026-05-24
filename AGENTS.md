@@ -60,3 +60,20 @@ Context and compaction:
   compact map artifacts, compact retrieved objects, or the equivalent
   run/context pack. Outside the harness, use a plain Markdown checkpoint with
   the same facts.
+
+Active product surfaces:
+- The Atelier ships v1 against the Carriage Town fixture at
+  `/open-flint-atlas/atelier/[parcelId]/[year]` and its saved-id sibling
+  `/open-flint-atlas/atelier/saved/[savedId]`. Spec at `SPEC-THE-ATELIER.md`
+  (304 lines). Plan tree at `docs/plans/the-atelier/` (5 files: README,
+  codebase-inventory, graphql-contract, animation-choreography,
+  implementation-plan). Approved design proposals at
+  `docs/design/atelier-visual-register-proposal.md` and
+  `docs/design/atelier-animation-proposal.md`. The README's "Execution
+  status" table is the post-BUILD truth: 24 PT items complete; PT-104,
+  PT-104b backend resolvers + PT-602 SHIP gate blocked-by-backend; PT-504
+  right-click entry + sound design + Stage 4/6 refinements deferred to
+  v1.x. Geometry quality fix (`LostFlintGeometries.createFlatBoxGeometry`
+  unified to [-0.5, +0.5] convention) shipped in the same slice and
+  affects the deck.gl Lost Flint overlay as well as the atelier R3F
+  scene.

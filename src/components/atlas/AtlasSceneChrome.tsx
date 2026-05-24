@@ -96,6 +96,12 @@ export function AtlasSceneChrome({
             <nav aria-label="Flint Atlas links" className="atlas-scene-top-actions">
               <Link href="/open-flint-atlas/sources">About</Link>
               <Link href="/open-flint-atlas/methodology">Methodology</Link>
+              <Link
+                href="/open-flint-atlas/atelier/building%3Acarriage-town%3A1/1925"
+                aria-label="Open the Atelier on the Whaley House circa 1925"
+              >
+                Atelier
+              </Link>
               <Link href="/open-flint-atlas/contribute" data-commit="true">
                 Contribute
               </Link>

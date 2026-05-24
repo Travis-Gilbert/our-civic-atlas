@@ -33,6 +33,12 @@ import {
   buildingDisplayTitle,
   type SelectedBuilding,
 } from "@/lib/atlas/selected-building";
+import {
+  FLINT_LOST_RECONSTRUCTIONS,
+  buildAtelierHref,
+  findNearestReconstruction,
+} from "@/lib/atlas/atelier-route";
+import { reconstructionExistsInYear } from "@/lib/atlas/atlas-time";
 import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
@@ -238,6 +244,18 @@ export function AtlasDynamicIsland({
   const collapsedSearchActive =
     !isExpanded && searchValue.trim().length > 0 && atlasYear === null;
 
+  // PT-502: when the user types a year, show the matching
+  // historical reconstructions as Atelier deep-links in a separate
+  // dropdown. Mutually exclusive with the place-search dropdown.
+  const atelierYearSuggestions = useMemo(() => {
+    if (atlasYear === null) return [];
+    return FLINT_LOST_RECONSTRUCTIONS.filter((reconstruction) =>
+      reconstructionExistsInYear(reconstruction, atlasYear),
+    ).slice(0, 6);
+  }, [atlasYear]);
+  const collapsedAtelierSuggestionsActive =
+    !isExpanded && atlasYear !== null && atelierYearSuggestions.length > 0;
+
   function openIsland(tab?: IslandTab) {
     if (tab && availableTabs.includes(tab)) {
       setActiveTab(tab);
@@ -299,6 +317,34 @@ export function AtlasDynamicIsland({
                 No matches.
               </p>
             )}
+          </div>
+        ) : null}
+
+        {collapsedAtelierSuggestionsActive && atlasYear !== null ? (
+          <div
+            className="atlas-scene-search-results pointer-events-auto absolute bottom-[calc(100%+10px)] left-0 right-0"
+            role="listbox"
+            aria-label={`Reconstructions visible in ${atlasYear}`}
+          >
+            <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+              Open Atelier · circa {atlasYear}
+            </p>
+            {atelierYearSuggestions.map((reconstruction) => (
+              <Link
+                key={reconstruction.id}
+                href={buildAtelierHref(reconstruction, atlasYear)}
+                className="flex w-full items-center justify-between gap-4 px-3 py-2 text-left text-[13px]"
+                role="option"
+                aria-selected={false}
+              >
+                <span className="truncate text-[color:var(--ctx-ink)]">
+                  {reconstruction.name}
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[color:var(--ctx-accent)]">
+                  Reconstruct
+                </span>
+              </Link>
+            ))}
           </div>
         ) : null}
 
@@ -911,6 +957,16 @@ function BuildingDossier({
   const hasAddress = Boolean(building.address?.trim());
   const showOsmIdSubtitle = !hasName && !hasAddress;
 
+  // PT-501: find nearest historical reconstruction; if within range,
+  // expose a real link to the Atelier instead of the disabled action.
+  const nearestReconstruction = findNearestReconstruction(building.position);
+  const atelierYear = nearestReconstruction?.time_start
+    ? Number.parseInt(nearestReconstruction.time_start, 10) || 1925
+    : 1925;
+  const atelierHref = nearestReconstruction
+    ? buildAtelierHref(nearestReconstruction, atelierYear)
+    : null;
+
   return (
     <div className="flex flex-col">
       <header className="flex items-start justify-between gap-3 border-b border-[rgba(42,36,25,0.08)] px-4 py-3">
@@ -966,7 +1022,20 @@ function BuildingDossier({
         </h3>
         <div className="mt-2 flex flex-col gap-1.5">
           <DossierDisabledAction label="Open dossier" />
-          <DossierDisabledAction label="Reconstruct historical view" />
+          {atelierHref && nearestReconstruction ? (
+            <Link
+              href={atelierHref}
+              className="flex w-full items-center justify-between rounded-[8px] border border-[rgba(193,74,44,0.5)] bg-[rgba(193,74,44,0.08)] px-3 py-2 text-left text-[12px] leading-[1.3] text-[color:var(--ctx-ink)] transition-colors hover:bg-[rgba(193,74,44,0.16)]"
+              aria-label={`Open Atelier on ${nearestReconstruction.name} circa ${atelierYear}`}
+            >
+              <span>Reconstruct in Atelier</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-accent)]">
+                {`Circa ${atelierYear}`}
+              </span>
+            </Link>
+          ) : (
+            <DossierDisabledAction label="Reconstruct historical view" />
+          )}
           <DossierDisabledAction label="Comments" />
         </div>
       </section>

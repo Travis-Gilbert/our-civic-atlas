@@ -1,0 +1,97 @@
+query ReconstructionDossier($reconstructionId: ID!) {
+  reconstructionDossier(reconstructionId: $reconstructionId) {
+    reconstruction {
+      id
+      civicObjectId
+      name
+      description
+      position
+      footprint {
+        widthMeters
+        depthMeters
+      }
+      heightMeters
+      bearingDegrees
+      confidence
+      facadeConfidence
+      roofConfidence
+      groundFloorConfidence
+      roofForm
+      timeStart
+      timeEnd
+      geometryUrl
+      geometryFormat
+      foundryAssetUrl
+      sources {
+        id
+        name
+        homepageUrl
+        sourceType
+        trustTier
+        lastChecked
+        knownLimits
+      }
+    }
+    evidence {
+      reconstructionId
+      totalCount
+      items {
+        id
+        reconstructionId
+        evidenceType
+        targetNodeId
+        confidence
+        thumbnailUrl
+        summary
+        sourceDateLabel
+        source {
+          id
+          name
+          homepageUrl
+          sourceType
+          trustTier
+          lastChecked
+          knownLimits
+        }
+      }
+    }
+    conflicts {
+      id
+      reconstructionId
+      targetNodeId
+      fieldLabel
+      resolvedValue
+      resolutionExplanation
+      resolutionThreshold
+      disagreements {
+        statedValue
+        confidence
+        evidenceItemId
+        source {
+          id
+          name
+          trustTier
+        }
+      }
+    }
+    blockSubgraph {
+      reconstructionId
+      neighbors {
+        relation
+        strength
+        reconstruction {
+          id
+          civicObjectId
+          name
+          position
+          confidence
+          timeStart
+          timeEnd
+        }
+      }
+    }
+    nodeTree
+    summary
+    debug
+  }
+}

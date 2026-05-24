@@ -8,11 +8,12 @@ import {
   type MapRef,
 } from "react-map-gl/maplibre";
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
 import { PathStyleExtension } from "@deck.gl/extensions";
+import buffer from "@turf/buffer";
 import difference from "@turf/difference";
 import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
@@ -140,7 +141,12 @@ type InfrastructureLayerClass =
   | "water_way"
   | "rail_active"
   | "rail_disused"
-  | "highway_corridor";
+  // Highway tiers introduced by PR 5 (buildings-as-sketch). Replaces
+  // the prior single "highway_corridor" class with three tiers so
+  // the streets layer can render at deliberate per-tier weights.
+  | "highway_arterial"
+  | "highway_collector"
+  | "highway_local";
 
 type InfrastructureFeature = GeoJSON.Feature<
   GeoJSON.Polygon | GeoJSON.LineString,
@@ -171,7 +177,9 @@ const OSM_WATER_BODIES = partitionInfrastructure("water_body");
 const OSM_WATERWAYS = partitionInfrastructure("water_way");
 const OSM_RAIL_ACTIVE = partitionInfrastructure("rail_active");
 const OSM_RAIL_DISUSED = partitionInfrastructure("rail_disused");
-const OSM_HIGHWAY_CORRIDORS = partitionInfrastructure("highway_corridor");
+const OSM_STREETS_ARTERIAL = partitionInfrastructure("highway_arterial");
+const OSM_STREETS_COLLECTOR = partitionInfrastructure("highway_collector");
+const OSM_STREETS_LOCAL = partitionInfrastructure("highway_local");
 
 const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
   | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
@@ -656,21 +664,16 @@ function urbanDesignFillColor(
   ]);
 }
 
-function urbanDesignLineColor(
-  props: UrbanDesignModelProperties,
-  materialMode: UrbanDesignMaterialMode,
-): [number, number, number, number] {
-  if (materialMode === "sketch_model") {
-    const line =
-      props.part_role === "party_wall" ? SKETCH_LINE_PARTY_WALL : SKETCH_LINE;
-    return applyFabricCompletenessAlpha(props, line);
-  }
-
-  return applyFabricCompletenessAlpha(
-    props,
-    URBAN_PART_LINE[props.part_role] ?? URBAN_FORM_LINE[props.form_type],
-  );
-}
+// `urbanDesignLineColor` (formerly here) computed per-typology line
+// colors; PR 5 (buildings-as-sketch) replaced it with a uniform indigo
+// edge (#7a8696) so buildings share one drawing edge. The helper is
+// removed; the per-typology line-color palettes that fed it stay in
+// place behind void references below so they can be reintroduced if
+// per-typology lines come back later.
+void URBAN_FORM_LINE;
+void URBAN_PART_LINE;
+void SKETCH_LINE;
+void SKETCH_LINE_PARTY_WALL;
 
 function urbanDesignSketchFillColor(
   props: UrbanDesignModelProperties,
@@ -846,9 +849,9 @@ export function AtlasMap({
   scenarioDeltaFeatures,
   scenarioCompareEnabled = false,
   urbanDesignMaterialMode = "typology",
-  extraDeckLayers,
   selectedBuilding = null,
   onBuildingSelect,
+  extraDeckLayers = [],
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
@@ -1039,17 +1042,92 @@ export function AtlasMap({
    */
   const visibleOsmBuildings = useMemo<GeoJSON.FeatureCollection>(() => {
     const source = osmBuildings as unknown as GeoJSON.FeatureCollection;
-    if (atlasYear === null) return source;
+    // Spec PR 5: inset every building footprint by 1.5 meters before
+    // extrusion. Creates ground-level breathing room between buildings
+    // and the streets layer so the street network reads as visible
+    // space between buildings rather than implied gaps. Done once,
+    // cached, downstream consumers (urban-design model, shadow,
+    // selected/hovered outlines) all flow through this.
+    //
+    // turf.buffer with negative distance returns null for polygons
+    // smaller than 2x the inset (corners would invert). Those tiny
+    // structures drop out of the layer, which is acceptable for a
+    // 1.5m inset on real building footprints.
+    const yearFiltered =
+      atlasYear === null
+        ? source.features
+        : source.features.filter((feature) =>
+            osmBuildingExistsInYear(
+              feature.properties as OsmFootprintProperties,
+              atlasYear,
+            ),
+          );
+    const inset: GeoJSON.Feature[] = [];
+    for (const feature of yearFiltered) {
+      if (
+        !feature.geometry ||
+        (feature.geometry.type !== "Polygon" &&
+          feature.geometry.type !== "MultiPolygon")
+      ) {
+        continue;
+      }
+      const buffered = buffer(
+        feature as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
+        -1.5,
+        { units: "meters" },
+      );
+      if (buffered && buffered.geometry) {
+        inset.push({
+          ...feature,
+          geometry: buffered.geometry,
+        });
+      }
+    }
     return {
       ...source,
-      features: source.features.filter((feature) =>
-        osmBuildingExistsInYear(
-          feature.properties as OsmFootprintProperties,
-          atlasYear,
-        ),
-      ),
+      features: inset,
     };
   }, [atlasYear]);
+
+  /*
+   * Drop-shadow geometry. Spec PR 5 (buildings-as-sketch): each
+   * building gets a soft shadow offset ~3m southeast at low alpha.
+   * Computed as a translated copy of `visibleOsmBuildings` so the
+   * shadow respects year filtering. The translation is constant in
+   * lng/lat (3m / 111320m latitude, 3m / (111320 * cos(43 deg))
+   * longitude) which is accurate within ~1% at Flint's latitude
+   * across the city extent. Rendered as a SolidPolygonLayer below
+   * the building layers; no extrusion, no stroke, just a filled
+   * footprint at building-level z=0.
+   */
+  const buildingShadowFeatures = useMemo<
+    GeoJSON.FeatureCollection<GeoJSON.Polygon>
+  >(() => {
+    // 3m south = -3 / 111320 latitude. 3m east = 3 / (111320 * cos(43))
+    // longitude. Pre-computed for Flint's centroid; constant across
+    // the city extent.
+    const dLat = -3 / 111320;
+    const dLng = 3 / (111320 * Math.cos((43 * Math.PI) / 180));
+    const shift = (coords: GeoJSON.Position[][]): GeoJSON.Position[][] =>
+      coords.map((ring) =>
+        ring.map(([lng, lat]) => [lng + dLng, lat + dLat]),
+      );
+    const features: GeoJSON.Feature<GeoJSON.Polygon>[] = [];
+    for (const f of visibleOsmBuildings.features) {
+      if (!f.geometry) continue;
+      if (f.geometry.type === "Polygon") {
+        features.push({
+          type: "Feature",
+          properties: f.properties ?? {},
+          geometry: {
+            type: "Polygon",
+            coordinates: shift(f.geometry.coordinates),
+          },
+        });
+      }
+    }
+    return { type: "FeatureCollection", features };
+  }, [visibleOsmBuildings]);
 
   const urbanDesignModel = useMemo(
     () =>
@@ -1393,6 +1471,8 @@ export function AtlasMap({
      * mask above the basemap.
      */
     if (OSM_PARKS.features.length > 0) {
+      // Spec PR 5: parks fill alpha bumped 140 -> 200 so the green
+      // holds against the washed basemap. Stroke unchanged.
       result.push(
         new GeoJsonLayer({
           id: "atlas-osm-parks",
@@ -1401,7 +1481,7 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [158, 184, 158, 140],
+          getFillColor: [158, 184, 158, 200],
           getLineColor: [125, 154, 125, 100],
           lineWidthMinPixels: 0.5,
           getLineWidth: 0.5,
@@ -1414,10 +1494,12 @@ export function AtlasMap({
     }
 
     /*
-     * Water bodies. Spec PR 4 Change 3: `natural=water`. Cool slate
-     * fill #6b8a9e at alpha 140 + stroke #5a7585 1px alpha 180. Pushed
-     * after parks so water sits visibly above any park polygon it
-     * overlaps with (e.g. ponds inside parks).
+     * Water bodies. Cool slate #6b8a9e. Spec PR 4 originally pinned
+     * fill alpha 140 + stroke alpha 180; user feedback was that the
+     * water read too opaque against the rest of the body, so all
+     * three water alphas drop 25%: fill 140→105, stroke 180→135,
+     * waterway 200→150 (below). Pushed after parks so water sits
+     * visibly above any park polygon it overlaps with.
      */
     if (OSM_WATER_BODIES.features.length > 0) {
       result.push(
@@ -1428,8 +1510,8 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [107, 138, 158, 140],
-          getLineColor: [90, 117, 133, 180],
+          getFillColor: [107, 138, 158, 105],
+          getLineColor: [90, 117, 133, 135],
           lineWidthMinPixels: 1,
           getLineWidth: 1,
           parameters: {
@@ -1441,11 +1523,11 @@ export function AtlasMap({
     }
 
     /*
-     * Waterways (Flint River system). Spec PR 4 Change 3:
-     * `waterway=*`. Cool slate #6b8a9e at alpha 200, 2-3px line.
-     * Should read as the second-most visible feature on the map after
-     * the city boundary — currently nearly invisible without this
-     * layer.
+     * Waterways (Flint River system). `waterway=*`. Cool slate #6b8a9e
+     * at alpha 150 (down from 200 — see the water-bodies comment
+     * above for the 25%-reduction rationale). Still the second most
+     * visible feature on the map after the city boundary, just less
+     * saturated.
      */
     if (OSM_WATERWAYS.features.length > 0) {
       result.push(
@@ -1456,7 +1538,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [107, 138, 158, 200],
+          getLineColor: [107, 138, 158, 150],
           lineWidthMinPixels: 2,
           lineWidthMaxPixels: 3,
           getLineWidth: 2.5,
@@ -1473,6 +1555,7 @@ export function AtlasMap({
      * #7a6a52 alpha 180, 1.5px line. Renders solid (no dash).
      */
     if (OSM_RAIL_ACTIVE.features.length > 0) {
+      // Spec PR 5: rail alpha bumped 180 -> 200.
       result.push(
         new GeoJsonLayer({
           id: "atlas-osm-rail-active",
@@ -1481,7 +1564,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [122, 106, 82, 180],
+          getLineColor: [122, 106, 82, 200],
           lineWidthMinPixels: 1.5,
           getLineWidth: 1.5,
           parameters: {
@@ -1499,6 +1582,8 @@ export function AtlasMap({
      * history — abandoned beds carry meaning the active grid doesn't.
      */
     if (OSM_RAIL_DISUSED.features.length > 0) {
+      // Spec PR 5: rail alpha bumped 180 -> 200 (matches active rail
+      // for consistency). Dash pattern unchanged.
       result.push(
         new GeoJsonLayer({
           id: "atlas-osm-rail-disused",
@@ -1507,7 +1592,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [122, 106, 82, 180],
+          getLineColor: [122, 106, 82, 200],
           lineWidthMinPixels: 1.5,
           getLineWidth: 1.5,
           getDashArray: [4, 3],
@@ -1522,24 +1607,64 @@ export function AtlasMap({
     }
 
     /*
-     * Highway corridors. Spec PR 4 Change 3: `highway=motorway|trunk`
-     * at #b8a888 alpha 100, 4px line. For I-475, UAW Freeway,
-     * Chevrolet-Buick Freeway. Reads as visible corridors against the
-     * dialed-back vignette, not as basemap ghosts. No labels rendered
-     * by this layer — the basemap raster handles those.
+     * Streets layer (PR 5 spec Change 3). Three tiers fed by the
+     * regenerated OSM fixture's `highway_arterial|collector|local`
+     * partitions. Promotes the street grid out of the baked CARTO
+     * basemap raster so it renders at deliberate, consistent weights
+     * at every zoom. Local tier first (most numerous, thinnest line),
+     * then collector, then arterial on top so the hierarchy reads
+     * unambiguously where tiers overlap at junctions.
      */
-    if (OSM_HIGHWAY_CORRIDORS.features.length > 0) {
+    if (OSM_STREETS_LOCAL.features.length > 0) {
       result.push(
         new GeoJsonLayer({
-          id: "atlas-osm-highway-corridors",
-          data: OSM_HIGHWAY_CORRIDORS,
+          id: "atlas-osm-streets-local",
+          data: OSM_STREETS_LOCAL,
           pickable: false,
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [184, 168, 136, 100],
-          lineWidthMinPixels: 4,
-          getLineWidth: 4,
+          getLineColor: [189, 184, 176, 220],
+          lineWidthMinPixels: 0.5,
+          getLineWidth: 0.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+    if (OSM_STREETS_COLLECTOR.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-streets-collector",
+          data: OSM_STREETS_COLLECTOR,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [168, 160, 154, 230],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+    if (OSM_STREETS_ARTERIAL.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-streets-arterial",
+          data: OSM_STREETS_ARTERIAL,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [154, 138, 114, 240],
+          lineWidthMinPixels: 3,
+          getLineWidth: 3,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -1549,35 +1674,26 @@ export function AtlasMap({
     }
 
     /*
-     * Terracotta city perimeter. Spec PR 3: `--ctx-accent` at alpha
-     * 180/255, 1.5px. The boundary should suggest, not insist. Sits
-     * Spec PR 4 layer-order table puts both boundary layers ABOVE
-     * the building stack so the perimeter wins the top of the render
-     * (Flint emerges from paper, not occluded by skyline). The pushes
-     * have moved further down in this function — see the
-     * `pushBoundaryLayers` invocation after the buildingFabric block.
+     * Teal city perimeter. Prior versions of this surface ran a
+     * terracotta line + a terracotta inner-glow halo to mark the
+     * Flint boundary (PR 3, "Flint emerges from the paper" affordance);
+     * in live use the terracotta-on-paper combination read as
+     * vascular against the new infrastructure layers, so we retire
+     * the inner-glow halo entirely and recolor the perimeter to the
+     * existing infrastructure teal (#2DA699 = RGB 45, 166, 153) at
+     * alpha 200, 1.5px. The boundary still suggests rather than
+     * insists; the calmer hue lets the parks/water/rail layers carry
+     * the chromatic weight of the map body.
+     *
+     * Pushed after the building stack so the perimeter wins the top
+     * of the render — Flint reads as a contained shape without skyline
+     * occluding its outline. Invoked by name below after the
+     * buildingFabric block.
      */
     function pushBoundaryLayers() {
       if (FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION.features.length === 0) {
         return;
       }
-      result.push(
-        new GeoJsonLayer({
-          id: "atlas-flint-boundary-inner-glow",
-          data: FLINT_BOUNDARY_OUTLINE_FEATURE_COLLECTION,
-          pickable: false,
-          stroked: true,
-          filled: false,
-          extruded: false,
-          getLineColor: [193, 74, 44, 90],
-          lineWidthMinPixels: 3,
-          getLineWidth: 3,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
-        }),
-      );
       result.push(
         new GeoJsonLayer({
           id: "atlas-flint-boundary-outline",
@@ -1586,7 +1702,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [193, 74, 44, 180],
+          getLineColor: [45, 166, 153, 200],
           lineWidthMinPixels: 1.5,
           getLineWidth: 1.5,
           parameters: {
@@ -1638,6 +1754,30 @@ export function AtlasMap({
       layerVisibility.osmBuildings !== false &&
       layerVisibility.buildings !== false
     ) {
+      // Drop shadow first: rendered beneath the buildings so the
+      // 3m southeast offset reads as a soft cast. Spec PR 5 (cheap
+      // path): offset SolidPolygonLayer, not GPU shadow-mapping.
+      // Filled at #3a3328 alpha 56 (~0.22), no stroke, no extrusion.
+      result.push(
+        new SolidPolygonLayer<GeoJSON.Feature<GeoJSON.Polygon>>({
+          id: "atlas-building-drop-shadow",
+          data: buildingShadowFeatures.features,
+          pickable: false,
+          filled: true,
+          extruded: false,
+          // Polygon coordinates are Position[][] (rings) — a valid
+          // PolygonGeometry at runtime, but deck.gl's accessor return
+          // type is the narrower `number[]`. Cast through unknown to
+          // satisfy the type checker; runtime behavior is correct.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          getPolygon: (feature) => feature.geometry.coordinates as any,
+          getFillColor: [58, 51, 40, 56],
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
       result.push(
         new GeoJsonLayer({
           id: ATLAS_DECK_LAYER_IDS.osmBuildings,
@@ -1645,11 +1785,18 @@ export function AtlasMap({
           pickable: true,
           onClick: handleBuildingClick,
           onHover: handleBuildingHover,
-          stroked: false,
+          // Edge lines: every building gets a 1.5px outline at
+          // #7a8696 alpha 220 (warm gray with a slight indigo lean).
+          // Spec PR 5: "polygons with edges read as drawings;
+          // polygons without edges read as fills." This is the
+          // single largest perceptual change in the PR.
+          stroked: true,
           filled: true,
           extruded: true,
           opacity: atlasYear === null ? 1 : 0.42,
           wireframe: false,
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           getElevation: (f) =>
             osmBuildingElevation(
               (f as GeoJSON.Feature).properties as OsmFootprintProperties,
@@ -1663,8 +1810,7 @@ export function AtlasMap({
           // alpha for solid presence.
           getFillColor:
             atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 132],
-          getLineColor:
-            atlasYear === null ? [82, 64, 50, 200] : [82, 64, 50, 118],
+          getLineColor: [122, 134, 150, 220],
           material: {
             ambient: 0.58,
             diffuse: 0.48,
@@ -1674,7 +1820,6 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear === null],
-            getLineColor: [atlasYear === null],
           },
         }),
       );
@@ -1755,12 +1900,12 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: massOpacity,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
-          lineWidthMinPixels: viewMode === "atlas" ? 0.9 : 0.7,
-          getLineWidth: viewMode === "atlas" ? 0.9 : 0.75,
+          // Edge lines per spec PR 5: uniform #7a8696 alpha 220 at
+          // 1.5px. Overrides the prior typology-based line color
+          // (urbanDesignLineColor) — buildings now share one drawing
+          // edge instead of per-typology stroke variation.
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
@@ -1769,11 +1914,7 @@ export function AtlasMap({
               atlasYear,
               urbanDesignMaterialMode,
             ),
-          getLineColor: (feature) =>
-            urbanDesignLineColor(
-              feature.properties,
-              urbanDesignMaterialMode,
-            ),
+          getLineColor: [122, 134, 150, 220],
           material: {
             ambient: 0.62,
             diffuse: 0.46,
@@ -1783,7 +1924,6 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear, urbanDesignMaterialMode],
-            getLineColor: [urbanDesignMaterialMode],
           },
         }),
       );
@@ -1822,12 +1962,10 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: fabricOpacity,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
-          lineWidthMinPixels: viewMode === "atlas" ? 0.7 : 0.55,
-          getLineWidth: viewMode === "atlas" ? 0.7 : 0.55,
+          // Edge lines per spec PR 5: same uniform #7a8696 alpha 220
+          // as the mass layer above. 1.5px across the board.
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
@@ -1836,11 +1974,7 @@ export function AtlasMap({
               atlasYear,
               urbanDesignMaterialMode,
             ),
-          getLineColor: (feature) =>
-            urbanDesignLineColor(
-              feature.properties,
-              urbanDesignMaterialMode,
-            ),
+          getLineColor: [122, 134, 150, 220],
           material: {
             ambient: 0.64,
             diffuse: 0.44,
@@ -1850,7 +1984,6 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear, urbanDesignMaterialMode],
-            getLineColor: [urbanDesignMaterialMode],
           },
         }),
       );
@@ -2082,7 +2215,8 @@ export function AtlasMap({
 
     // Append caller-provided overlay layers last so they render on
     // top of everything AtlasMap composes itself. The planner route
-    // hands its per-category placement layers in via this prop.
+    // hands its per-category placement layers in via this prop. Null
+    // check guards against undefined (the prop is optional).
     if (extraDeckLayers && extraDeckLayers.length > 0) {
       result.push(...extraDeckLayers);
     }
@@ -2104,6 +2238,7 @@ export function AtlasMap({
     atlasYear,
     historicalReconstructions,
     visibleOsmBuildings,
+    buildingShadowFeatures,
     urbanDesignMassModel,
     buildingFabricModel,
     urbanDesignMaterialMode,

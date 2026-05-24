@@ -1,0 +1,25 @@
+query EvidenceForReconstruction($reconstructionId: ID!) {
+  evidenceForReconstruction(reconstructionId: $reconstructionId) {
+    reconstructionId
+    totalCount
+    items {
+      id
+      reconstructionId
+      evidenceType
+      targetNodeId
+      confidence
+      thumbnailUrl
+      summary
+      sourceDateLabel
+      source {
+        id
+        name
+        homepageUrl
+        sourceType
+        trustTier
+        lastChecked
+        knownLimits
+      }
+    }
+  }
+}

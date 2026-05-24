@@ -39,6 +39,7 @@ import type {
   AtlasLensId,
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
+import type { Layer } from "@deck.gl/core";
 import type { UrbanDesignMaterialMode } from "./AtlasMap";
 
 const AtlasMap = dynamic(
@@ -91,6 +92,7 @@ export type ResponsiveAtlasMapProps = {
   >;
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
+  extraDeckLayers?: Layer[];
 };
 
 function useHydrated(): boolean {
