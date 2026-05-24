@@ -144,9 +144,11 @@ If the user wants to iterate on the plan itself before execution, areas to consi
 
 All other planning decisions are sourced from the spec or the existing project planning corpus; the user has already authored or approved them.
 
-## Execution status (post v1 BUILD pass)
+## Execution status (post v1 BUILD pass + overnight gap-close)
 
-Updated 2026-05-24 after the v1 BUILD pass.
+Updated 2026-05-24 after the v1 BUILD pass and the autonomous overnight
+gap-close pass that landed PT-504, Stage 4 pulse rings, PT-701 smoke,
+and PT-801 visual evidence scaffold.
 
 | Item | Status | Notes |
 |---|---|---|
@@ -160,7 +162,7 @@ Updated 2026-05-24 after the v1 BUILD pass.
 | PT-204 R3F scene | Complete | Shared geometry via `lumaGeometryToBufferGeometry` adapter; LostFlintGeometries flat-cube bug fixed |
 | PT-205 dust motes | Complete | `AtelierDustMotes` R3F point particles, reduced-motion safe |
 | PT-301 choreographer state machine + 311 reduced-motion | Complete | `atelier-choreographer.ts` + `useAtelierChoreographer` |
-| PT-302-309 per-stage visuals | Partially complete | Cards arrival (Stage 1), provenance lines draw (Stage 2), camera orbit (Stage 6), settled label transition (Stage 7) all ship. Stage 4 pulse rings + Stage 6 ornament emergence deferred to v1.x (see `atelier-animation-proposal.md`) |
+| PT-302-309 per-stage visuals | Mostly complete | Cards arrival (Stage 1), provenance lines draw (Stage 2), Stage 4 pulse rings (`46b251f`), camera orbit (Stage 6), settled label transition (Stage 7) all ship. Only Stage 6 ornament emergence remains deferred to v1.x (needs backend per-part geometry segments per `atelier-animation-proposal.md`) |
 | PT-310 skip/replay/auto-1.5x | Complete | `sessionStorage` flag + skip/replay APIs |
 | PT-401 source cards per-type identities | Complete | 7 type identities; 4 exercised by fixture (HABS, Sanborn, Photograph, City Directory) |
 | PT-402 conflict markers | Complete (zero conflicts in fixture; component renders zero, lights up when backend ships real conflicts) | `AtelierConflictMarkers` R3F-Html anchored |
@@ -172,22 +174,36 @@ Updated 2026-05-24 after the v1 BUILD pass.
 | PT-501 BuildingDossier entry | Complete | "Reconstruct in Atelier" link appears when selected building within ~150m of a reconstruction |
 | PT-502 search-bar temporal-query affordance | Complete | Dropdown lists reconstructions visible at typed year |
 | PT-503 atelier nav link | Complete | Top-strip header link (variant of spec's "dynamic island icon") |
-| PT-504 right-click on lost building | Deferred to v1.x | Spec requirement; deck.gl pickObject on right-click adds gesture cost; PT-501 + PT-502 + PT-503 already cover the spec's "three places" entry-point intent. Tracked for v1.x. |
+| PT-504 right-click on lost building | Complete (`d0bd134`) | Native `contextmenu` (desktop) + long-press (touch, 600ms with 8px move tolerance) bound on `.atlas-scene-map`. `MapboxOverlay` ref lifted via new `onReady` prop on `DeckGLOverlay` so the handler can call `pickObject` against the picking buffer. Empty-area right-click still falls through to browser default. Year resolution shared with PT-501 via `resolveAtelierEntryYear` in `atelier-route.ts`. |
 | PT-601 Carriage Town BUILD gate | Complete | All 5 fixture reconstructions render end-to-end via direct URL |
 | PT-602 Carriage Town SHIP gate | Blocked-by-backend | Requires PT-104/PT-104b backend resolvers |
-| PT-701 Playwright smoke | Deferred | Add atelier route to `scripts/smoke-open-flint-routes.mjs` |
+| PT-701 Playwright smoke | Complete (`61974eb`) | Two of five Carriage Town fixture routes (`building:carriage-town:1` at 1885, `building:carriage-town:3` at 1925) added to `scripts/smoke-open-flint-routes.mjs`. Smoke is a `fetch()`-based SSR-metadata assertion (no actual Playwright in this repo yet). 29/29 checks pass against live dev server. |
 | PT-702 validate scripts | Deferred | Atelier inherits existing validators |
-| PT-801 visual evidence capture | Deferred | Screenshot directory + before/after capture |
+| PT-801 visual evidence capture | Scaffolded (`9f20a59`) | `docs/visual-evidence/atelier/2026-05-24-overnight-pass/README.md` documents what was verified live this pass + the manual capture procedure + the Playwright path the next session can authorize. Live screenshots in conversation log show full atelier end-to-end with Whaley House porcelain mass, HABS + Sanborn cards, terracotta provenance lines, dossier panel, Replay + Save controls. Stage 4 mid-pulse still capture deferred (needs foreground browser with full RAF). |
 | PT-802 Do Not Downgrade gate | Pending review | Manual side-by-side of atlas/island/Carriage Town routes |
 | PT-901 UX copy | Mostly complete (inline) | Final UX-writer pass on save confirmation copy + skip button label is a follow-up |
 | PT-902 docs/public-package | Deferred | Add atelier description + screenshot |
 
 ## End-of-pass summary
 
-v1 BUILD gate met: the atelier ships against the existing `FLINT_LOST_RECONSTRUCTIONS` fixture with all spec sections honored (one PT-504 deferral for which the spec's three-entry-point requirement is satisfied by PT-501 + PT-502 + PT-503). v1 SHIP gate (PT-602) is blocked on backend resolvers (PT-104, PT-104b) — not in this plan's scope.
+After the overnight gap-close: v1 BUILD gate fully met against the
+`FLINT_LOST_RECONSTRUCTIONS` fixture. All three spec-line-23-28 entry
+points now wired (dynamic island nav, search-bar temporal-query
+affordance, right-click / long-press). Stage 4 pulse rings ship per
+spec lines 106-110. Smoke covers the atelier route in CI. v1 SHIP gate
+(PT-602) remains blocked on backend resolvers (PT-104, PT-104b).
 
-What landed beyond the original plan during the BUILD pass:
+What landed beyond the original plan:
 
 - A latent bug in `LostFlintGeometries.createFlatBoxGeometry` (returned `[-1,+1]` CubeGeometry while gable/hipped used `[-0.5,+0.5]`) was discovered while writing the luma→three adapter. Fixed at root in `LostFlintGeometries`; both deck.gl Lost Flint render and atelier R3F render now use unified coordinate convention. Single source of truth for building geometry.
+- Year-resolution rule for atelier entry (`atlasYear ?? parse(time_start) ?? 1925`) extracted from PT-501's inline logic into `resolveAtelierEntryYear` in `atelier-route.ts` so PT-501 and PT-504 share one rule. Behavior unchanged.
+
+Remaining for the next session to authorize:
+
+- Sound design (Stage 1 paper rustle, Stage 2 thrum, Stage 6 tone; spec lines 74/94/161; "optional" per spec, accessibility-conscious mute default required)
+- Stage 6 ornament emergence (needs backend per-part geometry segments + ornament metadata in GraphQL contract)
+- PT-802 Do Not Downgrade design-critic review pass
+- PT-902 docs/public-package marketing copy + screenshot
+- Playwright opt-in to enable automated Stage 4 mid-pulse capture for PT-801
 
 End of README.
