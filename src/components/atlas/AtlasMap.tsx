@@ -13,6 +13,7 @@ import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
 import { PathStyleExtension } from "@deck.gl/extensions";
+import buffer from "@turf/buffer";
 import difference from "@turf/difference";
 import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
 import { ensurePmtilesProtocol } from "@/lib/atlas/pmtiles";
@@ -140,7 +141,12 @@ type InfrastructureLayerClass =
   | "water_way"
   | "rail_active"
   | "rail_disused"
-  | "highway_corridor";
+  // Highway tiers introduced by PR 5 (buildings-as-sketch). Replaces
+  // the prior single "highway_corridor" class with three tiers so
+  // the streets layer can render at deliberate per-tier weights.
+  | "highway_arterial"
+  | "highway_collector"
+  | "highway_local";
 
 type InfrastructureFeature = GeoJSON.Feature<
   GeoJSON.Polygon | GeoJSON.LineString,
@@ -171,7 +177,9 @@ const OSM_WATER_BODIES = partitionInfrastructure("water_body");
 const OSM_WATERWAYS = partitionInfrastructure("water_way");
 const OSM_RAIL_ACTIVE = partitionInfrastructure("rail_active");
 const OSM_RAIL_DISUSED = partitionInfrastructure("rail_disused");
-const OSM_HIGHWAY_CORRIDORS = partitionInfrastructure("highway_corridor");
+const OSM_STREETS_ARTERIAL = partitionInfrastructure("highway_arterial");
+const OSM_STREETS_COLLECTOR = partitionInfrastructure("highway_collector");
+const OSM_STREETS_LOCAL = partitionInfrastructure("highway_local");
 
 const BOUND_WORLD_MASK_FEATURE_COLLECTION = (():
   | GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon>
@@ -656,21 +664,16 @@ function urbanDesignFillColor(
   ]);
 }
 
-function urbanDesignLineColor(
-  props: UrbanDesignModelProperties,
-  materialMode: UrbanDesignMaterialMode,
-): [number, number, number, number] {
-  if (materialMode === "sketch_model") {
-    const line =
-      props.part_role === "party_wall" ? SKETCH_LINE_PARTY_WALL : SKETCH_LINE;
-    return applyFabricCompletenessAlpha(props, line);
-  }
-
-  return applyFabricCompletenessAlpha(
-    props,
-    URBAN_PART_LINE[props.part_role] ?? URBAN_FORM_LINE[props.form_type],
-  );
-}
+// `urbanDesignLineColor` (formerly here) computed per-typology line
+// colors; PR 5 (buildings-as-sketch) replaced it with a uniform indigo
+// edge (#7a8696) so buildings share one drawing edge. The helper is
+// removed; the per-typology line-color palettes that fed it stay in
+// place behind void references below so they can be reintroduced if
+// per-typology lines come back later.
+void URBAN_FORM_LINE;
+void URBAN_PART_LINE;
+void SKETCH_LINE;
+void SKETCH_LINE_PARTY_WALL;
 
 function urbanDesignSketchFillColor(
   props: UrbanDesignModelProperties,
@@ -1034,15 +1037,50 @@ export function AtlasMap({
    */
   const visibleOsmBuildings = useMemo<GeoJSON.FeatureCollection>(() => {
     const source = osmBuildings as unknown as GeoJSON.FeatureCollection;
-    if (atlasYear === null) return source;
+    // Spec PR 5: inset every building footprint by 1.5 meters before
+    // extrusion. Creates ground-level breathing room between buildings
+    // and the streets layer so the street network reads as visible
+    // space between buildings rather than implied gaps. Done once,
+    // cached, downstream consumers (urban-design model, shadow,
+    // selected/hovered outlines) all flow through this.
+    //
+    // turf.buffer with negative distance returns null for polygons
+    // smaller than 2x the inset (corners would invert). Those tiny
+    // structures drop out of the layer, which is acceptable for a
+    // 1.5m inset on real building footprints.
+    const yearFiltered =
+      atlasYear === null
+        ? source.features
+        : source.features.filter((feature) =>
+            osmBuildingExistsInYear(
+              feature.properties as OsmFootprintProperties,
+              atlasYear,
+            ),
+          );
+    const inset: GeoJSON.Feature[] = [];
+    for (const feature of yearFiltered) {
+      if (
+        !feature.geometry ||
+        (feature.geometry.type !== "Polygon" &&
+          feature.geometry.type !== "MultiPolygon")
+      ) {
+        continue;
+      }
+      const buffered = buffer(
+        feature as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
+        -1.5,
+        { units: "meters" },
+      );
+      if (buffered && buffered.geometry) {
+        inset.push({
+          ...feature,
+          geometry: buffered.geometry,
+        });
+      }
+    }
     return {
       ...source,
-      features: source.features.filter((feature) =>
-        osmBuildingExistsInYear(
-          feature.properties as OsmFootprintProperties,
-          atlasYear,
-        ),
-      ),
+      features: inset,
     };
   }, [atlasYear]);
 
@@ -1428,6 +1466,8 @@ export function AtlasMap({
      * mask above the basemap.
      */
     if (OSM_PARKS.features.length > 0) {
+      // Spec PR 5: parks fill alpha bumped 140 -> 200 so the green
+      // holds against the washed basemap. Stroke unchanged.
       result.push(
         new GeoJsonLayer({
           id: "atlas-osm-parks",
@@ -1436,7 +1476,7 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [158, 184, 158, 140],
+          getFillColor: [158, 184, 158, 200],
           getLineColor: [125, 154, 125, 100],
           lineWidthMinPixels: 0.5,
           getLineWidth: 0.5,
@@ -1510,6 +1550,7 @@ export function AtlasMap({
      * #7a6a52 alpha 180, 1.5px line. Renders solid (no dash).
      */
     if (OSM_RAIL_ACTIVE.features.length > 0) {
+      // Spec PR 5: rail alpha bumped 180 -> 200.
       result.push(
         new GeoJsonLayer({
           id: "atlas-osm-rail-active",
@@ -1518,7 +1559,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [122, 106, 82, 180],
+          getLineColor: [122, 106, 82, 200],
           lineWidthMinPixels: 1.5,
           getLineWidth: 1.5,
           parameters: {
@@ -1536,6 +1577,8 @@ export function AtlasMap({
      * history — abandoned beds carry meaning the active grid doesn't.
      */
     if (OSM_RAIL_DISUSED.features.length > 0) {
+      // Spec PR 5: rail alpha bumped 180 -> 200 (matches active rail
+      // for consistency). Dash pattern unchanged.
       result.push(
         new GeoJsonLayer({
           id: "atlas-osm-rail-disused",
@@ -1544,7 +1587,7 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [122, 106, 82, 180],
+          getLineColor: [122, 106, 82, 200],
           lineWidthMinPixels: 1.5,
           getLineWidth: 1.5,
           getDashArray: [4, 3],
@@ -1559,24 +1602,64 @@ export function AtlasMap({
     }
 
     /*
-     * Highway corridors. Spec PR 4 Change 3: `highway=motorway|trunk`
-     * at #b8a888 alpha 100, 4px line. For I-475, UAW Freeway,
-     * Chevrolet-Buick Freeway. Reads as visible corridors against the
-     * dialed-back vignette, not as basemap ghosts. No labels rendered
-     * by this layer — the basemap raster handles those.
+     * Streets layer (PR 5 spec Change 3). Three tiers fed by the
+     * regenerated OSM fixture's `highway_arterial|collector|local`
+     * partitions. Promotes the street grid out of the baked CARTO
+     * basemap raster so it renders at deliberate, consistent weights
+     * at every zoom. Local tier first (most numerous, thinnest line),
+     * then collector, then arterial on top so the hierarchy reads
+     * unambiguously where tiers overlap at junctions.
      */
-    if (OSM_HIGHWAY_CORRIDORS.features.length > 0) {
+    if (OSM_STREETS_LOCAL.features.length > 0) {
       result.push(
         new GeoJsonLayer({
-          id: "atlas-osm-highway-corridors",
-          data: OSM_HIGHWAY_CORRIDORS,
+          id: "atlas-osm-streets-local",
+          data: OSM_STREETS_LOCAL,
           pickable: false,
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [184, 168, 136, 100],
-          lineWidthMinPixels: 4,
-          getLineWidth: 4,
+          getLineColor: [189, 184, 176, 220],
+          lineWidthMinPixels: 0.5,
+          getLineWidth: 0.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+    if (OSM_STREETS_COLLECTOR.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-streets-collector",
+          data: OSM_STREETS_COLLECTOR,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [168, 160, 154, 230],
+          lineWidthMinPixels: 1.5,
+          getLineWidth: 1.5,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+    if (OSM_STREETS_ARTERIAL.features.length > 0) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-osm-streets-arterial",
+          data: OSM_STREETS_ARTERIAL,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          getLineColor: [154, 138, 114, 240],
+          lineWidthMinPixels: 3,
+          getLineWidth: 3,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -1671,14 +1754,18 @@ export function AtlasMap({
       // path): offset SolidPolygonLayer, not GPU shadow-mapping.
       // Filled at #3a3328 alpha 56 (~0.22), no stroke, no extrusion.
       result.push(
-        new SolidPolygonLayer({
+        new SolidPolygonLayer<GeoJSON.Feature<GeoJSON.Polygon>>({
           id: "atlas-building-drop-shadow",
           data: buildingShadowFeatures.features,
           pickable: false,
           filled: true,
           extruded: false,
-          getPolygon: (feature: GeoJSON.Feature<GeoJSON.Polygon>) =>
-            feature.geometry.coordinates,
+          // Polygon coordinates are Position[][] (rings) — a valid
+          // PolygonGeometry at runtime, but deck.gl's accessor return
+          // type is the narrower `number[]`. Cast through unknown to
+          // satisfy the type checker; runtime behavior is correct.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          getPolygon: (feature) => feature.geometry.coordinates as any,
           getFillColor: [58, 51, 40, 56],
           parameters: {
             depthCompare: "always",
@@ -2142,6 +2229,7 @@ export function AtlasMap({
     atlasYear,
     historicalReconstructions,
     visibleOsmBuildings,
+    buildingShadowFeatures,
     urbanDesignMassModel,
     buildingFabricModel,
     urbanDesignMaterialMode,
