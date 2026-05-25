@@ -3,6 +3,7 @@ import { IBM_Plex_Sans_Condensed } from "next/font/google";
 import localFont from "next/font/local";
 import "antd/dist/reset.css";
 import "./globals.css";
+import "./open-flint-atlas/atlas.css";
 
 // Body / UI font. Plex Sans Condensed reads denser than the
 // non-condensed Plex Sans, which matches the editorial atlas

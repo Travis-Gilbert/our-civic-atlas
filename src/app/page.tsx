@@ -1,5 +1,16 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { AtlasCanvasBackdrop } from "@/components/atlas/AtlasCanvasBackdrop";
+import { OpenFlintAtlasScene } from "@/components/atlas/OpenFlintAtlasScene";
 
 export default function HomePage() {
-  redirect("/open-flint-atlas");
+  return (
+    <div className="civic-atlas relative h-full w-full overflow-hidden">
+      <AtlasCanvasBackdrop />
+      <div className="relative z-[1] h-full w-full">
+        <Suspense fallback={null}>
+          <OpenFlintAtlasScene initialLens="explore" />
+        </Suspense>
+      </div>
+    </div>
+  );
 }
