@@ -136,6 +136,19 @@ A document at `docs/plans/evidence-corpus-inventory-2026-05.md` covering:
 - Evidence spans at least two decades so temporal grounding is real.
 - The building has historic significance — Buick Plant 36, Vehicle City Tavern, the original Capitol Theatre, a notable downtown commercial block, etc. The pilot becomes a demo.
 
+**Pilot selection update (2026-05-25):** use Carriage Town Storefront as the
+first lost-building pilot. It is already demolished in the fixture, has map and
+photo support, and its weak storefront/use evidence makes it a useful test for
+the conflict UI. See
+`docs/plans/pilot-reconstruction-carriage-town-storefront.md`.
+
+**Resident-first research path:** Task C should not require a user or operator
+to manually ingest a folder of source rows before the product proves itself.
+The reconstruction panel should start useful for a blank resident by loading
+existing PostGIS evidence and then queuing `civicResearch` for missing facts in
+real time. Drag-and-drop resident material is additive. A trained GNN improves
+the reconstruction prior over time; it is not a prerequisite.
+
 **Reconstruct it:**
 
 - Run the engine's `run_full_pipeline` against the picked building with `year = N` for a year where evidence is strongest.
@@ -160,6 +173,9 @@ A document at `docs/plans/evidence-corpus-inventory-2026-05.md` covering:
 
 - Task A's wiring must be in place (or developed in parallel and verified together).
 - Task B must surface candidate buildings.
+- The research-to-artifact promotion step must exist for the pilot's missing
+  directory/use evidence. This can be a small acceptance workflow; it does not
+  need a bulk ingest lane before Task C starts.
 
 ---
 

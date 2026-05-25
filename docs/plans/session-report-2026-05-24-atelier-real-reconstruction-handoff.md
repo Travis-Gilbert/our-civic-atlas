@@ -129,25 +129,18 @@ the next session may want explicit direction on:
    when its inventory runs), the page can be data-driven from
    `getStaticAtlasPackage` next pass.
 
-4. **The 7-stage vs 8-stage description**: the methodology page now
-   lists 7 reconstruction stages matching the Rust engine's actual
-   function names (`assemble_evidence` through `generate_assets`).
-   The atelier spec and the implementation-plan reference "8 stages"
-   counting `run_full_pipeline` as the orchestrator. If the
-   methodology page should match the atelier's 8-stage choreography
-   instead of the engine's 7-stage function list, the
-   `RECONSTRUCTION_STAGES` array in
-   `src/app/open-flint-atlas/methodology/page.tsx` can grow by one.
-   I chose 7 because it matches the executable code, but reasonable
-   people could prefer the spec's 8.
+4. **The 7-stage vs 8-stage description**: superseded 2026-05-25.
+   The methodology page now uses the spec's eight-stage public model by
+   counting `run_full_pipeline` as the orchestrator with the seven
+   named engine stages.
 
-5. **Carriage Town Storefront as pilot candidate**: Codex's
-   inventory ranks this as the strongest lost-building pilot
-   candidate today, but flags it still needs a directory row plus
-   one more time slice before it meets the three-source bar. If
-   that's the right pilot direction, the next session should add
-   one of those source rows (directory ingest path needs to be
-   built first) before Task C is unblockable.
+5. **Carriage Town Storefront as pilot candidate**: superseded
+   2026-05-25. It is now the selected pilot. The missing directory/use
+   evidence should flow through the Research tab and then be promoted
+   into durable artifact/anchor rows; Task C should not wait on a
+   resident-visible manual ingest workflow. A trained GNN improves
+   the prior over time, but it is not the prerequisite for the first
+   reconstruction.
 
 ## What I would do next, if I were continuing
 

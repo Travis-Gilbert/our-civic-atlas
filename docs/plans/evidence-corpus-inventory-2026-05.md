@@ -92,7 +92,7 @@ Current known candidates, ranked by fixture source count:
 | Rank | Candidate | Count | Status |
 |---:|---|---:|---|
 | 1 | Whaley House (1885) | 2 source ids | Not a Task C pilot because it still stands. |
-| 2 | Carriage Town Storefront | 2 source ids | Lost-building candidate, but only map + photo in current fixture. |
+| 2 | Carriage Town Storefront | 2 source ids | Selected lost-building pilot. Missing directory/use evidence should come through the Research tab and then be promoted into durable artifacts. |
 | 3 | Stockton House (1872) | 2 source ids | Lost-building candidate, but no checked-in photo or directory row. |
 | 4 | 628 E Kearsley Frame House | 1 source id | UI fixture only. |
 | 5 | Worker's Cottage (1898) | 1 source id | UI fixture only. |
@@ -177,9 +177,9 @@ LIMIT 20;
 
 | Recommendation | Effort class | Why |
 |---|---|---|
-| Run a live PostGIS inventory against `artifacts`, `artifact_anchors`, `buildings`, and `parcels`. | small | It immediately decides the real Task C pilot list. |
+| Run a live PostGIS inventory against `artifacts`, `artifact_anchors`, `buildings`, and `parcels`. | small | It verifies the runtime evidence store. PostGIS is not "truer" than public data; it is the canonical place where public evidence gets stable ids, spatial anchors, tenant scope, and reproducible joins. |
 | Decode at least one real Flint Sanborn sheet through `ingest_local_sheet` and commit the manifest, not raw private scans. | medium | This proves the source->polygon->training-record path beyond smoke data. |
 | Add a city-directory OCR ingest path that emits `ground_floor.use_type` and address/year fields. | medium | Ground-floor use is one of the Pairformer heads and is absent today. |
 | Add a photo/HABS artifact ingest path with source-use notes and artifact anchors. | medium | Task C needs photo-backed facade claims, not only map footprints. |
-| Promote the Carriage Town Storefront as the first likely lost-building UI pilot after it gains a directory row and one more time slice. | small | It is already demolished in the fixture and has map + photo support. |
+| Promote the Carriage Town Storefront as the first lost-building UI pilot. | small | It is already demolished in the fixture and has map + photo support; use the Research tab to find and promote the missing directory/use evidence instead of waiting on a manual ingest lane. |
 | Keep Whaley House as a calibration/control building, not the demo pilot. | small | It still stands, which makes it valuable for comparison but poor as the public "lost building" proof. |

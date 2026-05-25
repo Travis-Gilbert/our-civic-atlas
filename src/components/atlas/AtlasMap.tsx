@@ -1618,15 +1618,10 @@ export function AtlasMap({
 
     /*
      * Bound-world vignette mask. Spec PR 3 introduced this; PR 4
-     * (map-body-and-discipline) walks back its opacity so Flint is
-     * "lit against something, not floating in nothing." Fill drops
-     * from alpha 220 to 160 (surrounding basemap goes from ~14%
-     * visible to ~37% visible — faint Frankenmuth / Mt Morris /
-     * Burton / Clio labels readable as ghosts, Flint River trace
-     * visible upstream and downstream, major highways outside Flint
-     * barely visible). Boundary band line drops 180 to 140 (softer
-     * feather). Still the poor-man's substitute for a true gaussian
-     * edge, just dialed back.
+     * (map-body-and-discipline) walked it back to alpha 160. That made
+     * the surrounding world too present, so this pass uses alpha 190 as
+     * the middle value from Task E: Flint stays readable as the civic
+     * stage while nearby context remains visible as a ghost.
      */
     if (BOUND_WORLD_MASK_FEATURE_COLLECTION) {
       result.push(
@@ -1637,8 +1632,8 @@ export function AtlasMap({
           stroked: true,
           filled: true,
           extruded: false,
-          getFillColor: [242, 241, 236, 160],
-          getLineColor: [242, 241, 236, 140],
+          getFillColor: [242, 241, 236, 190],
+          getLineColor: [242, 241, 236, 165],
           lineWidthMinPixels: 14,
           getLineWidth: 14,
           parameters: {
@@ -1802,6 +1797,11 @@ export function AtlasMap({
      * then collector, then arterial on top so the hierarchy reads
      * unambiguously where tiers overlap at junctions.
      */
+    const streetZoomScale = mapZoom < 13 ? 0.82 : mapZoom < 16 ? 1 : 1.16;
+    const localStreetWidth = 0.7 * streetZoomScale;
+    const collectorStreetWidth = 1.65 * streetZoomScale;
+    const arterialStreetWidth = 3.05 * streetZoomScale;
+
     if (OSM_STREETS_LOCAL.features.length > 0) {
       result.push(
         new GeoJsonLayer({
@@ -1811,9 +1811,10 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [189, 184, 176, 220],
-          lineWidthMinPixels: 0.5,
-          getLineWidth: 0.5,
+          getLineColor: [168, 156, 132, 220],
+          lineWidthMinPixels: localStreetWidth,
+          lineWidthMaxPixels: localStreetWidth + 0.55,
+          getLineWidth: localStreetWidth,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -1830,9 +1831,10 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [168, 160, 154, 230],
-          lineWidthMinPixels: 1.5,
-          getLineWidth: 1.5,
+          getLineColor: [168, 156, 132, 235],
+          lineWidthMinPixels: collectorStreetWidth,
+          lineWidthMaxPixels: collectorStreetWidth + 0.75,
+          getLineWidth: collectorStreetWidth,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -1849,9 +1851,10 @@ export function AtlasMap({
           stroked: true,
           filled: false,
           extruded: false,
-          getLineColor: [154, 138, 114, 240],
-          lineWidthMinPixels: 3,
-          getLineWidth: 3,
+          getLineColor: [168, 156, 132, 245],
+          lineWidthMinPixels: arterialStreetWidth,
+          lineWidthMaxPixels: arterialStreetWidth + 1,
+          getLineWidth: arterialStreetWidth,
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -1968,8 +1971,8 @@ export function AtlasMap({
           pickable: true,
           onClick: handleBuildingClick,
           onHover: handleBuildingHover,
-          // Edge lines: every building gets a 1.5px outline at
-          // #7a8696 alpha 220 (warm gray with a slight indigo lean).
+          // Edge lines: every building gets a 2px outline at
+          // #7a8696 alpha 242 (warm gray with a slight indigo lean).
           // Spec PR 5: "polygons with edges read as drawings;
           // polygons without edges read as fills." This is the
           // single largest perceptual change in the PR.
@@ -1978,8 +1981,8 @@ export function AtlasMap({
           extruded: true,
           opacity: atlasYear === null ? 1 : 0.42,
           wireframe: false,
-          lineWidthMinPixels: 1.5,
-          getLineWidth: 1.5,
+          lineWidthMinPixels: 2,
+          getLineWidth: 2,
           getElevation: (f) =>
             osmBuildingElevation(
               (f as GeoJSON.Feature).properties as OsmFootprintProperties,
@@ -1993,7 +1996,7 @@ export function AtlasMap({
           // alpha for solid presence.
           getFillColor:
             atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 132],
-          getLineColor: [122, 134, 150, 220],
+          getLineColor: [122, 134, 150, 242],
           extensions: [BUILDING_PAPER_GRAIN_EXTENSION],
           ...BUILDING_PAPER_GRAIN_PROPS,
           material: {
@@ -2082,12 +2085,12 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: massOpacity,
-          // Edge lines per spec PR 5: uniform #7a8696 alpha 220 at
-          // 1.5px. Overrides the prior typology-based line color
+          // Edge lines per spec PR 5: uniform #7a8696 alpha 242 at
+          // 2px. Overrides the prior typology-based line color
           // (urbanDesignLineColor) — buildings now share one drawing
           // edge instead of per-typology stroke variation.
-          lineWidthMinPixels: 1.5,
-          getLineWidth: 1.5,
+          lineWidthMinPixels: 2,
+          getLineWidth: 2,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
@@ -2096,7 +2099,7 @@ export function AtlasMap({
               atlasYear,
               urbanDesignMaterialMode,
             ),
-          getLineColor: [122, 134, 150, 220],
+          getLineColor: [122, 134, 150, 242],
           extensions: [BUILDING_PAPER_GRAIN_EXTENSION],
           ...BUILDING_PAPER_GRAIN_PROPS,
           material: {
@@ -2126,10 +2129,10 @@ export function AtlasMap({
           extruded: urbanExtruded,
           wireframe: false,
           opacity: fabricOpacity,
-          // Edge lines per spec PR 5: same uniform #7a8696 alpha 220
-          // as the mass layer above. 1.5px across the board.
-          lineWidthMinPixels: 1.5,
-          getLineWidth: 1.5,
+          // Edge lines per spec PR 5: same uniform #7a8696 alpha 242
+          // as the mass layer above. 2px across the board.
+          lineWidthMinPixels: 2,
+          getLineWidth: 2,
           getElevation: (feature) =>
             urbanDesignModelElevation(feature.properties, viewMode),
           getFillColor: (feature) =>
@@ -2138,7 +2141,7 @@ export function AtlasMap({
               atlasYear,
               urbanDesignMaterialMode,
             ),
-          getLineColor: [122, 134, 150, 220],
+          getLineColor: [122, 134, 150, 242],
           extensions: [BUILDING_PAPER_GRAIN_EXTENSION],
           ...BUILDING_PAPER_GRAIN_PROPS,
           material: {
@@ -2472,8 +2475,9 @@ export function AtlasMap({
       />
 
       {/*
-        Building hover tooltip. Spec PR 1: typology class + confidence
-        percentage + address (or osm_id when no address). Rendered above
+        Building hover tooltip. Spec PR 1 originally used typology class
+        plus a support number. The confidence-discipline pass keeps the
+        tooltip to a plain noun phrase and a public label. Rendered above
         the basemap and below the chrome (z-index between vignette and
         AtlasShell controls). Pointer-events:none so it never intercepts
         map gestures. Desktop-only via the `canHover` gate on
@@ -2492,7 +2496,8 @@ export function AtlasMap({
           {/*
             Spec PR 4 confidence-discipline rule: hover tooltip shows
             what the building IS (the noun-phrase typology) and where
-            (address or osm_id fallback). No confidence percentage —
+            (name/address/public fallback). No confidence percentage and
+            no OSM id:
             once the archetype was selected upstream, the chrome
             commits to it.
           */}
@@ -2500,7 +2505,7 @@ export function AtlasMap({
             {hoverState.building.typology_class ?? "Unclassified"}
           </div>
           <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
-            {hoverState.building.address ?? `Building #${hoverState.building.osm_id}`}
+            {hoverState.building.name ?? hoverState.building.address ?? "Mapped building"}
           </div>
         </div>
       ) : null}
