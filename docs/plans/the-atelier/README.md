@@ -156,7 +156,7 @@ and PT-801 visual evidence scaffold.
 | PT-002 animation specialist proposal | Complete | `docs/design/atelier-animation-proposal.md` |
 | PT-101/102 GraphQL schema + queries + codegen | Complete | Extensions 1-5, 7 in schema; codegen + typecheck green |
 | PT-103, 103b, 103c hooks | Complete | `useReconstructionDossier`, `useReconstructionSave`, `useSavedReconstruction` |
-| PT-104, 104b backend resolvers | Blocked-by-backend | Owned by `our-civic-atlas-backend` Axum team |
+| PT-104, 104b backend resolvers | PT-104 partial bridge landed 2026-05-24; PT-104b blocked | `our-civic-atlas-backend/apps/graphql-server` now exposes the Atelier read fields through the Rust `ReconstructionService` gRPC boundary. It can return backend `ReconstructionSpec` rows instead of forcing the frontend fixture fallback when the backend is running. Still needs live backend smoke, richer attached source provenance, and real save persistence (`saveReconstruction` / `savedReconstruction`). |
 | PT-201 atelier CSS tokens | Complete | `src/app/open-flint-atlas/atelier/atelier.css` |
 | PT-202/203 atelier route + surface | Complete | `/open-flint-atlas/atelier/[parcelId]/[year]` |
 | PT-204 R3F scene | Complete | Shared geometry via `lumaGeometryToBufferGeometry` adapter; LostFlintGeometries flat-cube bug fixed |
@@ -164,7 +164,7 @@ and PT-801 visual evidence scaffold.
 | PT-301 choreographer state machine + 311 reduced-motion | Complete | `atelier-choreographer.ts` + `useAtelierChoreographer` |
 | PT-302-309 per-stage visuals | Mostly complete | Cards arrival (Stage 1), provenance lines draw (Stage 2), Stage 4 pulse rings (`46b251f`), camera orbit (Stage 6), settled label transition (Stage 7) all ship. Only Stage 6 ornament emergence remains deferred to v1.x (needs backend per-part geometry segments per `atelier-animation-proposal.md`) |
 | PT-310 skip/replay/auto-1.5x | Complete | `sessionStorage` flag + skip/replay APIs |
-| PT-401 source cards per-type identities | Complete | 7 type identities; 4 exercised by fixture (HABS, Sanborn, Photograph, City Directory) |
+| PT-401 source cards | Complete (revised 2026-05-24) | Unified archival card style after live review; source type remains metadata, not separate card styling |
 | PT-402 conflict markers | Complete (zero conflicts in fixture; component renders zero, lights up when backend ships real conflicts) | `AtelierConflictMarkers` R3F-Html anchored |
 | PT-403 provenance lines | Complete | SVG with stroke-dashoffset, stage-gated |
 | PT-404 dossier polish | Complete | Honest empty states; per-part "Cited by" footers |
@@ -176,7 +176,7 @@ and PT-801 visual evidence scaffold.
 | PT-503 atelier nav link | Complete | Top-strip header link (variant of spec's "dynamic island icon") |
 | PT-504 right-click on lost building | Complete (`d0bd134`) | Native `contextmenu` (desktop) + long-press (touch, 600ms with 8px move tolerance) bound on `.atlas-scene-map`. `MapboxOverlay` ref lifted via new `onReady` prop on `DeckGLOverlay` so the handler can call `pickObject` against the picking buffer. Empty-area right-click still falls through to browser default. Year resolution shared with PT-501 via `resolveAtelierEntryYear` in `atelier-route.ts`. |
 | PT-601 Carriage Town BUILD gate | Complete | All 5 fixture reconstructions render end-to-end via direct URL |
-| PT-602 Carriage Town SHIP gate | Blocked-by-backend | Requires PT-104/PT-104b backend resolvers |
+| PT-602 Carriage Town SHIP gate | Partially unblocked; not passed | Read-path GraphQL bridge exists in `our-civic-atlas-backend`, but SHIP still requires live Carriage Town backend smoke against all 5 specs, attached source/evidence rows sufficient for the animation, and save persistence or an explicit product deferral. |
 | PT-701 Playwright smoke | Complete (`61974eb`) | Two of five Carriage Town fixture routes (`building:carriage-town:1` at 1885, `building:carriage-town:3` at 1925) added to `scripts/smoke-open-flint-routes.mjs`. Smoke is a `fetch()`-based SSR-metadata assertion (no actual Playwright in this repo yet). 29/29 checks pass against live dev server. |
 | PT-702 validate scripts | Deferred | Atelier inherits existing validators |
 | PT-801 visual evidence capture | Scaffolded (`9f20a59`) | `docs/visual-evidence/atelier/2026-05-24-overnight-pass/README.md` documents what was verified live this pass + the manual capture procedure + the Playwright path the next session can authorize. Live screenshots in conversation log show full atelier end-to-end with Whaley House porcelain mass, HABS + Sanborn cards, terracotta provenance lines, dossier panel, Replay + Save controls. Stage 4 mid-pulse still capture deferred (needs foreground browser with full RAF). |
@@ -190,8 +190,12 @@ After the overnight gap-close: v1 BUILD gate fully met against the
 `FLINT_LOST_RECONSTRUCTIONS` fixture. All three spec-line-23-28 entry
 points now wired (dynamic island nav, search-bar temporal-query
 affordance, right-click / long-press). Stage 4 pulse rings ship per
-spec lines 106-110. Smoke covers the atelier route in CI. v1 SHIP gate
-(PT-602) remains blocked on backend resolvers (PT-104, PT-104b).
+spec lines 106-110. Smoke covers the atelier route in CI. A 2026-05-24
+backend sidecar pass partially unblocked PT-104 by adding the missing
+Atelier GraphQL read fields and mapping them to the Rust
+`ReconstructionService` gRPC boundary; PT-602 still has not passed
+because the live backend needs smoke coverage, attached source/evidence
+rows, and save persistence.
 
 What landed beyond the original plan:
 
@@ -200,6 +204,10 @@ What landed beyond the original plan:
 
 Remaining for the next session to authorize:
 
+- Backend source/evidence richness for the read bridge. The sidecar can now
+  read `ReconstructionSpec`; the current seed specs may still have empty
+  per-part `sources`, so cards can disappear when the backend path is active
+  unless Phase 5 ingestion or seed provenance attaches source records.
 - Sound design (Stage 1 paper rustle, Stage 2 thrum, Stage 6 tone; spec lines 74/94/161; "optional" per spec, accessibility-conscious mute default required)
 - Stage 6 ornament emergence (needs backend per-part geometry segments + ornament metadata in GraphQL contract)
 - PT-802 Do Not Downgrade design-critic review pass

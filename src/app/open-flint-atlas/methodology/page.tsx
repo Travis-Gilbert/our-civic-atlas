@@ -173,7 +173,7 @@ export default function MethodologyPage() {
           style={{ color: "var(--ctx-ink-soft)" }}
         >
           The atlas uses two different confidence numbers, and they answer
-          different questions. The first is about the building's type today.
+          different questions. The first is about the building&apos;s type today.
           The second is about how sure the atlas is about each part of a
           historical reconstruction. Both are visible here, in the dossier,
           and inside the atelier; they are not shown as floating numbers on
@@ -219,7 +219,7 @@ export default function MethodologyPage() {
           style={{ color: "var(--ctx-ink-soft)" }}
         >
           Each historical reconstruction stores a separate confidence number
-          for the building's mass, facade, roof, and ground-floor use. The
+          for the building&apos;s mass, facade, roof, and ground-floor use. The
           atelier and the dossier panel show these individually, so a resident
           can tell at a glance which parts are well-supported and which are
           the model filling a gap.

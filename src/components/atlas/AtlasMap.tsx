@@ -12,7 +12,11 @@ import { GeoJsonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/laye
 import type { MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
-import { PathStyleExtension } from "@deck.gl/extensions";
+import {
+  FillStyleExtension,
+  PathStyleExtension,
+  type FillStyleExtensionProps,
+} from "@deck.gl/extensions";
 import buffer from "@turf/buffer";
 import difference from "@turf/difference";
 import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
@@ -25,7 +29,6 @@ import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
 import osmInfrastructure from "@/data/open-flint-atlas/fixtures/osm-infrastructure.json";
 import { useRouter } from "next/navigation";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
-import { buildArchetypeMeshLayersFromCollection } from "@/components/atlas/AtlasArchetypeMeshLayer";
 import type { HistoricalReconstruction } from "@/lib/atlas/historical-reconstruction";
 import {
   buildAtelierHref,
@@ -402,6 +405,24 @@ const SKETCH_LINE: [number, number, number, number] = [96, 90, 78, 204];
 // structural seam between row units, not a silhouette edge. This is the
 // one part-role exception to the uniform-line rule — sparingly used.
 const SKETCH_LINE_PARTY_WALL: [number, number, number, number] = [54, 50, 44, 234];
+
+const BUILDING_PAPER_GRAIN_EXTENSION = new FillStyleExtension({
+  pattern: true,
+});
+const BUILDING_PAPER_GRAIN_MAPPING: Record<
+  string,
+  { x: number; y: number; width: number; height: number }
+> = {
+  paper_grain: { x: 0, y: 0, width: 256, height: 256 },
+};
+const BUILDING_PAPER_GRAIN_PROPS: FillStyleExtensionProps = {
+  fillPatternAtlas: "/textures/paper-grain.svg",
+  fillPatternMapping: BUILDING_PAPER_GRAIN_MAPPING,
+  fillPatternMask: true,
+  getFillPattern: () => "paper_grain",
+  getFillPatternScale: 0.075,
+  getFillPatternOffset: [0, 0],
+};
 
 /* ------------------------------------------------------------------ */
 /*  Geometry helpers                                                   */
@@ -1894,15 +1915,11 @@ export function AtlasMap({
     const fabricOpacity = buildingFabricVisible ? fabricFade : 0;
     const urbanExtruded =
       viewMode !== "atlas" && mapZoom >= BUILDING_FABRIC_LOD.extrusionMinZoom;
-    // At residential zoom (>= 15) we replace the flat GeoJsonLayer
-    // mass extrusion with a procedural archetype mesh layer (gable,
-    // hipped, sawtooth, parapet, storefront). The GeoJsonLayer reads
-    // as "Lego brick" once individual houses are visible; the
-    // procedural mesh carries roof profile.
-    const useProceduralMesh =
-      urbanDesignModelVisible &&
-      urbanExtruded &&
-      mapZoom >= BUILDING_FABRIC_LOD.proceduralMeshMinZoom;
+    // Spec PR 5: keep confident massing active at every zoom. Earlier
+    // passes swapped into procedural archetype meshes at residential
+    // zoom, but that reintroduced sawtooths, parapets, and storefront
+    // geometry. The sketch read now comes from grain, edges, and
+    // shadows instead of high-LOD sub-decomposition.
     const placesAsCivicContext =
       urbanDesignModelVisible && viewMode !== "atlas";
 
@@ -1972,6 +1989,8 @@ export function AtlasMap({
           getFillColor:
             atlasYear === null ? [122, 94, 74, 230] : [122, 94, 74, 132],
           getLineColor: [122, 134, 150, 220],
+          extensions: [BUILDING_PAPER_GRAIN_EXTENSION],
+          ...BUILDING_PAPER_GRAIN_PROPS,
           material: {
             ambient: 0.58,
             diffuse: 0.48,
@@ -2042,15 +2061,12 @@ export function AtlasMap({
       );
     }
 
-    // GeoJsonLayer mass extrusion: renders the flat-topped building
-    // body at mid-zoom (13 <= z < 15). At z >= 15 the procedural
-    // archetype mesh layer (mounted below) takes over so individual
-    // houses get real roof profiles instead of flat tops.
-    if (
-      urbanDesignModelVisible && !useProceduralMesh
-    ) {
+    // GeoJsonLayer mass extrusion: renders the building body at all
+    // active sketch zooms so the texture and drawing edges stay
+    // consistent instead of handing off to procedural high-LOD parts.
+    if (urbanDesignModelVisible) {
       result.push(
-        new GeoJsonLayer<UrbanDesignModelProperties>({
+        new GeoJsonLayer<UrbanDesignModelProperties, FillStyleExtensionProps>({
           id: ATLAS_DECK_LAYER_IDS.urbanDesignModel,
           data: urbanDesignMassModel,
           pickable: true,
@@ -2076,6 +2092,8 @@ export function AtlasMap({
               urbanDesignMaterialMode,
             ),
           getLineColor: [122, 134, 150, 220],
+          extensions: [BUILDING_PAPER_GRAIN_EXTENSION],
+          ...BUILDING_PAPER_GRAIN_PROPS,
           material: {
             ambient: 0.62,
             diffuse: 0.46,
@@ -2090,29 +2108,9 @@ export function AtlasMap({
       );
     }
 
-    // Procedural archetype mesh layers (one per archetype). Takes over
-    // from the GeoJsonLayer mass extrusion at zoom >= 15 so individual
-    // buildings carry their typology's roof profile (gable, hipped,
-    // sawtooth, parapet, storefront) instead of all reading as flat
-    // boxes. See AtlasArchetypeMeshLayer for the per-archetype mesh
-    // catalog and instance derivation.
-    if (useProceduralMesh) {
-      const meshLayers = buildArchetypeMeshLayersFromCollection(
-        urbanDesignMassModel,
-        {
-          pickable: true,
-          onClick: handleBuildingClick,
-          onHover: handleBuildingHover,
-        },
-      );
-      for (const meshLayer of meshLayers) {
-        result.push(meshLayer);
-      }
-    }
-
     if (buildingFabricVisible && fabricOpacity > 0.01) {
       result.push(
-        new GeoJsonLayer<UrbanDesignModelProperties>({
+        new GeoJsonLayer<UrbanDesignModelProperties, FillStyleExtensionProps>({
           id: ATLAS_DECK_LAYER_IDS.buildingFabric,
           data: buildingFabricModel,
           pickable: true,
@@ -2136,6 +2134,8 @@ export function AtlasMap({
               urbanDesignMaterialMode,
             ),
           getLineColor: [122, 134, 150, 220],
+          extensions: [BUILDING_PAPER_GRAIN_EXTENSION],
+          ...BUILDING_PAPER_GRAIN_PROPS,
           material: {
             ambient: 0.64,
             diffuse: 0.44,

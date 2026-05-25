@@ -19,7 +19,7 @@
  * Locked decisions (PT-001 design-gate approved 2026-05-23):
  *   1. --atelier-paper #26221c (spec line 35 literal)
  *   2. Vellum warm-cream paper grid (spec line 41)
- *   3. All 7 source card type identities
+ *   3. Unified archival source-card style (source type as metadata)
  *   4. Tracing-paper-over-building icon (chip in dynamic island)
  *   5. Surface layout: building left-of-center, dossier 380px right
  *   6. Save button with real backend wiring (not deferred)
@@ -80,41 +80,17 @@
   --atelier-accent-glow:  rgba(193, 74, 44, 0.42);
 
   /* ============================================================
-   * SOURCE CARDS - per-type visual identities.
-   * Decision 3: ship all 7 type identities. Each source has a real
-   * visual identity tied to what it is in the physical world.
-   * Spec lines 36 to 38.
+   * SOURCE CARDS - unified archival-card language.
+   * 2026-05-24 correction: source type stays as metadata, not as a
+   * separate visual costume for every card. The reconstruction should be
+   * the theatrical moment; the cards should be calm, comparable evidence.
    * ============================================================ */
-
-  /* Sanborn: faintly amber paper with sepia rule lines */
-  --atelier-source-sanborn-paper:        #e8d8a8;
-  --atelier-source-sanborn-line:         rgba(107, 74, 46, 0.40);
-  --atelier-source-sanborn-line-strong:  rgba(107, 74, 46, 0.55);
-
-  /* Photograph: chamfered-corner frame, period photo-print */
-  --atelier-source-photo-paper:          #f2efe6;
-  --atelier-source-photo-frame:          #ffffff;  /* Inner ~6px border */
-  --atelier-source-photo-chamfer-size:   8px;      /* Each corner cut */
-
-  /* Directory / City Directory: typewriter card */
-  --atelier-source-directory-paper:      #f4f1e8;
-  --atelier-source-directory-rule:       rgba(138, 113, 85, 0.30);  /* Bottom hairline */
-
-  /* Text Mention: italic quoted slip (no card chrome) */
-  --atelier-source-text-mention-ink:     var(--atelier-ink-soft);
-  --atelier-source-text-mention-quote:   var(--atelier-accent);
-
-  /* HABS Record: government-archive paper with federal-blue border */
-  --atelier-source-habs-paper:           #eee8de;
-  --atelier-source-habs-border:          rgba(84, 113, 183, 0.60);  /* HABS blue from --atlas-state-current */
-  --atelier-source-habs-border-soft:     rgba(84, 113, 183, 0.32);
-
-  /* Plat Map: drafting-vellum line-drawing */
-  --atelier-source-plat-paper:           #eef0ec;
-  --atelier-source-plat-border:          rgba(90, 102, 119, 0.50);
-
-  /* Other: neutral cream (matches existing --ctx-paper) */
-  --atelier-source-other-paper:          #f2f1ec;
+  --atelier-source-card-paper:           #efe7d6;
+  --atelier-source-card-border:          rgba(138, 113, 85, 0.36);
+  --atelier-source-card-rule:            rgba(107, 74, 46, 0.18);
+  --atelier-source-card-ink:             #2a2419;
+  --atelier-source-card-ink-soft:        rgba(42, 36, 25, 0.72);
+  --atelier-source-card-ink-mute:        rgba(42, 36, 25, 0.54);
 
   /* Card dimensions (desktop). Mobile compresses via the .atelier-mobile selector. */
   --atelier-card-width:        280px;
@@ -432,9 +408,7 @@
 }
 
 /* ============================================================
- * SOURCE CARDS - per-type identity selectors.
- * Each card gets a base set of properties; the type-specific selector
- * overrides background, border, and font where the per-type identity demands.
+ * SOURCE CARDS - unified archival evidence cards.
  * ============================================================ */
 .atelier-theme .atelier-source-card {
   position: absolute;
@@ -442,8 +416,18 @@
   min-height: var(--atelier-card-height);
   padding: var(--atelier-card-padding);
   border-radius: var(--atelier-card-radius);
-  background: var(--atelier-source-other-paper);
-  color: #2a2419;  /* Cards have light backgrounds; ink stays dark INSIDE the card */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 9px,
+      var(--atelier-source-card-rule) 9px,
+      var(--atelier-source-card-rule) 10px
+    ),
+    var(--atelier-source-card-paper);
+  border: 1px solid var(--atelier-source-card-border);
+  color: var(--atelier-source-card-ink);
   box-shadow: var(--atelier-card-shadow);
   font-family: var(--font-sans);
   font-size: 13px;
@@ -459,78 +443,6 @@
   transform: translateY(-2px);
   box-shadow: var(--atelier-card-shadow-hover);
   outline: none;
-}
-
-/* Sanborn - amber paper with sepia hairlines overlaid */
-.atelier-theme .atelier-source-card[data-source-type="sanborn"] {
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent 7px,
-      var(--atelier-source-sanborn-line) 7px,
-      var(--atelier-source-sanborn-line) 8px
-    ),
-    var(--atelier-source-sanborn-paper);
-}
-
-/* Photograph - chamfered corners via clip-path; inner white frame border */
-.atelier-theme .atelier-source-card[data-source-type="photograph"] {
-  background: var(--atelier-source-photo-frame);
-  padding: 6px;  /* Outer photo-print white border */
-  clip-path: polygon(
-    var(--atelier-source-photo-chamfer-size) 0,
-    calc(100% - var(--atelier-source-photo-chamfer-size)) 0,
-    100% var(--atelier-source-photo-chamfer-size),
-    100% calc(100% - var(--atelier-source-photo-chamfer-size)),
-    calc(100% - var(--atelier-source-photo-chamfer-size)) 100%,
-    var(--atelier-source-photo-chamfer-size) 100%,
-    0 calc(100% - var(--atelier-source-photo-chamfer-size)),
-    0 var(--atelier-source-photo-chamfer-size)
-  );
-}
-
-.atelier-theme .atelier-source-card[data-source-type="photograph"] .atelier-source-card__inner {
-  background: var(--atelier-source-photo-paper);
-  height: 100%;
-  width: 100%;
-  padding: var(--atelier-card-padding);
-}
-
-/* Directory / City Directory - typewriter card */
-.atelier-theme .atelier-source-card[data-source-type="directory"],
-.atelier-theme .atelier-source-card[data-source-type="city_directory"] {
-  background: var(--atelier-source-directory-paper);
-  border-bottom: 1px solid var(--atelier-source-directory-rule);
-  font-family: var(--font-mono);
-}
-
-/* Text Mention - italic quoted slip, no card chrome */
-.atelier-theme .atelier-source-card[data-source-type="text_mention"] {
-  background: transparent;
-  box-shadow: none;
-  font-style: italic;
-  color: var(--atelier-source-text-mention-ink);
-  font-size: 14px;
-}
-
-.atelier-theme .atelier-source-card[data-source-type="text_mention"] .atelier-source-card__quote {
-  color: var(--atelier-source-text-mention-quote);
-  font-size: 22px;
-  line-height: 0;
-  vertical-align: -6px;
-}
-
-/* HABS Record - government-archive paper with federal-blue border */
-.atelier-theme .atelier-source-card[data-source-type="habs_record"] {
-  background: var(--atelier-source-habs-paper);
-  border: 2px solid var(--atelier-source-habs-border);
-}
-
-/* Plat Map - drafting-vellum line-drawing border */
-.atelier-theme .atelier-source-card[data-source-type="plat_map"] {
-  background: var(--atelier-source-plat-paper);
-  border: 1px solid var(--atelier-source-plat-border);
 }
 
 .atelier-theme .atelier-source-card__header {
@@ -552,7 +464,7 @@
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 10px;
-  color: rgba(42, 36, 25, 0.6);
+  color: var(--atelier-source-card-ink-mute);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -560,7 +472,7 @@
 .atelier-theme .atelier-source-card__summary {
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(42, 36, 25, 0.78);
+  color: var(--atelier-source-card-ink-soft);
 }
 
 .atelier-theme .atelier-source-card__confidence-chip {
@@ -569,7 +481,7 @@
   margin-top: 6px;
   font-family: var(--font-mono);
   font-size: 10px;
-  color: rgba(42, 36, 25, 0.55);
+  color: var(--atelier-source-card-ink-mute);
   letter-spacing: 0.06em;
 }
 

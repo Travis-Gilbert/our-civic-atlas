@@ -10,7 +10,7 @@ Generated 2026-05-23. Routed through the design-gate forcing function: brainstor
 |---|---|---|
 | 1 | `--atelier-paper` hex | A `#26221c` (spec line 35 literal) |
 | 2 | Paper grid style | A vellum (warm-cream lines on graphite, spec line 41) |
-| 3 | Source card identities | Ship all 7 per the table in Decision 3 below |
+| 3 | Source card identities | **Superseded 2026-05-24:** one unified archival card; source type appears as metadata, not a separate visual style |
 | 4 | Dynamic island atelier icon | C tracing-paper-over-building (spec did not pick; design-gate synthesis) |
 | 5 | Surface layout | Approved as proposed |
 | 6 | Save button | **Build with real backend wiring** (smallest viable: `submitObservation`-style mutation, anonymous-with-optional-email receipt). Not disabled, not deferred. v2 extends with user-edited corrections per spec line 169 parenthetical |
@@ -20,6 +20,10 @@ Generated 2026-05-23. Routed through the design-gate forcing function: brainstor
 ## Binding implementation note (approved 2026-05-23)
 
 **Start from the 7 Theseus Design Components primitives listed in the "Theseus Design Components inherited" section, and CUSTOMIZE them for atelier-specific requirements.** Do not ship primitives as-is; do not rebuild from scratch. Each implementation checklist item (PT-203, PT-204, PT-401 to PT-405) explicitly references which primitive it starts from and where it diverges.
+
+## Correction: unified source cards (2026-05-24)
+
+The original Decision 3 below proposed a distinct visual identity for every source type. In live review, that made the cards feel over-designed and pulled attention away from the reconstruction itself. The current direction is one restrained archival card style for every source, with source type retained as compact metadata. Future work should not reintroduce per-type card costumes unless the user explicitly asks for that distinction.
 
 The original proposal text follows. The "Open decisions" section at the bottom is preserved for traceability; each entry now shows the locked answer.
 

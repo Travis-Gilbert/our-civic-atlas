@@ -3,22 +3,10 @@
 /**
  * AtelierEvidenceCard - PT-401
  *
- * Type-dispatched source card rendered in the atelier scene area at
- * geographic-provenance positions. One card per EvidenceItem. Each
- * source type gets a distinct visual identity per atelier spec lines
- * 36-38 and `atelier-visual-register-proposal.md` Decision 3:
- *
- *   - SANBORN: amber paper with sepia rule lines (handled by atelier.css
- *     repeating-linear-gradient background)
- *   - PHOTOGRAPH: chamfered-corner frame (clip-path chamfer)
- *   - DIRECTORY / CITY_DIRECTORY: typewriter card with bottom hairline
- *   - TEXT_MENTION: italic quoted slip, no card chrome
- *   - HABS_RECORD: government-archive paper with federal-blue border
- *   - PLAT_MAP: drafting-vellum line-drawing
- *   - OTHER: neutral cream
- *
- * CSS dispatch on `data-source-type` attribute (see atelier.css selectors
- * `.atelier-source-card[data-source-type="..."]`).
+ * Source card rendered in the atelier scene area. The first implementation
+ * used one visual style per EvidenceType, but the atelier reads more clearly
+ * when all sources share one calm archival-card language and source type is
+ * shown as metadata instead of costume.
  *
  * Position: cards are absolute-positioned. Caller provides x/y offsets
  * (top/left CSS). Geographic-provenance positioning per spec line 66
@@ -38,10 +26,6 @@ type AtelierEvidenceCardProps = {
   style?: React.CSSProperties;
   onSelect?: (item: EvidenceItem) => void;
 };
-
-function evidenceTypeKey(evidenceType: EvidenceType): string {
-  return evidenceType.toLowerCase();
-}
 
 function evidenceTypeBadge(evidenceType: EvidenceType): string {
   switch (evidenceType) {
@@ -68,86 +52,12 @@ export function AtelierEvidenceCard({
   style,
   onSelect,
 }: AtelierEvidenceCardProps) {
-  const typeKey = evidenceTypeKey(item.evidenceType);
   const typeBadge = evidenceTypeBadge(item.evidenceType);
-
-  // Text Mention has no card chrome (spec line 38, Decision 3). Render
-  // as a floating italic quoted slip.
-  if (item.evidenceType === "TEXT_MENTION") {
-    return (
-      <div
-        className="atelier-source-card"
-        data-source-type={typeKey}
-        style={style}
-        role="article"
-        aria-label={`Text mention from ${item.source.name}`}
-        tabIndex={0}
-        onClick={() => onSelect?.(item)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onSelect?.(item);
-          }
-        }}
-      >
-        <span className="atelier-source-card__quote">&ldquo;</span>
-        <span>{item.summary ?? item.source.name}</span>
-        <span className="atelier-source-card__quote">&rdquo;</span>
-        <div
-          style={{
-            marginTop: 8,
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            fontStyle: "normal",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            opacity: 0.7,
-          }}
-        >
-          {item.source.name}
-          {item.sourceDateLabel ? ` · ${item.sourceDateLabel}` : ""}
-        </div>
-      </div>
-    );
-  }
-
-  // Photograph has an inner div for the photo-paper interior (CSS
-  // clip-path creates the chamfer on the outer card; the inner div
-  // holds the actual content so the chamfer reads as a real frame).
-  if (item.evidenceType === "PHOTOGRAPH") {
-    return (
-      <div
-        className="atelier-source-card"
-        data-source-type={typeKey}
-        style={style}
-        role="article"
-        aria-label={`Photograph from ${item.source.name}`}
-        tabIndex={0}
-        onClick={() => onSelect?.(item)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onSelect?.(item);
-          }
-        }}
-      >
-        <div className="atelier-source-card__inner">
-          <CardHeader
-            title={item.source.name}
-            dateLabel={item.sourceDateLabel}
-            badge={typeBadge}
-          />
-          <CardSummary text={item.summary} />
-          <ConfidenceChip confidence={item.confidence} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
       className="atelier-source-card"
-      data-source-type={typeKey}
+      data-source-type="source"
       style={style}
       role="article"
       aria-label={`${typeBadge} from ${item.source.name}`}
