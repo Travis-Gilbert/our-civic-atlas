@@ -30,10 +30,13 @@ const METHOD_STEPS = [
 ];
 
 // Reconstruction stages match the procedural pipeline in
-// `civic-atlas-reconstruction-engine/src/lib.rs`. Each label is the
-// engine's stage name in plain English so a Flint resident can read
-// the methodology page and the Atelier screen and tell they are
-// looking at the same process.
+// `civic-atlas-reconstruction-engine/src/lib.rs`. Stages 1-7 are the
+// engine's named sub-functions; Stage 8 is `run_full_pipeline`, the
+// orchestrator that calls all seven in sequence and confirms the
+// result is consistent before publication. Each label is the engine's
+// stage name in plain English so a Flint resident can read the
+// methodology page and the Atelier screen and tell they are looking at
+// the same process.
 const RECONSTRUCTION_STAGES = [
   "Gather evidence. Pull every record anchored to this parcel and the block around it: maps, photos, directories, assessor rows, standing-building controls.",
   "Read direct details. Extract footprint, height clues, material, roof shape, storefront use, address, and year from what each record says directly.",
@@ -42,6 +45,7 @@ const RECONSTRUCTION_STAGES = [
   "Predict missing parts from context. Ask the building model to suggest only the pieces still missing after direct evidence and block memory.",
   "Merge direct and predicted. Combine what records say directly with what the model suggests, and surface every disagreement instead of quietly picking one.",
   "Queue a renderable asset. Generate the building scene asset only after the merged claim package is complete, with status and review notes attached.",
+  "Run the full pipeline. Execute all seven stages as a single supervised unit, one stage at a time. If any stage fails or produces contested output, the pipeline stops and surfaces the problem rather than continuing with degraded data.",
 ];
 
 // Reconstruction part-level confidence thresholds. These match the
