@@ -1,0 +1,99 @@
+# Porchfest Planner Phase 2 — mutations.
+#
+# All take an input wrapper object so future fields land without
+# changing the operation signature. The MutationResult fragment
+# carries the same shape on every response: the current row, a
+# staleWrite flag for optimistic-concurrency races, and a deleted
+# flag for hard-delete confirmation.
+
+mutation CreatePlacement($input: PlacementCreateInput!) {
+  createPlacement(input: $input) {
+    placement {
+      id
+      eventLayerId
+      category
+      sublabel
+      label
+      geometry
+      status
+      notes
+      version
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation UpdatePlacement($input: PlacementUpdateInput!) {
+  updatePlacement(input: $input) {
+    placement {
+      id
+      eventLayerId
+      category
+      sublabel
+      label
+      geometry
+      status
+      notes
+      version
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation DeletePlacement($input: PlacementDeleteInput!) {
+  deletePlacement(input: $input) {
+    placement {
+      id
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation CreateEventTask($input: TaskCreateInput!) {
+  createTask(input: $input) {
+    task {
+      id
+      eventLayerId
+      title
+      ownerDisplay
+      dueAt
+      status
+      placementId
+      notes
+      version
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation UpdateEventTask($input: TaskUpdateInput!) {
+  updateTask(input: $input) {
+    task {
+      id
+      eventLayerId
+      title
+      ownerDisplay
+      dueAt
+      status
+      placementId
+      notes
+      version
+    }
+    staleWrite
+    deleted
+  }
+}
+
+mutation DeleteEventTask($input: TaskDeleteInput!) {
+  deleteTask(input: $input) {
+    task {
+      id
+    }
+    staleWrite
+    deleted
+  }
+}

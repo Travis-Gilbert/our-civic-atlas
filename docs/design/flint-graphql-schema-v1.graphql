@@ -588,6 +588,90 @@ type Query {
   # ---- Provenance ----
 
   provenanceFor(placeId: ID, sourceId: ID): ProvenanceGraph!
+
+  # ---- Porchfest / Event Planner (Phase 1 read-only) ----
+
+  """Every event layer (Porchfest, art fair, etc.) the tenant owns."""
+  eventLayers(tenantSlug: String! = "flint"): [EventLayer!]!
+
+  """Every placement (vendor, music porch, parking pin, amenity) on a
+  given event layer, scoped to the tenant."""
+  placements(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+  ): [Placement!]!
+
+  """Back-of-house task list for an event layer. Phase 1 surfaces it
+  read-only so the right rail can render; Phase 2 wires task writes."""
+  eventTasks(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+  ): [EventTask!]!
+
+  # ---- Phase 3: notes + bookmarks ----
+
+  placementNotes(
+    tenantSlug: String! = "flint"
+    placementId: ID!
+  ): [PlacementNote!]!
+
+  cameraBookmarks(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+  ): [CameraBookmark!]!
+}
+
+# -----------------------------------------------------------------------------
+# Event Planner types (Porchfest Phase 1)
+# -----------------------------------------------------------------------------
+
+"""A one-off civic event surface (e.g., Carriage Town Porchfest 2026).
+The atlas treats it as a separate read-only layer that overlays the
+base map. Phase 2 will add editor + assignment paths."""
+type EventLayer {
+  id: ID!
+  slug: String!
+  title: String!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+"""A single thing dropped on an event layer's map. Geometry is a
+GeoJSON object — Point in Phase 1, but the column accepts any
+PostGIS geometry so polygons/lines can layer in later without a
+schema change."""
+type Placement {
+  id: ID!
+  eventLayerId: ID!
+  """Free-form category populated by the importer. Phase 1 expected
+  values: vendor, music, parking, restroom, kid_zone, food_court,
+  rest_area, after_party, amenity."""
+  category: String!
+  """Secondary label (vendor type, music genre). Null when unset."""
+  sublabel: String
+  label: String!
+  geometry: GeoJSON!
+  ownerUserId: ID
+  status: String!
+  notes: String
+  """Monotonically increasing row version for optimistic concurrency.
+  Clients echo this on update mutations as expectedVersion."""
+  version: Int!
+}
+
+"""Back-of-house task for an event layer. Phase 1 lists tasks read-
+only so the right rail renders; Phase 2 wires assignment + status
+moves and the optional placementId becomes editable."""
+type EventTask {
+  id: ID!
+  eventLayerId: ID!
+  title: String!
+  ownerDisplay: String
+  dueAt: DateTime
+  status: String!
+  placementId: ID
+  notes: String
+  version: Int!
 }
 
 # -----------------------------------------------------------------------------
@@ -638,6 +722,168 @@ type Mutation {
   knobs (hop limit, frontier width, total tokens, wall-clock cap)
   belong on the input; defaults are picked by the resolver."""
   civicResearch(input: CivicResearchInput!): CivicResearchPayload!
+
+  # ---- Porchfest / Event Planner (Phase 2) ----
+
+  createPlacement(input: PlacementCreateInput!): PlacementMutationResult!
+  updatePlacement(input: PlacementUpdateInput!): PlacementMutationResult!
+  deletePlacement(input: PlacementDeleteInput!): PlacementMutationResult!
+
+  createTask(input: TaskCreateInput!): TaskMutationResult!
+  updateTask(input: TaskUpdateInput!): TaskMutationResult!
+  deleteTask(input: TaskDeleteInput!): TaskMutationResult!
+
+  # ---- Phase 3 ----
+
+  createPlacementNote(input: CreatePlacementNoteInput!): PlacementNoteMutationResult!
+  deletePlacementNote(input: DeletePlacementNoteInput!): PlacementNoteMutationResult!
+
+  createBookmark(input: BookmarkCreateInput!): BookmarkMutationResult!
+  updateBookmark(input: BookmarkUpdateInput!): BookmarkMutationResult!
+  deleteBookmark(input: BookmarkDeleteInput!): BookmarkMutationResult!
+}
+
+# -----------------------------------------------------------------------------
+# Phase 3: notes + bookmarks
+# -----------------------------------------------------------------------------
+
+type PlacementNote {
+  id: ID!
+  placementId: ID!
+  eventLayerId: ID!
+  authorUserId: ID!
+  authorDisplay: String!
+  body: String!
+  createdAt: DateTime!
+  version: Int!
+}
+
+type PlacementNoteMutationResult {
+  note: PlacementNote
+  deleted: Boolean!
+}
+
+input CreatePlacementNoteInput {
+  placementId: ID!
+  body: String!
+}
+
+input DeletePlacementNoteInput {
+  noteId: ID!
+}
+
+type CameraBookmark {
+  id: ID!
+  eventLayerId: ID!
+  name: String!
+  centerLng: Float!
+  centerLat: Float!
+  zoom: Float!
+  pitch: Float!
+  bearing: Float!
+  createdByUserId: ID
+  createdAt: DateTime!
+  version: Int!
+}
+
+type BookmarkMutationResult {
+  bookmark: CameraBookmark
+  staleWrite: Boolean!
+  deleted: Boolean!
+}
+
+input BookmarkCreateInput {
+  eventSlug: String!
+  name: String!
+  centerLng: Float!
+  centerLat: Float!
+  zoom: Float!
+  pitch: Float = 0
+  bearing: Float = 0
+}
+
+input BookmarkUpdateInput {
+  bookmarkId: ID!
+  expectedVersion: Int!
+  name: String
+  centerLng: Float
+  centerLat: Float
+  zoom: Float
+  pitch: Float
+  bearing: Float
+}
+
+input BookmarkDeleteInput {
+  bookmarkId: ID!
+  expectedVersion: Int!
+}
+
+# -----------------------------------------------------------------------------
+# Event Planner mutations (Phase 2)
+# -----------------------------------------------------------------------------
+
+type PlacementMutationResult {
+  placement: Placement
+  staleWrite: Boolean!
+  deleted: Boolean!
+}
+
+type TaskMutationResult {
+  task: EventTask
+  staleWrite: Boolean!
+  deleted: Boolean!
+}
+
+input PlacementCreateInput {
+  eventSlug: String!
+  category: String!
+  sublabel: String
+  label: String!
+  geometry: GeoJSON!
+  status: String
+  notes: String
+}
+
+input PlacementUpdateInput {
+  placementId: ID!
+  expectedVersion: Int!
+  category: String
+  sublabel: String
+  label: String
+  geometry: GeoJSON
+  status: String
+  notes: String
+}
+
+input PlacementDeleteInput {
+  placementId: ID!
+  expectedVersion: Int!
+}
+
+input TaskCreateInput {
+  eventSlug: String!
+  title: String!
+  ownerUserId: ID
+  dueAt: DateTime
+  status: String
+  placementId: ID
+  notes: String
+}
+
+input TaskUpdateInput {
+  taskId: ID!
+  expectedVersion: Int!
+  title: String
+  ownerUserId: ID
+  dueAt: DateTime
+  status: String
+  placementId: ID
+  notes: String
+}
+
+input TaskDeleteInput {
+  taskId: ID!
+  expectedVersion: Int!
 }
 
 # -----------------------------------------------------------------------------

@@ -843,6 +843,17 @@ export type AtlasMapProps = {
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
   /**
+   * Optional deck.gl layers appended to the AtlasMap's built-in
+   * layer stack. Used by overlay routes (porchfest planner, future
+   * event surfaces) to drop in their own layers without forking
+   * AtlasMap. Layers render on top of everything AtlasMap composes
+   * itself, matching the deck.gl back-to-front draw order.
+   *
+   * The prop is purely additive: existing AtlasMap consumers pass
+   * nothing and behave exactly as before.
+   */
+  extraDeckLayers?: Layer[];
+  /**
    * Currently selected building, if any. Drives the terracotta
    * outline highlight layer. Distinct from `selectedPlaceId` which
    * carries civic places. Spec: docs/design-2026-05-atlas-feel-pass.md
@@ -856,12 +867,6 @@ export type AtlasMapProps = {
    * PR 1.
    */
   onBuildingSelect?: (building: SelectedBuilding | null) => void;
-  /**
-   * Optional route-level deck.gl overlays layered above the atlas's
-   * built-in civic layers. Used by specialty surfaces such as the
-   * Porchfest planner without forking the shared map renderer.
-   */
-  extraDeckLayers?: Layer[];
 };
 
 export type UrbanDesignMaterialMode = "typology" | "sketch_model";
@@ -2374,7 +2379,11 @@ export function AtlasMap({
       );
     }
 
-    if (extraDeckLayers.length > 0) {
+    // Append caller-provided overlay layers last so they render on
+    // top of everything AtlasMap composes itself. The planner route
+    // hands its per-category placement layers in via this prop. Null
+    // check guards against undefined (the prop is optional).
+    if (extraDeckLayers && extraDeckLayers.length > 0) {
       result.push(...extraDeckLayers);
     }
 
