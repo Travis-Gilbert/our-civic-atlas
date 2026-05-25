@@ -148,7 +148,21 @@ rule is honored.
 
 ## Concrete follow-ups
 
-For the next session (or for Codex, if they want to take these):
+**Landed 2026-05-25 (continuation session):**
+
+- Item 3 closed: `AtlasDynamicIsland.tsx` `bottom-5` replaced with
+  inline `bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem))`.
+  On devices without a home indicator the default 20px gutter holds;
+  on notch devices the hardware inset wins.
+- Item 5 closed: `src/app/open-flint-atlas/layout.tsx` now exports
+  `viewport: Viewport = { viewportFit: "cover", themeColor: "#f2f1ec" }`.
+  This sets the iOS browser chrome to warm paper and activates the
+  `env()` safe-area insets above.
+- Item 4 partially closed: Codex's AtlasMap.tsx paper-grain pass
+  committed in `d07b766`. Vignette is already at alpha 190 (confirmed
+  `getFillColor: [242, 241, 236, 190]` in the bound-world mask layer).
+
+**Remaining (needs hardware or Playwright binary):**
 
 1. Install Chrome via `npx playwright install chrome` from this repo,
    then re-run the verification protocol at 320, 360, 375, and
@@ -157,14 +171,6 @@ For the next session (or for Codex, if they want to take these):
 2. Test the long-press atelier entry on a real iOS device. The
    600ms threshold + 8px move tolerance is conservative but not
    verified against actual iOS touch latency.
-3. Add `env(safe-area-inset-bottom)` to the dynamic island bottom
-   inset if iOS notch overlap is observed.
-4. After Codex's AtlasMap.tsx paper-grain pass commits, do the
-   vignette mask alpha tuning (Task E §2) at both desktop and
-   mobile aspect ratios in one motion.
-5. Optional: ship a `<meta name="theme-color" content="#f2f1ec">`
-   tag to the atlas layout so the iOS browser chrome picks up the
-   warm-paper register instead of defaulting to white.
 
 ## What this audit did NOT cover
 

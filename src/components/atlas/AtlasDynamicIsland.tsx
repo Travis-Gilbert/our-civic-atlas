@@ -288,8 +288,19 @@ export function AtlasDynamicIsland({
       </AnimatePresence>
 
       <div
-        className="pointer-events-none absolute bottom-5 left-1/2 z-[1420] -translate-x-1/2"
-        style={{ width: isExpanded ? expandedIslandWidth : collapsedIslandWidth }}
+        className="pointer-events-none absolute left-1/2 z-[1420] -translate-x-1/2"
+        style={{
+          width: isExpanded ? expandedIslandWidth : collapsedIslandWidth,
+          /*
+           * Safe-area-aware bottom inset. On iOS devices with a home
+           * indicator, env(safe-area-inset-bottom) is ~34px; on devices
+           * without one it evaluates to 0. Taking the max of the default
+           * 20px gutter and the hardware inset means the island never
+           * sits under the home bar. viewport-fit=cover in the atlas
+           * layout.tsx makes this env() call non-zero on notch devices.
+           */
+          bottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
+        }}
       >
         {collapsedSearchActive ? (
           <div
