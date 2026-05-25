@@ -1,30 +1,42 @@
 /**
  * Civic Atlas GraphQL client.
  *
- * Talks to the browser-facing Civic Atlas GraphQL endpoint.
+ * Talks directly to the Axum civic-atlas-server's native GraphQL
+ * endpoint. No Node sidecar in the middle.
  *
- * Default endpoint is the Node sidecar (`apps/graphql-server` in
- * `our-civic-atlas-backend`) at http://127.0.0.1:4010/graphql. The
- * sidecar speaks GraphQL outward and gRPC (JSON-over-HTTP today,
- * native gRPC after the transport migration lands) inward to the
- * Rust Axum service, which holds the only credentials for Theseus.
+ * Default endpoint is http://127.0.0.1:4001/graphql, which is where
+ * the Axum service binds its HTTP listener in local dev (see
+ * crates/civic-atlas-server/src/main.rs in our-civic-atlas-backend).
+ * Production endpoints override via NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL.
  *
- * The frontend deployment ships no Theseus tokens. All service-tier
- * auth lives on the Axum service per the project's "Service-Tier
- * Auth Stays Server-Side" rule.
+ * Architecture in effect (post-sidecar-removal):
+ *
+ *   Frontend urql GraphQL
+ *     -> Axum civic-atlas-server (native async-graphql)
+ *        -> internal Rust services (in-process gRPC handlers for
+ *           ReconstructionService, CivicAtlasService, etc.)
+ *           -> Postgres / PostGIS via sqlx
+ *           -> Theseus harness via the bridge URL for civic research
+ *
+ * The frontend deployment ships no Theseus tokens, no service-tier
+ * credentials of any kind. All such auth lives on the Axum process
+ * per the project's "Service-Tier Auth Stays Server-Side" rule
+ * (CLAUDE.md / AGENTS.md). The browser only ever sees what GraphQL
+ * exposes.
  *
  * Override the endpoint per environment:
  *   - NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL: production URL of the
- *     sidecar / future Axum-native GraphQL surface.
- *   - CIVIC_ATLAS_GRAPHQL_URL: server-side equivalent (RSC + Route
- *     Handler contexts).
+ *     deployed Axum service (Railway, etc.).
+ *   - CIVIC_ATLAS_GRAPHQL_URL: server-side equivalent for RSC + Route
+ *     Handler contexts.
  *
- * Historical: the previous default pointed at a Strawberry-based
- * scaffold mounted on Theseus (Index-API) at
- * /api/graphql/open-flint-atlas. That scaffold has been deleted; the
- * canonical home for the GraphQL contract is the Node sidecar +
- * Axum stack in `our-civic-atlas-backend`. The Strawberry path no
- * longer exists in Theseus.
+ * Historical: an earlier slice routed traffic through a Node
+ * graphql-server sidecar at port 4010 (apps/graphql-server in the
+ * backend repo). That sidecar was a transitional BFF that let the
+ * Rust backend stabilize while keeping the GraphQL contract intact.
+ * Once both sides matured the sidecar became a deployable we did
+ * not need; the Axum service implements the same schema natively
+ * via async-graphql.
  *
  * Field selection happens at the operation level (see
  * `queries/*.graphql`). The schema at
@@ -41,7 +53,7 @@
 
 import { Client, cacheExchange, fetchExchange } from "urql";
 
-const DEFAULT_ENDPOINT = "http://127.0.0.1:4010/graphql";
+const DEFAULT_ENDPOINT = "http://127.0.0.1:4001/graphql";
 
 function getEndpoint(): string {
   return (
