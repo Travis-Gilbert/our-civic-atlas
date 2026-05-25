@@ -105,8 +105,8 @@ export function AtlasSceneChrome({
             <Link href="/open-flint-atlas/sources">About</Link>
             <Link href="/open-flint-atlas/methodology">Methodology</Link>
             <Link
-              href="/open-flint-atlas/atelier/building%3Acarriage-town%3A1/1925"
-              aria-label="Open the Atelier on the Whaley House circa 1925"
+              href="/open-flint-atlas/atelier/building%3Acarriage-town%3A3/1925"
+              aria-label="Open the Atelier on the Carriage Town Storefront circa 1925"
             >
               Atelier
             </Link>
