@@ -420,7 +420,7 @@ const BUILDING_PAPER_GRAIN_PROPS: FillStyleExtensionProps = {
   fillPatternMapping: BUILDING_PAPER_GRAIN_MAPPING,
   fillPatternMask: true,
   getFillPattern: () => "paper_grain",
-  getFillPatternScale: 0.075,
+  getFillPatternScale: 0.095,
   getFillPatternOffset: [0, 0],
 };
 
@@ -2153,6 +2153,76 @@ export function AtlasMap({
           updateTriggers: {
             getElevation: [viewMode],
             getFillColor: [atlasYear, urbanDesignMaterialMode],
+          },
+        }),
+      );
+    }
+
+    // Ground contact lines: flat (non-extruded) footprint outlines
+    // rendered at z=0 with a darker ink so each building reads as
+    // rooted to the ground plane rather than floating above it.
+    // depthCompare:"always" prevents z-fighting with the extruded
+    // base face that sits at the same elevation. One layer per
+    // building source so conditional visibility stays consistent
+    // with the extrusion layers above.
+    const GROUND_CONTACT_COLOR: [number, number, number, number] = [42, 36, 25, 180];
+    if (
+      visibleOsmBuildings &&
+      layerVisibility.osmBuildings !== false &&
+      layerVisibility.buildings !== false
+    ) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-building-ground-contact-osm",
+          data: visibleOsmBuildings,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          getLineColor: GROUND_CONTACT_COLOR,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+    if (urbanDesignModelVisible) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-building-ground-contact-urban",
+          data: urbanDesignMassModel,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          getLineColor: GROUND_CONTACT_COLOR,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+    if (buildingFabricVisible && fabricOpacity > 0.01) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-building-ground-contact-fabric",
+          data: buildingFabricModel,
+          pickable: false,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthMinPixels: 1,
+          getLineWidth: 1,
+          getLineColor: GROUND_CONTACT_COLOR,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
           },
         }),
       );
