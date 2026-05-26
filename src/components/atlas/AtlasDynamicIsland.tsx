@@ -40,7 +40,10 @@ import {
   resolveAtelierEntryYear,
 } from "@/lib/atlas/atelier-route";
 import { reconstructionExistsInYear } from "@/lib/atlas/atlas-time";
-import { CivicResearchPanel } from "@/components/atlas/CivicResearchPanel";
+import {
+  CivicResearchPanel,
+  type ResearchPromotionContext,
+} from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
 type IslandTab = "ask" | "layers" | "scenarios" | "time" | "place" | "horizon";
@@ -124,6 +127,12 @@ const TAB_LABELS: Record<IslandTab, string> = {
   place: "Place",
   horizon: "Horizon",
 };
+
+function pointWkt(position: readonly [number, number]): string | undefined {
+  const [lng, lat] = position;
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined;
+  return `POINT(${lng} ${lat})`;
+}
 
 export function AtlasDynamicIsland({
   activeLens,
@@ -218,6 +227,19 @@ export function AtlasDynamicIsland({
       null,
     [horizonNodes, selectedHorizonId],
   );
+  const researchPromotionContext = useMemo<ResearchPromotionContext | null>(() => {
+    if (!selectedBuilding) return null;
+    const geometry = pointWkt(selectedBuilding.position);
+    if (!geometry) return null;
+    return {
+      anchorKind: "research",
+      anchorGeometryWkt: geometry,
+      anchorPayload: {
+        selectedBuildingOsmId: String(selectedBuilding.osm_id),
+        selectedBuildingName: buildingDisplayTitle(selectedBuilding),
+      },
+    };
+  }, [selectedBuilding]);
 
   const activeView = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode];
   const activeLensInfo = ATLAS_LENS_LOOKUP[activeLens];
@@ -488,7 +510,11 @@ export function AtlasDynamicIsland({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-              {activeTab === "ask" ? <CivicResearchPanel /> : null}
+              {activeTab === "ask" ? (
+                <CivicResearchPanel
+                  promotionContext={researchPromotionContext}
+                />
+              ) : null}
 
               {activeTab === "layers" ? (
                 <section className="space-y-4">

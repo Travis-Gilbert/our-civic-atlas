@@ -34,14 +34,28 @@
  *   docs/design/flint-graphql-schema-v1.graphql (Mutation.civicResearch)
  *   src/lib/api/graphql/queries/civic-research.graphql
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { gql } from "urql";
+import {
+  AlertCircle,
+  Bookmark,
+  BookmarkCheck,
+  Loader2,
+} from "lucide-react";
 
 import { getTheseusClient } from "@/lib/api/graphql/client";
+import { useResearchArtifactPromotion } from "@/lib/atlas/use-research-artifact-promotion";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
+
+type ResearchSource = {
+  id: string;
+  name: string;
+  sourceType: string;
+  trustTier?: string | null;
+};
 
 type SearchResultsPayload = {
   query?: string;
@@ -53,7 +67,7 @@ type SearchResultsPayload = {
   signals?: unknown[];
   events?: unknown[];
   historicalReconstructions?: unknown[];
-  sources?: unknown[];
+  sources?: ResearchSource[];
 };
 
 type CivicResearchPayload = {
@@ -71,6 +85,52 @@ type ResearchStatus =
   | { kind: "loading" }
   | { kind: "error"; message: string; reason: "schema" | "network" | "graphql" }
   | { kind: "ok"; payload: CivicResearchPayload };
+
+type PromotionRowState =
+  | { kind: "promoting" }
+  | { kind: "ok"; artifactId: string; artifactKey: string; status: string }
+  | {
+      kind: "error";
+      message: string;
+      reason: "schema" | "network" | "graphql";
+    };
+
+export type ResearchPromotionContext = {
+  parcelRef?: string;
+  buildingId?: string;
+  buildingPartId?: string;
+  anchorKind?: string;
+  anchorGeometryWkt?: string;
+  anchorTimeStart?: string;
+  anchorTimeEnd?: string;
+  anchorPayload?: Record<string, unknown>;
+};
+
+type CivicResearchPanelProps = {
+  defaultQuery?: string;
+  promotionContext?: ResearchPromotionContext | null;
+};
+
+function isResearchSource(value: unknown): value is ResearchSource {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.sourceType === "string"
+  );
+}
+
+function hasPromotionAnchor(
+  promotionContext: ResearchPromotionContext | null | undefined,
+): promotionContext is ResearchPromotionContext {
+  return Boolean(
+    promotionContext?.parcelRef?.trim() ||
+      promotionContext?.buildingId?.trim() ||
+      promotionContext?.buildingPartId?.trim() ||
+      promotionContext?.anchorGeometryWkt?.trim(),
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  GraphQL document                                                   */
@@ -224,25 +284,227 @@ function statusLine(status: ResearchStatus): string | null {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Result preview (island-styled card)                                */
+/*  Source row with save-for-reconstruction action                     */
 /* ------------------------------------------------------------------ */
 
-function ResultPreview({ payload }: { payload: CivicResearchPayload }) {
+function PromoteStatusLine({ state }: { state: PromotionRowState }) {
+  if (state.kind === "promoting") {
+    return (
+      <span
+        className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em]"
+        style={{ color: "var(--ctx-ink-mute)" }}
+      >
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+        <span>Saving</span>
+      </span>
+    );
+  }
+  if (state.kind === "ok") {
+    return (
+      <span
+        className="font-mono text-[10px] uppercase tracking-[0.12em] break-all"
+        style={{ color: "var(--ctx-ink-mute)" }}
+        title={`artifactId: ${state.artifactId}`}
+      >
+        Saved to reconstruction record
+        {state.status !== "promoted" ? ` (${state.status})` : null}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em]"
+      style={{ color: "var(--ctx-warn, #b45a2d)" }}
+    >
+      <AlertCircle className="h-3 w-3" aria-hidden="true" />
+      <span>
+        {state.reason === "schema"
+          ? "Saving is not available yet"
+          : state.reason === "network"
+            ? `Network: ${state.message}`
+            : `Failed: ${state.message}`}
+      </span>
+    </span>
+  );
+}
+
+function SourceRow({
+  source,
+  runId,
+  skill,
+  promotionContext,
+}: {
+  source: ResearchSource;
+  runId: string;
+  skill: string;
+  promotionContext?: ResearchPromotionContext | null;
+}) {
+  const { promote, state } = useResearchArtifactPromotion();
+
+  const rowState: PromotionRowState | null = useMemo(() => {
+    if (state.kind === "idle") return null;
+    if (state.kind === "promoting") return { kind: "promoting" };
+    if (state.kind === "ok") {
+      return {
+        kind: "ok",
+        artifactId: state.result.artifactId,
+        artifactKey: state.result.artifactKey,
+        status: state.result.status,
+      };
+    }
+    return {
+      kind: "error",
+      message: state.message,
+      reason: state.reason,
+    };
+  }, [state]);
+
+  const promoted = rowState?.kind === "ok";
+  const promoting = rowState?.kind === "promoting";
+  const canPromote = hasPromotionAnchor(promotionContext);
+  const buttonDisabled = promoting || promoted || !canPromote;
+
+  const handleClick = useCallback(() => {
+    if (!canPromote) return;
+    void promote({
+      runId,
+      sourceId: source.id,
+      sourceType: source.sourceType,
+      title: source.name,
+      parcelRef: promotionContext.parcelRef,
+      buildingId: promotionContext.buildingId,
+      buildingPartId: promotionContext.buildingPartId,
+      anchorKind: promotionContext.anchorKind ?? "research",
+      anchorGeometryWkt: promotionContext.anchorGeometryWkt,
+      anchorTimeStart: promotionContext.anchorTimeStart,
+      anchorTimeEnd: promotionContext.anchorTimeEnd,
+      payload: {
+        civicResearchRunId: runId,
+        civicResearchSkill: skill,
+        trustTier: source.trustTier ?? null,
+      },
+      anchorPayload: {
+        ...(promotionContext.anchorPayload ?? {}),
+        civicResearchRunId: runId,
+        civicResearchSkill: skill,
+        sourceId: source.id,
+      },
+    });
+  }, [canPromote, promote, promotionContext, runId, skill, source]);
+
+  return (
+    <li className="rounded-[12px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p
+            className="text-[13px] leading-[1.35] m-0"
+            style={{ color: "var(--ctx-ink)" }}
+          >
+            {source.name}
+          </p>
+          <p
+            className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] m-0"
+            style={{ color: "var(--ctx-ink-mute)" }}
+          >
+            {source.sourceType}
+            {source.trustTier ? ` · ${source.trustTier}` : null}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={buttonDisabled}
+          className="font-mono text-[10px] uppercase tracking-[0.12em] rounded-[10px] px-2.5 py-1 cursor-pointer transition-colors disabled:cursor-not-allowed flex items-center gap-1 shrink-0"
+          style={{
+            background:
+              promoted || buttonDisabled
+                ? "rgba(193,74,44,0.10)"
+                : "var(--ctx-accent)",
+            color:
+              promoted || buttonDisabled
+                ? "var(--ctx-ink-mute)"
+                : "var(--ctx-paper)",
+            border: "1px solid var(--ctx-accent)",
+          }}
+          aria-label={
+            promoted
+              ? `Saved ${source.name} for reconstruction`
+              : canPromote
+                ? `Save ${source.name} for reconstruction`
+                : `Select an anchored place before saving ${source.name}`
+          }
+        >
+          {promoted ? (
+            <BookmarkCheck className="h-3 w-3" aria-hidden="true" />
+          ) : (
+            <Bookmark className="h-3 w-3" aria-hidden="true" />
+          )}
+          <span>{promoted ? "Saved" : canPromote ? "Save" : "Needs place"}</span>
+        </button>
+      </div>
+      {rowState ? (
+        <div className="mt-2">
+          <PromoteStatusLine state={rowState} />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+function SourcesSection({
+  sources,
+  runId,
+  skill,
+  promotionContext,
+}: {
+  sources: ResearchSource[];
+  runId: string;
+  skill: string;
+  promotionContext?: ResearchPromotionContext | null;
+}) {
+  if (sources.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <p
+        className="font-mono text-[10px] uppercase tracking-[0.12em] m-0"
+        style={{ color: "var(--ctx-ink-mute)" }}
+      >
+        Sources · {sources.length}
+      </p>
+      <ul className="space-y-2 list-none m-0 p-0">
+        {sources.map((source) => (
+          <SourceRow
+            key={source.id}
+            source={source}
+            runId={runId}
+            skill={skill}
+            promotionContext={promotionContext}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RawPayloadDetails({ payload }: { payload: CivicResearchPayload }) {
   const pretty = JSON.stringify(payload.results, null, 2);
   const truncated =
     pretty.length > 1400 ? `${pretty.slice(0, 1400)}\n…` : pretty;
   return (
-    <div className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.28)] p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-        Run · {payload.runId} · {payload.skill}
-      </p>
+    <details className="rounded-[14px] border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.18)] p-3">
+      <summary
+        className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.12em]"
+        style={{ color: "var(--ctx-ink-mute)" }}
+      >
+        Run · {payload.runId.slice(0, 8)} · {payload.skill} · raw payload
+      </summary>
       <pre
         className="mt-2 font-mono text-[11px] leading-[1.4] whitespace-pre-wrap break-words m-0"
         style={{ color: "var(--ctx-ink)", maxHeight: 220, overflow: "auto" }}
       >
         {truncated}
       </pre>
-    </div>
+    </details>
   );
 }
 
@@ -250,10 +512,24 @@ function ResultPreview({ payload }: { payload: CivicResearchPayload }) {
 /*  Panel (embedded — renders inside AtlasDynamicIsland)               */
 /* ------------------------------------------------------------------ */
 
-export function CivicResearchPanel() {
-  const [query, setQuery] = useState<string>("");
+export function CivicResearchPanel({
+  defaultQuery = "",
+  promotionContext = null,
+}: CivicResearchPanelProps) {
+  const [query, setQuery] = useState<string>(defaultQuery);
   const [status, setStatus] = useState<ResearchStatus>({ kind: "idle" });
   const client = useMemo(() => getTheseusClient(), []);
+
+  useEffect(() => {
+    setQuery(defaultQuery);
+  }, [defaultQuery]);
+
+  const sources = useMemo<ResearchSource[]>(() => {
+    if (status.kind !== "ok") return [];
+    const raw = status.payload.results.sources;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(isResearchSource);
+  }, [status]);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -371,7 +647,17 @@ export function CivicResearchPanel() {
         </form>
       </div>
 
-      {status.kind === "ok" ? <ResultPreview payload={status.payload} /> : null}
+      {status.kind === "ok" ? (
+        <>
+          <SourcesSection
+            sources={sources}
+            runId={status.payload.runId}
+            skill={status.payload.skill}
+            promotionContext={promotionContext}
+          />
+          <RawPayloadDetails payload={status.payload} />
+        </>
+      ) : null}
 
       {showCoordinationHint ? (
         <div

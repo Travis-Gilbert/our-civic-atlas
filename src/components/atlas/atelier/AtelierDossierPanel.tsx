@@ -21,9 +21,14 @@ import type { AtelierDossier } from "@/lib/atlas/use-reconstruction-dossier";
 import {
   AtelierDossierControls,
 } from "@/components/atlas/atelier/AtelierControls";
+import {
+  CivicResearchPanel,
+  type ResearchPromotionContext,
+} from "@/components/atlas/CivicResearchPanel";
 
 type AtelierDossierPanelProps = {
   dossier: AtelierDossier;
+  parcelId: string;
   year: number;
   source: "graphql" | "fallback" | "none";
   onReplay: () => void;
@@ -41,6 +46,24 @@ function formatConfidence(value: number | null | undefined): string {
   if (value < 0.6) return "contested";
   if (value < 0.9) return `${Math.round(value * 100)}%`;
   return "documented";
+}
+
+function parcelRefFromRouteParcelId(parcelId: string): string {
+  if (parcelId.startsWith("building:")) {
+    return parcelId.slice("building:".length);
+  }
+  return parcelId;
+}
+
+function pointWkt(position: readonly [number, number]): string | undefined {
+  const [lng, lat] = position;
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined;
+  return `POINT(${lng} ${lat})`;
+}
+
+function yearBoundary(year: number, end = false): string {
+  const monthDay = end ? "12-31T23:59:59.999Z" : "01-01T00:00:00.000Z";
+  return `${year.toString().padStart(4, "0")}-${monthDay}`;
 }
 
 function PartRow({
@@ -128,6 +151,7 @@ function CitedBy({
 
 export function AtelierDossierPanel({
   dossier,
+  parcelId,
   year,
   source,
   onReplay,
@@ -135,6 +159,19 @@ export function AtelierDossierPanel({
   const { reconstruction, conflicts, evidence, summary } = dossier;
   const sourceCount = evidence.totalCount;
   const conflictCount = conflicts.length;
+  const promotionContext: ResearchPromotionContext = {
+    parcelRef: parcelRefFromRouteParcelId(parcelId),
+    anchorKind: "research",
+    anchorGeometryWkt: pointWkt(reconstruction.position),
+    anchorTimeStart: yearBoundary(year),
+    anchorTimeEnd: yearBoundary(year, true),
+    anchorPayload: {
+      atelierParcelId: parcelId,
+      reconstructionId: reconstruction.id,
+      year,
+    },
+  };
+  const defaultResearchQuery = `${reconstruction.name} ${year} Flint city directory ground floor use occupant storefront`;
 
   return (
     <div>
@@ -266,6 +303,17 @@ export function AtelierDossierPanel({
             />
           ))
         )}
+      </section>
+
+      <section className="atelier-dossier__section">
+        <p className="atelier-dossier__section-title">
+          <span>Research</span>
+          <span>{year}</span>
+        </p>
+        <CivicResearchPanel
+          defaultQuery={defaultResearchQuery}
+          promotionContext={promotionContext}
+        />
       </section>
 
       <AtelierDossierControls

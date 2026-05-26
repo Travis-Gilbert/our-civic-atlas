@@ -80,10 +80,19 @@ the canonical execution store for the live engine.
 - The Atelier route renders the storefront dossier instead of silently falling
   back to a fixture default.
 
+## Implementation Notes
+
+- 2026-05-26: `promoteResearchArtifact(input)` exists on the backend and the
+  frontend has a typed `useResearchArtifactPromotion` hook.
+- 2026-05-26: the Research panel can show promotable sources. Promotion is
+  enabled only when the panel has an anchor context: the Atelier supplies the
+  route parcel key plus reconstruction point geometry, and the main atlas
+  supplies selected-building point geometry. Unanchored global research can
+  still search, but it will not send a write that the backend cannot attach to
+  reconstruction evidence.
+
 ## Follow-Up Work
 
-- Add a backend mutation or resolver path that promotes selected `civicResearch`
-  results into artifact rows and artifact anchors.
 - Add a source-use note field so generated evidence can say whether a source
   supports footprint, facade, ground-floor use, date, or contradiction.
 - Add a small "accepted for reconstruction" review state so research output is

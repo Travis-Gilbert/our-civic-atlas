@@ -233,6 +233,7 @@ export function AtelierSurface({
         {dossier ? (
           <AtelierDossierPanel
             dossier={dossier}
+            parcelId={parcelId}
             year={year}
             source={source}
             onReplay={replay}
