@@ -152,6 +152,11 @@ export type ResearchArtifactPromotionInput = {
   parcelRef?: string | null | undefined;
   /** JSON object persisted on artifacts.payload_jsonb. */
   payload?: Record<string, unknown> | null | undefined;
+  /**
+   * Review state for the saved source. Defaults to
+   * accepted_for_reconstruction on the backend.
+   */
+  reviewState?: string | null | undefined;
   /** Harness run id returned by civicResearch. */
   runId?: string | number | null | undefined;
   /** Source/result id selected from civicResearch results. */
@@ -161,6 +166,13 @@ export type ResearchArtifactPromotionInput = {
    * archival_photo, map, text, etc.).
    */
   sourceType: string;
+  /** Short human review note describing why this source was saved. */
+  sourceUseNote?: string | null | undefined;
+  /**
+   * Which reconstruction claim(s) this source helps: footprint, facade,
+   * ground_floor_use, date, contradiction, or other.
+   */
+  sourceUseTags?: Array<string> | null | undefined;
   /** Resident-readable source title. */
   title: string;
   /** Canonical source URL when one exists. */

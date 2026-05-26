@@ -90,11 +90,13 @@ the canonical execution store for the live engine.
   supplies selected-building point geometry. Unanchored global research can
   still search, but it will not send a write that the backend cannot attach to
   reconstruction evidence.
+- 2026-05-26: promoted sources now carry `sourceUseTags`, a
+  `sourceUseNote`, and `reviewState: accepted_for_reconstruction` through the
+  GraphQL contract into the persisted artifact metadata JSON. This gives the
+  engine/review loop a durable way to distinguish footprint, facade,
+  ground-floor-use, date, contradiction, and other support without publishing
+  unreviewed claims as final truth.
 
 ## Follow-Up Work
 
-- Add a source-use note field so generated evidence can say whether a source
-  supports footprint, facade, ground-floor use, date, or contradiction.
-- Add a small "accepted for reconstruction" review state so research output is
-  durable without auto-publishing unreviewed claims.
 - Run the first pipeline at year `1925` and record every stage result here.

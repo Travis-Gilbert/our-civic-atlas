@@ -40,6 +40,9 @@ export type PromoteResearchArtifactArgs = {
   citation?: string;
   capturedAt?: string;
   payload?: Record<string, unknown>;
+  sourceUseTags?: string[];
+  sourceUseNote?: string;
+  reviewState?: string;
   parcelRef?: string;
   buildingId?: string;
   buildingPartId?: string;
@@ -77,6 +80,9 @@ function toInput(args: PromoteResearchArtifactArgs): ResearchArtifactPromotionIn
     citation: optionalText(args.citation),
     capturedAt: optionalText(args.capturedAt),
     payload: args.payload ?? null,
+    sourceUseTags: args.sourceUseTags ?? null,
+    sourceUseNote: optionalText(args.sourceUseNote),
+    reviewState: optionalText(args.reviewState),
     parcelRef: optionalText(args.parcelRef),
     buildingId: optionalText(args.buildingId),
     buildingPartId: optionalText(args.buildingPartId),

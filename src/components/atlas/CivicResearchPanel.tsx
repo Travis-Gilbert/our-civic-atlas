@@ -103,6 +103,9 @@ export type ResearchPromotionContext = {
   anchorGeometryWkt?: string;
   anchorTimeStart?: string;
   anchorTimeEnd?: string;
+  sourceUseTags?: string[];
+  sourceUseNote?: string;
+  reviewState?: string;
   anchorPayload?: Record<string, unknown>;
 };
 
@@ -129,6 +132,44 @@ function hasPromotionAnchor(
       promotionContext?.buildingId?.trim() ||
       promotionContext?.buildingPartId?.trim() ||
       promotionContext?.anchorGeometryWkt?.trim(),
+  );
+}
+
+function sourceUseTagsForSource(source: ResearchSource): string[] {
+  const haystack = `${source.sourceType} ${source.name}`.toLowerCase();
+  if (
+    haystack.includes("sanborn") ||
+    haystack.includes("map") ||
+    haystack.includes("plat")
+  ) {
+    return ["footprint", "date"];
+  }
+  if (
+    haystack.includes("photo") ||
+    haystack.includes("image") ||
+    haystack.includes("habs")
+  ) {
+    return ["facade", "date"];
+  }
+  if (
+    haystack.includes("directory") ||
+    haystack.includes("occupant") ||
+    haystack.includes("storefront")
+  ) {
+    return ["ground_floor_use", "date"];
+  }
+  return ["other"];
+}
+
+function mergedSourceUseTags(
+  promotionContext: ResearchPromotionContext,
+  source: ResearchSource,
+): string[] {
+  return Array.from(
+    new Set([
+      ...(promotionContext.sourceUseTags ?? []),
+      ...sourceUseTagsForSource(source),
+    ]),
   );
 }
 
@@ -378,6 +419,12 @@ function SourceRow({
       anchorGeometryWkt: promotionContext.anchorGeometryWkt,
       anchorTimeStart: promotionContext.anchorTimeStart,
       anchorTimeEnd: promotionContext.anchorTimeEnd,
+      sourceUseTags: mergedSourceUseTags(promotionContext, source),
+      sourceUseNote:
+        promotionContext.sourceUseNote ??
+        "Saved from live research as source-backed reconstruction input.",
+      reviewState:
+        promotionContext.reviewState ?? "accepted_for_reconstruction",
       payload: {
         civicResearchRunId: runId,
         civicResearchSkill: skill,

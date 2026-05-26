@@ -234,6 +234,9 @@ export function AtlasDynamicIsland({
     return {
       anchorKind: "research",
       anchorGeometryWkt: geometry,
+      sourceUseTags: ["other"],
+      sourceUseNote: `Saved from atlas research for ${buildingDisplayTitle(selectedBuilding)}.`,
+      reviewState: "accepted_for_reconstruction",
       anchorPayload: {
         selectedBuildingOsmId: String(selectedBuilding.osm_id),
         selectedBuildingName: buildingDisplayTitle(selectedBuilding),

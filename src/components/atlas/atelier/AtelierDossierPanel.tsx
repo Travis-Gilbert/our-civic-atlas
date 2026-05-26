@@ -165,6 +165,9 @@ export function AtelierDossierPanel({
     anchorGeometryWkt: pointWkt(reconstruction.position),
     anchorTimeStart: yearBoundary(year),
     anchorTimeEnd: yearBoundary(year, true),
+    sourceUseTags: ["ground_floor_use", "facade", "date"],
+    sourceUseNote: `Saved while reconstructing ${reconstruction.name} around ${year}.`,
+    reviewState: "accepted_for_reconstruction",
     anchorPayload: {
       atelierParcelId: parcelId,
       reconstructionId: reconstruction.id,

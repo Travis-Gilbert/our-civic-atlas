@@ -975,6 +975,17 @@ input ResearchArtifactPromotionInput {
   """JSON object persisted on artifacts.payload_jsonb."""
   payload: JSON
 
+  """Which reconstruction claim(s) this source helps: footprint, facade,
+  ground_floor_use, date, contradiction, or other."""
+  sourceUseTags: [String!]
+
+  """Short human review note describing why this source was saved."""
+  sourceUseNote: String
+
+  """Review state for the saved source. Defaults to
+  accepted_for_reconstruction on the backend."""
+  reviewState: String
+
   """UUID or parcel_key. For resident research results, prefer parcel_key
   (for example `carriage-town:3`) so the backend resolves the stable UUID."""
   parcelRef: String
