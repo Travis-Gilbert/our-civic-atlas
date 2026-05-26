@@ -149,7 +149,7 @@ export function AtelierDossierPanel({
             className="atelier-dossier__caption"
             style={{ marginTop: 8, fontStyle: "italic", opacity: 0.7 }}
           >
-            Backend resolver pending. Rendering against the in-repo fixture.
+            Preview from checked-in public records.
           </p>
         ) : null}
       </header>

@@ -8,10 +8,11 @@ import { AtelierSurface } from "@/components/atlas/atelier/AtelierSurface";
  * Atelier route: `/open-flint-atlas/atelier/[parcelId]/[year]`
  *
  * Server component. Awaits `params` (Next 16 contract), resolves the
- * parcel + year against the fixture, and mounts the client-side
- * `<AtelierSurface>` with the resolved reconstructionId.
+ * parcel + year for shape only, and mounts the client-side
+ * `<AtelierSurface>` with either a fixture reconstruction id or the live
+ * parcel/civic-object id for GraphQL to resolve.
  *
- * 404 when the parcelId is not in the fixture or the year fails parsing.
+ * 404 only when the parcelId is empty or the year fails parsing.
  *
  * Plan: PT-202 in `docs/plans/the-atelier/implementation-plan.md`.
  */
@@ -26,6 +27,12 @@ export async function generateMetadata({
     return {
       title: "Atelier | Our Civic Atlas",
       description: "Reconstruction not found.",
+    };
+  }
+  if (!resolved.reconstruction) {
+    return {
+      title: `Reconstruction · ${resolved.params.year} | Atelier`,
+      description: `Walk a source-backed reconstruction for ${resolved.params.parcelId} in ${resolved.params.year}.`,
     };
   }
   return {

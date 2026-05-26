@@ -3,12 +3,15 @@
  *
  * Fetches the atelier's one-shot dossier payload via the GraphQL resolver
  * `reconstructionDossier(reconstructionId)`. Falls back to the in-repo
- * fixture synthesizer (see `atelier-fallback-synthesizer.ts`) when:
+ * fixture synthesizer (see `atelier-fallback-synthesizer.ts`) only when:
  *
  *   - the resolver returns a schema error (backend hasn't implemented
  *     the new fields yet; the request error mentions `Cannot query field
  *     "reconstructionDossier"` or similar)
  *   - the network fails entirely (dev without the sidecar running)
+ *
+ * Operational GraphQL errors from a real resolver are not masked by fixture
+ * fallback. If the engine fails, the user should see the engine failure.
  *
  * The fallback path is opt-in via `{ fallback: true }` and intended for
  * development. Production paths pass `{ fallback: false }` so backend
@@ -103,16 +106,15 @@ export function useReconstructionDossier(
             result.error.graphQLErrors[0]?.message ??
             result.error.message;
           const isSchemaError = looksLikeSchemaError(message);
+          const isNetworkError = Boolean(result.error.networkError);
 
-          if (fallback) {
+          if (fallback && (isSchemaError || isNetworkError)) {
             const synthesized = synthesizeDossierFromFixture(reconstructionId);
             if (synthesized) {
               setState({
                 dossier: synthesized,
                 loading: false,
-                error: isSchemaError
-                  ? "Backend resolver pending; rendering against fixture."
-                  : message,
+                error: null,
                 source: "fallback",
               });
               return;

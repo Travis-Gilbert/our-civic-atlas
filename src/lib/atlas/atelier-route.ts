@@ -3,9 +3,10 @@
  *
  * The atelier route is `/open-flint-atlas/atelier/[parcelId]/[year]`
  * where `parcelId` is a `civic_object_id` (e.g., `building:carriage-town:1`)
- * and `year` is a 4-digit ISO year. Routes resolve to a `reconstructionId`
- * (e.g., `historical:carriage-town:whaley-house`) via the in-fixture lookup
- * in v1 and the GraphQL resolver in v1.x.
+ * and `year` is a 4-digit ISO year. Fixture-backed routes resolve to a
+ * historical reconstruction id (e.g., `historical:carriage-town:whaley-house`).
+ * Unknown-but-valid parcel ids are allowed through so the client can ask the
+ * live GraphQL resolver instead of being blocked by the checked-in fixture.
  *
  * Plan reference: PT-206 in `docs/plans/the-atelier/implementation-plan.md`.
  */
@@ -25,7 +26,7 @@ export type AtelierRouteParams = {
 export type AtelierResolvedRoute = {
   params: AtelierRouteParams;
   reconstructionId: string;
-  reconstruction: HistoricalReconstruction;
+  reconstruction: HistoricalReconstruction | null;
 };
 
 /**
@@ -123,9 +124,10 @@ export function parseAtelierYear(raw: string): number | null {
 }
 
 /**
- * Resolve a parcelId + year into the matching reconstruction. v1 reads
- * from the in-repo `FLINT_LOST_RECONSTRUCTIONS` fixture; v1.x swaps to
- * a GraphQL resolver query without changing the caller signature.
+ * Resolve a parcelId + year into an atelier request. The fixture still gives
+ * known Carriage Town entries friendly metadata and development fallback ids,
+ * but it no longer decides whether a route may exist. Live GraphQL/PostGIS is
+ * authoritative for valid parcel ids that are not in the fixture.
  */
 export function resolveAtelierRoute(
   rawParcelId: string,
@@ -134,15 +136,15 @@ export function resolveAtelierRoute(
   const parcelId = decodeParcelId(rawParcelId);
   const year = parseAtelierYear(rawYear);
   if (year === null) return null;
+  if (parcelId.trim().length === 0) return null;
 
   const reconstruction = FLINT_LOST_RECONSTRUCTIONS.find(
     (item) => item.civic_object_id === parcelId,
-  );
-  if (!reconstruction) return null;
+  ) ?? null;
 
   return {
     params: { parcelId, year },
-    reconstructionId: reconstruction.id,
+    reconstructionId: reconstruction?.id ?? parcelId,
     reconstruction,
   };
 }
