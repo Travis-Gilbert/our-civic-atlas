@@ -1,20 +1,18 @@
 # Evidence Corpus Inventory - 2026-05
 
-This inventory is the repo-local grounding pass for
-`docs/plans/atelier-real-reconstruction-plan.md` Task B. It does not claim a
-live PostGIS audit: this public app checkout has no `apps/`, `crates/`, `proto/`,
-or `civic_atlas_ingest/` directories. The backend and ingest truth currently
-lives in sibling repos:
+This inventory is the grounding pass for
+`docs/plans/atelier-real-reconstruction-plan.md` Task B. It combines a
+repo-local audit of the public app fixtures and the sibling backend / ingest
+checkouts with a live PostGIS audit run on 2026-05-26 against the production
+Civic-Atlas Postgres (Railway, tenant slug `flint`). The backend and ingest
+truth lives in sibling repos:
 
 - `/Users/travisgilbert/Tech Dev Local/Creative/Website/our-civic-atlas-backend`
 - `/Users/travisgilbert/Tech Dev Local/Creative/Website/civic-atlas-ingest`
 
-The live database Top 20 remains an explicit follow-up because no
-`DATABASE_URL` was provided in this pass, and the backend repo is already dirty
-in Task A territory (`apps/graphql-server/src/schema.ts`,
-`apps/graphql-server/src/grpcClient.ts`, `apps/graphql-server/src/index.ts`,
-`migrations/0004_seed_carriage_town_specs.sql`, plus
-`crates/rustyred-client/`).
+The live PostGIS audit is now resolved (see "Verified against live PostGIS on
+2026-05-26" below). It confirms the smoke-corpus reading the rest of this
+document predicted from indirect evidence.
 
 ## What Was Inspected
 
@@ -87,16 +85,60 @@ public app fixture. The app fixture has buildings and source ids, but not a
 PostGIS `artifact_anchors` join across parcels, buildings, source types, and
 decades.
 
-Current known candidates, ranked by fixture source count:
+### Verified against live PostGIS on 2026-05-26
 
-| Rank | Candidate | Count | Status |
-|---:|---|---:|---|
-| 1 | Whaley House (1885) | 2 source ids | Not a Task C pilot because it still stands. |
-| 2 | Carriage Town Storefront | 2 source ids | Selected lost-building pilot. Missing directory/use evidence should come through the Research tab and then be promoted into durable artifacts. |
-| 3 | Stockton House (1872) | 2 source ids | Lost-building candidate, but no checked-in photo or directory row. |
-| 4 | 628 E Kearsley Frame House | 1 source id | UI fixture only. |
-| 5 | Worker's Cottage (1898) | 1 source id | UI fixture only. |
-| 6-20 | Pending live PostGIS inventory | 0 verified in this pass | Requires the SQL below against the backend database. |
+The queries below were run against the production Civic-Atlas Postgres
+(Railway, tenant slug `flint`, tenant id `a192a67b-b32d-4100-bfe6-000a0b3b94f7`).
+RLS requires `SET app.tenant_id = '...'` before each session. Live results:
+
+| Surface | Count |
+|---|---:|
+| Parcels (tenant flint) | 5 |
+| Buildings (tenant flint) | 5 |
+| Artifact anchors (tenant flint) | 7 (5 cartographic, 2 photographic) |
+| Reconstruction specs (tenant flint) | 5 |
+| Artifacts (tenant flint) | 3 |
+
+Artifact source-type counts (Q1):
+
+| Source type | Count |
+|---|---:|
+| `archival_photo` | 2 |
+| `map` | 1 |
+
+The "Top 20" is the entire corpus: there are only five eligible parcels.
+
+| Rank | Parcel key | Source types | Distinct artifacts | Map anchors | Photo anchors |
+|---:|---|---:|---:|---:|---:|
+| 1 | carriage-town:1 (Whaley House) | 2 | 2 | 1 | 1 |
+| 2 | carriage-town:3 (Carriage Town Storefront) | 2 | 2 | 1 | 1 |
+| 3 | carriage-town:2 (628 E Kearsley Frame House) | 1 | 1 | 1 | 0 |
+| 4 | carriage-town:4 (Worker's Cottage) | 1 | 1 | 1 | 0 |
+| 5 | carriage-town:5 (Stockton House) | 1 | 1 | 1 | 0 |
+
+The decade-coverage query (Q3) returned 0 rows. `artifacts.payload_jsonb` is
+empty `{}` on every seeded row, and `artifact_anchors.t_start_ms` /
+`t_end_ms` are NULL on every anchor. Temporal grounding is not yet
+expressed in the live schema, so cross-decade joins return nothing.
+
+### Implications for downstream tasks
+
+- **Task C (Carriage Town Storefront pilot):** the pilot building has
+  exactly two artifacts attached (`artifact:carriage-sanborn-1899` and
+  `artifact:storefront-photo-1925`). Promotion through the Research tab
+  is the canonical way to grow this row beyond 2 artifacts in dev. The
+  resident-first research path is now the unblock for additional
+  evidence rather than a manual ingest queue.
+- **Task D (Pairformer training plan):** the corpus is two orders of
+  magnitude smaller than the doc's 500 minimum, and decade/typology
+  signals are not populated. Task D in its first form ("scope the
+  training run") cannot land; convert it to the doc's contingency form
+  ("scope the corpus expansion needed before training is viable") and
+  use this inventory as the starting baseline.
+- **Engine pipeline:** five reconstruction_specs exist but no live
+  artifact has temporal payload. The `merge_evidence_prior` stage will
+  not be able to weight by recency until ingest backfills `t_start_ms`,
+  `t_end_ms`, and per-artifact `payload_jsonb.year`.
 
 ## SQL For The Real Top 20
 
@@ -169,17 +211,28 @@ LIMIT 20;
   the checked-in assessor corpus has only two smoke rows.
 - Photo, directory, HABS, newspaper, and plat-map lanes are source-registry
   concepts today, not executable training-corpus lanes.
-- The backend truth schema can store artifacts, artifact anchors, immutable
-  reconstruction specs, building parts, generated assets, and an outbox, but
-  this pass did not verify a live seeded PostGIS instance.
+- The backend truth schema is verified live (5 parcels, 5 buildings,
+  7 artifact_anchors, 5 reconstruction_specs, 3 artifacts as of
+  2026-05-26). The store works; the corpus inside it is smoke scale.
+- `artifacts.payload_jsonb` is empty `{}` and `artifact_anchors.t_start_ms` /
+  `t_end_ms` are NULL on every seeded row. Temporal grounding is not yet
+  expressed, so decade-coverage queries return 0 and any engine stage that
+  weights by recency degrades gracefully to "all evidence equally recent."
+- The atelier's promote-research-to-artifact UI (shipped 2026-05-25 in
+  commits `e2026ae` and `c4b5814`) is now the resident-facing path that
+  grows artifact rows beyond the 3 seeded ones, gated on a selected
+  building so every promotion ships a real `artifact_anchors` row with
+  a `parcel_id` / `building_id` and a POINT WKT geometry.
 
 ## Recommendations
 
 | Recommendation | Effort class | Why |
 |---|---|---|
-| Run a live PostGIS inventory against `artifacts`, `artifact_anchors`, `buildings`, and `parcels`. | small | It verifies the runtime evidence store. PostGIS is not "truer" than public data; it is the canonical place where public evidence gets stable ids, spatial anchors, tenant scope, and reproducible joins. |
+| ~~Run a live PostGIS inventory against `artifacts`, `artifact_anchors`, `buildings`, and `parcels`.~~ Done 2026-05-26. | done | Live results captured in the "Verified against live PostGIS on 2026-05-26" section above. |
 | Decode at least one real Flint Sanborn sheet through `ingest_local_sheet` and commit the manifest, not raw private scans. | medium | This proves the source->polygon->training-record path beyond smoke data. |
 | Add a city-directory OCR ingest path that emits `ground_floor.use_type` and address/year fields. | medium | Ground-floor use is one of the Pairformer heads and is absent today. |
 | Add a photo/HABS artifact ingest path with source-use notes and artifact anchors. | medium | Task C needs photo-backed facade claims, not only map footprints. |
 | Promote the Carriage Town Storefront as the first lost-building UI pilot. | small | It is already demolished in the fixture and has map + photo support; use the Research tab to find and promote the missing directory/use evidence instead of waiting on a manual ingest lane. |
 | Keep Whaley House as a calibration/control building, not the demo pilot. | small | It still stands, which makes it valuable for comparison but poor as the public "lost building" proof. |
+| Backfill `artifacts.payload_jsonb.year` and `artifact_anchors.t_start_ms` / `t_end_ms` on the 3 seed rows. | small | Without these, the engine's recency-weighted merge has no temporal signal to weight by, and the decade-coverage query stays empty. The Sanborn sheet's 1899 date and the photo dates (1908, 1925) are already in the artifact titles and migration seed `0004_seed_carriage_town_specs.sql`; copying them into payload+anchor fields is mechanical. |
+| Convert Task D from "scope the training run" to "scope the corpus expansion needed before training is viable." | small | The live PostGIS corpus is 3 artifacts. The Pairformer plan's 500 minimum is two orders of magnitude away. The first useful Task D deliverable is the ingest-and-promotion roadmap that gets the corpus to viable scale, not the training run itself. |
