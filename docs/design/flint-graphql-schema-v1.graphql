@@ -1191,6 +1191,11 @@ extend type Query {
   stage data without N+1 fetches."""
   reconstructionDossier(reconstructionId: ID!): ReconstructionDossier!
 
+  """Runs the live reconstruction pipeline for a parcel/civic-object id and
+  target year. This is the resident-facing atelier entry point; saved/spec-id
+  URLs continue to use reconstructionDossier."""
+  reconstructionFor(parcelId: ID!, year: Int!): ReconstructionDossier
+
   """Returns a saved reconstruction by its id. Used by the
   /open-flint-atlas/atelier/saved/<saved-id> route. Public read; no
   auth required."""

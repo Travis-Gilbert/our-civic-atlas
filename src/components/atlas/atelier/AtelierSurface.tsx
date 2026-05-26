@@ -122,7 +122,7 @@ export function AtelierSurface({
 }: AtelierSurfaceProps) {
   const { dossier, loading, error, source } = useReconstructionDossier(
     reconstructionId,
-    { fallback: true },
+    { fallback: true, parcelId, year },
   );
   const { state: choreographyState, start, skip, replay } =
     useAtelierChoreographer();
