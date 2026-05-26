@@ -941,6 +941,73 @@ type CivicResearchPayload {
   results: SearchResults!
 }
 
+"""A source selected from civicResearch and promoted into the tenant-scoped
+artifact store. The resolver attaches TenantContext server-side and writes
+to the backend artifacts + artifact_anchors tables; the browser never sends
+service-tier credentials."""
+input ResearchArtifactPromotionInput {
+  """Optional stable key. When omitted, the resolver derives a deterministic
+  research:<source-or-run>:<hash> key so repeat promotions upsert."""
+  artifactKey: ID
+
+  """Harness run id returned by civicResearch."""
+  runId: ID
+
+  """Source/result id selected from civicResearch results."""
+  sourceId: ID
+
+  """Source family used by reconstruction filtering (directory,
+  archival_photo, map, text, etc.)."""
+  sourceType: String!
+
+  """Resident-readable source title."""
+  title: String!
+
+  """Canonical source URL when one exists."""
+  uri: String
+
+  """Short citation or holding note."""
+  citation: String
+
+  """Capture/publication time for the source itself."""
+  capturedAt: DateTime
+
+  """JSON object persisted on artifacts.payload_jsonb."""
+  payload: JSON
+
+  """UUID or parcel_key. For resident research results, prefer parcel_key
+  (for example `carriage-town:3`) so the backend resolves the stable UUID."""
+  parcelRef: String
+
+  """Optional building UUID for already-resolved backend objects."""
+  buildingId: ID
+
+  """Optional building-part UUID for already-resolved backend objects."""
+  buildingPartId: ID
+
+  """Anchor family. Defaults to `research`."""
+  anchorKind: String
+
+  """Optional WKT geometry anchor."""
+  anchorGeometryWkt: String
+
+  """Optional start of the source's applicability window."""
+  anchorTimeStart: DateTime
+
+  """Optional end of the source's applicability window."""
+  anchorTimeEnd: DateTime
+
+  """JSON object persisted on artifact_anchors.payload_jsonb."""
+  anchorPayload: JSON
+}
+
+"""Result of promoting a research source into durable reconstruction input."""
+type ResearchArtifactPromotionPayload {
+  artifactId: ID!
+  artifactKey: ID!
+  status: String!
+}
+
 # =============================================================================
 # Atelier extensions (added 2026-05-23)
 # =============================================================================
@@ -1203,6 +1270,11 @@ extend type Query {
 }
 
 extend type Mutation {
+  """Promote a selected civicResearch source into the durable artifact store
+  so future reconstructionFor runs can consume it without a separate bulk
+  ingest lane."""
+  promoteResearchArtifact(input: ResearchArtifactPromotionInput!): ResearchArtifactPromotionPayload!
+
   """Persist a reconstruction view so the user can return to it. Follows
   the same anonymous-but-receipt-able write pattern as submitObservation
   (no auth required; optional email for receipt). Resolver writes to a

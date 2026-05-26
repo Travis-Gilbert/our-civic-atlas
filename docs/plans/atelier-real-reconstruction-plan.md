@@ -149,6 +149,12 @@ existing PostGIS evidence and then queuing `civicResearch` for missing facts in
 real time. Drag-and-drop resident material is additive. A trained GNN improves
 the reconstruction prior over time; it is not a prerequisite.
 
+**Implementation update (2026-05-26):** the first acceptance workflow now exists
+as `promoteResearchArtifact(input)`. The Axum GraphQL resolver wraps the
+tenant-scoped `PersistArtifact` service path, writing selected `civicResearch`
+sources into `artifacts` + `artifact_anchors`; the frontend contract and hook
+are generated so the Research tab/Atelier panel can call it next.
+
 **Reconstruct it:**
 
 - Run the engine's `run_full_pipeline` against the picked building with `year = N` for a year where evidence is strongest.
@@ -173,9 +179,10 @@ the reconstruction prior over time; it is not a prerequisite.
 
 - Task A's wiring must be in place (or developed in parallel and verified together).
 - Task B must surface candidate buildings.
-- The research-to-artifact promotion step must exist for the pilot's missing
-  directory/use evidence. This can be a small acceptance workflow; it does not
-  need a bulk ingest lane before Task C starts.
+- The research-to-artifact promotion step exists for the pilot's missing
+  directory/use evidence. Next UI work should attach it to selected
+  `civicResearch` sources; it does not need a bulk ingest lane before Task C
+  starts.
 
 ---
 

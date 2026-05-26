@@ -1,0 +1,7 @@
+mutation PromoteResearchArtifact($input: ResearchArtifactPromotionInput!) {
+  promoteResearchArtifact(input: $input) {
+    artifactId
+    artifactKey
+    status
+  }
+}
