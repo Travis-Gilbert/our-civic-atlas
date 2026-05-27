@@ -34,6 +34,7 @@ export type PromoteResearchArtifactArgs = {
   artifactKey?: string;
   runId?: string;
   sourceId?: string;
+  candidateId?: string;
   sourceType: string;
   title: string;
   uri?: string;
@@ -74,6 +75,7 @@ function toInput(args: PromoteResearchArtifactArgs): ResearchArtifactPromotionIn
     artifactKey: optionalText(args.artifactKey),
     runId: optionalText(args.runId),
     sourceId: optionalText(args.sourceId),
+    candidateId: optionalText(args.candidateId),
     sourceType: args.sourceType,
     title: args.title,
     uri: optionalText(args.uri),

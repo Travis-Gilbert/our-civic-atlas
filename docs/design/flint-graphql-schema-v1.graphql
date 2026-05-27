@@ -939,6 +939,65 @@ type CivicResearchPayload {
   injection into atlas state is a single merge step. Empty arrays when the
   algorithm finds nothing, never null."""
   results: SearchResults!
+
+  """Unsaved sources surfaced by the run. These are candidate records only:
+  callers may display, rank, or cache them, but they do not become durable
+  reconstruction evidence until explicitly promoted through
+  promoteResearchArtifact."""
+  candidateSources: [ResearchCandidateSource!]!
+}
+
+"""A reviewable source candidate surfaced by civicResearch. Candidate records
+may be materialized in the Civic RustyRed hot graph for fast follow-up, but
+PostGIS remains canonical and promotion is explicit."""
+type ResearchCandidateSource {
+  """Stable candidate id scoped to this research result."""
+  candidateId: ID!
+
+  """Research run that surfaced this candidate."""
+  runId: ID!
+
+  """Source/result id selected from the research response."""
+  sourceId: ID!
+
+  """Resident-readable source title."""
+  title: String!
+
+  """Source family used by reconstruction filtering."""
+  sourceType: String!
+
+  """Canonical URL when the research result provided one."""
+  uri: String
+
+  """Review/trust tier carried from the source result."""
+  trustTier: String!
+
+  """Candidate confidence when the upstream result provided one."""
+  confidence: Float
+
+  """Lifecycle state. Contract v1 emits only `candidate`."""
+  status: String!
+
+  """Optional parcel/civic-object key from the research scope."""
+  parcelRef: String
+
+  """Optional target year from the research scope."""
+  year: Int
+
+  """Stable key for a Civic RustyRed hot-graph node if/when candidates are
+  materialized outside PostGIS."""
+  candidateGraphKey: String!
+
+  """Mutation that turns this candidate into canonical PostGIS evidence."""
+  promotionMutation: String!
+
+  """Suggested source-use tags for the explicit promotion form."""
+  proposedUseTags: [String!]!
+
+  """Machine-readable envelope for cache/projection layers. Includes
+  candidateStore=civic_rustyred_candidate_graph, canonicalStore=postgis_artifacts,
+  and autoPromote=false."""
+  payload: JSON!
 }
 
 """A source selected from civicResearch and promoted into the tenant-scoped
@@ -955,6 +1014,11 @@ input ResearchArtifactPromotionInput {
 
   """Source/result id selected from civicResearch results."""
   sourceId: ID
+
+  """Optional candidate id returned by civicResearch.candidateSources. The
+  resolver records it in metadata only; it does not make unsaved research
+  durable without this explicit promotion."""
+  candidateId: ID
 
   """Source family used by reconstruction filtering (directory,
   archival_photo, map, text, etc.)."""

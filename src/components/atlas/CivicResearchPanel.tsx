@@ -54,7 +54,30 @@ type ResearchSource = {
   id: string;
   name: string;
   sourceType: string;
+  uri?: string | null;
   trustTier?: string | null;
+  candidateId?: string;
+  candidateGraphKey?: string;
+  proposedUseTags?: string[];
+  payload?: unknown;
+};
+
+type ResearchCandidateSource = {
+  candidateId: string;
+  runId: string;
+  sourceId: string;
+  title: string;
+  sourceType: string;
+  uri?: string | null;
+  trustTier?: string | null;
+  confidence?: number | null;
+  status: string;
+  parcelRef?: string | null;
+  year?: number | null;
+  candidateGraphKey: string;
+  promotionMutation: string;
+  proposedUseTags: string[];
+  payload?: unknown;
 };
 
 type SearchResultsPayload = {
@@ -74,6 +97,7 @@ type CivicResearchPayload = {
   runId: string;
   skill: string;
   results: SearchResultsPayload;
+  candidateSources?: ResearchCandidateSource[];
 };
 
 type CivicResearchMutationData = {
@@ -124,6 +148,34 @@ function isResearchSource(value: unknown): value is ResearchSource {
   );
 }
 
+function isResearchCandidateSource(value: unknown): value is ResearchCandidateSource {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.candidateId === "string" &&
+    typeof candidate.sourceId === "string" &&
+    typeof candidate.title === "string" &&
+    typeof candidate.sourceType === "string" &&
+    typeof candidate.status === "string" &&
+    typeof candidate.candidateGraphKey === "string" &&
+    Array.isArray(candidate.proposedUseTags)
+  );
+}
+
+function sourceFromCandidate(candidate: ResearchCandidateSource): ResearchSource {
+  return {
+    id: candidate.sourceId,
+    name: candidate.title,
+    sourceType: candidate.sourceType,
+    uri: candidate.uri,
+    trustTier: candidate.trustTier,
+    candidateId: candidate.candidateId,
+    candidateGraphKey: candidate.candidateGraphKey,
+    proposedUseTags: candidate.proposedUseTags,
+    payload: candidate.payload,
+  };
+}
+
 function hasPromotionAnchor(
   promotionContext: ResearchPromotionContext | null | undefined,
 ): promotionContext is ResearchPromotionContext {
@@ -136,6 +188,7 @@ function hasPromotionAnchor(
 }
 
 function sourceUseTagsForSource(source: ResearchSource): string[] {
+  if (source.proposedUseTags?.length) return source.proposedUseTags;
   const haystack = `${source.sourceType} ${source.name}`.toLowerCase();
   if (
     haystack.includes("sanborn") ||
@@ -259,6 +312,23 @@ const CIVIC_RESEARCH_MUTATION = gql`
           sourceType
           trustTier
         }
+      }
+      candidateSources {
+        candidateId
+        runId
+        sourceId
+        title
+        sourceType
+        uri
+        trustTier
+        confidence
+        status
+        parcelRef
+        year
+        candidateGraphKey
+        promotionMutation
+        proposedUseTags
+        payload
       }
     }
   }
@@ -410,8 +480,10 @@ function SourceRow({
     void promote({
       runId,
       sourceId: source.id,
+      candidateId: source.candidateId,
       sourceType: source.sourceType,
       title: source.name,
+      uri: source.uri ?? undefined,
       parcelRef: promotionContext.parcelRef,
       buildingId: promotionContext.buildingId,
       buildingPartId: promotionContext.buildingPartId,
@@ -428,13 +500,18 @@ function SourceRow({
       payload: {
         civicResearchRunId: runId,
         civicResearchSkill: skill,
+        candidateId: source.candidateId ?? null,
+        candidateGraphKey: source.candidateGraphKey ?? null,
         trustTier: source.trustTier ?? null,
+        candidatePayload: source.payload ?? null,
       },
       anchorPayload: {
         ...(promotionContext.anchorPayload ?? {}),
         civicResearchRunId: runId,
         civicResearchSkill: skill,
         sourceId: source.id,
+        candidateId: source.candidateId ?? null,
+        candidateGraphKey: source.candidateGraphKey ?? null,
       },
     });
   }, [canPromote, promote, promotionContext, runId, skill, source]);
@@ -573,6 +650,13 @@ export function CivicResearchPanel({
 
   const sources = useMemo<ResearchSource[]>(() => {
     if (status.kind !== "ok") return [];
+    const candidates = status.payload.candidateSources;
+    if (Array.isArray(candidates)) {
+      const candidateSources = candidates
+        .filter(isResearchCandidateSource)
+        .map(sourceFromCandidate);
+      if (candidateSources.length > 0) return candidateSources;
+    }
     const raw = status.payload.results.sources;
     if (!Array.isArray(raw)) return [];
     return raw.filter(isResearchSource);

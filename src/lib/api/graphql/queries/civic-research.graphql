@@ -74,5 +74,22 @@ mutation CivicResearch(
         trustTier
       }
     }
+    candidateSources {
+      candidateId
+      runId
+      sourceId
+      title
+      sourceType
+      uri
+      trustTier
+      confidence
+      status
+      parcelRef
+      year
+      candidateGraphKey
+      promotionMutation
+      proposedUseTags
+      payload
+    }
   }
 }

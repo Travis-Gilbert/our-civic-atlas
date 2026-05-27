@@ -96,6 +96,11 @@ the canonical execution store for the live engine.
   engine/review loop a durable way to distinguish footprint, facade,
   ground-floor-use, date, contradiction, and other support without publishing
   unreviewed claims as final truth.
+- 2026-05-26: `civicResearch` now exposes `candidateSources` as an explicit
+  non-canonical source contract. Candidates have stable ids, proposed
+  source-use tags, and a `candidateGraphKey` for a future Civic RustyRed hot
+  graph, but promotion into `artifacts` + `artifact_anchors` still requires
+  the explicit `promoteResearchArtifact` save path.
 
 ## Follow-Up Work
 

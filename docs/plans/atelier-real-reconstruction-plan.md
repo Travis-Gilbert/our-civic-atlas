@@ -155,6 +155,13 @@ tenant-scoped `PersistArtifact` service path, writing selected `civicResearch`
 sources into `artifacts` + `artifact_anchors`; the frontend contract and hook
 are generated so the Research tab/Atelier panel can call it next.
 
+**Candidate-source contract update (2026-05-26):** `civicResearch` also returns
+`candidateSources`. These are reviewable, unsaved source candidates with stable
+ids, proposed source-use tags, and a `candidateGraphKey` suitable for a Civic
+RustyRed hot graph. They are intentionally not canonical evidence; PostGIS
+becomes durable truth only when the resident explicitly saves one through
+`promoteResearchArtifact`.
+
 **Reconstruct it:**
 
 - Run the engine's `run_full_pipeline` against the picked building with `year = N` for a year where evidence is strongest.
