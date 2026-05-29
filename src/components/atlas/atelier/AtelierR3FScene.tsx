@@ -22,10 +22,11 @@
  *     are computed in scene space
  */
 
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid } from "@react-three/drei";
-import type { BufferGeometry, Group } from "three";
+import { Matrix4, Quaternion, Vector3 } from "three";
+import type { BufferGeometry, Group, InstancedMesh } from "three";
 
 import {
   createFlatBoxGeometry,
@@ -90,6 +91,133 @@ function BuildingMesh({
         flatShading
       />
     </mesh>
+  );
+}
+
+type WindowInstance = {
+  position: [number, number, number];
+  scale: [number, number, number];
+};
+
+/**
+ * Derive a plausible window grid from the massing dimensions alone.
+ *
+ * The reconstruction spec is usually sparse (footprint + height + roof form
+ * only; bays, openings, and material are typically "not documented"). Rather
+ * than render a blank block we synthesize a regular facade: one opening per
+ * floor per bay on each of the four walls, sized from the footprint and
+ * height. This reads as a building, not a box, with zero extra spec data;
+ * richer per-opening data can refine it later.
+ *
+ * Coordinate frame matches `BuildingMesh` (world meters, building at origin):
+ *   x in [-width/2, +width/2], y in [0, height], z in [-depth/2, +depth/2].
+ * Walls span y in [0, wallTop] where wallTop = 0.85 * height (the roof cap
+ * occupies the top 15% per LostFlintGeometries).
+ */
+function computeWindowInstances(
+  widthMeters: number,
+  depthMeters: number,
+  heightMeters: number,
+): WindowInstance[] {
+  const wallTop = 0.85 * heightMeters;
+  // Degenerate footprints (data missing or a sliver) get no facade rather
+  // than a single distorted panel.
+  if (wallTop < 1.5 || widthMeters < 1.5 || depthMeters < 1.5) return [];
+
+  const FLOOR_H = 3.4; // meters per storey
+  const BAY = 3.2; // meters between window centers
+  const THICK = 0.12; // panel depth; pokes ~half-proud of the wall
+
+  const rows = Math.max(1, Math.round(wallTop / FLOOR_H));
+  const rowYs = Array.from(
+    { length: rows },
+    (_, i) => ((i + 0.5) / rows) * wallTop,
+  );
+  const winH = Math.min(1.9, (wallTop / rows) * 0.55);
+  const winW = Math.min(1.4, BAY * 0.5);
+
+  const colCenters = (wallLength: number): number[] => {
+    const cols = Math.max(1, Math.round(wallLength / BAY));
+    return Array.from(
+      { length: cols },
+      (_, j) => ((j + 0.5) / cols) * wallLength - wallLength / 2,
+    );
+  };
+
+  const out: WindowInstance[] = [];
+
+  // Front and back walls (normal along z): openings spread across the width.
+  for (const z of [depthMeters / 2, -depthMeters / 2]) {
+    const proud = Math.sign(z) * (THICK / 2 - 0.01);
+    for (const x of colCenters(widthMeters)) {
+      for (const y of rowYs) {
+        out.push({ position: [x, y, z + proud], scale: [winW, winH, THICK] });
+      }
+    }
+  }
+
+  // Left and right walls (normal along x): openings spread across the depth.
+  for (const x of [widthMeters / 2, -widthMeters / 2]) {
+    const proud = Math.sign(x) * (THICK / 2 - 0.01);
+    for (const z of colCenters(depthMeters)) {
+      for (const y of rowYs) {
+        out.push({ position: [x + proud, y, z], scale: [THICK, winH, winW] });
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Procedural facade overlay: a grid of recessed dark panels that read as
+ * window openings on the porcelain ghost massing. Rendered as a single
+ * `InstancedMesh` sibling of `BuildingMesh` (world space, so panels stay
+ * square under the building's non-uniform scale). Returns nothing for
+ * degenerate footprints so a missing-data building stays a clean block.
+ */
+function BuildingFacade({
+  reconstruction,
+}: {
+  reconstruction: AtelierDossier["reconstruction"];
+}) {
+  const { widthMeters, depthMeters } = reconstruction.footprint;
+  const heightMeters = reconstruction.heightMeters;
+  const instances = useMemo(
+    () => computeWindowInstances(widthMeters, depthMeters, heightMeters),
+    [widthMeters, depthMeters, heightMeters],
+  );
+  const meshRef = useRef<InstancedMesh>(null);
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const matrix = new Matrix4();
+    const quaternion = new Quaternion();
+    const position = new Vector3();
+    const scale = new Vector3();
+    instances.forEach((instance, i) => {
+      position.set(...instance.position);
+      scale.set(...instance.scale);
+      matrix.compose(position, quaternion, scale);
+      mesh.setMatrixAt(i, matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [instances]);
+
+  if (instances.length === 0) return null;
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, instances.length]}
+    >
+      <boxGeometry args={[1, 1, 1]} />
+      {/* Darker than GHOST_PALETTE.shadow so the openings read as recesses
+          against the porcelain massing. A touch of metalness gives a faint
+          glassy catch under the key light. */}
+      <meshStandardMaterial color="#14100b" roughness={0.5} metalness={0.1} />
+    </instancedMesh>
   );
 }
 
@@ -220,6 +348,7 @@ export function AtelierR3FScene({
 
         <ChoreographedCameraGroup choreographyState={choreographyState}>
           <BuildingMesh reconstruction={reconstruction} />
+          <BuildingFacade reconstruction={reconstruction} />
           <AtelierConflictMarkers
             conflicts={conflicts}
             widthMeters={widthMeters}
