@@ -53,7 +53,11 @@
 
 import { Client, cacheExchange, fetchExchange } from "urql";
 
-const DEFAULT_ENDPOINT = "http://127.0.0.1:4001/graphql";
+// Default to the live backend so deployed builds (and local dev without a
+// backend on :4001) reach it. Override with NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL
+// (e.g. http://127.0.0.1:4001/graphql) when running a local backend.
+const DEFAULT_ENDPOINT =
+  "https://our-civic-atlas-backend-production.up.railway.app/graphql";
 
 function getEndpoint(): string {
   return (
