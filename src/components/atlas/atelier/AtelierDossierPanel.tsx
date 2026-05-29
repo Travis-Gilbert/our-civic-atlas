@@ -55,8 +55,40 @@ function parcelRefFromRouteParcelId(parcelId: string): string {
   return parcelId;
 }
 
-function pointWkt(position: readonly [number, number]): string | undefined {
-  const [lng, lat] = position;
+/**
+ * Build a WKT POINT from a reconstruction's position.
+ *
+ * The GraphQL `LatLng` scalar is mapped to `[number, number]` by codegen
+ * (codegen.ts), but that is only a frontend assertion: a custom scalar has no
+ * compiler-checked JSON shape. The fixture/synthesizer path emits a real
+ * `[lng, lat]` tuple, while the live backend serializes the scalar as a
+ * `{ lat, lng }` object. Destructuring the object as an array threw
+ * "position is not iterable" and crashed the whole route (including the 3D
+ * scene) on mount. Accept both shapes and degrade to `undefined` for anything
+ * else, matching the existing contract of returning `undefined` on bad input.
+ */
+function pointWkt(
+  position:
+    | readonly [number, number]
+    | { lat?: number; lng?: number; latitude?: number; longitude?: number }
+    | null
+    | undefined,
+): string | undefined {
+  if (!position) return undefined;
+  let lng: number | undefined;
+  let lat: number | undefined;
+  if (Array.isArray(position)) {
+    [lng, lat] = position as readonly [number, number];
+  } else if (typeof position === "object") {
+    const p = position as {
+      lat?: number;
+      lng?: number;
+      latitude?: number;
+      longitude?: number;
+    };
+    lng = p.lng ?? p.longitude;
+    lat = p.lat ?? p.latitude;
+  }
   if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined;
   return `POINT(${lng} ${lat})`;
 }
