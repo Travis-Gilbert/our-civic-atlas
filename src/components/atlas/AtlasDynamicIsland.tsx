@@ -128,8 +128,40 @@ const TAB_LABELS: Record<IslandTab, string> = {
   horizon: "Horizon",
 };
 
-function pointWkt(position: readonly [number, number]): string | undefined {
-  const [lng, lat] = position;
+/**
+ * Build a WKT POINT from a building's position.
+ *
+ * The GraphQL `LatLng` scalar is mapped to `[number, number]` by codegen, but
+ * that is only a frontend assertion: a custom scalar has no compiler-checked
+ * JSON shape. The live backend may serialize it as `null` or a `{ lat, lng }`
+ * object, while the fixture path emits a real `[lng, lat]` tuple. Destructuring
+ * a non-array as an array threw "position is not iterable" and crashed the
+ * surface. Accept both shapes and degrade to `undefined` for anything else,
+ * matching the existing contract of returning `undefined` on bad input. (Twin
+ * of the guard in AtelierDossierPanel.tsx.)
+ */
+function pointWkt(
+  position:
+    | readonly [number, number]
+    | { lat?: number; lng?: number; latitude?: number; longitude?: number }
+    | null
+    | undefined,
+): string | undefined {
+  if (!position) return undefined;
+  let lng: number | undefined;
+  let lat: number | undefined;
+  if (Array.isArray(position)) {
+    [lng, lat] = position as readonly [number, number];
+  } else if (typeof position === "object") {
+    const p = position as {
+      lat?: number;
+      lng?: number;
+      latitude?: number;
+      longitude?: number;
+    };
+    lng = p.lng ?? p.longitude;
+    lat = p.lat ?? p.latitude;
+  }
   if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined;
   return `POINT(${lng} ${lat})`;
 }
