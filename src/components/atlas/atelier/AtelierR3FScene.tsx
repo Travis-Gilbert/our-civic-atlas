@@ -94,38 +94,49 @@ function BuildingMesh({
   );
 }
 
-type WindowInstance = {
+type FacadeBox = {
   position: [number, number, number];
   scale: [number, number, number];
 };
 
 /**
- * Derive a plausible window grid from the massing dimensions alone.
+ * Derive a plausible facade from the massing dimensions alone.
  *
  * The reconstruction spec is usually sparse (footprint + height + roof form
  * only; bays, openings, and material are typically "not documented"). Rather
- * than render a blank block we synthesize a regular facade: one opening per
- * floor per bay on each of the four walls, sized from the footprint and
- * height. This reads as a building, not a box, with zero extra spec data;
- * richer per-opening data can refine it later.
+ * than render a blank block we synthesize a regular facade with three
+ * elements, all sized from the footprint and height:
+ *   - window openings, one per bay per floor on every wall;
+ *   - a ground-level door on the center bay of the frontage (the z-facing
+ *     walls, per the LostFlintGeometries frontage convention);
+ *   - a slim string-course band wrapping the building at the ground-floor head.
+ * This reads as a building, not a box, with zero extra spec data; richer
+ * per-opening data can refine it later.
  *
- * Coordinate frame matches `BuildingMesh` (world meters, building at origin):
+ * Coordinate frame matches `BuildingMesh` (world meters, building at origin,
+ * no rotation applied):
  *   x in [-width/2, +width/2], y in [0, height], z in [-depth/2, +depth/2].
  * Walls span y in [0, wallTop] where wallTop = 0.85 * height (the roof cap
- * occupies the top 15% per LostFlintGeometries).
+ * occupies the top 15% per LostFlintGeometries), so nothing punches the roof.
+ *
+ * Returns two instance sets: `openings` (dark recesses: windows + door) and
+ * `trim` (pale string course), rendered as separate InstancedMeshes because a
+ * single InstancedMesh carries exactly one material.
  */
-function computeWindowInstances(
+function computeFacade(
   widthMeters: number,
   depthMeters: number,
   heightMeters: number,
-): WindowInstance[] {
+): { openings: FacadeBox[]; trim: FacadeBox[] } {
   const wallTop = 0.85 * heightMeters;
   // Degenerate footprints (data missing or a sliver) get no facade rather
   // than a single distorted panel.
-  if (wallTop < 1.5 || widthMeters < 1.5 || depthMeters < 1.5) return [];
+  if (wallTop < 1.5 || widthMeters < 1.5 || depthMeters < 1.5) {
+    return { openings: [], trim: [] };
+  }
 
   const FLOOR_H = 3.4; // meters per storey
-  const BAY = 3.2; // meters between window centers
+  const BAY = 2.8; // meters between opening centers
   const THICK = 0.12; // panel depth; pokes ~half-proud of the wall
 
   const rows = Math.max(1, Math.round(wallTop / FLOOR_H));
@@ -135,6 +146,8 @@ function computeWindowInstances(
   );
   const winH = Math.min(1.9, (wallTop / rows) * 0.55);
   const winW = Math.min(1.4, BAY * 0.5);
+  const doorH = Math.min(2.2, wallTop * 0.85);
+  const doorW = Math.min(1.5, BAY * 0.62);
 
   const colCenters = (wallLength: number): number[] => {
     const cols = Math.max(1, Math.round(wallLength / BAY));
@@ -144,49 +157,86 @@ function computeWindowInstances(
     );
   };
 
-  const out: WindowInstance[] = [];
+  const openings: FacadeBox[] = [];
 
-  // Front and back walls (normal along z): openings spread across the width.
+  // Front and back walls (normal along z = the frontage). Windows on every
+  // bay/floor, except the ground-floor center bay, which becomes a door
+  // (anchored to the ground, so its center sits at doorH / 2).
   for (const z of [depthMeters / 2, -depthMeters / 2]) {
     const proud = Math.sign(z) * (THICK / 2 - 0.01);
-    for (const x of colCenters(widthMeters)) {
-      for (const y of rowYs) {
-        out.push({ position: [x, y, z + proud], scale: [winW, winH, THICK] });
-      }
-    }
+    const cols = colCenters(widthMeters);
+    const centerCol = Math.floor(cols.length / 2);
+    cols.forEach((x, ci) => {
+      rowYs.forEach((y, ri) => {
+        if (ri === 0 && ci === centerCol) {
+          openings.push({
+            position: [x, doorH / 2, z + proud],
+            scale: [doorW, doorH, THICK],
+          });
+        } else {
+          openings.push({
+            position: [x, y, z + proud],
+            scale: [winW, winH, THICK],
+          });
+        }
+      });
+    });
   }
 
-  // Left and right walls (normal along x): openings spread across the depth.
+  // Left and right walls (normal along x): windows only.
   for (const x of [widthMeters / 2, -widthMeters / 2]) {
     const proud = Math.sign(x) * (THICK / 2 - 0.01);
     for (const z of colCenters(depthMeters)) {
       for (const y of rowYs) {
-        out.push({ position: [x + proud, y, z], scale: [THICK, winH, winW] });
+        openings.push({
+          position: [x + proud, y, z],
+          scale: [THICK, winH, winW],
+        });
       }
     }
   }
 
-  return out;
+  // String course: a slim pale band wrapping all four walls. Between storeys
+  // for a multi-floor building, just under the eave for a single-storey
+  // cottage, so it always reads as a water table rather than floating.
+  const bandY = rows >= 2 ? FLOOR_H : wallTop * 0.92;
+  const bandH = 0.18;
+  const bandThick = 0.16;
+  const trim: FacadeBox[] = [];
+  for (const z of [depthMeters / 2, -depthMeters / 2]) {
+    const proud = Math.sign(z) * (bandThick / 2 - 0.02);
+    trim.push({
+      position: [0, bandY, z + proud],
+      scale: [widthMeters * 0.98, bandH, bandThick],
+    });
+  }
+  for (const x of [widthMeters / 2, -widthMeters / 2]) {
+    const proud = Math.sign(x) * (bandThick / 2 - 0.02);
+    trim.push({
+      position: [x + proud, bandY, 0],
+      scale: [bandThick, bandH, depthMeters * 0.98],
+    });
+  }
+
+  return { openings, trim };
 }
 
 /**
- * Procedural facade overlay: a grid of recessed dark panels that read as
- * window openings on the porcelain ghost massing. Rendered as a single
- * `InstancedMesh` sibling of `BuildingMesh` (world space, so panels stay
- * square under the building's non-uniform scale). Returns nothing for
- * degenerate footprints so a missing-data building stays a clean block.
+ * Renders a set of unit-box instances under one shared material as a single
+ * InstancedMesh. Matrices are composed once in a layout effect (before paint,
+ * so instances never flash at the origin on first mount).
  */
-function BuildingFacade({
-  reconstruction,
+function InstancedBoxes({
+  instances,
+  color,
+  roughness,
+  metalness,
 }: {
-  reconstruction: AtelierDossier["reconstruction"];
+  instances: FacadeBox[];
+  color: string;
+  roughness: number;
+  metalness: number;
 }) {
-  const { widthMeters, depthMeters } = reconstruction.footprint;
-  const heightMeters = reconstruction.heightMeters;
-  const instances = useMemo(
-    () => computeWindowInstances(widthMeters, depthMeters, heightMeters),
-    [widthMeters, depthMeters, heightMeters],
-  );
   const meshRef = useRef<InstancedMesh>(null);
 
   useLayoutEffect(() => {
@@ -213,11 +263,55 @@ function BuildingFacade({
       args={[undefined, undefined, instances.length]}
     >
       <boxGeometry args={[1, 1, 1]} />
-      {/* Darker than GHOST_PALETTE.shadow so the openings read as recesses
-          against the porcelain massing. A touch of metalness gives a faint
-          glassy catch under the key light. */}
-      <meshStandardMaterial color="#14100b" roughness={0.5} metalness={0.1} />
+      <meshStandardMaterial
+        color={color}
+        roughness={roughness}
+        metalness={metalness}
+      />
     </instancedMesh>
+  );
+}
+
+/**
+ * Procedural facade overlay: window/door openings (dark recesses) plus a pale
+ * string course, sized from the footprint and height. Sibling of BuildingMesh
+ * in world space (BuildingMesh applies no rotation), so panels stay square and
+ * wall-aligned. Renders nothing for degenerate footprints so a missing-data
+ * building stays a clean block.
+ */
+function BuildingFacade({
+  reconstruction,
+}: {
+  reconstruction: AtelierDossier["reconstruction"];
+}) {
+  const { widthMeters, depthMeters } = reconstruction.footprint;
+  const heightMeters = reconstruction.heightMeters;
+  const { openings, trim } = useMemo(
+    () => computeFacade(widthMeters, depthMeters, heightMeters),
+    [widthMeters, depthMeters, heightMeters],
+  );
+
+  if (openings.length === 0 && trim.length === 0) return null;
+
+  return (
+    <>
+      {/* Openings: darker than GHOST_PALETTE.shadow so they read as recesses
+          against the porcelain massing; a touch of metalness for a faint
+          glassy catch under the key light. */}
+      <InstancedBoxes
+        instances={openings}
+        color="#14100b"
+        roughness={0.5}
+        metalness={0.1}
+      />
+      {/* String course: the lightest ghost tone, reading as a raised molding. */}
+      <InstancedBoxes
+        instances={trim}
+        color={GHOST_PALETTE.highlight}
+        roughness={0.7}
+        metalness={0.02}
+      />
+    </>
   );
 }
 
