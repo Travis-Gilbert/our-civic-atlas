@@ -17,9 +17,22 @@ function getPlannerBackendEndpoint(): string {
   );
 }
 
+function currentOrigin(req: NextRequest): string {
+  const hostHeader = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const host = hostHeader?.split(",")[0]?.trim();
+
+  if (host) {
+    const proto =
+      req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "http";
+    return `${proto}://${host}`;
+  }
+
+  return process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
+}
+
 export async function POST(req: NextRequest) {
   const signOutUrl = new URL(`${getPlannerBackendEndpoint()}/auth/sign-out`);
-  signOutUrl.searchParams.set("returnTo", new URL(PLANNER_BASE, req.url).toString());
+  signOutUrl.searchParams.set("returnTo", `${currentOrigin(req)}${PLANNER_BASE}`);
 
   return NextResponse.redirect(signOutUrl);
 }
