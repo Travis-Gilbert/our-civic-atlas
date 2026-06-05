@@ -17,9 +17,9 @@
  * graphql-server sidecar on :4010 that issued an HttpOnly session
  * cookie (so this provider sent `credentials: "include"`). That
  * sidecar was removed; the Axum service implements the same schema
- * natively. We now match the read client exactly: no credentials,
- * no service-tier token in the browser (service-tier auth stays
- * server-side per CLAUDE.md / AGENTS.md).
+ * natively and still owns the HttpOnly planner cookie. Browser calls
+ * include credentials; service-tier auth stays server-side per
+ * CLAUDE.md / AGENTS.md.
  */
 
 import { useMemo, type ReactNode } from "react";
@@ -43,6 +43,7 @@ export function PlannerClientProvider({ children }: { children: ReactNode }) {
         url: endpoint(),
         exchanges: [cacheExchange, fetchExchange],
         fetchOptions: () => ({
+          credentials: "include",
           headers: { "content-type": "application/json" },
         }),
         requestPolicy: "cache-and-network",
