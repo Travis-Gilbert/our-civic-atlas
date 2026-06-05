@@ -49,9 +49,15 @@ export interface PlannerPaletteProps {
   readonly mode: PaletteMode;
   readonly setMode: (mode: PaletteMode) => void;
   readonly canEdit: boolean;
+  readonly disabledMessage?: string;
 }
 
-export function PlannerPalette({ mode, setMode, canEdit }: PlannerPaletteProps) {
+export function PlannerPalette({
+  mode,
+  setMode,
+  canEdit,
+  disabledMessage,
+}: PlannerPaletteProps) {
   const toggleDraw = useCallback(
     (button: PaletteCategoryButton) => {
       if (mode.kind === "draw" && mode.category === button.category) {
@@ -74,7 +80,7 @@ export function PlannerPalette({ mode, setMode, canEdit }: PlannerPaletteProps) 
   if (!canEdit) {
     return (
       <aside className="planner-palette absolute bottom-6 right-6 z-[20] rounded-md border border-stone-300/80 bg-amber-50/95 px-3 py-2 text-xs text-stone-600 shadow">
-        Sign in to edit
+        {disabledMessage ?? "Sign in to edit"}
       </aside>
     );
   }

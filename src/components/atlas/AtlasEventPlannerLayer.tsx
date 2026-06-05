@@ -64,7 +64,7 @@ export type AtlasEventPlannerCategory =
  * not load-bearing; categories not in the map fall back to the
  * `amenity` color so unknown categories never render invisible.
  */
-const CATEGORY_COLOR: Record<AtlasEventPlannerCategory, [number, number, number, number]> = {
+export const CATEGORY_COLOR: Record<AtlasEventPlannerCategory, [number, number, number, number]> = {
   vendor: [99, 56, 142, 220],
   music: [217, 162, 59, 220],
   parking: [193, 74, 44, 220],

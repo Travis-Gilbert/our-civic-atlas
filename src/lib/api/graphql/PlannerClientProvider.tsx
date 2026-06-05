@@ -8,11 +8,18 @@
  * provider mounts that client once at the top of PlannerClient so
  * every component inside can call useQuery / useMutation directly.
  *
- * The client uses `credentials: "include"` because the GraphQL
- * sidecar issues an HttpOnly session cookie on its own origin
- * (porchfest_planner_session). Without credentials:include, the
- * cookie wouldn't ride along on the cross-origin fetch in dev where
- * the sidecar lives on :4010 and the planner on :3000.
+ * Endpoint: the Axum civic-atlas-server's native GraphQL listener
+ * (default http://127.0.0.1:4001/graphql in local dev), the same
+ * boundary the server-side read client in `client.ts` talks to.
+ * Production overrides via NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL.
+ *
+ * Historical: an earlier slice routed browser writes through a Node
+ * graphql-server sidecar on :4010 that issued an HttpOnly session
+ * cookie (so this provider sent `credentials: "include"`). That
+ * sidecar was removed; the Axum service implements the same schema
+ * natively. We now match the read client exactly: no credentials,
+ * no service-tier token in the browser (service-tier auth stays
+ * server-side per CLAUDE.md / AGENTS.md).
  */
 
 import { useMemo, type ReactNode } from "react";
@@ -23,12 +30,10 @@ import {
   fetchExchange,
 } from "urql";
 
-const DEFAULT_ENDPOINT = "http://127.0.0.1:4010/graphql";
+import { resolveBrowserGraphqlEndpoint } from "./endpoints";
 
 function endpoint(): string {
-  return (
-    process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL ?? DEFAULT_ENDPOINT
-  );
+  return resolveBrowserGraphqlEndpoint();
 }
 
 export function PlannerClientProvider({ children }: { children: ReactNode }) {
@@ -38,7 +43,6 @@ export function PlannerClientProvider({ children }: { children: ReactNode }) {
         url: endpoint(),
         exchanges: [cacheExchange, fetchExchange],
         fetchOptions: () => ({
-          credentials: "include",
           headers: { "content-type": "application/json" },
         }),
         requestPolicy: "cache-and-network",

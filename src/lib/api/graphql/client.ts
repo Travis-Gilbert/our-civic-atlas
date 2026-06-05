@@ -52,19 +52,16 @@
  */
 
 import { Client, cacheExchange, fetchExchange } from "urql";
+import { resolveServerGraphqlEndpoint } from "./endpoints";
 
 // Default to the live backend so deployed builds (and local dev without a
 // backend on :4001) reach it. Override with NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL
 // (e.g. http://127.0.0.1:4001/graphql) when running a local backend.
-const DEFAULT_ENDPOINT =
-  "https://our-civic-atlas-backend-production.up.railway.app/graphql";
+// In a GCLBA fork, set NEXT_PUBLIC_CIVIC_ATLAS_DEPLOYMENT_TARGET=gclba and
+// point GCLBA_GRAPHQL_URL or NEXT_PUBLIC_GCLBA_GRAPHQL_URL at Django.
 
 function getEndpoint(): string {
-  return (
-    process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL ??
-    process.env.CIVIC_ATLAS_GRAPHQL_URL ??
-    DEFAULT_ENDPOINT
-  );
+  return resolveServerGraphqlEndpoint();
 }
 
 function getAuthHeaders(): Record<string, string> {
