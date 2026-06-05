@@ -10,14 +10,12 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { resolveServerGraphqlEndpoint } from "@/lib/api/graphql/endpoints";
+
 const PLANNER_BASE = "/open-flint-atlas/plan/porchfest-2026";
 
 function getPlannerBackendEndpoint(): string {
-  return (
-    process.env.CIVIC_ATLAS_GRAPHQL_URL?.replace(/\/graphql$/, "") ??
-    process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL?.replace(/\/graphql$/, "") ??
-    "http://127.0.0.1:4001"
-  );
+  return resolveServerGraphqlEndpoint().replace(/\/graphql$/, "");
 }
 
 async function currentOrigin(): Promise<string> {

@@ -21,6 +21,7 @@ import {
   EventPlacementsDocument,
   EventTasksListDocument,
 } from "@/lib/api/graphql/generated/graphql";
+import { resolveBrowserGraphqlEndpoint } from "@/lib/api/graphql/endpoints";
 
 interface PlannerNotification {
   readonly op: "INSERT" | "UPDATE" | "DELETE";
@@ -34,10 +35,7 @@ interface PlannerNotification {
 function getSseEndpoint(): string {
   // Same env precedence as the urql client. We strip a trailing
   // /graphql so the SSE path can be appended cleanly.
-  const base =
-    process.env.NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL?.replace(/\/graphql$/, "") ??
-    process.env.CIVIC_ATLAS_GRAPHQL_URL?.replace(/\/graphql$/, "") ??
-    "http://127.0.0.1:4010";
+  const base = resolveBrowserGraphqlEndpoint().replace(/\/graphql$/, "");
   return `${base}/sse/event-planner`;
 }
 
