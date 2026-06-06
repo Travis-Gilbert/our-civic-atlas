@@ -25,6 +25,7 @@
  */
 
 import flintData from "@/data/open-flint-atlas/fixtures/flint-building-addresses.json";
+import { getAddressOverride } from "./flint-address-overrides";
 
 export interface FlintBuildingAddress {
   /** Street address as the city records it, e.g. "725 GARLAND ST". */
@@ -83,16 +84,59 @@ export function formatStreetAddress(raw: string): string {
  * `osmAddress` is the building feature's existing `address` property (the
  * OSM tag), passed through unchanged so it can serve as the fallback.
  */
+/** Which source a resolved address came from. */
+export type AddressSource = "edit" | "city" | "osm";
+
+export interface ResolvedAddress {
+  readonly text: string;
+  readonly source: AddressSource;
+}
+
+/** Human-readable provenance label for a resolved address. */
+export function addressSourceLabel(source: AddressSource): string {
+  switch (source) {
+    case "edit":
+      return "Edited";
+    case "city":
+      return "City of Flint GIS";
+    case "osm":
+      return "OpenStreetMap";
+  }
+}
+
+function coerceOsmId(osmId: unknown): string | number | null {
+  return typeof osmId === "string" || typeof osmId === "number" ? osmId : null;
+}
+
+/**
+ * Resolve a building's address with full precedence and provenance:
+ * manual edit > City of Flint parcel > OpenStreetMap tag > none.
+ */
+export function resolveBuildingAddressDetailed(
+  osmId: unknown,
+  osmAddress: unknown,
+): ResolvedAddress | null {
+  const id = coerceOsmId(osmId);
+  const override = getAddressOverride(id);
+  if (override) return { text: override, source: "edit" };
+  const flint = getFlintBuildingAddress(id);
+  if (flint) return { text: formatStreetAddress(flint.address), source: "city" };
+  if (typeof osmAddress === "string" && osmAddress.trim().length > 0) {
+    return { text: osmAddress.trim(), source: "osm" };
+  }
+  return null;
+}
+
+/**
+ * Resolve the display address for a building (precedence above). Returns a
+ * display-ready string, or null when no source has an address.
+ *
+ * `osmAddress` is the building feature's existing `address` property (the
+ * OSM tag), passed through unchanged so it can serve as the fallback.
+ */
 export function resolveBuildingAddress(
   osmId: unknown,
   osmAddress: unknown,
 ): string | null {
-  const id =
-    typeof osmId === "string" || typeof osmId === "number" ? osmId : null;
-  const flint = getFlintBuildingAddress(id);
-  if (flint) return formatStreetAddress(flint.address);
-  if (typeof osmAddress === "string" && osmAddress.trim().length > 0) {
-    return osmAddress.trim();
-  }
-  return null;
+  return resolveBuildingAddressDetailed(osmId, osmAddress)?.text ?? null;
 }

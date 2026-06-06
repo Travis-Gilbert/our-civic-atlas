@@ -15,6 +15,14 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import {
+  addressSourceLabel,
+  resolveBuildingAddressDetailed,
+} from "@/lib/atlas/flint-building-addresses";
+import {
+  BuildingAddressEditor,
+  useAddressOverride,
+} from "@/components/atlas/BuildingAddressEditor";
 import type {
   AtlasSceneCameraBand,
   AtlasSceneDetailLevel,
@@ -1029,12 +1037,16 @@ function nounPhraseFor(typologyClass: string | null): string {
 }
 
 function locationDescriptorFor(building: SelectedBuilding): string {
-  // Address is the strongest descriptor when present (carries the
-  // street name implicitly). Otherwise fall back to a city label —
-  // a proper nearest-corridor / nearest-ward spatial join is a
-  // follow-up; for now "Flint, Michigan" is the honest minimum that
-  // doesn't fake a precision we don't have.
-  if (building.address) return building.address;
+  // Address is the strongest descriptor when present. Resolve through the
+  // override > City of Flint > OSM precedence so a saved edit shows here
+  // immediately. Otherwise fall back to a city label — a proper nearest-
+  // corridor / nearest-ward spatial join is a follow-up; "Flint, Michigan"
+  // is the honest minimum that doesn't fake a precision we don't have.
+  const resolved = resolveBuildingAddressDetailed(
+    building.osm_id,
+    building.address,
+  );
+  if (resolved) return resolved.text;
   return "Flint, Michigan";
 }
 
@@ -1045,10 +1057,19 @@ function BuildingDossier({
   building: SelectedBuilding;
   onClear?: () => void;
 }) {
+  // Re-render when this building's override changes so the address line and
+  // the editor's source chip stay live after a save.
+  useAddressOverride(building.osm_id);
+  const liveAddress = resolveBuildingAddressDetailed(
+    building.osm_id,
+    building.address,
+  );
+  const [editingAddress, setEditingAddress] = useState(false);
+
   const noun = nounPhraseFor(building.typology_class);
   const location = locationDescriptorFor(building);
   const hasName = Boolean(building.name?.trim());
-  const hasAddress = Boolean(building.address?.trim());
+  const hasAddress = Boolean(liveAddress);
   const showOsmIdSubtitle = !hasName && !hasAddress;
 
   // PT-501: find nearest historical reconstruction; if within range,
@@ -1091,6 +1112,49 @@ function BuildingDossier({
           </button>
         ) : null}
       </header>
+
+      <section
+        aria-labelledby="building-dossier-address-heading"
+        className="border-b border-[rgba(42,36,25,0.08)] px-4 py-3"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3
+            id="building-dossier-address-heading"
+            className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]"
+          >
+            Address
+          </h3>
+          {!editingAddress ? (
+            <button
+              type="button"
+              onClick={() => setEditingAddress(true)}
+              className="shrink-0 rounded-[8px] border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.55)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)] transition-colors hover:bg-[rgba(255,255,255,0.85)] hover:text-[color:var(--ctx-ink)]"
+            >
+              {liveAddress ? "Edit" : "Add"}
+            </button>
+          ) : null}
+        </div>
+        {editingAddress ? (
+          <div className="mt-2">
+            <BuildingAddressEditor
+              osmId={building.osm_id}
+              osmAddress={building.address}
+              onClose={() => setEditingAddress(false)}
+            />
+          </div>
+        ) : (
+          <div className="mt-1.5 flex items-baseline justify-between gap-2">
+            <p className="text-[13px] leading-[1.5] text-[color:var(--ctx-ink)]">
+              {liveAddress ? liveAddress.text : "No address on record"}
+            </p>
+            {liveAddress ? (
+              <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
+                {addressSourceLabel(liveAddress.source)}
+              </span>
+            ) : null}
+          </div>
+        )}
+      </section>
 
       <section
         aria-labelledby="building-dossier-evidence-heading"

@@ -37,6 +37,8 @@ import { useIsMobile } from "@/lib/atlas/use-is-mobile";
 import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
+import { BuildingAddressEditor } from "@/components/atlas/BuildingAddressEditor";
+import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import {
   type AtlasEventPlannerCategory,
   type AtlasEventPlannerPlacement,
@@ -359,6 +361,12 @@ function PorchfestPlannerWorkspace({
   // The right task rail is collapsible and collapsed by default; the
   // island is the at-a-glance task surface, the rail is full management.
   const [taskRailOpen, setTaskRailOpen] = useState(false);
+  // Step 3: mode-gated building address editing. When on, building clicks
+  // open the address editor (otherwise clicks stay with the placement tools).
+  const [addressEditMode, setAddressEditMode] = useState(false);
+  const [buildingForEdit, setBuildingForEdit] = useState<SelectedBuilding | null>(
+    null,
+  );
   // On phones the whole chrome folds into the bottom island.
   const isMobile = useIsMobile();
 
@@ -1056,7 +1064,41 @@ function PorchfestPlannerWorkspace({
           deckLayerPointerDragHandler={plannerPointerDragHandler}
           className="h-full w-full"
           onMapReady={setMapRef}
+          onBuildingSelect={addressEditMode ? setBuildingForEdit : undefined}
         />
+
+        {/* Address editor (Step 3). Mode-gated: building clicks only open the
+            editor while this mode is on, so the planner's placement tools keep
+            the click otherwise. The same override store + resolver back the
+            atlas building dossier and the map hover tooltip, so a correction
+            here shows everywhere. */}
+        <div className="pointer-events-none absolute right-4 top-4 z-20 flex w-[min(300px,calc(100vw-2rem))] flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setAddressEditMode((on) => !on);
+              setBuildingForEdit(null);
+            }}
+            aria-pressed={addressEditMode}
+            className="planner-panel pointer-events-auto px-3 py-1.5 text-[12px] font-medium text-[color:var(--ctx-ink)]"
+          >
+            {addressEditMode ? "Editing addresses · Done" : "Edit addresses"}
+          </button>
+          {addressEditMode && !buildingForEdit ? (
+            <p className="planner-panel pointer-events-none px-2 py-1 text-[11px] leading-4 text-[color:var(--ctx-ink-soft)]">
+              Click a building to edit its address.
+            </p>
+          ) : null}
+          {buildingForEdit ? (
+            <div className="pointer-events-auto w-full">
+              <BuildingAddressEditor
+                osmId={buildingForEdit.osm_id}
+                osmAddress={buildingForEdit.address}
+                onClose={() => setBuildingForEdit(null)}
+              />
+            </div>
+          ) : null}
+        </div>
 
         {/* Left column (desktop only; on mobile it folds into the island).
             The container is pointer-transparent so the gap between panels
