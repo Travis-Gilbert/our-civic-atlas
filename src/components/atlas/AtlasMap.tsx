@@ -33,6 +33,7 @@ import {
   getAtlasBoundaryOutlineFeature,
 } from "@/lib/atlas/atlas-boundary";
 import osmBuildings from "@/data/open-flint-atlas/fixtures/osm-buildings.json";
+import { resolveBuildingAddress } from "@/lib/atlas/flint-building-addresses";
 import osmInfrastructure from "@/data/open-flint-atlas/fixtures/osm-infrastructure.json";
 import { useRouter } from "next/navigation";
 import { createLostFlintDeckLayers } from "@/components/atlas/AtlasLostFlintDeckLayer";
@@ -2066,10 +2067,9 @@ export function AtlasMap({
         typeof props.name === "string" && props.name.trim().length > 0
           ? props.name.trim()
           : null;
-      const address =
-        typeof props.address === "string" && props.address.trim().length > 0
-          ? props.address.trim()
-          : null;
+      // Address precedence: City of Flint parcel (authoritative, geometric
+      // point-in-polygon join) > OpenStreetMap tag > none. No geocoding.
+      const address = resolveBuildingAddress(rawOsmId, props.address);
       const typology_class =
         typeof props.typology_class === "string" ? props.typology_class : null;
       const typology_confidence =
@@ -2167,10 +2167,7 @@ export function AtlasMap({
             typeof props.name === "string" && props.name.trim().length > 0
               ? props.name.trim()
               : null,
-          address:
-            typeof props.address === "string" && props.address.trim().length > 0
-              ? props.address.trim()
-              : null,
+          address: resolveBuildingAddress(rawOsmId, props.address),
           typology_class:
             typeof props.typology_class === "string"
               ? props.typology_class
@@ -3243,9 +3240,21 @@ export function AtlasMap({
           <div className="text-[color:var(--ctx-ink)]">
             {hoverState.building.typology_class ?? "Unclassified"}
           </div>
-          <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
-            {hoverState.building.name ?? hoverState.building.address ?? "Mapped building"}
-          </div>
+          {hoverState.building.address ? (
+            <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
+              {hoverState.building.address}
+            </div>
+          ) : null}
+          {hoverState.building.name ? (
+            <div className="text-[color:var(--ctx-ink-mute)] normal-case tracking-[0.04em]">
+              {hoverState.building.name}
+            </div>
+          ) : null}
+          {!hoverState.building.address && !hoverState.building.name ? (
+            <div className="text-[color:var(--ctx-ink-soft)] normal-case tracking-[0.04em]">
+              Mapped building
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
