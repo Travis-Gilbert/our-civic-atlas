@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { resolveServerGraphqlEndpoint } from "@/lib/api/graphql/endpoints";
 
-const PLANNER_BASE = "/open-flint-atlas/plan/porchfest-2026";
+const PLANNER_BASE = "/porchfest";
 
 function getPlannerBackendEndpoint(): string {
   return resolveServerGraphqlEndpoint().replace(/\/graphql$/, "");
