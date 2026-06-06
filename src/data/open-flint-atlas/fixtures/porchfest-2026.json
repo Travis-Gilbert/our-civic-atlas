@@ -15,7 +15,8 @@
           43.0170844
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "Mason Street, Flint, 48505"
     },
     {
       "category": "amenity",
@@ -28,7 +29,8 @@
           43.0175963
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "369 Mason Street, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -41,7 +43,8 @@
           43.017563
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "371 Mason Street, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -54,7 +57,8 @@
           43.0175317
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "375 Mason Street, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -67,7 +71,8 @@
           43.0176886
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "413 West First Avenue, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -80,7 +85,8 @@
           43.0178552
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "399 Mason Street, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -93,7 +99,8 @@
           43.0182639
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "457 Mason Street, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -106,7 +113,8 @@
           43.0175629
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "385 Mason Street, Flint, 48503"
     },
     {
       "category": "amenity",
@@ -119,7 +127,8 @@
           43.0176671
         ]
       },
-      "notes": "folder=Trees and Landmarks"
+      "notes": "folder=Trees and Landmarks",
+      "address": "385 Mason Street, Flint, 48503"
     },
     {
       "category": "food_court",
@@ -132,7 +141,8 @@
           43.0181071
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "427 Mason Street, Flint, 48503"
     },
     {
       "category": "food_court",
@@ -145,7 +155,8 @@
           43.0185602
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "413 Second Avenue, Flint, 48503"
     },
     {
       "category": "kid_zone",
@@ -158,7 +169,8 @@
           43.0188508
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "517 Mason Street, Flint, 48503"
     },
     {
       "category": "music",
@@ -171,7 +183,8 @@
           43.0171713
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "Mason Street, Flint, 48505"
     },
     {
       "category": "music",
@@ -184,7 +197,8 @@
           43.0194075
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "506 Lyon Street, Flint, 48503"
     },
     {
       "category": "music",
@@ -197,7 +211,8 @@
           43.0172099
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "Flint River Trail, Flint, 48502"
     },
     {
       "category": "music",
@@ -210,7 +225,8 @@
           43.0194957
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "421 Garland Street, Flint, 48504"
     },
     {
       "category": "music",
@@ -223,7 +239,8 @@
           43.0183726
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "444 Mason Street, Flint, 48503"
     },
     {
       "category": "music",
@@ -236,7 +253,8 @@
           43.0173441
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "Mason Street, Flint, 48505"
     },
     {
       "category": "music",
@@ -249,7 +267,8 @@
           43.0174889
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "477 West First Avenue, Flint, 48503"
     },
     {
       "category": "music",
@@ -262,7 +281,8 @@
           43.0184008
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "469 Mason Street, Flint, 48503"
     },
     {
       "category": "music",
@@ -275,7 +295,8 @@
           43.0181912
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "396 West First Avenue, Flint, 48503"
     },
     {
       "category": "music",
@@ -288,7 +309,8 @@
           43.0177462
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "466 West First Avenue, Flint, 48503"
     },
     {
       "category": "music",
@@ -301,7 +323,8 @@
           43.0178103
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "448 West First Avenue, Flint, 48503"
     },
     {
       "category": "music",
@@ -314,7 +337,8 @@
           43.0176563
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "482 West First Avenue, Flint, 48503"
     },
     {
       "category": "music",
@@ -327,7 +351,8 @@
           43.0187025
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "399 Second Avenue, Flint, 48503"
     },
     {
       "category": "music",
@@ -340,7 +365,8 @@
           43.0188673
         ]
       },
-      "notes": "folder=Music"
+      "notes": "folder=Music",
+      "address": "349 Second Avenue, Flint, 48503"
     },
     {
       "category": "parking",
@@ -353,7 +379,8 @@
           43.0176292
         ]
       },
-      "notes": "folder=Amenties & Misc | Durant Dort Office Building"
+      "notes": "folder=Amenties & Misc | Durant Dort Office Building",
+      "address": "Lyon Street, Flint, 48503"
     },
     {
       "category": "parking",
@@ -366,7 +393,8 @@
           43.0169163
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "539 West First Avenue, Flint, 48503"
     },
     {
       "category": "rest_area",
@@ -379,7 +407,8 @@
           43.0185396
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "407 Second Avenue, Flint, 48503"
     },
     {
       "category": "rest_area",
@@ -392,7 +421,8 @@
           43.0169519
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "Genesee Valley Trail, Flint, 48502"
     },
     {
       "category": "restroom",
@@ -405,7 +435,8 @@
           43.0182364
         ]
       },
-      "notes": "folder=Amenties & Misc"
+      "notes": "folder=Amenties & Misc",
+      "address": "317 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -418,7 +449,8 @@
           43.0174834
         ]
       },
-      "notes": "folder=Vendors | Vendor 23"
+      "notes": "folder=Vendors | Vendor 23",
+      "address": "373 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -431,7 +463,8 @@
           43.0176776
         ]
       },
-      "notes": "folder=Vendors | Vendor 16"
+      "notes": "folder=Vendors | Vendor 16",
+      "address": "393 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -444,7 +477,8 @@
           43.0178133
         ]
       },
-      "notes": "folder=Vendors | Vendor 13"
+      "notes": "folder=Vendors | Vendor 13",
+      "address": "415 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -457,7 +491,8 @@
           43.0180068
         ]
       },
-      "notes": "folder=Vendors | Vendor 7"
+      "notes": "folder=Vendors | Vendor 7",
+      "address": "416 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -470,7 +505,8 @@
           43.0174579
         ]
       },
-      "notes": "folder=Vendors | Vendor 26"
+      "notes": "folder=Vendors | Vendor 26",
+      "address": "491 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -483,7 +519,8 @@
           43.0178132
         ]
       },
-      "notes": "folder=Vendors | Vendor 14"
+      "notes": "folder=Vendors | Vendor 14",
+      "address": "399 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -496,7 +533,8 @@
           43.0181516
         ]
       },
-      "notes": "folder=Vendors | Vendor 4"
+      "notes": "folder=Vendors | Vendor 4",
+      "address": "445 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -509,7 +547,8 @@
           43.0181245
         ]
       },
-      "notes": "folder=Vendors | Vendor 44"
+      "notes": "folder=Vendors | Vendor 44",
+      "address": "419 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -522,7 +561,8 @@
           43.0177666
         ]
       },
-      "notes": "folder=Vendors | Vendor 34/Sidewalk Green Space"
+      "notes": "folder=Vendors | Vendor 34/Sidewalk Green Space",
+      "address": "380 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -535,7 +575,8 @@
           43.0181025
         ]
       },
-      "notes": "folder=Vendors | Vendor 5"
+      "notes": "folder=Vendors | Vendor 5",
+      "address": "420 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -548,7 +589,8 @@
           43.0185035
         ]
       },
-      "notes": "folder=Vendors | Vendor 2"
+      "notes": "folder=Vendors | Vendor 2",
+      "address": "429 Second Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -561,7 +603,8 @@
           43.017875
         ]
       },
-      "notes": "folder=Vendors | Vendor 11"
+      "notes": "folder=Vendors | Vendor 11",
+      "address": "403 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -574,7 +617,8 @@
           43.0184944
         ]
       },
-      "notes": "folder=Vendors | Vendor 21"
+      "notes": "folder=Vendors | Vendor 21",
+      "address": "483 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -587,7 +631,8 @@
           43.0175593
         ]
       },
-      "notes": "folder=Vendors | Vendor 36/Sidewalk Green Space"
+      "notes": "folder=Vendors | Vendor 36/Sidewalk Green Space",
+      "address": "Lyon Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -600,7 +645,8 @@
           43.0175619
         ]
       },
-      "notes": "folder=Vendors | Vendor 22"
+      "notes": "folder=Vendors | Vendor 22",
+      "address": "379 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -613,7 +659,8 @@
           43.018026
         ]
       },
-      "notes": "folder=Vendors | Vendor 42"
+      "notes": "folder=Vendors | Vendor 42",
+      "address": "402 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -626,7 +673,8 @@
           43.0176971
         ]
       },
-      "notes": "folder=Vendors | Vendor 20"
+      "notes": "folder=Vendors | Vendor 20",
+      "address": "387 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -639,7 +687,8 @@
           43.0180564
         ]
       },
-      "notes": "folder=Vendors | Vendor 6"
+      "notes": "folder=Vendors | Vendor 6",
+      "address": "418 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -652,7 +701,8 @@
           43.0182151
         ]
       },
-      "notes": "folder=Vendors | Vendor 3"
+      "notes": "folder=Vendors | Vendor 3",
+      "address": "457 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -665,7 +715,8 @@
           43.0174515
         ]
       },
-      "notes": "folder=Vendors | Vendor 30"
+      "notes": "folder=Vendors | Vendor 30",
+      "address": "347 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -678,7 +729,8 @@
           43.0174259
         ]
       },
-      "notes": "folder=Vendors | Vendor 31"
+      "notes": "folder=Vendors | Vendor 31",
+      "address": "351 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -691,7 +743,8 @@
           43.0176217
         ]
       },
-      "notes": "folder=Vendors | Vendor 25"
+      "notes": "folder=Vendors | Vendor 25",
+      "address": "371 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -704,7 +757,8 @@
           43.0176662
         ]
       },
-      "notes": "folder=Vendors | Vendor 35/Sidewalk Green Space"
+      "notes": "folder=Vendors | Vendor 35/Sidewalk Green Space",
+      "address": "Lyon Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -717,7 +771,8 @@
           43.0178335
         ]
       },
-      "notes": "folder=Vendors | Vendor 40/Sidewalk Green Space"
+      "notes": "folder=Vendors | Vendor 40/Sidewalk Green Space",
+      "address": "434 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -730,7 +785,8 @@
           43.0179937
         ]
       },
-      "notes": "folder=Vendors | Vendor 10"
+      "notes": "folder=Vendors | Vendor 10",
+      "address": "399 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -743,7 +799,8 @@
           43.0183408
         ]
       },
-      "notes": "folder=Vendors | Vendor 12"
+      "notes": "folder=Vendors | Vendor 12",
+      "address": "433 Second Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -756,7 +813,8 @@
           43.0177524
         ]
       },
-      "notes": "folder=Vendors | Vendor 15"
+      "notes": "folder=Vendors | Vendor 15",
+      "address": "399 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -769,7 +827,8 @@
           43.0179877
         ]
       },
-      "notes": "folder=Vendors | Vendor 9"
+      "notes": "folder=Vendors | Vendor 9",
+      "address": "412 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -782,7 +841,8 @@
           43.018079
         ]
       },
-      "notes": "folder=Vendors | Vendor 43"
+      "notes": "folder=Vendors | Vendor 43",
+      "address": "411 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -795,7 +855,8 @@
           43.0185983
         ]
       },
-      "notes": "folder=Vendors | Vendor 19"
+      "notes": "folder=Vendors | Vendor 19",
+      "address": "499 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -808,7 +869,8 @@
           43.0176712
         ]
       },
-      "notes": "folder=Vendors | Vendor 24"
+      "notes": "folder=Vendors | Vendor 24",
+      "address": "379 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -821,7 +883,8 @@
           43.0183027
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "330 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -834,7 +897,8 @@
           43.0183053
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "451 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -847,7 +911,8 @@
           43.0176143
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "389 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -860,7 +925,8 @@
           43.018566
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "417 Second Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -873,7 +939,8 @@
           43.0175534
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "367 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -886,7 +953,8 @@
           43.0175269
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "369 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -899,7 +967,8 @@
           43.0175024
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "371 Mason Street, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -912,7 +981,8 @@
           43.017397
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "Mason Street, Flint, 48505"
     },
     {
       "category": "vendor",
@@ -925,7 +995,8 @@
           43.0173641
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "Flint River Trail, Flint, 48502"
     },
     {
       "category": "vendor",
@@ -938,7 +1009,8 @@
           43.0177393
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "433 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -951,7 +1023,8 @@
           43.0176973
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "445 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -964,7 +1037,8 @@
           43.0176384
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "457 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -977,7 +1051,8 @@
           43.0178061
         ]
       },
-      "notes": "folder=Vendors"
+      "notes": "folder=Vendors",
+      "address": "440 West First Avenue, Flint, 48503"
     },
     {
       "category": "vendor",
@@ -990,7 +1065,8 @@
           43.0179672
         ]
       },
-      "notes": "folder=Vendors | Vendor 8"
+      "notes": "folder=Vendors | Vendor 8",
+      "address": "416 West First Avenue, Flint, 48503"
     }
   ]
 }
