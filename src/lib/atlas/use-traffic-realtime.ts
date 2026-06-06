@@ -79,6 +79,7 @@ const SOURCE_STATUS_TO_REST: Record<
   RestSourceStatus
 > = {
   LIVE: "live",
+  HISTORIC_AVERAGE: "historic_average",
   FIXTURE: "fixture",
   PENDING_LIVE_SOURCE: "pending_live_source",
 };
@@ -88,6 +89,7 @@ const FEED_STATUS_TO_REST: Record<
   TrafficRealtimeSnapshot["status"]
 > = {
   LIVE: "live",
+  HISTORIC_AVERAGE: "historic_average",
   FIXTURE_FALLBACK: "fixture_fallback",
   UNAVAILABLE: "unavailable",
 };

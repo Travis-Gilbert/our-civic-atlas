@@ -289,6 +289,7 @@ export type TrafficEstimateBasis =
 /** Whole-snapshot feed status. The UI must not present FIXTURE_FALLBACK as live. */
 export type TrafficFeedStatus =
   | 'FIXTURE_FALLBACK'
+  | 'HISTORIC_AVERAGE'
   | 'LIVE'
   | 'UNAVAILABLE';
 
@@ -300,6 +301,8 @@ export type TrafficFeedStatus =
 export type TrafficSourceStatus =
   /** A local fixture stands in for the eventual live source. */
   | 'FIXTURE'
+  /** Official historical traffic counts back this segment; hourly flow is inferred. */
+  | 'HISTORIC_AVERAGE'
   /** A live upstream source is currently feeding this segment. */
   | 'LIVE'
   /** The live source is identified but not yet connected. */

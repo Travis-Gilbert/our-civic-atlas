@@ -806,6 +806,8 @@ function trafficColor(
   const sourceOpacity =
     props.source_status === "live"
       ? Math.max(0.82, confidence)
+      : props.source_status === "historic_average"
+        ? Math.max(0.68, confidence * 0.86)
       : props.source_status === "pending_live_source"
         ? Math.max(0.54, confidence * 0.72)
         : Math.max(0.38, confidence * 0.54);
@@ -850,6 +852,14 @@ function trafficParticleStyle(props: TrafficSegmentProperties): Pick<
       stroke: "rgba(255, 255, 255, 0.72)",
       strokeWidth: 1.2,
       radius: 4.3,
+    };
+  }
+  if (props.source_status === "historic_average") {
+    return {
+      fill: rgba([base[0], base[1], base[2], 178]),
+      stroke: "rgba(255, 255, 255, 0.54)",
+      strokeWidth: 1.1,
+      radius: 3.8,
     };
   }
   if (props.source_status === "pending_live_source") {

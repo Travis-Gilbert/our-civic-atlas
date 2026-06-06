@@ -192,6 +192,7 @@ export type TrafficEstimateBasis =
 
 export type TrafficSourceStatus =
   | "live"
+  | "historic_average"
   | "fixture"
   | "pending_live_source";
 
@@ -235,7 +236,7 @@ export type TrafficRealtimeSnapshot = {
   feed_id: string;
   source_label: string;
   source_url: string | null;
-  status: "live" | "fixture_fallback" | "unavailable";
+  status: "live" | "historic_average" | "fixture_fallback" | "unavailable";
   generated_at: string;
   refresh_interval_seconds: number;
   summary: TrafficRealtimeSummary;

@@ -1410,6 +1410,8 @@ its source is still a FIXTURE until the authenticated feed is wired."""
 enum TrafficSourceStatus {
   """A live upstream source is currently feeding this segment."""
   LIVE
+  """Official historical traffic counts back this segment; hourly flow is inferred."""
+  HISTORIC_AVERAGE
   """A local fixture stands in for the eventual live source."""
   FIXTURE
   """The live source is identified but not yet connected."""
@@ -1419,6 +1421,7 @@ enum TrafficSourceStatus {
 """Whole-snapshot feed status. The UI must not present FIXTURE_FALLBACK as live."""
 enum TrafficFeedStatus {
   LIVE
+  HISTORIC_AVERAGE
   FIXTURE_FALLBACK
   UNAVAILABLE
 }

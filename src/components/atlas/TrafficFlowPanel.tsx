@@ -26,6 +26,9 @@ function formatBasis(segment: TrafficSegmentFeature): string {
   if (segment.properties.source_status === "live") {
     return "Live source";
   }
+  if (segment.properties.source_status === "historic_average") {
+    return "Official historic average";
+  }
   if (segment.properties.source_status === "pending_live_source") {
     return "Live source pending";
   }
@@ -40,6 +43,7 @@ function formatBasis(segment: TrafficSegmentFeature): string {
 
 function statusLabel(snapshot: TrafficRealtimeSnapshot): string {
   if (snapshot.status === "live") return "Live feed";
+  if (snapshot.status === "historic_average") return "Historic average";
   if (snapshot.status === "fixture_fallback") {
     return "Fixture estimate - not a live feed";
   }
@@ -49,6 +53,9 @@ function statusLabel(snapshot: TrafficRealtimeSnapshot): string {
 function statusNote(snapshot: TrafficRealtimeSnapshot): string {
   if (snapshot.status === "live") {
     return `${snapshot.source_label} is supplying measured segment readings.`;
+  }
+  if (snapshot.status === "historic_average") {
+    return "Flow uses official MDOT 2024 AADT counts, shaped by an hourly curve. It is measured historic traffic, not a live feed.";
   }
   if (snapshot.status === "fixture_fallback") {
     return "Preview flow uses Flint road geometry and time-of-day estimates until the measured traffic source is connected.";
@@ -70,6 +77,7 @@ const CONGESTION_LEGEND = [
 
 const SOURCE_OPACITY_LEGEND = [
   { label: "Live source", opacity: 0.95 },
+  { label: "Historic average", opacity: 0.76 },
   { label: "Source pending", opacity: 0.62 },
   { label: "Fixture estimate", opacity: 0.4 },
 ] as const;
