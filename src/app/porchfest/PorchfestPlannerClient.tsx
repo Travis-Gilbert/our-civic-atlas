@@ -31,6 +31,7 @@ import type { MapRef } from "react-map-gl/maplibre";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import type { Layer } from "@deck.gl/core";
 import { ListChecks } from "lucide-react";
+import { useIsMobile } from "@/lib/atlas/use-is-mobile";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
 import {
@@ -262,6 +263,8 @@ function PorchfestPlannerWorkspace({
   // The right task rail is collapsible and collapsed by default; the
   // island is the at-a-glance task surface, the rail is full management.
   const [taskRailOpen, setTaskRailOpen] = useState(false);
+  // On phones the whole chrome folds into the bottom island.
+  const isMobile = useIsMobile();
 
   /* --- live planner data (urql) ----------------------------------- */
 
@@ -726,6 +729,54 @@ function PorchfestPlannerWorkspace({
     [liveRows],
   );
 
+  // On mobile the chrome folds into the island. Build the folded surfaces
+  // as content so the island stays a dumb container; passed only on mobile.
+  const islandTasksContent = (
+    <PlannerTaskRail
+      embedded
+      tasks={liveTasksForRail}
+      placements={livePlacementsForRail}
+      selectedPlacementId={selectedPlacementId}
+      canEdit={canEdit}
+      onFlyToPlacement={handleFlyToPlacement}
+      onCreateTask={handleCreateTask}
+      onUpdateTask={handleUpdateTask}
+      onDeleteTask={handleDeleteTask}
+    />
+  );
+  const islandMapKeyContent = (
+    <PlannerLayerControls
+      visibility={visibility}
+      setVisibility={setVisibility}
+      placementCountByCategory={placementCountByCategory}
+    />
+  );
+  const islandInfoContent = (
+    <div className="space-y-3">
+      <div>
+        <p className="planner-kicker">Our Civic Atlas</p>
+        <h2 className="planner-ink mt-1 font-display text-[26px] leading-none">
+          PorchFest
+        </h2>
+        <p className="planner-ink-soft mt-1 text-[14px] leading-5">
+          {eventTitle}
+        </p>
+      </div>
+      {!placementsLoaded ? (
+        <p className="planner-note px-2 py-1 leading-4">
+          Backend pending: showing fixture data. Editing unlocks when the
+          planner GraphQL service responds.
+        </p>
+      ) : null}
+      <PlannerBookmarks
+        eventSlug={EVENT_SLUG}
+        mapRef={mapRef}
+        canEdit={canEdit}
+        onError={(message) => setToast(message)}
+      />
+    </div>
+  );
+
   return (
     <main className="relative flex h-screen overflow-hidden">
       <div className="relative flex-1">
@@ -747,9 +798,10 @@ function PorchfestPlannerWorkspace({
           onMapReady={setMapRef}
         />
 
-        {/* Left column: identity card + layer controls in one flow stack.
+        {/* Left column (desktop only; on mobile it folds into the island).
             The container is pointer-transparent so the gap between panels
             does not block the map; each panel re-enables pointer events. */}
+        {!isMobile ? (
         <div className="pointer-events-none absolute left-4 top-4 z-10 flex w-[min(320px,calc(100vw-2rem))] flex-col gap-3">
           <section className="planner-panel planner-panel--primary pointer-events-auto p-4">
             <p className="planner-kicker">Our Civic Atlas</p>
@@ -826,18 +878,19 @@ function PorchfestPlannerWorkspace({
             />
           </aside>
         </div>
+        ) : null}
 
-        {/* Palette (bottom-right; component is self-positioned) */}
-        <PlannerPalette
-          mode={paletteMode}
-          setMode={setPaletteMode}
-          canEdit={editingAvailable}
-          disabledMessage={
-            placementsLoaded
-              ? undefined
-              : "Planner backend offline"
-          }
-        />
+        {/* Palette (bottom-right; desktop only). */}
+        {!isMobile ? (
+          <PlannerPalette
+            mode={paletteMode}
+            setMode={setPaletteMode}
+            canEdit={editingAvailable}
+            disabledMessage={
+              placementsLoaded ? undefined : "Planner backend offline"
+            }
+          />
+        ) : null}
 
         {/* Bottom-center PorchFest Dynamic Island: mirrors the site island
             (collapsed pill -> expanded tabbed glass panel). Shared search
@@ -847,10 +900,15 @@ function PorchfestPlannerWorkspace({
           placements={renderPlacements}
           tasks={liveTasks}
           onSelectPlacement={handleFlyToPlacement}
+          mobile={isMobile}
+          selectedPlacement={isMobile ? selectedPlacement : null}
+          tasksContent={isMobile ? islandTasksContent : undefined}
+          mapKeyContent={isMobile ? islandMapKeyContent : undefined}
+          infoContent={isMobile ? islandInfoContent : undefined}
         />
 
-        {/* Right rail reopen handle (the rail is collapsed by default). */}
-        {!taskRailOpen ? (
+        {/* Right rail reopen handle (desktop only; collapsed by default). */}
+        {!isMobile && !taskRailOpen ? (
           <button
             type="button"
             onClick={() => setTaskRailOpen(true)}
@@ -876,8 +934,8 @@ function PorchfestPlannerWorkspace({
         ) : null}
       </div>
 
-      {/* Task rail (right column): collapsible, collapsed by default. */}
-      {taskRailOpen ? (
+      {/* Task rail (right column): desktop only; collapsed by default. */}
+      {!isMobile && taskRailOpen ? (
         <PlannerTaskRail
           tasks={liveTasksForRail}
           placements={livePlacementsForRail}

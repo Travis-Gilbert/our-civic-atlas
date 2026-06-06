@@ -65,6 +65,12 @@ export interface PlannerTaskRailProps {
   readonly onUpdateTask: (taskId: string, version: number, patch: TaskPatch) => void;
   readonly onDeleteTask: (taskId: string, version: number) => void;
   readonly onCollapse?: () => void;
+  /**
+   * Render without the docked rail shell (no aside chrome, no fixed width,
+   * no internal scroll) so the full task surface can live inside the mobile
+   * island Tasks tab. The island provides the panel and the scroll.
+   */
+  readonly embedded?: boolean;
 }
 
 export interface NewTaskInput {
@@ -90,6 +96,7 @@ export function PlannerTaskRail({
   onUpdateTask,
   onDeleteTask,
   onCollapse,
+  embedded = false,
 }: PlannerTaskRailProps) {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [restrictToSelection, setRestrictToSelection] = useState(false);
@@ -132,26 +139,32 @@ export function PlannerTaskRail({
   return (
     <aside
       aria-label="Event task list"
-      className="planner-rail z-[6] flex w-72 shrink-0 flex-col p-4"
+      className={
+        embedded
+          ? "flex flex-col"
+          : "planner-rail z-[6] flex w-72 shrink-0 flex-col p-4"
+      }
     >
-      <header className="mb-3 flex items-start justify-between gap-2">
-        <div>
-          <p className="planner-kicker">Tasks</p>
-          <p className="planner-muted mt-1 text-[12px]">
-            {filteredTasks.length} of {tasks.length}
-          </p>
-        </div>
-        {onCollapse ? (
-          <button
-            type="button"
-            onClick={onCollapse}
-            aria-label="Collapse tasks panel"
-            className="planner-iconbtn flex h-7 w-7 items-center justify-center text-[16px] leading-none"
-          >
-            &rsaquo;
-          </button>
-        ) : null}
-      </header>
+      {embedded ? null : (
+        <header className="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <p className="planner-kicker">Tasks</p>
+            <p className="planner-muted mt-1 text-[12px]">
+              {filteredTasks.length} of {tasks.length}
+            </p>
+          </div>
+          {onCollapse ? (
+            <button
+              type="button"
+              onClick={onCollapse}
+              aria-label="Collapse tasks panel"
+              className="planner-iconbtn flex h-7 w-7 items-center justify-center text-[16px] leading-none"
+            >
+              &rsaquo;
+            </button>
+          ) : null}
+        </header>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[12px]">
         {STATUS_OPTIONS.map((option) => (
@@ -181,7 +194,7 @@ export function PlannerTaskRail({
         </label>
       ) : null}
 
-      <ul className="-mx-1 flex-1 overflow-y-auto pr-1">
+      <ul className={embedded ? "-mx-1" : "-mx-1 flex-1 overflow-y-auto pr-1"}>
         {filteredTasks.length === 0 ? (
           <li className="planner-muted px-1 text-[14px]">
             {canEdit

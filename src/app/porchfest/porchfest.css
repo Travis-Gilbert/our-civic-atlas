@@ -211,3 +211,17 @@
   outline: none;
   box-shadow: 0 0 0 2px var(--ctx-accent-glow);
 }
+
+/* --- mobile --------------------------------------------------------- */
+
+/* iOS auto-zooms when a focused input is under 16px. On phones (where the
+   chrome folds into the island) bump every planner input/select and the
+   island search to 16px so focusing a field never zooms the map away. The
+   two-class selector outranks the Tailwind text-size utility. */
+@media (max-width: 768px) {
+  .civic-atlas .planner-input,
+  .civic-atlas input[type="search"],
+  .civic-atlas select.planner-input {
+    font-size: 16px;
+  }
+}

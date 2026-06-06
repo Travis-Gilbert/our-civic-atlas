@@ -26,7 +26,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ListChecks, MapPin, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { CATEGORY_COLOR } from "@/components/atlas/PlannerPalette";
 import type {
@@ -47,7 +47,7 @@ const EXPANDED_WIDTH = 392;
 const COLLAPSED_HEIGHT = 58;
 const EXPANDED_HEIGHT = 452;
 
-type IslandTab = "tasks" | "places";
+type IslandTab = "tasks" | "places" | "key" | "info";
 
 const STATUS_OPTIONS = ["all", "open", "in_progress", "done"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
@@ -65,6 +65,13 @@ const STATUS_LABEL: Record<string, string> = {
 const statusLabel = (value: string): string =>
   STATUS_LABEL[value] ?? value.replace(/_/g, " ");
 
+const TAB_LABEL: Record<IslandTab, string> = {
+  tasks: "Tasks",
+  places: "Places",
+  key: "Map key",
+  info: "Info",
+};
+
 export type IslandTask = {
   readonly id: string;
   readonly title: string;
@@ -80,15 +87,34 @@ export function PorchfestIsland({
   placements,
   tasks,
   onSelectPlacement,
+  mobile = false,
+  selectedPlacement = null,
+  tasksContent,
+  mapKeyContent,
+  infoContent,
 }: {
   readonly placements: readonly AtlasEventPlannerPlacement[];
   readonly tasks: readonly IslandTask[];
   readonly onSelectPlacement: (placementId: string) => void;
+  /**
+   * Mobile mode: the island IS the chrome. It grows to four tabs (Tasks,
+   * Places, Map key, Info), goes full width, and expands to a tall bottom
+   * sheet. The folded chrome is passed as rendered content so the island
+   * stays a dumb container.
+   */
+  readonly mobile?: boolean;
+  readonly selectedPlacement?: AtlasEventPlannerPlacement | null;
+  readonly tasksContent?: ReactNode;
+  readonly mapKeyContent?: ReactNode;
+  readonly infoContent?: ReactNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<IslandTab>("tasks");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  // Mobile bottom-sheet height, derived from the viewport so it never
+  // exceeds the screen on small phones.
+  const [sheetHeight, setSheetHeight] = useState(480);
 
   const query = search.trim().toLowerCase();
 
@@ -101,6 +127,25 @@ export function PorchfestIsland({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isExpanded]);
+
+  useEffect(() => {
+    if (!mobile) return;
+    const update = () =>
+      setSheetHeight(
+        Math.min(560, Math.max(360, Math.round(window.innerHeight * 0.76))),
+      );
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [mobile]);
+
+  // The extra tabs are mobile-only; if the viewport grows back to desktop
+  // while on one of them, fall back to Tasks.
+  useEffect(() => {
+    if (!mobile && (activeTab === "key" || activeTab === "info")) {
+      setActiveTab("tasks");
+    }
+  }, [mobile, activeTab]);
 
   const matchedPlaces = useMemo(() => {
     if (!query) return placements;
@@ -136,6 +181,12 @@ export function PorchfestIsland({
   }, [matchedPlaces, tasks, query]);
 
   const showCollapsedResults = !isExpanded && query.length > 0;
+  const tabs: IslandTab[] = mobile
+    ? ["tasks", "places", "key", "info"]
+    : ["tasks", "places"];
+  const usesTasksContent = mobile && tasksContent != null;
+  const showSharedSearch =
+    activeTab === "places" || (activeTab === "tasks" && !usesTasksContent);
 
   function openIsland(tab: IslandTab) {
     setActiveTab(tab);
@@ -167,7 +218,11 @@ export function PorchfestIsland({
       <div
         className="pointer-events-none absolute left-1/2 z-[1420] -translate-x-1/2"
         style={{
-          width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
+          width: mobile
+            ? "min(calc(100vw - 20px), 520px)"
+            : isExpanded
+              ? EXPANDED_WIDTH
+              : COLLAPSED_WIDTH,
           bottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
         }}
       >
@@ -213,15 +268,46 @@ export function PorchfestIsland({
           </div>
         ) : null}
 
+        {mobile && selectedPlacement && !isExpanded && !showCollapsedResults ? (
+          <div className="atlas-scene-glass pointer-events-auto absolute bottom-[calc(100%+10px)] left-0 right-0 rounded-[14px] p-3">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="planner-swatch"
+                style={{
+                  backgroundColor: swatchColor(selectedPlacement.category),
+                }}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] text-[color:var(--ctx-ink)]">
+                  {selectedPlacement.label}
+                </span>
+                {selectedPlacement.address ? (
+                  <span className="block truncate text-[11px] text-[color:var(--ctx-ink-mute)]">
+                    {selectedPlacement.address}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          </div>
+        ) : null}
+
         <motion.div
           initial={false}
-          animate={{
-            width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
-            height: isExpanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT,
-            borderRadius: isExpanded ? 24 : 999,
-          }}
+          animate={
+            mobile
+              ? {
+                  height: isExpanded ? sheetHeight : COLLAPSED_HEIGHT,
+                  borderRadius: isExpanded ? 24 : 999,
+                }
+              : {
+                  width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
+                  height: isExpanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT,
+                  borderRadius: isExpanded ? 24 : 999,
+                }
+          }
           transition={islandTransition}
-          className="atlas-scene-glass pointer-events-auto relative overflow-hidden"
+          className={`atlas-scene-glass pointer-events-auto relative overflow-hidden${mobile ? " w-full" : ""}`}
         >
           {/* Collapsed layer: tasks icon (left), tappable label (center),
               search field (right). Mirrors the atlas collapsed island. */}
@@ -297,7 +383,7 @@ export function PorchfestIsland({
 
             <div className="px-4 pb-3">
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {(["tasks", "places"] as IslandTab[]).map((tab) => (
+                {tabs.map((tab) => (
                   <button
                     key={tab}
                     type="button"
@@ -305,36 +391,43 @@ export function PorchfestIsland({
                     data-active={activeTab === tab ? "true" : "false"}
                     onClick={() => setActiveTab(tab)}
                   >
-                    {tab === "tasks" ? "Tasks" : "Places"}
+                    {TAB_LABEL[tab]}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Shared search field inside the panel so both tabs filter. */}
-            <div className="px-4 pb-3">
-              <label
-                className="flex h-9 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.1)] bg-[rgba(255,255,255,0.34)] px-3"
-                aria-label={activeTab === "tasks" ? "Search tasks" : "Search places"}
-              >
-                <Search className="h-3.5 w-3.5 shrink-0 text-[color:var(--ctx-ink-mute)]" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent text-[13px] text-[color:var(--ctx-ink)] outline-none placeholder:text-[color:var(--ctx-ink-mute)]"
-                  placeholder={activeTab === "tasks" ? "Search tasks" : "Search places"}
-                  type="search"
-                />
-                {search ? (
-                  <button type="button" onClick={() => setSearch("")} aria-label="Clear search" className="shrink-0 text-[color:var(--ctx-ink-mute)] hover:text-[color:var(--ctx-ink)]">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
-              </label>
-            </div>
+            {/* Shared search field: filters the Tasks list (desktop) and the
+                Places list. Hidden on the mobile Tasks tab (the embedded rail
+                has its own search) and on Map key / Info. */}
+            {showSharedSearch ? (
+              <div className="px-4 pb-3">
+                <label
+                  className="flex h-9 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.1)] bg-[rgba(255,255,255,0.34)] px-3"
+                  aria-label={activeTab === "tasks" ? "Search tasks" : "Search places"}
+                >
+                  <Search className="h-3.5 w-3.5 shrink-0 text-[color:var(--ctx-ink-mute)]" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-[16px] text-[color:var(--ctx-ink)] outline-none placeholder:text-[color:var(--ctx-ink-mute)] sm:text-[13px]"
+                    placeholder={activeTab === "tasks" ? "Search tasks" : "Search places"}
+                    type="search"
+                  />
+                  {search ? (
+                    <button type="button" onClick={() => setSearch("")} aria-label="Clear search" className="shrink-0 text-[color:var(--ctx-ink-mute)] hover:text-[color:var(--ctx-ink)]">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </label>
+              </div>
+            ) : null}
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
               {activeTab === "tasks" ? (
+                usesTasksContent ? (
+                  tasksContent
+                ) : (
                 <section className="space-y-3">
                   <div className="flex flex-wrap gap-1.5">
                     {STATUS_OPTIONS.map((option) => (
@@ -382,6 +475,7 @@ export function PorchfestIsland({
                     </p>
                   )}
                 </section>
+                )
               ) : null}
 
               {activeTab === "places" ? (
@@ -414,6 +508,9 @@ export function PorchfestIsland({
                   )}
                 </section>
               ) : null}
+
+              {activeTab === "key" ? mapKeyContent : null}
+              {activeTab === "info" ? infoContent : null}
             </div>
 
             <div className="border-t border-[rgba(42,36,25,0.08)] px-4 py-3">
