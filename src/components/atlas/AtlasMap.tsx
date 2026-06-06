@@ -136,6 +136,25 @@ export type DeckLayerPointerDragHandler = {
   readonly onDragEnd?: (info: DeckLayerPointerDragInfo) => void;
 };
 
+function matchesDeckLayerId(
+  candidateId: string | null | undefined,
+  layerId: string,
+): boolean {
+  return candidateId === layerId || candidateId?.startsWith(`${layerId}-`) === true;
+}
+
+function pickedDeckLayerId(
+  pick: Pick<PickingInfo, "layer" | "sourceLayer"> | null | undefined,
+  layerIds: readonly string[],
+): string | null {
+  const pickedIds = [pick?.layer?.id, pick?.sourceLayer?.id];
+  return (
+    layerIds.find((layerId) =>
+      pickedIds.some((candidateId) => matchesDeckLayerId(candidateId, layerId)),
+    ) ?? null
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Bound-world vignette (PR 3)                                        */
 /*                                                                     */
@@ -1419,10 +1438,7 @@ export function AtlasMap({
       const y = event.clientY - rect.top;
       if (x < 0 || y < 0 || x > rect.width || y > rect.height) return false;
       const info = overlay.pickObject({ x, y, radius: 24 });
-      const layerId =
-        typeof info?.layer?.id === "string" ? info.layer.id : null;
-      if (!layerId) return false;
-      return dragPanBlockLayerIds.includes(layerId);
+      return pickedDeckLayerId(info, dragPanBlockLayerIds) != null;
     };
 
     const handlePointerDown = (event: PointerEvent) => {
@@ -1448,7 +1464,10 @@ export function AtlasMap({
     container.addEventListener("pointercancel", handlePointerEnd, {
       capture: true,
     });
-    container.addEventListener("pointerleave", handlePointerEnd, {
+    window.addEventListener("pointerup", handlePointerEnd, {
+      capture: true,
+    });
+    window.addEventListener("pointercancel", handlePointerEnd, {
       capture: true,
     });
 
@@ -1457,7 +1476,8 @@ export function AtlasMap({
       container.removeEventListener("pointerdown", handlePointerDown, true);
       container.removeEventListener("pointerup", handlePointerEnd, true);
       container.removeEventListener("pointercancel", handlePointerEnd, true);
-      container.removeEventListener("pointerleave", handlePointerEnd, true);
+      window.removeEventListener("pointerup", handlePointerEnd, true);
+      window.removeEventListener("pointercancel", handlePointerEnd, true);
     };
   }, [dragPanBlockLayerIds, mapDragPanEnabled, setMapDragPan]);
 
@@ -1507,13 +1527,10 @@ export function AtlasMap({
         radius: handler.pickingRadius ?? 24,
         depth: 12,
       });
-      const pick = picks.find((candidate) => {
-        const layerId =
-          typeof candidate.layer?.id === "string" ? candidate.layer.id : null;
-        return layerId ? handler.layerIds.includes(layerId) : false;
-      });
-      const layerId =
-        typeof pick?.layer?.id === "string" ? pick.layer.id : null;
+      const pick = picks.find(
+        (candidate) => pickedDeckLayerId(candidate, handler.layerIds) != null,
+      );
+      const layerId = pickedDeckLayerId(pick, handler.layerIds);
       if (!pick || !layerId) return null;
       const info = {
         layerId,
@@ -1594,7 +1611,10 @@ export function AtlasMap({
     container.addEventListener("pointercancel", releaseActiveDrag, {
       capture: true,
     });
-    container.addEventListener("pointerleave", releaseActiveDrag, {
+    window.addEventListener("pointerup", releaseActiveDrag, {
+      capture: true,
+    });
+    window.addEventListener("pointercancel", releaseActiveDrag, {
       capture: true,
     });
 
@@ -1608,7 +1628,8 @@ export function AtlasMap({
       container.removeEventListener("pointermove", handlePointerMove, true);
       container.removeEventListener("pointerup", releaseActiveDrag, true);
       container.removeEventListener("pointercancel", releaseActiveDrag, true);
-      container.removeEventListener("pointerleave", releaseActiveDrag, true);
+      window.removeEventListener("pointerup", releaseActiveDrag, true);
+      window.removeEventListener("pointercancel", releaseActiveDrag, true);
     };
   }, [deckLayerPointerDragHandler, mapDragPanEnabled, setMapDragPan]);
 

@@ -77,7 +77,6 @@ import {
   EventTasksListDocument,
   UpdateEventTaskDocument,
   UpdatePlacementDocument,
-  type EventPlacementsQuery,
   type EventTasksListQuery,
 } from "@/lib/api/graphql/generated/graphql";
 import {
@@ -129,10 +128,21 @@ const CATEGORY_HUMAN_LABEL: Record<AtlasEventPlannerCategory, string> = {
   amenity: "Amenity",
 };
 
-type LivePlacement = EventPlacementsQuery["placements"][number];
+type PlannerPlacementRow = {
+  readonly id: string;
+  readonly eventLayerId: string;
+  readonly category: string;
+  readonly sublabel: string | null;
+  readonly label: string;
+  readonly geometry: Record<string, unknown>;
+  readonly status: string;
+  readonly notes: string | null;
+  readonly version: number;
+};
 type InitialPorchfestPlacement = AtlasEventPlannerPlacement & {
   readonly version?: number;
 };
+type PlacementOverrides = ReadonlyMap<string, PlannerEditablePlacement>;
 type PlacementDragPreview = {
   readonly placementId: string;
   readonly geometry: Record<string, unknown>;
@@ -167,8 +177,8 @@ function hasPlacementVersion(
   return typeof placement.version === "number";
 }
 
-/** Map a live GraphQL placement row to the renderer's placement shape. */
-function toRenderPlacement(row: LivePlacement): AtlasEventPlannerPlacement {
+/** Map a GraphQL placement row to the renderer's placement shape. */
+function toRenderPlacement(row: PlannerPlacementRow): AtlasEventPlannerPlacement {
   return {
     id: row.id,
     eventLayerId: row.eventLayerId,
@@ -181,9 +191,31 @@ function toRenderPlacement(row: LivePlacement): AtlasEventPlannerPlacement {
   };
 }
 
-/** Map a live GraphQL placement row to the editable-layer shape (+version). */
-function toEditablePlacement(row: LivePlacement): PlannerEditablePlacement {
+/** Map a GraphQL placement row to the editable-layer shape (+version). */
+function toEditablePlacement(row: PlannerPlacementRow): PlannerEditablePlacement {
   return { ...toRenderPlacement(row), version: row.version };
+}
+
+function geometryMatches(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): boolean {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}
+
+function applyPlacementOverrides<T extends AtlasEventPlannerPlacement>(
+  placements: readonly T[],
+  overrides: PlacementOverrides,
+): readonly T[] {
+  if (overrides.size === 0) return placements;
+  return placements.map((placement) => {
+    const override = overrides.get(placement.id);
+    return override ? ({ ...placement, ...override } as T) : placement;
+  });
 }
 
 function applyDragPreview<T extends AtlasEventPlannerPlacement>(
@@ -321,6 +353,8 @@ function PorchfestPlannerWorkspace({
   const [dragPreview, setDragPreview] = useState<PlacementDragPreview | null>(
     null,
   );
+  const [placementOverrides, setPlacementOverrides] =
+    useState<PlacementOverrides>(() => new Map());
   const [placementDragActive, setPlacementDragActive] = useState(false);
   // The right task rail is collapsible and collapsed by default; the
   // island is the at-a-glance task surface, the rail is full management.
@@ -366,20 +400,50 @@ function PorchfestPlannerWorkspace({
     [dataSource, initialPlacements],
   );
 
+  useEffect(() => {
+    if (!liveRows || placementOverrides.size === 0) return;
+    setPlacementOverrides((current) => {
+      let next: Map<string, PlannerEditablePlacement> | null = null;
+      for (const [placementId, override] of current) {
+        const liveRow = liveRows.find((row) => row.id === placementId);
+        if (!liveRow) continue;
+        const liveGeometry = liveRow.geometry as Record<string, unknown>;
+        const serverHasCaughtUp =
+          liveRow.version > override.version ||
+          (liveRow.version === override.version &&
+            geometryMatches(liveGeometry, override.geometry));
+        if (serverHasCaughtUp) {
+          next ??= new Map(current);
+          next.delete(placementId);
+        }
+      }
+      return next ?? current;
+    });
+  }, [liveRows, placementOverrides]);
+
   // Editing needs version. Server-side GraphQL rows carry it for first
   // paint; the browser query replaces them when the live cache responds.
-  const editablePlacements = useMemo<PlannerEditablePlacement[] | null>(
+  const editablePlacementRows = useMemo<readonly PlannerEditablePlacement[] | null>(
     () =>
-      liveRows
-        ? liveRows.map(toEditablePlacement)
-        : initialEditablePlacements,
+      liveRows ? liveRows.map(toEditablePlacement) : initialEditablePlacements,
     [liveRows, initialEditablePlacements],
+  );
+  const editablePlacements = useMemo<readonly PlannerEditablePlacement[] | null>(
+    () =>
+      editablePlacementRows
+        ? applyPlacementOverrides(editablePlacementRows, placementOverrides)
+        : null,
+    [editablePlacementRows, placementOverrides],
   );
 
   // Rendered placements: live rows when present, else SSR fixture.
   const baseRenderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
-    () => (liveRows ? liveRows.map(toRenderPlacement) : initialPlacements),
-    [liveRows, initialPlacements],
+    () =>
+      applyPlacementOverrides(
+        liveRows ? liveRows.map(toRenderPlacement) : initialPlacements,
+        placementOverrides,
+      ),
+    [liveRows, initialPlacements, placementOverrides],
   );
   const renderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
     () => applyDragPreview(baseRenderPlacements, dragPreview),
@@ -593,14 +657,31 @@ function PorchfestPlannerWorkspace({
       void updatePlacement({
         input: { placementId, expectedVersion, geometry },
       }).then((result) => {
-        setDragPreview(null);
         if (result.error) {
+          setDragPreview(null);
           setToast(`Move failed: ${result.error.message}`);
           return;
         }
-        if (result.data?.updatePlacement.staleWrite) {
+        const updateResult = result.data?.updatePlacement;
+        if (updateResult?.staleWrite) {
+          setDragPreview(null);
           setToast("Someone else moved this point. Reloaded the latest.");
+          refreshPlacements();
+          return;
         }
+        if (!updateResult?.placement || updateResult.deleted) {
+          setDragPreview(null);
+          setToast("Move failed: placement is no longer available.");
+          refreshPlacements();
+          return;
+        }
+        const updatedPlacement = toEditablePlacement(updateResult.placement);
+        setPlacementOverrides((current) => {
+          const next = new Map(current);
+          next.set(updatedPlacement.id, updatedPlacement);
+          return next;
+        });
+        setDragPreview(null);
         refreshPlacements();
       });
     },
