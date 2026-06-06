@@ -32,17 +32,30 @@ interface PaletteCategoryButton {
   readonly sublabel?: string;
 }
 
-// Same brand alignment as AtlasEventPlannerLayer's RGBA, in CSS form
-// so the chip swatches in the palette match the map pins.
+// Brand alignment with AtlasEventPlannerLayer's pin RGBA, in CSS form, so
+// the legend swatches, the palette chips, and the map pins read as one
+// color key. Exported so PlannerLayerControls renders the same swatches.
+export const CATEGORY_COLOR: Record<AtlasEventPlannerCategory, string> = {
+  vendor: "rgb(99 56 142)",
+  music: "rgb(217 162 59)",
+  parking: "rgb(193 74 44)",
+  restroom: "rgb(56 132 95)",
+  kid_zone: "rgb(193 74 44)",
+  food_court: "rgb(50 110 158)",
+  rest_area: "rgb(50 110 158)",
+  after_party: "rgb(120 30 60)",
+  amenity: "rgb(168 156 132)",
+};
+
 const BUTTONS: readonly PaletteCategoryButton[] = [
-  { category: "vendor", label: "Vendor", color: "rgb(99 56 142)" },
-  { category: "music", label: "Music", color: "rgb(217 162 59)" },
-  { category: "parking", label: "Parking", color: "rgb(193 74 44)" },
-  { category: "restroom", label: "Restroom", color: "rgb(56 132 95)" },
-  { category: "kid_zone", label: "Kid Zone", color: "rgb(193 74 44)" },
-  { category: "food_court", label: "Food", color: "rgb(50 110 158)" },
-  { category: "rest_area", label: "Rest Area", color: "rgb(50 110 158)" },
-  { category: "after_party", label: "After Party", color: "rgb(120 30 60)" },
+  { category: "vendor", label: "Vendor", color: CATEGORY_COLOR.vendor },
+  { category: "music", label: "Music", color: CATEGORY_COLOR.music },
+  { category: "parking", label: "Parking", color: CATEGORY_COLOR.parking },
+  { category: "restroom", label: "Restroom", color: CATEGORY_COLOR.restroom },
+  { category: "kid_zone", label: "Kid Zone", color: CATEGORY_COLOR.kid_zone },
+  { category: "food_court", label: "Food", color: CATEGORY_COLOR.food_court },
+  { category: "rest_area", label: "Rest Area", color: CATEGORY_COLOR.rest_area },
+  { category: "after_party", label: "After Party", color: CATEGORY_COLOR.after_party },
 ];
 
 export interface PlannerPaletteProps {
@@ -79,7 +92,7 @@ export function PlannerPalette({
 
   if (!canEdit) {
     return (
-      <aside className="planner-palette absolute bottom-6 right-6 z-[20] rounded-md border border-stone-300/80 bg-amber-50/95 px-3 py-2 text-xs text-stone-600 shadow">
+      <aside className="planner-panel planner-muted absolute bottom-6 right-6 z-[20] px-3 py-2 text-[12px]">
         {disabledMessage ?? "Sign in to edit"}
       </aside>
     );
@@ -87,7 +100,7 @@ export function PlannerPalette({
 
   return (
     <aside
-      className="planner-palette absolute bottom-6 right-6 z-[20] grid w-56 grid-cols-2 gap-1.5 rounded-md border border-stone-300/80 bg-amber-50/95 p-2 text-xs shadow"
+      className="planner-panel absolute bottom-6 right-6 z-[20] grid w-56 grid-cols-2 gap-2 p-2 text-[12px]"
       aria-label="Placement palette"
     >
       {BUTTONS.map((button) => {
@@ -98,16 +111,14 @@ export function PlannerPalette({
             key={button.category}
             type="button"
             onClick={() => toggleDraw(button)}
-            className={`flex items-center gap-1.5 rounded border px-2 py-1.5 text-left transition-colors ${
-              isActive
-                ? "border-stone-900 bg-stone-900 text-amber-50"
-                : "border-stone-300 bg-white/70 hover:border-stone-500"
+            className={`planner-control flex min-h-[28px] items-center gap-2 px-2 py-1.5 text-left ${
+              isActive ? "is-active" : ""
             }`}
             aria-pressed={isActive}
           >
             <span
               aria-hidden="true"
-              className="h-2.5 w-2.5 rounded-full"
+              className="planner-swatch"
               style={{ backgroundColor: button.color }}
             />
             <span>{button.label}</span>
@@ -117,14 +128,12 @@ export function PlannerPalette({
       <button
         type="button"
         onClick={toggleDelete}
-        className={`col-span-2 mt-1 rounded border px-2 py-1.5 text-center transition-colors ${
-          mode.kind === "delete"
-            ? "border-red-700 bg-red-700 text-white"
-            : "border-stone-300 bg-white/70 hover:border-red-500"
+        className={`planner-control is-danger col-span-2 mt-1 min-h-[28px] px-2 py-1.5 text-center ${
+          mode.kind === "delete" ? "is-active" : ""
         }`}
         aria-pressed={mode.kind === "delete"}
       >
-        {mode.kind === "delete" ? "Click a pin to delete…" : "Delete mode"}
+        {mode.kind === "delete" ? "Click a pin to delete" : "Delete mode"}
       </button>
     </aside>
   );

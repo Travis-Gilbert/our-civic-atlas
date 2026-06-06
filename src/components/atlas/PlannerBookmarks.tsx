@@ -97,16 +97,16 @@ export function PlannerBookmarks({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-md border border-stone-300 bg-white/70 px-3 py-2 text-sm text-stone-700 hover:border-stone-500"
+        className="planner-control flex w-full items-center justify-between px-3 py-2 text-[14px]"
         aria-expanded={open}
       >
         <span>Bookmarks</span>
-        <span className="text-xs text-stone-500">{bookmarks.length}</span>
+        <span className="planner-muted text-[12px]">{bookmarks.length}</span>
       </button>
       {open ? (
-        <div className="mt-2 rounded-md border border-stone-300 bg-white/95 p-2 text-sm shadow">
+        <div className="planner-panel mt-2 p-2 text-[14px]">
           {bookmarks.length === 0 ? (
-            <p className="text-xs text-stone-500">
+            <p className="planner-muted text-[12px]">
               No bookmarks yet. Save the current view to start.
             </p>
           ) : (
@@ -116,7 +116,7 @@ export function PlannerBookmarks({
                   <button
                     type="button"
                     onClick={() => flyTo(bookmark)}
-                    className="flex-1 truncate rounded px-2 py-1 text-left hover:bg-stone-100"
+                    className="planner-row flex-1 truncate px-2 py-1.5 text-left"
                   >
                     {bookmark.name}
                   </button>
@@ -134,7 +134,7 @@ export function PlannerBookmarks({
                           if (result.error) onError(result.error.message);
                         });
                       }}
-                      className="rounded px-1 text-xs text-stone-500 hover:text-red-700"
+                      className="planner-iconbtn flex h-6 w-6 items-center justify-center text-[12px]"
                       aria-label={`Delete bookmark ${bookmark.name}`}
                     >
                       ✕
@@ -145,18 +145,19 @@ export function PlannerBookmarks({
             </ul>
           )}
           {canEdit ? (
-            <div className="flex items-center gap-1.5 border-t border-stone-200 pt-2">
+            <div className="planner-divider mt-2 flex items-center gap-1.5 pt-2">
               <input
                 value={draftName}
                 onChange={(e) => setDraftName(e.target.value)}
-                placeholder="Bookmark name…"
-                className="flex-1 rounded border border-stone-300 bg-white px-2 py-1 text-xs"
+                placeholder="Bookmark name"
+                aria-label="Bookmark name"
+                className="planner-input min-h-[28px] flex-1 px-2 py-1 text-[12px]"
               />
               <button
                 type="button"
                 onClick={saveCurrent}
                 disabled={!draftName.trim()}
-                className="rounded bg-stone-900 px-2 py-1 text-xs text-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="planner-button min-h-[28px] px-2 py-1 text-[12px] disabled:cursor-not-allowed"
               >
                 Save
               </button>

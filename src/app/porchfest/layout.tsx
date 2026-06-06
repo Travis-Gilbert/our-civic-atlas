@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AtlasCanvasBackdrop } from "@/components/atlas/AtlasCanvasBackdrop";
 import "../open-flint-atlas/atlas.css";
+import "./porchfest.css";
 
 export const metadata: Metadata = {
   title: "PorchFest Planner | Our Civic Atlas",

@@ -12,6 +12,7 @@
  */
 
 import type { AtlasEventPlannerCategory } from "@/components/atlas/AtlasEventPlannerLayer";
+import { CATEGORY_COLOR } from "@/components/atlas/PlannerPalette";
 
 export interface PlannerLayerVisibility {
   readonly vendor: boolean;
@@ -70,38 +71,41 @@ export function PlannerLayerControls({
 
   return (
     <section>
-      <p className="text-xs uppercase tracking-wider text-stone-500">
-        Categories
-      </p>
-      <ul className="mt-2 space-y-1 text-sm text-stone-700">
+      <p className="planner-kicker">Categories</p>
+      <ul className="planner-ink-soft mt-2 space-y-0.5 text-[14px]">
         {CATEGORY_LABELS.map(([category, label]) => {
           const checked = visibility[category];
           const count = countMap.get(category) ?? 0;
           return (
             <li key={category}>
-              <label className="flex cursor-pointer items-center justify-between gap-2 rounded px-1.5 py-1 hover:bg-stone-200/40">
+              <label className="planner-row flex cursor-pointer items-center justify-between gap-2 px-1.5 py-1.5">
                 <span className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={toggle(category)}
-                    className="h-3.5 w-3.5 accent-stone-700"
+                    className="planner-check h-3.5 w-3.5"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="planner-swatch"
+                    style={{ backgroundColor: CATEGORY_COLOR[category] }}
                   />
                   <span>{label}</span>
                 </span>
-                <span className="text-xs text-stone-500">{count}</span>
+                <span className="planner-muted text-[12px]">{count}</span>
               </label>
             </li>
           );
         })}
-        <li className="mt-2 border-t border-stone-300/60 pt-2">
-          <label className="flex cursor-pointer items-center justify-between gap-2 rounded px-1.5 py-1 hover:bg-stone-200/40">
+        <li className="planner-divider mt-2 pt-2">
+          <label className="planner-row flex cursor-pointer items-center justify-between gap-2 px-1.5 py-1.5">
             <span className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={visibility.tasks}
                 onChange={toggle("tasks")}
-                className="h-3.5 w-3.5 accent-stone-700"
+                className="planner-check h-3.5 w-3.5"
               />
               <span>Show task badges</span>
             </span>

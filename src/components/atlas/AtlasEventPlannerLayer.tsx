@@ -46,6 +46,13 @@ export interface AtlasEventPlannerPlacement {
   readonly geometry: Record<string, unknown>;
   readonly status: string;
   readonly notes: string | null;
+  /**
+   * Reverse-geocoded street address. Build-time, baked into the fixture
+   * by scripts/geocode-porchfest-addresses.mjs. Optional: the GraphQL
+   * Placement type has no address column yet, so live rows omit it until
+   * the backend adds one.
+   */
+  readonly address?: string | null;
 }
 
 export type AtlasEventPlannerCategory =

@@ -20,6 +20,7 @@ type FixturePlacement = {
   readonly label: string;
   readonly geometry: Record<string, unknown>;
   readonly notes?: string;
+  readonly address?: string | null;
 };
 
 type PorchfestFixture = {
@@ -42,6 +43,7 @@ function fixturePlacements(): AtlasEventPlannerPlacement[] {
     geometry: placement.geometry,
     status: "planned",
     notes: placement.notes ?? null,
+    address: placement.address ?? null,
   }));
 }
 

@@ -24,6 +24,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "urql";
+import { usePlannerOwners } from "@/lib/atlas/planner-owners";
 
 import {
   CreatePlacementNoteDocument,
@@ -39,6 +40,21 @@ type Task = EventTasksListQuery["eventTasks"][number];
 const STATUS_OPTIONS = ["all", "open", "in_progress", "done"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
 
+// Humanize raw enum status for display; values stay raw on the wire.
+const STATUS_LABEL: Record<string, string> = {
+  all: "All",
+  open: "Open",
+  in_progress: "In progress",
+  done: "Done",
+  blocked: "Blocked",
+  deferred: "Deferred",
+  todo: "To do",
+};
+
+function statusLabel(value: string): string {
+  return STATUS_LABEL[value] ?? value.replace(/_/g, " ");
+}
+
 export interface PlannerTaskRailProps {
   readonly tasks: readonly Task[];
   readonly placements: readonly Placement[];
@@ -48,17 +64,20 @@ export interface PlannerTaskRailProps {
   readonly onCreateTask: (input: NewTaskInput) => void;
   readonly onUpdateTask: (taskId: string, version: number, patch: TaskPatch) => void;
   readonly onDeleteTask: (taskId: string, version: number) => void;
+  readonly onCollapse?: () => void;
 }
 
 export interface NewTaskInput {
   readonly title: string;
   readonly placementId: string | null;
+  readonly ownerDisplay?: string | null;
 }
 
 export interface TaskPatch {
   readonly title?: string;
   readonly status?: string;
   readonly placementId?: string | null;
+  readonly ownerDisplay?: string | null;
 }
 
 export function PlannerTaskRail({
@@ -70,10 +89,14 @@ export function PlannerTaskRail({
   onCreateTask,
   onUpdateTask,
   onDeleteTask,
+  onCollapse,
 }: PlannerTaskRailProps) {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [restrictToSelection, setRestrictToSelection] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const { owners, addOwner, renameOwner, removeOwner } = usePlannerOwners();
+  const [newOwner, setNewOwner] = useState("");
+  const [manageOwners, setManageOwners] = useState(false);
 
   const placementsById = useMemo(() => {
     const map = new Map<string, Placement>();
@@ -101,6 +124,7 @@ export function PlannerTaskRail({
     onCreateTask({
       title,
       placementId: restrictToSelection ? selectedPlacementId : null,
+      ownerDisplay: newOwner || null,
     });
     setNewTitle("");
   };
@@ -108,40 +132,50 @@ export function PlannerTaskRail({
   return (
     <aside
       aria-label="Event task list"
-      className="planner-right-rail z-[6] flex w-72 shrink-0 flex-col border-l border-stone-300/60 bg-amber-50/85 p-4 backdrop-blur"
+      className="planner-rail z-[6] flex w-72 shrink-0 flex-col p-4"
     >
-      <header className="mb-3">
-        <p className="text-xs uppercase tracking-wider text-stone-500">Tasks</p>
-        <p className="mt-0.5 text-xs text-stone-500">
-          {filteredTasks.length} of {tasks.length}
-        </p>
+      <header className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <p className="planner-kicker">Tasks</p>
+          <p className="planner-muted mt-1 text-[12px]">
+            {filteredTasks.length} of {tasks.length}
+          </p>
+        </div>
+        {onCollapse ? (
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Collapse tasks panel"
+            className="planner-iconbtn flex h-7 w-7 items-center justify-center text-[16px] leading-none"
+          >
+            &rsaquo;
+          </button>
+        ) : null}
       </header>
 
-      <div className="mb-3 flex items-center gap-1.5 text-xs text-stone-700">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[12px]">
         {STATUS_OPTIONS.map((option) => (
           <button
             key={option}
             type="button"
             onClick={() => setStatus(option)}
-            className={`rounded border px-1.5 py-0.5 transition-colors ${
-              status === option
-                ? "border-stone-900 bg-stone-900 text-amber-50"
-                : "border-stone-300 bg-white/60 hover:border-stone-500"
+            className={`planner-control flex min-h-[24px] items-center px-2 py-1 ${
+              status === option ? "is-active" : ""
             }`}
             aria-pressed={status === option}
           >
-            {option.replace("_", " ")}
+            {statusLabel(option)}
           </button>
         ))}
       </div>
 
       {selectedPlacementId ? (
-        <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-stone-700">
+        <label className="planner-ink-soft mb-3 flex cursor-pointer items-center gap-2 text-[12px]">
           <input
             type="checkbox"
             checked={restrictToSelection}
             onChange={() => setRestrictToSelection((prev) => !prev)}
-            className="h-3.5 w-3.5 accent-stone-700"
+            className="planner-check h-3.5 w-3.5"
           />
           Only show tasks linked to selected pin
         </label>
@@ -149,42 +183,69 @@ export function PlannerTaskRail({
 
       <ul className="-mx-1 flex-1 overflow-y-auto pr-1">
         {filteredTasks.length === 0 ? (
-          <li className="px-1 text-sm text-stone-500">No tasks here yet.</li>
+          <li className="planner-muted px-1 text-[14px]">
+            {canEdit
+              ? "No tasks yet. Add the first one below."
+              : "No tasks here yet."}
+          </li>
         ) : (
           filteredTasks.map((task) => {
             const placement = task.placementId
               ? placementsById.get(task.placementId)
               : null;
+            const tone =
+              task.status === "done"
+                ? "is-done"
+                : task.status === "blocked"
+                  ? "is-blocked"
+                  : "";
             return (
               <li
                 key={task.id}
-                className="mx-1 mb-2 rounded-md border border-stone-200/70 bg-white/80 p-3"
+                className={`planner-tile mx-1 mb-2 p-3 ${tone}`}
               >
-                <p className="font-medium text-stone-800">{task.title}</p>
+                <p className="planner-ink font-medium">{task.title}</p>
                 {task.ownerDisplay ? (
-                  <p className="mt-1 text-xs text-stone-600">
+                  <p className="planner-ink-soft mt-1 text-[12px]">
                     {task.ownerDisplay}
                   </p>
                 ) : null}
                 {task.dueAt ? (
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="planner-muted mt-1 text-[12px]">
                     Due {new Date(task.dueAt).toLocaleString()}
                   </p>
                 ) : null}
-                <p className="mt-1 text-xs text-stone-500">
-                  status: {task.status}
+                <p className="planner-muted mt-1 text-[12px]">
+                  Status: {statusLabel(task.status)}
                 </p>
                 {placement ? (
                   <button
                     type="button"
                     onClick={() => onFlyToPlacement(placement.id)}
-                    className="mt-1 text-xs text-blue-700 underline-offset-2 hover:underline"
+                    className="planner-accent mt-1 inline-flex items-center gap-1 text-[12px] underline underline-offset-2"
                   >
-                    → {placement.label}
+                    <span aria-hidden="true">→</span> {placement.label}
                   </button>
                 ) : null}
                 {canEdit ? (
-                  <div className="mt-2 flex items-center gap-1.5 text-xs">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px]">
+                    <select
+                      value={task.ownerDisplay ?? ""}
+                      onChange={(e) =>
+                        onUpdateTask(task.id, task.version, {
+                          ownerDisplay: e.target.value || null,
+                        })
+                      }
+                      className="planner-input min-h-[24px] px-1.5 py-0.5"
+                      aria-label="Assign owner"
+                    >
+                      <option value="">Unassigned</option>
+                      {owners.map((owner) => (
+                        <option key={owner} value={owner}>
+                          {owner}
+                        </option>
+                      ))}
+                    </select>
                     <select
                       value={task.status}
                       onChange={(e) =>
@@ -192,19 +253,19 @@ export function PlannerTaskRail({
                           status: e.target.value,
                         })
                       }
-                      className="rounded border border-stone-300 bg-white px-1 py-0.5"
+                      className="planner-input min-h-[24px] px-1.5 py-0.5"
                       aria-label="Change task status"
                     >
-                      <option value="open">open</option>
-                      <option value="in_progress">in_progress</option>
-                      <option value="done">done</option>
+                      <option value="open">Open</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="done">Done</option>
                     </select>
                     <button
                       type="button"
                       onClick={() => onDeleteTask(task.id, task.version)}
-                      className="ml-auto rounded border border-stone-300 px-1.5 py-0.5 text-stone-600 hover:border-red-500 hover:text-red-700"
+                      className="planner-control is-danger ml-auto flex min-h-[24px] items-center px-2 py-0.5"
                     >
-                      delete
+                      Delete
                     </button>
                   </div>
                 ) : null}
@@ -215,8 +276,11 @@ export function PlannerTaskRail({
       </ul>
 
       {canEdit ? (
-        <div className="mt-3 border-t border-stone-300/60 pt-3">
-          <label className="block text-xs text-stone-500" htmlFor="new-task-title">
+        <div className="planner-divider mt-3 pt-3">
+          <label
+            className="planner-muted block text-[12px]"
+            htmlFor="new-task-title"
+          >
             New task
           </label>
           <input
@@ -225,10 +289,10 @@ export function PlannerTaskRail({
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder={
               selectedPlacementId
-                ? "Title — will link to selected pin if box above is checked"
-                : "Title…"
+                ? "Title (links to the selected pin if the box above is checked)"
+                : "Title"
             }
-            className="mt-1 w-full rounded border border-stone-300 bg-white px-2 py-1.5 text-sm"
+            className="planner-input mt-1 w-full px-2 py-1.5 text-[14px]"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -236,20 +300,55 @@ export function PlannerTaskRail({
               }
             }}
           />
+          <label
+            className="planner-muted mt-2 block text-[12px]"
+            htmlFor="new-task-owner"
+          >
+            Owner
+          </label>
+          <div className="mt-1 flex items-center gap-1.5">
+            <select
+              id="new-task-owner"
+              value={newOwner}
+              onChange={(e) => setNewOwner(e.target.value)}
+              className="planner-input min-h-[32px] flex-1 px-2 py-1 text-[14px]"
+            >
+              <option value="">Unassigned</option>
+              {owners.map((owner) => (
+                <option key={owner} value={owner}>
+                  {owner}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setManageOwners((value) => !value)}
+              aria-expanded={manageOwners}
+              className="planner-control flex min-h-[32px] items-center px-2 text-[12px]"
+            >
+              Manage
+            </button>
+          </div>
+          {manageOwners ? (
+            <PlannerOwnersManager
+              owners={owners}
+              onAdd={addOwner}
+              onRename={renameOwner}
+              onRemove={removeOwner}
+            />
+          ) : null}
           <button
             type="button"
             onClick={handleAdd}
             disabled={!newTitle.trim()}
-            className="mt-2 w-full rounded bg-stone-900 px-3 py-1.5 text-sm text-amber-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="planner-button mt-2 w-full px-3 py-1.5 text-[14px] disabled:cursor-not-allowed"
           >
             Add task
           </button>
-          <p className="mt-1 text-[10px] text-stone-500">
-            cmd-enter to add
-          </p>
+          <p className="planner-faint mt-1 text-[10px]">cmd-enter to add</p>
         </div>
       ) : (
-        <p className="mt-3 border-t border-stone-300/60 pt-3 text-xs text-stone-500">
+        <p className="planner-divider planner-muted mt-3 pt-3 text-[12px]">
           Sign in to add tasks.
         </p>
       )}
@@ -313,23 +412,20 @@ function PlacementNotesPanel({
   };
 
   return (
-    <section className="mt-3 border-t border-stone-300/60 pt-3">
+    <section className="planner-divider mt-3 pt-3">
       <header className="mb-2 flex items-baseline justify-between">
-        <p className="text-xs uppercase tracking-wider text-stone-500">Notes</p>
-        <p className="text-[10px] text-stone-500">{placementLabel}</p>
+        <p className="planner-kicker">Notes</p>
+        <p className="planner-muted text-[10px]">{placementLabel}</p>
       </header>
 
       {notes.length === 0 ? (
-        <p className="text-xs text-stone-500">No notes yet.</p>
+        <p className="planner-muted text-[12px]">No notes yet.</p>
       ) : (
         <ul className="space-y-2">
           {notes.map((note) => (
-            <li
-              key={note.id}
-              className="rounded-md border border-stone-200/70 bg-white/80 p-2 text-xs text-stone-700"
-            >
-              <p className="font-medium text-stone-800">{note.authorDisplay}</p>
-              <p className="mt-0.5 text-[10px] text-stone-500">
+            <li key={note.id} className="planner-tile p-2 text-[12px]">
+              <p className="planner-ink font-medium">{note.authorDisplay}</p>
+              <p className="planner-muted mt-0.5 text-[10px]">
                 {new Date(note.createdAt).toLocaleString()}
               </p>
               <p className="mt-1 whitespace-pre-wrap">{note.body}</p>
@@ -344,9 +440,9 @@ function PlacementNotesPanel({
                       if (result.error) onError(result.error.message);
                     });
                   }}
-                  className="mt-1 text-[10px] text-stone-500 hover:text-red-700"
+                  className="planner-iconbtn mt-1 inline-flex h-6 items-center px-1 text-[10px]"
                 >
-                  delete
+                  Delete
                 </button>
               ) : null}
             </li>
@@ -359,9 +455,9 @@ function PlacementNotesPanel({
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Add a note (cmd-enter to post)…"
+            placeholder="Add a note (cmd-enter to post)"
             rows={3}
-            className="w-full resize-y rounded border border-stone-300 bg-white px-2 py-1.5 text-sm"
+            className="planner-input w-full resize-y px-2 py-1.5 text-[14px]"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -373,14 +469,92 @@ function PlacementNotesPanel({
             type="button"
             onClick={post}
             disabled={!draft.trim()}
-            className="mt-1 w-full rounded bg-stone-900 px-3 py-1.5 text-sm text-amber-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="planner-button mt-1 w-full px-3 py-1.5 text-[14px] disabled:cursor-not-allowed"
           >
             Post note
           </button>
         </div>
       ) : (
-        <p className="mt-2 text-xs text-stone-500">Sign in to post notes.</p>
+        <p className="planner-muted mt-2 text-[12px]">Sign in to post notes.</p>
       )}
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Owner roster editor                                                */
+/*                                                                     */
+/*  Lets planners add, rename, and remove the crew names the owner     */
+/*  dropdowns offer. Backed by usePlannerOwners (localStorage), so the */
+/*  list survives reloads without a backend.                           */
+/* ------------------------------------------------------------------ */
+
+function PlannerOwnersManager({
+  owners,
+  onAdd,
+  onRename,
+  onRemove,
+}: {
+  readonly owners: readonly string[];
+  readonly onAdd: (name: string) => void;
+  readonly onRename: (oldName: string, newName: string) => void;
+  readonly onRemove: (name: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    onAdd(draft);
+    setDraft("");
+  };
+
+  return (
+    <div className="planner-tile mt-2 p-2">
+      <p className="planner-kicker">Owners</p>
+      <ul className="mt-1.5 space-y-1">
+        {owners.map((owner) => (
+          <li key={owner} className="flex items-center gap-1.5">
+            <input
+              defaultValue={owner}
+              onBlur={(e) => {
+                const next = e.target.value.trim();
+                if (next && next !== owner) onRename(owner, next);
+              }}
+              aria-label={`Rename ${owner}`}
+              className="planner-input min-h-[24px] flex-1 px-2 py-0.5 text-[12px]"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(owner)}
+              aria-label={`Remove ${owner}`}
+              className="planner-iconbtn flex h-6 w-6 items-center justify-center text-[12px]"
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex items-center gap-1.5">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Add owner"
+          aria-label="New owner name"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          className="planner-input min-h-[24px] flex-1 px-2 py-0.5 text-[12px]"
+        />
+        <button
+          type="button"
+          onClick={add}
+          disabled={!draft.trim()}
+          className="planner-button min-h-[24px] px-2 py-0.5 text-[12px] disabled:cursor-not-allowed"
+        >
+          Add
+        </button>
+      </div>
+    </div>
   );
 }
