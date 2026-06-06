@@ -32,9 +32,9 @@ and correct it, not to start over:
   deck.gl composes onto MapLibre via `MapboxOverlay` + `useControl`
   (`DeckGLOverlay`, AtlasMap.tsx line 873). This is where `createLostFlintDeckLayers`
   and every other deck layer attach. **The traffic render mounts here, not in a new file.**
-- **Render-in-flight**: AtlasMap.tsx carries `trafficColor`, `trafficWidth`,
-  `trafficDashArray`, a deck.gl `GeoJsonLayer` (`atlas-traffic-flow-segments`)
-  for static segment strokes / picking, and an Anime.js SVG overlay
+- **Render-in-flight**: AtlasMap.tsx carries `trafficColor` and `trafficWidth`,
+  a deck.gl `GeoJsonLayer` (`atlas-traffic-flow-segments`) for static solid
+  segment strokes / picking, and an Anime.js SVG overlay
   (`AnimeTrafficFlowOverlay`, `data-traffic-renderer="animejs"`) for moving
   flow particles. The old hand-rolled `createTrafficParticles` +
   `ScatterplotLayer` path has been retired.
@@ -104,7 +104,7 @@ render; it does not justify a route now.
 layer, but split responsibilities deliberately:
 
 - deck.gl `GeoJsonLayer` remains the static road segment layer. It carries
-  congestion color, source-status dash style, selected-segment picking, and the
+  congestion color, source-status opacity, selected-segment picking, and the
   reduced-motion fallback.
 - Anime.js renders the moving particles in an absolutely-positioned SVG overlay.
   Each traffic segment LineString is projected from `[lng, lat]` into a
@@ -121,6 +121,13 @@ Implementation caveat: the SVG paths are screen-space, so they must be rebuilt
 when MapLibre camera state changes. `AtlasMap` now uses the map's `project()`
 method to regenerate path geometry on move/zoom/pitch/bearing changes, then
 Anime.js is scoped and reverted through React cleanup.
+
+Geometry caveat: Anime.js only follows the path it receives. The current preview
+fixture uses six coarse corridor LineStrings, while the atlas already has a
+checked-in OSM street-centerline layer with local, collector, and arterial road
+features. If a traffic path cuts through blocks, the fix is to trace or snap the
+traffic segment to street-centerline geometry before rendering; the Anime.js
+motion-path code can stay unchanged.
 
 ## Decision 3: Encoding (volume -> density, speed -> duration, congestion -> color)
 
@@ -152,17 +159,19 @@ Map the speed *deficit* (how far below free-flow) to traversal duration, so slow
 traffic visibly crawls and free traffic zips:
 
 ```
-ratio    = clamp(speed_mph / max(free_flow_speed_mph, 1), 0.1, 1) // 1 = free flow
-duration = lerp(2.0s, 9.0s, 1 - ratio)                          // free=2.0s, jammed=9.0s
+ratio          = clamp(speed_mph / max(free_flow_speed_mph, 1), 0.1, 1) // 1 = free flow
+base_duration  = lerp(2.0s, 9.0s, 1 - ratio)                          // free=2.0s, jammed=9.0s
+duration       = base_duration / 0.4                                  // reduce visual speed by 60%
 ```
 
-So a free-flow segment traverses in ~2s (fast heads), and a stop-and-go segment
-takes ~9s (a slow ooze). This is the exact "congested street carries many slow
-particles, free one carries few fast ones" reading. In Anime.js terms, duration
-is the per-particle tween duration passed to `animate(..., { duration, loop:
-true, ...svg.createMotionPath(path, offset) })`. Falls back to the
-`congestion_ratio` midpoint duration when `free_flow_speed_mph` or `speed_mph`
-is null.
+So a free-flow segment now traverses in ~5s, and a stop-and-go segment takes
+~22.5s. This keeps the exact "congested street carries many slow particles, free
+one carries few faster ones" reading, but calms the display after Travis's
+2026-06-06 request to reduce perceived flow speed by about 60%. In Anime.js
+terms, duration is the per-particle tween duration passed to `animate(..., {
+duration, loop: true, ...svg.createMotionPath(path, offset) })`. Falls back to
+the `congestion_ratio` midpoint duration when `free_flow_speed_mph` or
+`speed_mph` is null.
 
 ### Congestion -> color, within the existing token palette
 
@@ -204,21 +213,21 @@ seductive; moving dots *read as live* whether or not they are. The treatment mus
 make live readings visibly different from fixture or pending-live estimates, and
 must make a whole-snapshot `status: fixture_fallback` impossible to miss.
 
-**Per-segment treatment** (encoded by line style + dot fill, not color alone, so
-it survives the congestion color ramp):
+**Per-segment treatment** (encoded by solid-line opacity + dot fill, not color
+alone, so it survives the congestion color ramp):
 
 | `source_status` / `estimate_basis` | Road stroke | Flow heads | Reading |
 |---|---|---|---|
-| `live` / `live_feed` | **solid** line, full opacity | **solid** filled heads, full opacity, crisp white 1px ring (the existing `getLineColor [255,255,255,170]` ring) | "a source saw this" |
-| `pending_live_source` / `hourly_pattern` | **dashed** line (`getDashArray`, ~6px/4px) | **hollow** heads (stroked ring, no fill) | "we can map the corridor, but the live source is not wired yet" |
-| `fixture` / `hourly_pattern` | **finely dotted** line (~2px/4px), reduced opacity | **faint** heads, ~50% opacity, no ring | "fixture/time-of-day estimate for preview" |
+| `live` / `live_feed` | **solid** line, highest opacity | **solid** filled heads, full opacity, crisp white 1px ring | "a source saw this" |
+| `pending_live_source` / `hourly_pattern` | **solid** line, medium opacity | **hollow** heads (stroked ring, no fill) | "we can map the corridor, but the live source is not wired yet" |
+| `fixture` / `hourly_pattern` | **solid** line, low opacity | **faint** heads, ~50% opacity, no ring | "fixture/time-of-day estimate for preview" |
 | missing or unavailable | **hairline ghost** stroke in `--ctx-ink-faint`, no motion | **none** | "no usable traffic reading here"; the road shows but never animates |
 
-The dashed/dotted vocabulary mirrors how the ghost palette signals uncertainty in
-reconstructions (material substitution there; line-style substitution here),
-keeping the honesty grammar consistent across surfaces. confidence (0..1)
-modulates head opacity within a band as a secondary cue (a low-confidence live
-segment is slightly more translucent), never overriding the source-status style.
+The solid-line opacity vocabulary keeps the dense street network legible while
+still making support visible: live reads strongest, pending reads softer, and
+fixture reads provisional. confidence (0..1) modulates opacity within a band as
+a secondary cue (a low-confidence live segment is slightly more translucent),
+never overriding the source-status tier.
 
 **Whole-snapshot `status: fixture_fallback`** (the misleading-the-user failure mode):
 
@@ -235,11 +244,11 @@ segment is slightly more translucent), never overriding the source-status style.
    moving-dots surface. The REST snapshot already supplies the honest strings;
    render them.
 2. **Motion damping under no-live-feed.** When `status: fixture_fallback`, the
-   flow runs at reduced opacity and the road strokes default to dashed/dotted.
-   The surface should *feel* provisional, not authoritative. A confident, crisp,
-   fully-opaque flow is reserved for `source_status: live` data.
+   flow runs at reduced opacity and the road strokes use lower-opacity solid
+   lines. The surface should *feel* provisional, not authoritative. A confident,
+   crisp, high-opacity flow is reserved for `source_status: live` data.
 3. **A legend** (collapsible, in the layer chrome or island) mapping the five
-   congestion colors AND the source-status line styles. The legend is the
+   congestion colors AND the source-status opacity tiers. The legend is the
    non-motion key that makes the encoding learnable and is also the reduced-motion
    fallback's primary teaching surface (Decision 6).
 
@@ -297,8 +306,8 @@ Binding requirements:
 1. **`prefers-reduced-motion: reduce` -> NO continuous flow.** The Anime.js SVG
    particle overlay is not rendered. The road stroke renders **static**, colored
    by the congestion band (Decision 3) and widthed by volume (Decision 3), with
-   the source-status line-style still applied (Decision 4). Congestion is fully
-   legible from color + width + line style with zero motion.
+   the source-status opacity tier still applied (Decision 4). Congestion is fully
+   legible from color + width + opacity with zero motion.
 2. **A non-motion congestion readout, always available regardless of motion
    preference.** Each segment, on hover/tap (and in `TrafficFlowPanel`), shows a
    plain text line: the congestion band word ("Stop and go," "Moving freely"), the
@@ -309,7 +318,7 @@ Binding requirements:
    visual-grammar-v1 Accessibility and the atelier gate's "accessible static
    state" rule).
 3. **The legend (Decision 4) is the teaching surface** under reduced motion: it
-   maps color -> congestion band and line style -> source status without relying
+   maps color -> congestion band and opacity -> source status without relying
    on the animation to explain itself.
 4. **Layer default OFF + an in-layer motion toggle.** The traffic layer is off by
    default (opt-in motion). Even with motion preference unset, a "Pause flow"
@@ -329,12 +338,12 @@ Lock gate (mirrors the atelier validation gates, binding before implementation i
       `docs/validation/traffic-realtime/traffic-anime-browser-smoke.json`.
 - [x] Every segment has a text congestion readout (band + speed + volume); no
       state is motion-only.
-- [ ] Legend maps all five congestion colors and all source-status line styles.
+- [ ] Legend maps all congestion colors and all source-status opacity tiers.
 - [x] `status: fixture_fallback` renders `FIXTURE ESTIMATE - NOT A LIVE FEED`
       and never the word "live" by itself; segment `support_note` values are
       shown where useful.
 - [x] `source_status: live` vs `fixture` vs `pending_live_source` are
-      distinguishable by line style (not color alone).
+      distinguishable by opacity (not color alone).
 - [ ] Five-band color ramp passes Deuteranopia/Protanopia/Tritanopia sim against
       `--ctx-paper`.
 - [ ] Layer OFF by default; a "Pause flow" control freezes motion independent of
@@ -354,7 +363,7 @@ Lock gate (mirrors the atelier validation gates, binding before implementation i
 - Re-litigating the API seam. The Git coordination decision in
   `docs/plans/traffic-domain-realtime/decision-2026-06-05-graphql-canonical.md`
   keeps GraphQL canonical and uses the REST route only as the dev fallback.
-- The exact `getDashArray` pixel cadences and Anime.js particle opacity/radius
+- The exact source-status opacity tiers and Anime.js particle opacity/radius
   tuning (implementation-time, validated at the visual gate).
 - Emissions / crash-risk overlays (handoff "cheap overlays"); separate surfaces.
 

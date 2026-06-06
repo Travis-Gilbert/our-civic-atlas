@@ -68,10 +68,10 @@ const CONGESTION_LEGEND = [
   { label: "Heavy", color: "rgb(193, 74, 44)" },
 ] as const;
 
-const SOURCE_STYLE_LEGEND = [
-  { label: "Live source", borderStyle: "solid" },
-  { label: "Source pending", borderStyle: "dashed" },
-  { label: "Fixture estimate", borderStyle: "dotted" },
+const SOURCE_OPACITY_LEGEND = [
+  { label: "Live source", opacity: 0.95 },
+  { label: "Source pending", opacity: 0.62 },
+  { label: "Fixture estimate", opacity: 0.4 },
 ] as const;
 
 function selectedOrFirst(
@@ -190,7 +190,7 @@ export function TrafficFlowPanel({
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          {SOURCE_STYLE_LEGEND.map((item) => (
+          {SOURCE_OPACITY_LEGEND.map((item) => (
             <span
               key={item.label}
               className="inline-flex items-center gap-1.5 text-[10px] leading-[1.3]"
@@ -200,7 +200,8 @@ export function TrafficFlowPanel({
                 aria-hidden="true"
                 className="inline-block w-5"
                 style={{
-                  borderTop: `2px ${item.borderStyle} var(--ctx-ink-soft)`,
+                  borderTop: "2px solid var(--ctx-ink-soft)",
+                  opacity: item.opacity,
                 }}
               />
               {item.label}

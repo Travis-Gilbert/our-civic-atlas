@@ -302,6 +302,7 @@ const TRAFFIC_FREE: [number, number, number, number] = [45, 166, 153, 210];
 const TRAFFIC_BUILDING: [number, number, number, number] = [217, 162, 59, 226];
 const TRAFFIC_HEAVY: [number, number, number, number] = [193, 74, 44, 236];
 const TRAFFIC_SELECTED: [number, number, number, number] = [42, 36, 25, 245];
+const TRAFFIC_FLOW_SPEED_SCALE = 0.4;
 
 const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   explore: [193, 132, 58, 34],
@@ -801,20 +802,20 @@ function trafficColor(
       : props.congestion_ratio >= 0.28
         ? TRAFFIC_BUILDING
         : TRAFFIC_FREE;
-  const alpha =
-    props.source_status === "live" ? base[3] : Math.max(128, base[3] - 76);
+  const confidence = Math.max(0.45, Math.min(1, props.confidence ?? 0.72));
+  const sourceOpacity =
+    props.source_status === "live"
+      ? Math.max(0.82, confidence)
+      : props.source_status === "pending_live_source"
+        ? Math.max(0.54, confidence * 0.72)
+        : Math.max(0.38, confidence * 0.54);
+  const alpha = Math.round(base[3] * sourceOpacity);
   return [base[0], base[1], base[2], alpha];
 }
 
 function trafficWidth(props: TrafficSegmentProperties): number {
   const volumeWidth = Math.min(7.5, Math.max(2.2, props.volume_per_hour / 250));
   return volumeWidth + props.congestion_ratio * 2.2;
-}
-
-function trafficDashArray(props: TrafficSegmentProperties): [number, number] {
-  if (props.source_status === "live") return [12, 0];
-  if (props.source_status === "pending_live_source") return [6, 4];
-  return [2, 4];
 }
 
 function clamp01(value: number): number {
@@ -834,7 +835,8 @@ function trafficParticleDurationMs(props: TrafficSegmentProperties): number {
     props.speed_mph / Math.max(props.free_flow_speed_mph, 1),
   );
   const boundedRatio = Math.max(0.1, ratio);
-  return Math.round((2 + (1 - boundedRatio) * 7) * 1000);
+  const durationMs = (2 + (1 - boundedRatio) * 7) * 1000;
+  return Math.round(durationMs / TRAFFIC_FLOW_SPEED_SCALE);
 }
 
 function trafficParticleStyle(props: TrafficSegmentProperties): Pick<
@@ -2548,12 +2550,6 @@ export function AtlasMap({
               feature.properties,
               feature.properties.segment_id === selectedTrafficSegmentId,
             ),
-          getDashArray: (
-            feature: GeoJSON.Feature<GeoJSON.Geometry, TrafficSegmentProperties>,
-          ) =>
-            trafficDashArray(feature.properties),
-          dashJustified: true,
-          extensions: [new PathStyleExtension({ dash: true })],
           onClick: (info) => {
             const segment = info.object as TrafficSegmentFeature | undefined;
             if (!segment) return false;
@@ -2567,7 +2563,6 @@ export function AtlasMap({
           updateTriggers: {
             getLineColor: [selectedTrafficSegmentId],
             getLineWidth: [trafficSnapshot?.generated_at],
-            getDashArray: [trafficSnapshot?.generated_at],
           },
         }),
       );

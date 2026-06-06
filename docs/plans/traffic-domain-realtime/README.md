@@ -98,15 +98,17 @@ Frontend:
 - [x] TR-04 Initial deck.gl rendering layer and Traffic island surface.
 - [x] TR-05a Render data-source swap: `OpenFlintAtlasScene` now reads `useTrafficRealtime("flint-downtown", { fallback: true })`; the hook owns polling.
 - [x] TR-05b TR-H1 reduced-motion gate: traffic particles stop under `prefers-reduced-motion`, while static congestion-colored lines remain visible.
-- [x] TR-05c TR-H2 source-status honesty: fixture/pending-live segments render dimmer/dashed, live segments render solid/brighter, and the panel shows stronger not-live-feed copy plus legends.
+- [x] TR-05c TR-H2 source-status honesty: fixture/pending-live segments render as lower-opacity solid strokes, live segments render stronger/brighter, and the panel shows stronger not-live-feed copy plus an opacity legend.
 - [x] TR-05d Renderer correction: Anime.js is required by the sourced handoff; `animejs` is installed and `AtlasMap` now renders flow particles via an SVG `AnimeTrafficFlowOverlay` using `svg.createMotionPath()` over projected road paths. The old deck.gl `ScatterplotLayer` particle path is retired.
-- [ ] TR-05e Visual-register polish still open: final particle opacity/radius tuning, contrast/color-blind review, optional pause/scrubber control.
+- [ ] TR-05e Visual-register polish still open: final particle opacity/radius tuning, solid-stroke opacity review, contrast/color-blind review, optional pause/scrubber control.
 - [x] TR-06 Browser validation (preview): segments render, Anime.js flow animates, support labels honest, reduced-motion respected. Evidence: `docs/validation/traffic-realtime/traffic-anime-browser-smoke.json` (19 Anime.js particles / 6 paths, transform changes over time; reduced-motion removes the Anime overlay), `traffic-anime-normal-map.png`, `traffic-anime-normal-panel-visible.png`, `traffic-anime-reduced-motion-map.png`.
+- [ ] TR-07 Street-centerline tracing: current preview traffic geometry is a 6-corridor seed with coarse 4-point LineStrings, so some paths can visually cut through blocks. Short-term preview can snap those known corridor IDs to the checked-in OSM highway centerlines; canonical backend should return already-traced road graph / PostGIS segment geometry so Anime.js follows real street centerlines without frontend guesswork.
 
 Backend (sister repo `our-civic-atlas-backend`, **live on Railway**):
 - [x] TR-B1 GraphQL `trafficRealtime(networkId)` resolver, schema Extension 8 (honest fixture) — deployed (`e1d0e36`). `useTrafficRealtime` auto-flips `fallback`->`graphql` once the frontend reaches this backend; no frontend change needed.
 - [x] TR-B2 `traffic_segments` PostGIS table + RLS + FK-safe 6-corridor seed; migration validated against a real postgis container — deployed (`ca58a57`)
 - [ ] TR-B2b Wire the resolver to READ `traffic_segments` (tenant-RLS transaction + `ST_AsGeoJSON`), fixture fallback on empty/error
+- [ ] TR-B2c Replace coarse 6-corridor seed geometry with road-centerline-traced segment geometry, either by OSM/MDOT edge IDs or a PostGIS snapping pass over the road network.
 - [ ] TR-B3 Realtime feed ingestion (511 / MDOT / probe) OR SUMO+TraCI pod; provenance per segment
 - [ ] TR-B4 Calibration against any measured counts; `confidence` per segment honest
 
