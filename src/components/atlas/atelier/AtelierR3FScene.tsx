@@ -38,6 +38,7 @@ import { GHOST_PALETTE } from "@/lib/atlas/historical-reconstruction";
 import type { AtelierDossier } from "@/lib/atlas/use-reconstruction-dossier";
 import { AtelierDustMotes } from "@/components/atlas/atelier/AtelierDustMotes";
 import { AtelierConflictMarkers } from "@/components/atlas/atelier/AtelierConflictMarkers";
+import { AtelierProceduralHouse } from "@/components/atlas/atelier/AtelierProceduralHouse";
 import type { ChoreographerState } from "@/lib/atlas/atelier-choreographer";
 
 type AtelierR3FSceneProps = {
@@ -441,8 +442,15 @@ export function AtelierR3FScene({
         />
 
         <ChoreographedCameraGroup choreographyState={choreographyState}>
-          <BuildingMesh reconstruction={reconstruction} />
-          <BuildingFacade reconstruction={reconstruction} />
+          {reconstruction.roofForm === "GABLE" ||
+          reconstruction.roofForm === "HIPPED" ? (
+            <AtelierProceduralHouse reconstruction={reconstruction} />
+          ) : (
+            <>
+              <BuildingMesh reconstruction={reconstruction} />
+              <BuildingFacade reconstruction={reconstruction} />
+            </>
+          )}
           <AtelierConflictMarkers
             conflicts={conflicts}
             widthMeters={widthMeters}
