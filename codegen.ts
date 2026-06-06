@@ -1,10 +1,15 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
+import { resolveCodegenSchema } from "./src/lib/api/graphql/endpoints";
 
 /**
  * GraphQL codegen config for the Civic Atlas client.
  *
- * Schema source: the Flint GraphQL contract at
- *   docs/design/flint-graphql-schema-v1.graphql
+ * Schema source defaults to the Flint GraphQL contract at
+ *   docs/design/flint-graphql-schema-v1.graphql.
+ *
+ * GCLBA fork override:
+ *   CIVIC_ATLAS_DEPLOYMENT_TARGET=gclba npm run codegen
+ *   CIVIC_ATLAS_GRAPHQL_SCHEMA=http://127.0.0.1:8001/graphql npm run codegen
  *
  * The contract is the curation boundary — only types defined there can be
  * requested. Theseus implements its side against this same schema using
@@ -17,7 +22,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
  */
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "docs/design/flint-graphql-schema-v1.graphql",
+  schema: resolveCodegenSchema(),
   documents: ["src/**/*.graphql", "src/**/!(generated)/*.{ts,tsx}"],
   ignoreNoDocuments: true,
   generates: {
