@@ -121,6 +121,21 @@ const BASEMAP_STYLE: StyleSpecification = {
   ],
 };
 
+export type DeckLayerPointerDragInfo = {
+  readonly layerId: string;
+  readonly object: unknown;
+  readonly coordinate: [number, number];
+  readonly pointerId: number;
+};
+
+export type DeckLayerPointerDragHandler = {
+  readonly layerIds: readonly string[];
+  readonly pickingRadius?: number;
+  readonly onDragStart?: (info: DeckLayerPointerDragInfo) => void;
+  readonly onDrag?: (info: DeckLayerPointerDragInfo) => void;
+  readonly onDragEnd?: (info: DeckLayerPointerDragInfo) => void;
+};
+
 /* ------------------------------------------------------------------ */
 /*  Bound-world vignette (PR 3)                                        */
 /*                                                                     */
@@ -1156,6 +1171,7 @@ export type AtlasMapProps = {
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
   mapDragPanEnabled?: boolean;
   dragPanBlockLayerIds?: readonly string[];
+  deckLayerPointerDragHandler?: DeckLayerPointerDragHandler | null;
   /**
    * Optional deck.gl layers appended to the AtlasMap's built-in
    * layer stack. Used by overlay routes (porchfest planner, future
@@ -1212,6 +1228,7 @@ export function AtlasMap({
   urbanDesignMaterialMode = "typology",
   mapDragPanEnabled = true,
   dragPanBlockLayerIds = EMPTY_DRAG_PAN_BLOCK_LAYER_IDS,
+  deckLayerPointerDragHandler = null,
   selectedBuilding = null,
   onBuildingSelect,
   extraDeckLayers = [],
@@ -1443,6 +1460,157 @@ export function AtlasMap({
       container.removeEventListener("pointerleave", handlePointerEnd, true);
     };
   }, [dragPanBlockLayerIds, mapDragPanEnabled, setMapDragPan]);
+
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    const handler = deckLayerPointerDragHandler;
+    if (!container || !handler || handler.layerIds.length === 0) return;
+
+    type ActiveDrag = {
+      readonly pointerId: number;
+      readonly layerId: string;
+      readonly object: unknown;
+    };
+    let activeDrag: ActiveDrag | null = null;
+    let lastDragInfo: DeckLayerPointerDragInfo | null = null;
+
+    const stopMapGesture = (event: PointerEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    const coordinateFromEvent = (
+      event: PointerEvent,
+    ): [number, number] | null => {
+      const map = mapRef.current?.getMap();
+      if (!map) return null;
+      const rect = container.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+      const lngLat = map.unproject([x, y]);
+      return [lngLat.lng, lngLat.lat];
+    };
+
+    const pickHandledObject = (
+      event: PointerEvent,
+    ): DeckLayerPointerDragInfo | null => {
+      const overlay = overlayRef.current;
+      const coordinate = coordinateFromEvent(event);
+      if (!overlay || !coordinate) return null;
+      const rect = container.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const picks = overlay.pickMultipleObjects({
+        x,
+        y,
+        radius: handler.pickingRadius ?? 24,
+        depth: 12,
+      });
+      const pick = picks.find((candidate) => {
+        const layerId =
+          typeof candidate.layer?.id === "string" ? candidate.layer.id : null;
+        return layerId ? handler.layerIds.includes(layerId) : false;
+      });
+      const layerId =
+        typeof pick?.layer?.id === "string" ? pick.layer.id : null;
+      if (!pick || !layerId) return null;
+      const info = {
+        layerId,
+        object: pick.object,
+        coordinate,
+        pointerId: event.pointerId,
+      };
+      lastDragInfo = info;
+      return info;
+    };
+
+    const infoForActiveDrag = (
+      event: PointerEvent,
+    ): DeckLayerPointerDragInfo | null => {
+      if (!activeDrag) return null;
+      const coordinate = coordinateFromEvent(event);
+      if (!coordinate) return null;
+      const info = {
+        layerId: activeDrag.layerId,
+        object: activeDrag.object,
+        coordinate,
+        pointerId: activeDrag.pointerId,
+      };
+      lastDragInfo = info;
+      return info;
+    };
+
+    const releaseActiveDrag = (event: PointerEvent) => {
+      if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
+      stopMapGesture(event);
+      const info = infoForActiveDrag(event) ?? lastDragInfo;
+      if (info) handler.onDragEnd?.(info);
+      try {
+        container.releasePointerCapture(activeDrag.pointerId);
+      } catch {
+        // The pointer may already be released on pointercancel/leave.
+      }
+      activeDrag = null;
+      lastDragInfo = null;
+      setMapDragPan(mapDragPanEnabled);
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!event.isPrimary) return;
+      const info = pickHandledObject(event);
+      if (!info) return;
+      activeDrag = {
+        pointerId: event.pointerId,
+        layerId: info.layerId,
+        object: info.object,
+      };
+      stopMapGesture(event);
+      try {
+        container.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture is a resilience aid; dragging still works without it.
+      }
+      setMapDragPan(false);
+      handler.onDragStart?.(info);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
+      stopMapGesture(event);
+      const info = infoForActiveDrag(event);
+      if (info) handler.onDrag?.(info);
+    };
+
+    container.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+    });
+    container.addEventListener("pointermove", handlePointerMove, {
+      capture: true,
+    });
+    container.addEventListener("pointerup", releaseActiveDrag, {
+      capture: true,
+    });
+    container.addEventListener("pointercancel", releaseActiveDrag, {
+      capture: true,
+    });
+    container.addEventListener("pointerleave", releaseActiveDrag, {
+      capture: true,
+    });
+
+    return () => {
+      if (activeDrag) {
+        setMapDragPan(mapDragPanEnabled);
+        activeDrag = null;
+        lastDragInfo = null;
+      }
+      container.removeEventListener("pointerdown", handlePointerDown, true);
+      container.removeEventListener("pointermove", handlePointerMove, true);
+      container.removeEventListener("pointerup", releaseActiveDrag, true);
+      container.removeEventListener("pointercancel", releaseActiveDrag, true);
+      container.removeEventListener("pointerleave", releaseActiveDrag, true);
+    };
+  }, [deckLayerPointerDragHandler, mapDragPanEnabled, setMapDragPan]);
 
   /*
    * Hover capability detection. Spec PR 1: hover state (1px terracotta

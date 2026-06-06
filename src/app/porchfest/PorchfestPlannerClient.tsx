@@ -34,6 +34,7 @@ import { GeoJsonLayer } from "@deck.gl/layers";
 import type { Layer } from "@deck.gl/core";
 import { ListChecks } from "lucide-react";
 import { useIsMobile } from "@/lib/atlas/use-is-mobile";
+import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
 import {
@@ -136,6 +137,29 @@ type PlacementDragPreview = {
   readonly placementId: string;
   readonly geometry: Record<string, unknown>;
 };
+type PlannerDragFeature = {
+  readonly properties?: {
+    readonly placement_id?: string;
+    readonly version?: number;
+  };
+};
+
+function plannerDragFeature(object: unknown): PlannerDragFeature | null {
+  if (!object || typeof object !== "object") return null;
+  const feature = object as PlannerDragFeature;
+  const placementId = feature.properties?.placement_id;
+  const version = feature.properties?.version;
+  if (typeof placementId !== "string" || typeof version !== "number") {
+    return null;
+  }
+  return feature;
+}
+
+function pointGeometryFromCoordinate(
+  coordinate: readonly [number, number],
+): Record<string, unknown> {
+  return { type: "Point", coordinates: [coordinate[0], coordinate[1]] };
+}
 
 function hasPlacementVersion(
   placement: InitialPorchfestPlacement,
@@ -598,6 +622,49 @@ function PorchfestPlannerWorkspace({
     setPlacementDragActive(active);
   }, []);
 
+  const plannerPointerDragHandler =
+    useMemo<DeckLayerPointerDragHandler | null>(() => {
+      if (!editingAvailable || paletteMode.kind !== "drag") return null;
+      return {
+        layerIds: PLANNER_DRAG_BLOCK_LAYER_IDS,
+        pickingRadius: 28,
+        onDragStart: ({ object }) => {
+          const feature = plannerDragFeature(object);
+          if (!feature) return;
+          setSelectedPlacementId(feature.properties?.placement_id ?? null);
+          handleTranslateDragStateChange(true);
+        },
+        onDrag: ({ object, coordinate }) => {
+          const feature = plannerDragFeature(object);
+          const placementId = feature?.properties?.placement_id;
+          if (!placementId) return;
+          handleTranslatePreview(
+            placementId,
+            pointGeometryFromCoordinate(coordinate),
+          );
+        },
+        onDragEnd: ({ object, coordinate }) => {
+          const feature = plannerDragFeature(object);
+          const placementId = feature?.properties?.placement_id;
+          const version = feature?.properties?.version;
+          if (placementId && typeof version === "number") {
+            handleTranslate(
+              placementId,
+              version,
+              pointGeometryFromCoordinate(coordinate),
+            );
+          }
+          handleTranslateDragStateChange(false);
+        },
+      };
+    }, [
+      editingAvailable,
+      paletteMode.kind,
+      handleTranslate,
+      handleTranslateDragStateChange,
+      handleTranslatePreview,
+    ]);
+
   const handleDraw = useCallback(
     (category: string, sublabel: string | undefined, geometry: Record<string, unknown>) => {
       const human =
@@ -905,6 +972,7 @@ function PorchfestPlannerWorkspace({
           extraDeckLayers={extraDeckLayers}
           mapDragPanEnabled={!editModeEnabled && !placementDragActive}
           dragPanBlockLayerIds={PLANNER_DRAG_BLOCK_LAYER_IDS}
+          deckLayerPointerDragHandler={plannerPointerDragHandler}
           className="h-full w-full"
           onMapReady={setMapRef}
         />

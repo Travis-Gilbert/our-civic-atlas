@@ -41,7 +41,10 @@ import type {
   AtlasSceneViewModeId,
 } from "@/lib/atlas/scene-view";
 import type { Layer } from "@deck.gl/core";
-import type { UrbanDesignMaterialMode } from "./AtlasMap";
+import type {
+  DeckLayerPointerDragHandler,
+  UrbanDesignMaterialMode,
+} from "./AtlasMap";
 
 const AtlasMap = dynamic(
   () => import("./AtlasMap").then((m) => m.AtlasMap),
@@ -99,6 +102,7 @@ export type ResponsiveAtlasMapProps = {
   extraDeckLayers?: Layer[];
   mapDragPanEnabled?: boolean;
   dragPanBlockLayerIds?: readonly string[];
+  deckLayerPointerDragHandler?: DeckLayerPointerDragHandler | null;
 };
 
 function useHydrated(): boolean {
