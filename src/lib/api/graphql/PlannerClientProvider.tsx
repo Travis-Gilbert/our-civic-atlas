@@ -42,6 +42,7 @@ export function PlannerClientProvider({ children }: { children: ReactNode }) {
       new Client({
         url: endpoint(),
         exchanges: [cacheExchange, fetchExchange],
+        preferGetMethod: false,
         fetchOptions: () => ({
           credentials: "include",
           headers: { "content-type": "application/json" },

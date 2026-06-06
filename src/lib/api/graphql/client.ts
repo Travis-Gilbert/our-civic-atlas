@@ -80,6 +80,7 @@ export function getTheseusClient(): Client {
     _client = new Client({
       url: getEndpoint(),
       exchanges: [cacheExchange, fetchExchange],
+      preferGetMethod: false,
       fetchOptions: () => ({
         headers: {
           "content-type": "application/json",
