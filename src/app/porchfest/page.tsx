@@ -14,6 +14,10 @@ const EVENT_SLUG = "porchfest-2026";
 
 export const dynamic = "force-dynamic";
 
+type InitialPorchfestPlacement = AtlasEventPlannerPlacement & {
+  readonly version?: number;
+};
+
 type FixturePlacement = {
   readonly category: string;
   readonly sublabel?: string;
@@ -33,7 +37,7 @@ type PorchfestFixture = {
 
 const typedFixture = porchfestFixture as PorchfestFixture;
 
-function fixturePlacements(): AtlasEventPlannerPlacement[] {
+function fixturePlacements(): InitialPorchfestPlacement[] {
   return typedFixture.placements.map((placement, index) => ({
     id: `${typedFixture.event_layer.slug}-${index}`,
     eventLayerId: typedFixture.event_layer.slug,
@@ -49,7 +53,7 @@ function fixturePlacements(): AtlasEventPlannerPlacement[] {
 
 async function fetchPlannerData(): Promise<{
   title: string;
-  placements: AtlasEventPlannerPlacement[];
+  placements: InitialPorchfestPlacement[];
   dataSource: "graphql" | "fixture";
 }> {
   const client = getTheseusClient();
@@ -88,6 +92,7 @@ async function fetchPlannerData(): Promise<{
         geometry: placement.geometry,
         status: placement.status,
         notes: placement.notes ?? null,
+        version: placement.version,
       })),
       dataSource: "graphql",
     };

@@ -7,8 +7,10 @@
  * drag-drop-and-3D planning tool:
  *
  *   - Placements load client-side via urql (EventPlacements) so they
- *     carry `version` for optimistic concurrency and so mutations + SSE
- *     update one live cache. SSR `initialPlacements` seed first paint.
+ *     refresh `version` for optimistic concurrency and so mutations +
+ *     SSE update one live cache. SSR `initialPlacements` carry version
+ *     when the server GraphQL read succeeded, so editing can unlock on
+ *     first paint.
  *   - Affordance meshes (PorchfestAffordanceMeshLayer) render each
  *     placement as a recognizable 3D form.
  *   - The editable layer (PlannerEditableLayer) handles drag/draw and
@@ -121,6 +123,15 @@ const CATEGORY_HUMAN_LABEL: Record<AtlasEventPlannerCategory, string> = {
 };
 
 type LivePlacement = EventPlacementsQuery["placements"][number];
+type InitialPorchfestPlacement = AtlasEventPlannerPlacement & {
+  readonly version?: number;
+};
+
+function hasPlacementVersion(
+  placement: InitialPorchfestPlacement,
+): placement is InitialPorchfestPlacement & { readonly version: number } {
+  return typeof placement.version === "number";
+}
 
 /** Map a live GraphQL placement row to the renderer's placement shape. */
 function toRenderPlacement(row: LivePlacement): AtlasEventPlannerPlacement {
@@ -225,7 +236,7 @@ function buildBoundaryLayer(): Layer {
 
 export function PorchfestPlannerClient(props: {
   readonly eventTitle: string;
-  readonly initialPlacements: readonly AtlasEventPlannerPlacement[];
+  readonly initialPlacements: readonly InitialPorchfestPlacement[];
   readonly dataSource: "graphql" | "fixture";
 }) {
   return (
@@ -238,9 +249,10 @@ export function PorchfestPlannerClient(props: {
 function PorchfestPlannerWorkspace({
   eventTitle,
   initialPlacements,
+  dataSource,
 }: {
   readonly eventTitle: string;
-  readonly initialPlacements: readonly AtlasEventPlannerPlacement[];
+  readonly initialPlacements: readonly InitialPorchfestPlacement[];
   readonly dataSource: "graphql" | "fixture";
 }) {
   // Internal five-person tool; magic-link auth is deferred per spec.
@@ -292,12 +304,26 @@ function PorchfestPlannerWorkspace({
     [tasksResult.data],
   );
 
-  // Editing needs version, which only the live query carries. When the
-  // backend is unreachable we keep the SSR fixture for display but
-  // editing is unavailable (honest degrade).
+  const initialEditablePlacements = useMemo<PlannerEditablePlacement[] | null>(
+    () => {
+      if (dataSource !== "graphql") return null;
+      if (!initialPlacements.every(hasPlacementVersion)) return null;
+      return initialPlacements.map((placement) => ({
+        ...placement,
+        version: placement.version,
+      }));
+    },
+    [dataSource, initialPlacements],
+  );
+
+  // Editing needs version. Server-side GraphQL rows carry it for first
+  // paint; the browser query replaces them when the live cache responds.
   const editablePlacements = useMemo<PlannerEditablePlacement[] | null>(
-    () => (liveRows ? liveRows.map(toEditablePlacement) : null),
-    [liveRows],
+    () =>
+      liveRows
+        ? liveRows.map(toEditablePlacement)
+        : initialEditablePlacements,
+    [liveRows, initialEditablePlacements],
   );
 
   // Rendered placements: live rows when present, else SSR fixture.
@@ -307,7 +333,7 @@ function PorchfestPlannerWorkspace({
   );
 
   const editingAvailable = editablePlacements != null && canEdit;
-  const placementsLoaded = liveRows != null;
+  const placementsLoaded = liveRows != null || initialEditablePlacements != null;
 
   const placementsById = useMemo(() => {
     const map = new Map<string, AtlasEventPlannerPlacement>();
