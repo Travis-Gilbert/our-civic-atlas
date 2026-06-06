@@ -864,6 +864,11 @@ input TaskCreateInput {
   eventSlug: String!
   title: String!
   ownerUserId: ID
+  """Free-text owner name (e.g. "Derek D"). The porchfest planner assigns
+  by display name rather than by a planner-user id; the resolver writes
+  it to the task's owner_display. ownerUserId stays optional for the
+  auth-backed path."""
+  ownerDisplay: String
   dueAt: DateTime
   status: String
   placementId: ID
@@ -875,6 +880,8 @@ input TaskUpdateInput {
   expectedVersion: Int!
   title: String
   ownerUserId: ID
+  """Free-text owner name. See TaskCreateInput.ownerDisplay."""
+  ownerDisplay: String
   dueAt: DateTime
   status: String
   placementId: ID

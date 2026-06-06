@@ -232,6 +232,13 @@ export type TaskCreateInput = {
   dueAt?: string | null | undefined;
   eventSlug: string;
   notes?: string | null | undefined;
+  /**
+   * Free-text owner name (e.g. "Derek D"). The porchfest planner assigns
+   * by display name rather than by a planner-user id; the resolver writes
+   * it to the task's owner_display. ownerUserId stays optional for the
+   * auth-backed path.
+   */
+  ownerDisplay?: string | null | undefined;
   ownerUserId?: string | number | null | undefined;
   placementId?: string | number | null | undefined;
   status?: string | null | undefined;
@@ -247,6 +254,8 @@ export type TaskUpdateInput = {
   dueAt?: string | null | undefined;
   expectedVersion: number;
   notes?: string | null | undefined;
+  /** Free-text owner name. See TaskCreateInput.ownerDisplay. */
+  ownerDisplay?: string | null | undefined;
   ownerUserId?: string | number | null | undefined;
   placementId?: string | number | null | undefined;
   status?: string | null | undefined;
