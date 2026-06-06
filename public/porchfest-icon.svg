@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PorchFest">
+  <!-- Full-bleed paper so the maskable crop shows the civic-atlas surface. -->
+  <rect width="512" height="512" fill="#f2f1ec"/>
+  <!-- Porch silhouette (gable roof, two posts, floor) in terracotta, kept
+       inside the maskable safe zone. -->
+  <g fill="#c14a2c">
+    <path d="M256 150 L382 256 L130 256 Z"/>
+    <rect x="158" y="256" width="26" height="108" rx="6"/>
+    <rect x="328" y="256" width="26" height="108" rx="6"/>
+    <rect x="130" y="358" width="252" height="24" rx="8"/>
+  </g>
+  <!-- Music note on the porch, warm ink. -->
+  <g fill="#2a2419">
+    <circle cx="230" cy="326" r="18"/>
+    <rect x="245" y="262" width="11" height="72" rx="3"/>
+    <path d="M245 262 c30 4 38 20 40 34 c-14 -12 -28 -10 -40 -4 Z"/>
+  </g>
+</svg>
