@@ -1369,3 +1369,132 @@ extend type Mutation {
   parenthetical."""
   saveReconstruction(input: SaveReconstructionInput!): SavedReconstruction!
 }
+
+# -----------------------------------------------------------------------------
+# Extension 8: Traffic realtime (per-segment flow on the road network)
+# -----------------------------------------------------------------------------
+#
+# Traffic is a domain on the reconstruction engine, not a bespoke feature
+# (see docs/plans/traffic-domain-realtime/). This first slice is the REALTIME
+# mechanism only: a per-segment flow snapshot mapped onto road-network edges,
+# which the atlas renders as animated flow. No travel-demand model is involved
+# here; the feed is ground truth. Historic replay and future-projection (the
+# four-step SUMO model) are later extensions against the same segment shape.
+#
+# This contract is the typed, curation-boundary form of the REST shape the
+# frontend already renders (src/lib/api/openFlintAtlas.ts). Bringing it under
+# the schema means every segment property is typed and allow-listed: nothing
+# from the Theseus backend can leak through. The REST shim in
+# /api/v2/theseus/open-flint-atlas/* retires once the resolver lands (per the
+# schema header).
+#
+# Calibration discipline (binding, mirrors the reconstruction honesty contract):
+# every segment carries how its numbers were obtained (estimateBasis), whether
+# the source is actually live (sourceStatus), and a confidence. The engine
+# NEVER reports sourceStatus LIVE for a fixture or inferred segment. A flow
+# estimate with no provenance is a bug, not a feature.
+
+"""How a segment's flow numbers were derived."""
+enum TrafficEstimateBasis {
+  """Mapped from a live sensor feed (loop detector, probe, 511 / MDOT RIDE)."""
+  LIVE_FEED
+  """Inferred from an hourly AADT / time-of-day pattern, no current count."""
+  HOURLY_PATTERN
+  """Produced by a scenario / projection model run, not an observation."""
+  SCENARIO_MODEL
+}
+
+"""Whether the segment's number is backed by an actually-live source right now.
+Distinct from estimateBasis: a segment can be shaped for a LIVE_FEED basis while
+its source is still a FIXTURE until the authenticated feed is wired."""
+enum TrafficSourceStatus {
+  """A live upstream source is currently feeding this segment."""
+  LIVE
+  """A local fixture stands in for the eventual live source."""
+  FIXTURE
+  """The live source is identified but not yet connected."""
+  PENDING_LIVE_SOURCE
+}
+
+"""Whole-snapshot feed status. The UI must not present FIXTURE_FALLBACK as live."""
+enum TrafficFeedStatus {
+  LIVE
+  FIXTURE_FALLBACK
+  UNAVAILABLE
+}
+
+"""One road segment carrying flow. geometry is the LineString the animation
+tweens particles along; volumePerHour drives particle density and speedMph
+drives tween duration, so a congested street visibly carries many slow particles
+and a free one carries few fast ones."""
+type TrafficSegment {
+  """Stable id. Prefix: 'traffic:'. Matches the RustyRed edge id."""
+  segmentId: ID!
+  """Human corridor name (e.g. 'Saginaw Street downtown')."""
+  corridorName: String!
+  """Direction / orientation label shown in the panel."""
+  directionLabel: String!
+  """The segment centerline. GeoJSON LineString in WGS84."""
+  geometry: GeoJSON!
+  """How this segment's numbers were derived."""
+  estimateBasis: TrafficEstimateBasis!
+  """Whether the source is actually live right now."""
+  sourceStatus: TrafficSourceStatus!
+  """Short source attribution rendered verbatim (e.g. 'MDOT RIDE target, fixture mirror')."""
+  sourceLabel: String!
+  """Honest one-line note on what this segment is and is not."""
+  supportNote: String!
+  """ISO 8601 time the reading reflects."""
+  observedAt: DateTime!
+  """ISO 8601 time the reading goes stale, when known."""
+  expiresAt: DateTime
+  """Mean speed in mph at observedAt. Drives particle tween duration."""
+  speedMph: Float!
+  """Free-flow (uncongested) speed in mph. speedMph is read against this."""
+  freeFlowSpeedMph: Float!
+  """Vehicles per hour. Drives particle density."""
+  volumePerHour: Float!
+  """Volume-to-capacity style ratio in [0, 1]; drives the congestion colour."""
+  congestionRatio: Float!
+  """Confidence in [0, 1]. 1.0 for a direct live reading; lower for inferred."""
+  confidence: Float!
+}
+
+"""Roll-up the panel renders above the segment list."""
+type TrafficRealtimeSummary {
+  segmentCount: Int!
+  liveFeedSegments: Int!
+  inferredSegments: Int!
+  congestedSegments: Int!
+  averageSpeedMph: Float!
+  averageCongestionRatio: Float!
+}
+
+"""One-shot realtime traffic payload for a road-network area at a moment.
+Empty segments array when the engine has no data; never null."""
+type TrafficRealtimeSnapshot {
+  """Stable feed id. Prefix: 'traffic:'."""
+  feedId: ID!
+  """Display source attribution for the whole snapshot."""
+  sourceLabel: String!
+  """Optional homepage / docs URL for the source."""
+  sourceUrl: String
+  """Whole-snapshot status. FIXTURE_FALLBACK and UNAVAILABLE are never 'live'."""
+  status: TrafficFeedStatus!
+  """ISO 8601 time the snapshot was generated."""
+  generatedAt: DateTime!
+  """How often the client should re-poll, in seconds."""
+  refreshIntervalSeconds: Int!
+  summary: TrafficRealtimeSummary!
+  """The road segments carrying flow. Empty when the network has none."""
+  segments: [TrafficSegment!]!
+}
+
+extend type Query {
+  """Returns the current realtime traffic snapshot for a road-network area.
+  networkId selects the area (e.g. 'flint'). Single round-trip so the surface
+  can drive the animation without N+1 fetches. When no live feed is wired,
+  status is FIXTURE_FALLBACK and segments carry FIXTURE / PENDING_LIVE_SOURCE
+  sourceStatus: the engine never reports LIVE for a fixture segment."""
+  trafficRealtime(networkId: ID!): TrafficRealtimeSnapshot!
+}

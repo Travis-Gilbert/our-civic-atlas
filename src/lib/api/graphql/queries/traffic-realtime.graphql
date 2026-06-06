@@ -1,0 +1,35 @@
+query TrafficRealtime($networkId: ID!) {
+  trafficRealtime(networkId: $networkId) {
+    feedId
+    sourceLabel
+    sourceUrl
+    status
+    generatedAt
+    refreshIntervalSeconds
+    summary {
+      segmentCount
+      liveFeedSegments
+      inferredSegments
+      congestedSegments
+      averageSpeedMph
+      averageCongestionRatio
+    }
+    segments {
+      segmentId
+      corridorName
+      directionLabel
+      geometry
+      estimateBasis
+      sourceStatus
+      sourceLabel
+      supportNote
+      observedAt
+      expiresAt
+      speedMph
+      freeFlowSpeedMph
+      volumePerHour
+      congestionRatio
+      confidence
+    }
+  }
+}
