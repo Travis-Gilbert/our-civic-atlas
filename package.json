@@ -50,6 +50,7 @@
     "@turf/helpers": "^7.3.5",
     "@urql/next": "^2.0.0",
     "@uwdata/vgplot": "^0.15.0",
+    "animejs": "^4.4.1",
     "antd": "^5.29.3",
     "brush": "github:ArthurBrussee/brush",
     "camera-controls": "^3.1.2",

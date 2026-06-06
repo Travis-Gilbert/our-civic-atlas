@@ -1,6 +1,6 @@
 # Traffic Domain — Realtime flow (plan + lane split)
 
-Status: **GraphQL canonical; REST shim demoted to dev fallback. Contract + `useTrafficRealtime` hook + render data-source swap + TR-H1/TR-H2 hardening landed; browser validation + backend resolver open**
+Status: **GraphQL canonical; Anime.js renderer wired and browser-validated. Contract + `useTrafficRealtime` hook + render data-source swap + TR-H1/TR-H2 hardening landed; visual polish + TR-B2b backend resolver read remain open**
 Started: 2026-06-05
 Source handoff: `CIVIC-ATLAS-TRAFFIC-DOMAIN-HANDOFF.md` (Travis, root of Downloads)
 Active north-star plan: `docs/plans/our-civic-atlas-north-star-execution-plan.md`
@@ -57,7 +57,7 @@ overlap, so the two agents cannot collide on files.
 
 | Lane | Owner | Repo | Scope |
 |---|---|---|---|
-| Frontend vertical | **Claude Code + Codex, coordinated through Git** | `Open-Flint-Atlas-main-release` | GraphQL `trafficRealtime` hook, REST fixture fallback, GraphQL-to-map view-model adapter, Flint road-segment fixture, deck.gl animated flow, Traffic island surface, reduced-motion and visual validation. |
+| Frontend vertical | **Claude Code + Codex, coordinated through Git** | `Open-Flint-Atlas-main-release` | GraphQL `trafficRealtime` hook, REST fixture fallback, GraphQL-to-map view-model adapter, Flint road-segment fixture, Anime.js `createMotionPath` flow overlay, deck.gl static/pickable segment layer, Traffic island surface, reduced-motion and visual validation. |
 | Backend feed | **Backend lane when active** | `our-civic-atlas-backend` | A tenant-scoped GraphQL `trafficRealtime(networkId)` resolver, the RustyRed road-network subgraph (segments with capacity + free-flow speed), the realtime feed ingestion (511 / MDOT / probe) OR a SUMO+TraCI persistent pod, calibration, provenance. |
 
 Coordination substrate: the harness coordination MCP (room / presence / mentions)
@@ -99,8 +99,9 @@ Frontend:
 - [x] TR-05a Render data-source swap: `OpenFlintAtlasScene` now reads `useTrafficRealtime("flint-downtown", { fallback: true })`; the hook owns polling.
 - [x] TR-05b TR-H1 reduced-motion gate: traffic particles stop under `prefers-reduced-motion`, while static congestion-colored lines remain visible.
 - [x] TR-05c TR-H2 source-status honesty: fixture/pending-live segments render dimmer/dashed, live segments render solid/brighter, and the panel shows stronger not-live-feed copy plus legends.
-- [ ] TR-05d Visual-register polish still open: TripsLayer decision, final token tuning, contrast/color-blind review.
-- [ ] TR-06 Browser validation (preview): segments render, flow animates, support labels honest, reduced-motion respected.
+- [x] TR-05d Renderer correction: Anime.js is required by the sourced handoff; `animejs` is installed and `AtlasMap` now renders flow particles via an SVG `AnimeTrafficFlowOverlay` using `svg.createMotionPath()` over projected road paths. The old deck.gl `ScatterplotLayer` particle path is retired.
+- [ ] TR-05e Visual-register polish still open: final particle opacity/radius tuning, contrast/color-blind review, optional pause/scrubber control.
+- [x] TR-06 Browser validation (preview): segments render, Anime.js flow animates, support labels honest, reduced-motion respected. Evidence: `docs/validation/traffic-realtime/traffic-anime-browser-smoke.json` (19 Anime.js particles / 6 paths, transform changes over time; reduced-motion removes the Anime overlay), `traffic-anime-normal-map.png`, `traffic-anime-normal-panel-visible.png`, `traffic-anime-reduced-motion-map.png`.
 
 Backend (sister repo `our-civic-atlas-backend`, **live on Railway**):
 - [x] TR-B1 GraphQL `trafficRealtime(networkId)` resolver, schema Extension 8 (honest fixture) — deployed (`e1d0e36`). `useTrafficRealtime` auto-flips `fallback`->`graphql` once the frontend reaches this backend; no frontend change needed.

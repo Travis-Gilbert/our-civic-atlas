@@ -1,0 +1,20 @@
+{
+  "explore": {
+    "x": 541,
+    "y": 843,
+    "width": 358,
+    "height": 56
+  },
+  "traffic": {
+    "x": 720.15625,
+    "y": 566,
+    "width": 50.046875,
+    "height": 30
+  },
+  "hasVisibleTrafficPanel": true,
+  "hasFixtureLabel": true,
+  "hasLegendText": true,
+  "textSample": "FLINT ATLAS\nAbout\nMethodology\nAtelier\nContribute\nExplore\nCompass at 336°, click to reset to north\nFlint, Michigan\nAsk\nLayers\nScenarios\nTraffic\nTime\nHorizon\n\nTRAFFIC\n\nCorridor speed and flow for Flint streets.\nFIXTURE ESTIMATE - NOT A LIVE FEED\n\nPreview flow uses Flint road geometry and time-of-day estimates until the measured traffic source is connected.\n\nAVG SPEED\n\n37.2 mph\n\nSLOW SPOTS\n\n1\n\nUPDATED\n\njust now\n\nMoving\nBuilding\nHeavy\nLive source\nSource pending\nFixture estimate\n\nI-69 west approach\n\n56 mph · 1,280 veh/hr\n\nMOVING\n\nI-475 city spine\n\n49 mph · 1,640 veh/hr\n\nMOVING\n\nCourt Street / M-21\n\n27 mph · 760 veh/hr\n\nMOVING\n\nSaginaw Street downtown\n\n18 mph · 540 veh/hr\n\nBUILDING\n\nDort Highway\n\n42 mph · 1,120 veh/hr\n\nMOVING\n\nMiller Road\n\n31 mph · 880 veh/hr\n\nMOVING\n\nI-69 west approach\n\nEastbound / west-side approach\n\nBasis: Fixture shaped like a feed\n\nTraffic: moving at 56 mph of 65 mph free-flow, about 1,280 vehicles/hour.\n\nSupport: 82%\n\nFixture segment shaped to the public RIDE handoff contract until the authenticated live feed is wired.",
+  "shotPath": "/Users/travisgilbert/Tech Dev Local/Creative/Website/Open-Flint-Atlas-main-release/docs/validation/traffic-realtime/traffic-anime-normal-panel-visible.png",
+  "generatedAt": "2026-06-06T06:33:57.310Z"
+}

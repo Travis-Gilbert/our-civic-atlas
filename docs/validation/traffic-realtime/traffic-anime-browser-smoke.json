@@ -1,0 +1,125 @@
+{
+  "normal": {
+    "suffix": "normal",
+    "collapsed": {
+      "hasTrafficText": true,
+      "hasAnimeRenderer": true,
+      "trafficRenderer": "animejs",
+      "particleCount": 19,
+      "pathCount": 6,
+      "hasAnimatedTransformChange": true,
+      "firstTransformsBefore": [
+        "translate(273.54px, 431.745px) rotate(13.5477deg)",
+        "translate(371.282px, 455.398px) rotate(13.7968deg)",
+        "translate(468.944px, 479.382px) rotate(13.7968deg)",
+        "translate(566.044px, 505.511px) rotate(15.5529deg)",
+        "translate(565.514px, 516.887px) rotate(127.699deg)",
+        "translate(728.818px, 312.908px) rotate(132.814deg)",
+        "translate(685px, 361.376px) rotate(127.375deg)",
+        "translate(645.318px, 413.325px) rotate(127.375deg)",
+        "translate(605.489px, 465.163px) rotate(127.699deg)",
+        "translate(668.026px, 448.236px) rotate(13.015deg)"
+      ],
+      "firstTransformsAfter": [
+        "translate(470.983px, 479.883px) rotate(13.7977deg)",
+        "translate(568.067px, 506.074px) rotate(15.5529deg)",
+        "translate(275.582px, 432.237px) rotate(13.5485deg)",
+        "translate(373.322px, 455.899px) rotate(13.7977deg)",
+        "translate(673.711px, 376.155px) rotate(127.376deg)",
+        "translate(634.028px, 428.105px) rotate(127.375deg)",
+        "translate(594.117px, 479.878px) rotate(127.699deg)",
+        "translate(554.141px, 531.602px) rotate(127.698deg)",
+        "translate(716.179px, 326.551px) rotate(132.814deg)",
+        "translate(464.054px, 402.173px) rotate(13.0148deg)"
+      ],
+      "canvasCount": 4,
+      "canvases": [
+        {
+          "width": 1440,
+          "height": 920,
+          "clientWidth": 1440,
+          "clientHeight": 920
+        },
+        {
+          "width": 1440,
+          "height": 920,
+          "clientWidth": 1440,
+          "clientHeight": 920
+        },
+        {
+          "width": 300,
+          "height": 150,
+          "clientWidth": 300,
+          "clientHeight": 150
+        },
+        {
+          "width": 1440,
+          "height": 920,
+          "clientWidth": 1440,
+          "clientHeight": 920
+        }
+      ],
+      "textSample": "FLINT ATLAS\nAbout\nMethodology\nAtelier\nContribute\nExplore\nCompass at 336°, click to reset to north\nFlint, Michigan\nAsk\nLayers\nScenarios\nTraffic\nTime\nHorizon\nRun\n\nVIEW\n\nOblique\n\nFOCUS\n\nward field\n\nBAND\n\nmid band\n\nW",
+      "shotPath": "/Users/travisgilbert/Tech Dev Local/Creative/Website/Open-Flint-Atlas-main-release/docs/validation/traffic-realtime/traffic-anime-normal-map.png"
+    },
+    "panel": {
+      "hasFixtureLabel": true,
+      "hasLegendText": true,
+      "hasSegmentText": true,
+      "reducedMotion": false,
+      "textSample": "FLINT ATLAS\nAbout\nMethodology\nAtelier\nContribute\nExplore\nCompass at 336°, click to reset to north\nFlint, Michigan\nAsk\nLayers\nScenarios\nTraffic\nTime\nHorizon\n\nTRAFFIC\n\nCorridor speed and flow for Flint streets.\nFIXTURE ESTIMATE - NOT A LIVE FEED\n\nPreview flow uses Flint road geometry and time-of-day estimates until the measured traffic source is connected.\n\nAVG SPEED\n\n37.2 mph\n\nSLOW SPOTS\n\n1\n\nUPDATED\n\njust now\n\nMoving\nBuilding\nHeavy\nLive source\nSource pending\nFixture estimate\n\nI-69 west approach\n\n56 mph · 1,280 veh/hr\n\nMOVING\n\nI-475 city spine\n\n49 mph · 1,640 veh/hr\n\nMOVING\n\nCourt Street / M-21\n\n27 mph · 760 veh/hr\n\nMOVING\n\nSaginaw Street downtown\n\n18 mph · 540 veh/hr\n\nBUILDING\n\nDort Highway\n\n42 mph · 1,120 veh/hr\n\nMOVING\n\nMiller Road\n\n31 mph · 880 veh/hr\n\nMOVING\n\nI-69 west approach\n\nEastbound / west-side approach\n\nBasis: Fixture shaped like a feed\n\nTraffic: moving at 56 mph of 65 mph free-flow, about 1,280 vehicles/hour.\n\nSupport: 82%\n\nFixture segment shaped to the public RIDE handoff contract until the authenticated live feed is wired.",
+      "shotPath": "/Users/travisgilbert/Tech Dev Local/Creative/Website/Open-Flint-Atlas-main-release/docs/validation/traffic-realtime/traffic-anime-normal-panel-visible.png",
+      "visiblePanelSmokePath": "/Users/travisgilbert/Tech Dev Local/Creative/Website/Open-Flint-Atlas-main-release/docs/validation/traffic-realtime/traffic-anime-panel-visible-smoke.json"
+    }
+  },
+  "reduced": {
+    "suffix": "reduced-motion",
+    "collapsed": {
+      "hasTrafficText": true,
+      "hasAnimeRenderer": false,
+      "trafficRenderer": null,
+      "particleCount": 0,
+      "pathCount": 0,
+      "hasAnimatedTransformChange": false,
+      "firstTransformsBefore": [],
+      "firstTransformsAfter": [],
+      "canvasCount": 4,
+      "canvases": [
+        {
+          "width": 1440,
+          "height": 920,
+          "clientWidth": 1440,
+          "clientHeight": 920
+        },
+        {
+          "width": 1440,
+          "height": 920,
+          "clientWidth": 1440,
+          "clientHeight": 920
+        },
+        {
+          "width": 300,
+          "height": 150,
+          "clientWidth": 300,
+          "clientHeight": 150
+        },
+        {
+          "width": 1440,
+          "height": 920,
+          "clientWidth": 1440,
+          "clientHeight": 920
+        }
+      ],
+      "textSample": "FLINT ATLAS\nAbout\nMethodology\nAtelier\nContribute\nExplore\nCompass at 336°, click to reset to north\nFlint, Michigan\nAsk\nLayers\nScenarios\nTraffic\nTime\nHorizon\nRun\n\nVIEW\n\nOblique\n\nFOCUS\n\nward field\n\nBAND\n\nmid band\n\nW",
+      "shotPath": "/Users/travisgilbert/Tech Dev Local/Creative/Website/Open-Flint-Atlas-main-release/docs/validation/traffic-realtime/traffic-anime-reduced-motion-map.png"
+    },
+    "panel": {
+      "hasFixtureLabel": true,
+      "hasLegendText": true,
+      "hasSegmentText": true,
+      "reducedMotion": true,
+      "textSample": "FLINT ATLAS\nAbout\nMethodology\nAtelier\nContribute\nExplore\nCompass at 336°, click to reset to north\nFlint, Michigan\nAsk\nLayers\nScenarios\nTraffic\nTime\nHorizon\n\nTRAFFIC\n\nCorridor speed and flow for Flint streets.\nFIXTURE ESTIMATE - NOT A LIVE FEED\n\nPreview flow uses Flint road geometry and time-of-day estimates until the measured traffic source is connected.\n\nAVG SPEED\n\n37.2 mph\n\nSLOW SPOTS\n\n1\n\nUPDATED\n\njust now\n\nMoving\nBuilding\nHeavy\nLive source\nSource pending\nFixture estimate\n\nI-69 west approach\n\n56 mph · 1,280 veh/hr\n\nMOVING\n\nI-475 city spine\n\n49 mph · 1,640 veh/hr\n\nMOVING\n\nCourt Street / M-21\n\n27 mph · 760 veh/hr\n\nMOVING\n\nSaginaw Street downtown\n\n18 mph · 540 veh/hr\n\nBUILDING\n\nDort Highway\n\n42 mph · 1,120 veh/hr\n\nMOVING\n\nMiller Road\n\n31 mph · 880 veh/hr\n\nMOVING\n\nI-69 west approach\n\nEastbound / west-side approach\n\nBasis: Fixture shaped like a feed\n\nTraffic: moving at 56 mph of 65 mph free-flow, about 1,280 vehicles/hour.\n\nSupport: 82%\n\nFixture segment shaped to the public RIDE handoff contract until the authenticated live feed is wired."
+    }
+  },
+  "generatedAt": "2026-06-06T06:32:21.260Z"
+}

@@ -1,6 +1,6 @@
 # Realtime Traffic Flow: Visual Register Design Proposal
 
-Status: **DRAFT for review / hardening**. Design-gate deliverable for the on-map
+Status: **UPDATED 2026-06-06 / Anime.js renderer required**. Design-gate deliverable for the on-map
 traffic flow render. Routed through the visual-work design-gate forcing function
 (`~/.claude/skills/visual-work-design-gate/SKILL.md`) and the project posture in
 `AGENTS.md`. A first render is already implemented through the
@@ -32,17 +32,17 @@ and correct it, not to start over:
   deck.gl composes onto MapLibre via `MapboxOverlay` + `useControl`
   (`DeckGLOverlay`, AtlasMap.tsx line 873). This is where `createLostFlintDeckLayers`
   and every other deck layer attach. **The traffic render mounts here, not in a new file.**
-- **Render-in-flight**: AtlasMap.tsx already carries `trafficColor` (line 775),
-  `trafficWidth` (791), `createTrafficParticles` (836), a `GeoJsonLayer`
-  (`atlas-traffic-flow-segments`, line 2370) and a `ScatterplotLayer`
-  (`atlas-traffic-flow-particles`, line 2406), driven by a `setInterval`
-  900ms `trafficAnimationTick` (line 1736). The particle math is hand-rolled
-  CPU interpolation (`interpolateLine`).
+- **Render-in-flight**: AtlasMap.tsx carries `trafficColor`, `trafficWidth`,
+  `trafficDashArray`, a deck.gl `GeoJsonLayer` (`atlas-traffic-flow-segments`)
+  for static segment strokes / picking, and an Anime.js SVG overlay
+  (`AnimeTrafficFlowOverlay`, `data-traffic-renderer="animejs"`) for moving
+  flow particles. The old hand-rolled `createTrafficParticles` +
+  `ScatterplotLayer` path has been retired.
 - **Panel**: `src/components/atlas/TrafficFlowPanel.tsx` renders the snapshot as a
   data panel inside the dynamic island (no map motion).
 - **Contract to harden**: the render reads the adapted view-model shape
   (`congestion_ratio`, `volume_per_hour`, `estimate_basis`, `source_status`).
-  The hook owns GraphQL polling and REST fallback, so the deck.gl layer does not
+  The hook owns GraphQL polling and REST fallback, so the render layer does not
   need to know whether a snapshot came from the backend resolver or a fixture.
 
 So "the new visual surface" is concretely: **the animated flow render of the
@@ -51,17 +51,16 @@ reduced-motion-safe.** The panel is done; the motion is not.
 
 ## The central tension this proposal resolves
 
-The handoff (`CIVIC-ATLAS-TRAFFIC-DOMAIN-HANDOFF.md`) says the literal
-implementation is `anime.js createMotionPath` over SVG paths, and in the same
-breath says the animation library is a free frontend choice: "createMotionPath
-displays; SUMO models." The honest reading is that the handoff specifies a
-*motion language* (volume to particle count, speed to tween duration, one shared
-scrubber), not a *library mandate*. The tension is: adopt the handoff's example
-library (anime.js, SVG overlay, new dependency, a second rendering pipeline
-parallel to deck.gl) versus express the same motion language in the stack the
-atlas already runs on. This proposal resolves it in favor of the existing stack
-on every fork below. The motion language from the handoff is honored verbatim;
-the delivery mechanism is the repo's deck.gl pipeline.
+The handoff (`CIVIC-ATLAS-TRAFFIC-DOMAIN-HANDOFF.md`) names Anime.js because it
+is the sourced renderer Travis wanted, not an interchangeable example. Project
+rule captured 2026-06-06: **when Travis lists a specific library in a handoff,
+that library is a requirement unless he explicitly says it is illustrative.**
+
+The implementation tension is therefore not "Anime.js versus deck.gl." It is
+how to honor Anime.js while preserving the atlas map stack. The resolved shape:
+MapLibre remains the geographic camera and deck.gl keeps the static,
+source-status-aware road segment layer for picking; Anime.js owns moving flow
+particles through `svg.createMotionPath()` over projected SVG road paths.
 
 ---
 
@@ -99,57 +98,29 @@ scenario-authoring tools. That is the SUMO before/after work (handoff milestone
 2), not this realtime slice. If it ever lands it can reuse this layer as its
 render; it does not justify a route now.
 
-## Decision 2: Renderer -> **deck.gl, keep the dual-layer pattern, do NOT add anime.js**
+## Decision 2: Renderer -> **Anime.js motion paths over projected SVG road paths**
 
-**Recommendation: render with deck.gl. Reject `anime.js`.** Specifically: keep the
-existing two-layer composition (a path layer for the road + a moving-dot layer
-for flow), but make a deliberate sub-choice on the moving-dot layer.
+**Decision: use Anime.js for moving traffic flow.** Specifically: keep a dual
+layer, but split responsibilities deliberately:
 
-Why not anime.js (the handoff's example):
+- deck.gl `GeoJsonLayer` remains the static road segment layer. It carries
+  congestion color, source-status dash style, selected-segment picking, and the
+  reduced-motion fallback.
+- Anime.js renders the moving particles in an absolutely-positioned SVG overlay.
+  Each traffic segment LineString is projected from `[lng, lat]` into a
+  screen-space `<path>`, then each flow particle calls
+  `svg.createMotionPath(pathElement, offset)` and `animate(..., { loop: true })`.
 
-- It is a **new dependency** and, worse, a **second rendering pipeline**. The
-  atlas renders geography exclusively through deck.gl-over-MapLibre. anime.js
-  `createMotionPath` tweens DOM/SVG elements, which means an SVG overlay
-  registered to the map projection, re-synced on every pan/zoom/pitch/bearing
-  change. deck.gl layers already live inside the map's projection and reproject
-  for free. Bolting an SVG layer on top is a registration-drift bug generator and
-  a second thing to keep camera-correct.
-- The atlas map is frequently pitched (3D building view). SVG motion paths are 2D
-  screen-space; they would detach from the tilted road network. deck.gl draws in
-  world space and stays glued to the ground plane.
-- `framer-motion` (present) is for chrome transitions (the island), not for
-  thousands of geographic particles. It is the wrong tool for per-segment flow and
-  is not a candidate here.
+This honors the handoff sentence directly: **`createMotionPath` displays; SUMO
+models.** The frontend does not compute traffic. It receives segment volume,
+speed, free-flow speed, source status, and provenance; Anime.js turns those
+already-computed values into motion. Volume sets particle count. Speed sets tween
+duration. Provenance controls stroke/fill treatment.
 
-The deck.gl sub-choice (the real fork):
-
-- **`TripsLayer`** (`@deck.gl/geo-layers`) is purpose-built for GPU-animated flow
-  along paths: it takes paths with per-vertex timestamps and a `currentTime`
-  uniform and draws a moving, fading trail on the GPU. It is present in
-  `node_modules` transitively but is **NOT a direct dependency** in `package.json`.
-- The **existing hand-rolled approach** (`createTrafficParticles` + `setInterval`
-  900ms + CPU `interpolateLine` + `ScatterplotLayer`) recomputes every particle
-  position on the CPU on a coarse 900ms tick and rebuilds the layer each tick.
-  That is janky (sub-1Hz visible stepping), does not scale past a handful of
-  segments, and burns React renders.
-
-**Recommendation within deck.gl: adopt `TripsLayer` for the moving flow and
-promote `@deck.gl/geo-layers` to a direct dependency.** It is the same vendor,
-same version line (`^9.3.x`), same overlay, GPU-driven, and animates smoothly off
-a single `currentTime` value advanced by one `requestAnimationFrame` loop rather
-than a `setInterval` that rebuilds geometry. The road centerline itself stays a
-`PathLayer`/`GeoJsonLayer` (the static "where the road is" stroke); `TripsLayer`
-carries the flow on top. Volume becomes the *number of trail head repetitions
-seeded along the path*; speed becomes the *trail travel rate* (see Decision 3).
-The CPU `interpolateLine` + `ScatterplotLayer` particle path is retired.
-
-Tradeoff, crisply: `TripsLayer` costs one new direct dependency (already in the
-tree, zero bundle delta of consequence, same maintainer as the rest of deck.gl)
-and buys GPU-smooth flow, true 60fps, trivial pan/zoom/pitch correctness, and
-deletion of the `setInterval`/CPU-particle code. anime.js would cost a new
-dependency AND a parallel SVG pipeline AND camera-registration glue AND a 2D/3D
-mismatch, to deliver the same reading the handoff asked for. The repo's stack wins
-on every axis.
+Implementation caveat: the SVG paths are screen-space, so they must be rebuilt
+when MapLibre camera state changes. `AtlasMap` now uses the map's `project()`
+method to regenerate path geometry on move/zoom/pitch/bearing changes, then
+Anime.js is scoped and reverted through React cleanup.
 
 ## Decision 3: Encoding (volume -> density, speed -> duration, congestion -> color)
 
@@ -170,9 +141,10 @@ heads = clamp(round(volume_per_hour / 350), 1, 8)
 Rationale: ~350 veh/hr per visible head keeps a quiet residential street at 1-2
 heads and a saturated arterial (~2800+ veh/hr) at the 8-head ceiling. The ceiling
 matters: past ~8 heads on a short downtown segment the dots merge into a smear and
-stop reading as discrete traffic. For `TripsLayer`, "heads" = the count of
-staggered trail seeds along the path (phase-offset by `i / heads`). When
-`volume_per_hour` is missing or zero, heads = 0 and only the road stroke renders.
+stop reading as discrete traffic. For Anime.js, "heads" = the count of
+staggered DOM/SVG particles attached to the same `createMotionPath` path
+(phase-offset by `i / heads`). When `volume_per_hour` is missing or zero, heads
+= 0 and only the road stroke renders.
 
 ### Speed -> tween duration
 
@@ -186,10 +158,11 @@ duration = lerp(2.0s, 9.0s, 1 - ratio)                          // free=2.0s, ja
 
 So a free-flow segment traverses in ~2s (fast heads), and a stop-and-go segment
 takes ~9s (a slow ooze). This is the exact "congested street carries many slow
-particles, free one carries few fast ones" reading. In `TripsLayer` terms,
-duration is encoded as the per-segment spacing of vertex timestamps relative to
-the shared `currentTime` advance rate. Falls back to the `congestion_ratio`
-midpoint duration when `free_flow_speed_mph` or `speed_mph` is null.
+particles, free one carries few fast ones" reading. In Anime.js terms, duration
+is the per-particle tween duration passed to `animate(..., { duration, loop:
+true, ...svg.createMotionPath(path, offset) })`. Falls back to the
+`congestion_ratio` midpoint duration when `free_flow_speed_mph` or `speed_mph`
+is null.
 
 ### Congestion -> color, within the existing token palette
 
@@ -294,8 +267,8 @@ Shape (what it controls and how it is built):
   library), plus a play/pause toggle and a small `requestAnimationFrame` clock
   when playing. It renders in the clear area beneath the island that
   visual-grammar-v1 reserves for "the time scrubber and secondary chrome." It does
-  NOT own deck.gl `currentTime`; it emits seek events that each consumer maps to
-  its own animation clock (traffic maps `onSeek` to the `TripsLayer` `currentTime`;
+  NOT own a render engine directly; it emits seek events that each consumer maps
+  to its own animation clock (traffic maps `onSeek` to Anime.js timeline seek;
   the year search maps it to the era).
 - **Build now vs stub**: build the primitive now AND wire two real consumers
   (traffic playback + the existing year/historical seek, which already exists as
@@ -321,12 +294,11 @@ non-motion fallback must still communicate congestion.
 
 Binding requirements:
 
-1. **`prefers-reduced-motion: reduce` -> NO continuous flow.** The `TripsLayer`
-   `currentTime` clock does not advance; the moving heads are not rendered (or
-   render as a single static head per segment). The road stroke renders **static**,
-   colored by the congestion band (Decision 3) and widthed by volume (Decision
-   3), with the source-status line-style still applied (Decision 4). Congestion
-   is fully legible from color + width + line style with zero motion.
+1. **`prefers-reduced-motion: reduce` -> NO continuous flow.** The Anime.js SVG
+   particle overlay is not rendered. The road stroke renders **static**, colored
+   by the congestion band (Decision 3) and widthed by volume (Decision 3), with
+   the source-status line-style still applied (Decision 4). Congestion is fully
+   legible from color + width + line style with zero motion.
 2. **A non-motion congestion readout, always available regardless of motion
    preference.** Each segment, on hover/tap (and in `TrafficFlowPanel`), shows a
    plain text line: the congestion band word ("Stop and go," "Moving freely"), the
@@ -352,15 +324,16 @@ Binding requirements:
 
 Lock gate (mirrors the atelier validation gates, binding before implementation is
 "done"):
-- [ ] `prefers-reduced-motion: reduce` stops the flow clock; static colored
-      strokes remain fully legible.
-- [ ] Every segment has a text congestion readout (band + speed + volume); no
+- [x] `prefers-reduced-motion: reduce` stops the flow clock; static colored
+      strokes remain fully legible. Evidence:
+      `docs/validation/traffic-realtime/traffic-anime-browser-smoke.json`.
+- [x] Every segment has a text congestion readout (band + speed + volume); no
       state is motion-only.
 - [ ] Legend maps all five congestion colors and all source-status line styles.
-- [ ] `status: fixture_fallback` renders `FIXTURE ESTIMATE - NOT A LIVE FEED`
+- [x] `status: fixture_fallback` renders `FIXTURE ESTIMATE - NOT A LIVE FEED`
       and never the word "live" by itself; segment `support_note` values are
       shown where useful.
-- [ ] `source_status: live` vs `fixture` vs `pending_live_source` are
+- [x] `source_status: live` vs `fixture` vs `pending_live_source` are
       distinguishable by line style (not color alone).
 - [ ] Five-band color ramp passes Deuteranopia/Protanopia/Tritanopia sim against
       `--ctx-paper`.
@@ -381,7 +354,7 @@ Lock gate (mirrors the atelier validation gates, binding before implementation i
 - Re-litigating the API seam. The Git coordination decision in
   `docs/plans/traffic-domain-realtime/decision-2026-06-05-graphql-canonical.md`
   keeps GraphQL canonical and uses the REST route only as the dev fallback.
-- The exact `getDashArray` pixel cadences and `TripsLayer` `trailLength`/`fadeTrail`
+- The exact `getDashArray` pixel cadences and Anime.js particle opacity/radius
   tuning (implementation-time, validated at the visual gate).
 - Emissions / crash-risk overlays (handoff "cheap overlays"); separate surfaces.
 
@@ -391,11 +364,10 @@ Lock gate (mirrors the atelier validation gates, binding before implementation i
    map.* Sign off, or do you want traffic to live at its own
    `/open-flint-atlas/traffic/` surface (which I'd advise against now, since the
    in-flight code already wires it as a map layer and a route forks the whole map)?
-2. **Adopt `TripsLayer` and retire the hand-rolled particle path (Decision 2).**
-   *Recommendation: yes; promote `@deck.gl/geo-layers` to a direct dependency.*
-   This deletes the `setInterval` CPU-particle code already in `AtlasMap.tsx`. OK to
-   replace in-flight work, or do you want the existing `ScatterplotLayer` approach
-   smoothed in place instead?
+2. **Anime.js renderer lock (Decision 2).** Resolved 2026-06-06: Anime.js is the
+   required renderer because it was named in the sourced handoff. The old
+   `ScatterplotLayer` particle path is retired; deck.gl remains only for the
+   static/pickable traffic segment layer.
 3. **Congestion color ramp (Decision 3).** *Recommendation: teal -> amber ->
    terracotta -> oxblood using `--atlas-infrastructure` / `--atlas-warning` /
    `--ctx-accent` / `--ctx-commit`, no new hex.* This spends the atlas's

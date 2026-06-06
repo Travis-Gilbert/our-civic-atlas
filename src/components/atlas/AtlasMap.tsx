@@ -1,6 +1,12 @@
 "use client";
 
-import { useMemo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Map,
   NavigationControl,
@@ -17,6 +23,7 @@ import {
   PathStyleExtension,
   type FillStyleExtensionProps,
 } from "@deck.gl/extensions";
+import { animate, createScope, svg } from "animejs";
 import buffer from "@turf/buffer";
 import difference from "@turf/difference";
 import { featureCollection, polygon as turfPolygon } from "@turf/helpers";
@@ -274,12 +281,21 @@ const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
 };
 const EVENT_TYPE_COLOR_DEFAULT: [number, number, number] = [140, 140, 150];
 
-type TrafficParticle = {
+type ProjectedTrafficParticle = {
   id: string;
-  position: [number, number];
-  color: [number, number, number, number];
-  lineColor: [number, number, number, number];
+  pathId: string;
+  offset: number;
+  durationMs: number;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
   radius: number;
+};
+
+type ProjectedTrafficPath = {
+  id: string;
+  d: string;
+  particles: ProjectedTrafficParticle[];
 };
 
 const TRAFFIC_FREE: [number, number, number, number] = [45, 166, 153, 210];
@@ -801,81 +817,222 @@ function trafficDashArray(props: TrafficSegmentProperties): [number, number] {
   return [2, 4];
 }
 
-function lineLength(coordinates: GeoJSON.Position[]): number {
-  let total = 0;
-  for (let i = 1; i < coordinates.length; i += 1) {
-    const [lngA, latA] = coordinates[i - 1];
-    const [lngB, latB] = coordinates[i];
-    total += Math.hypot(lngB - lngA, latB - latA);
-  }
-  return total;
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
 }
 
-function interpolateLine(
-  coordinates: GeoJSON.Position[],
-  phase: number,
-): [number, number] | null {
-  if (coordinates.length === 0) return null;
-  if (coordinates.length === 1) {
-    const [lng, lat] = coordinates[0];
-    return [lng, lat];
-  }
-  const total = lineLength(coordinates);
-  if (total <= 0) {
-    const [lng, lat] = coordinates[0];
-    return [lng, lat];
-  }
-  const target = total * ((phase % 1) + 1) % total;
-  let walked = 0;
-  for (let i = 1; i < coordinates.length; i += 1) {
-    const [lngA, latA] = coordinates[i - 1];
-    const [lngB, latB] = coordinates[i];
-    const segmentLength = Math.hypot(lngB - lngA, latB - latA);
-    if (walked + segmentLength >= target) {
-      const t = segmentLength === 0 ? 0 : (target - walked) / segmentLength;
-      return [lngA + (lngB - lngA) * t, latA + (latB - latA) * t];
-    }
-    walked += segmentLength;
-  }
-  const [lng, lat] = coordinates[coordinates.length - 1];
-  return [lng, lat];
+function rgba(color: [number, number, number, number]): string {
+  return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${clamp01(color[3] / 255)})`;
 }
 
-function createTrafficParticles(
-  features: TrafficSegmentFeature[],
-  nowMs: number,
-): TrafficParticle[] {
-  const nowSeconds = nowMs / 1000;
-  const particles: TrafficParticle[] = [];
-  for (const [segmentIndex, feature] of features.entries()) {
-    const coordinates = feature.geometry.coordinates;
-    const props = feature.properties;
-    const count = Math.max(1, Math.min(8, Math.round(props.volume_per_hour / 360)));
-    const durationSeconds = Math.max(
-      2.4,
-      Math.min(12, (props.free_flow_speed_mph / Math.max(props.speed_mph, 1)) * 3.6),
+function trafficParticleCount(props: TrafficSegmentProperties): number {
+  return Math.max(1, Math.min(8, Math.round(props.volume_per_hour / 350)));
+}
+
+function trafficParticleDurationMs(props: TrafficSegmentProperties): number {
+  const ratio = clamp01(
+    props.speed_mph / Math.max(props.free_flow_speed_mph, 1),
+  );
+  const boundedRatio = Math.max(0.1, ratio);
+  return Math.round((2 + (1 - boundedRatio) * 7) * 1000);
+}
+
+function trafficParticleStyle(props: TrafficSegmentProperties): Pick<
+  ProjectedTrafficParticle,
+  "fill" | "stroke" | "strokeWidth" | "radius"
+> {
+  const base = trafficColor(props, false);
+  if (props.source_status === "live") {
+    return {
+      fill: rgba([base[0], base[1], base[2], Math.min(255, base[3] + 28)]),
+      stroke: "rgba(255, 255, 255, 0.72)",
+      strokeWidth: 1.2,
+      radius: 4.3,
+    };
+  }
+  if (props.source_status === "pending_live_source") {
+    return {
+      fill: "rgba(255, 255, 255, 0.1)",
+      stroke: rgba([base[0], base[1], base[2], 182]),
+      strokeWidth: 1.4,
+      radius: 3.9,
+    };
+  }
+  return {
+    fill: rgba([base[0], base[1], base[2], 122]),
+    stroke: "rgba(255, 255, 255, 0.38)",
+    strokeWidth: 0.9,
+    radius: 3.3,
+  };
+}
+
+function cssSafeTrafficId(segmentId: string): string {
+  return `traffic-motion-${segmentId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+function projectedTrafficPath(
+  map: MapRef,
+  feature: TrafficSegmentFeature,
+): string | null {
+  const projected = feature.geometry.coordinates
+    .map(([lng, lat]) => map.project([lng, lat]))
+    .filter(
+      (point) =>
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y),
     );
-    const color = trafficColor(props, false);
-    for (let i = 0; i < count; i += 1) {
-      const phase =
-        nowSeconds / durationSeconds +
-        segmentIndex * 0.17 +
-        i / count;
-      const position = interpolateLine(coordinates, phase);
-      if (!position) continue;
-      particles.push({
-        id: `${props.segment_id}:${i}`,
-        position,
-        color: [color[0], color[1], color[2], Math.min(248, color[3] + 22)],
-        lineColor:
-          props.source_status === "live"
-            ? [255, 255, 255, 170]
-            : [255, 255, 255, 96],
-        radius: props.source_status === "live" ? 4.2 : 3.4,
-      });
+  if (projected.length < 2) return null;
+  return projected
+    .map((point, index) =>
+      `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
+    )
+    .join(" ");
+}
+
+function AnimeTrafficFlowOverlay({
+  map,
+  mapLoaded,
+  mapViewKey,
+  segments,
+  visible,
+  prefersReducedMotion,
+}: {
+  map: MapRef | null;
+  mapLoaded: boolean;
+  mapViewKey: string;
+  segments: TrafficSegmentFeature[];
+  visible: boolean;
+  prefersReducedMotion: boolean;
+}) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const projected = useMemo(() => {
+    if (!mapLoaded || !map || !visible || prefersReducedMotion) {
+      return {
+        width: 0,
+        height: 0,
+        revision: mapViewKey,
+        paths: [] as ProjectedTrafficPath[],
+      };
     }
+    const canvas = map.getMap().getCanvas();
+    const width = canvas.clientWidth || canvas.width;
+    const height = canvas.clientHeight || canvas.height;
+    const paths = segments.flatMap((feature): ProjectedTrafficPath[] => {
+      const d = projectedTrafficPath(map, feature);
+      if (!d) return [];
+      const pathId = cssSafeTrafficId(feature.properties.segment_id);
+      const count = trafficParticleCount(feature.properties);
+      const durationMs = trafficParticleDurationMs(feature.properties);
+      const style = trafficParticleStyle(feature.properties);
+      return [
+        {
+          id: pathId,
+          d,
+          particles: Array.from({ length: count }, (_, index) => ({
+            id: `${pathId}-${index}`,
+            pathId,
+            offset: index / count,
+            durationMs,
+            ...style,
+          })),
+        },
+      ];
+    });
+    return { width, height, revision: mapViewKey, paths };
+  }, [
+    mapLoaded,
+    map,
+    mapViewKey,
+    prefersReducedMotion,
+    segments,
+    visible,
+  ]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (
+      !root ||
+      !visible ||
+      prefersReducedMotion ||
+      projected.paths.length === 0
+    ) {
+      return;
+    }
+
+    const scope = createScope({ root }).add(() => {
+      root
+        .querySelectorAll<SVGCircleElement>("[data-traffic-flow-particle]")
+        .forEach((particle) => {
+          const pathId = particle.dataset.pathId;
+          if (!pathId) return;
+          const path = root.querySelector<SVGPathElement>(
+            `#${CSS.escape(pathId)}`,
+          );
+          if (!path) return;
+          const duration = Number(particle.dataset.durationMs) || 5000;
+          const offset = Number(particle.dataset.offset) || 0;
+          animate(particle, {
+            ease: "linear",
+            duration,
+            loop: true,
+            ...svg.createMotionPath(path, offset),
+          });
+        });
+    });
+
+    return () => scope.revert();
+  }, [prefersReducedMotion, projected.paths, visible]);
+
+  if (
+    !visible ||
+    prefersReducedMotion ||
+    projected.width <= 0 ||
+    projected.height <= 0 ||
+    projected.paths.length === 0
+  ) {
+    return null;
   }
-  return particles;
+
+  return (
+    <div
+      ref={rootRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-[4] overflow-hidden"
+      data-traffic-renderer="animejs"
+      data-map-view-key={projected.revision}
+    >
+      <svg
+        className="h-full w-full"
+        width={projected.width}
+        height={projected.height}
+        viewBox={`0 0 ${projected.width} ${projected.height}`}
+      >
+        <defs>
+          {projected.paths.map((path) => (
+            <path key={path.id} id={path.id} d={path.d} />
+          ))}
+        </defs>
+        {projected.paths.flatMap((path) =>
+          path.particles.map((particle) => (
+            <circle
+              key={particle.id}
+              data-traffic-flow-particle="true"
+              data-path-id={particle.pathId}
+              data-duration-ms={particle.durationMs}
+              data-offset={particle.offset}
+              cx="0"
+              cy="0"
+              r={particle.radius}
+              fill={particle.fill}
+              stroke={particle.stroke}
+              strokeWidth={particle.strokeWidth}
+            />
+          )),
+        )}
+      </svg>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -1028,10 +1185,11 @@ export function AtlasMap({
   const prefersReducedMotion = usePrefersReducedMotion();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
   const mapRef = useRef<MapRef | null>(null);
+  const [mapInstance, setMapInstance] = useState<MapRef | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapZoom, setMapZoom] = useState(camera.zoom);
-  const [trafficAnimationTick, setTrafficAnimationTick] = useState(() =>
-    Date.now(),
+  const [mapViewKey, setMapViewKey] = useState(() =>
+    `${camera.longitude.toFixed(5)}:${camera.latitude.toFixed(5)}:${camera.zoom.toFixed(2)}:${camera.pitch.toFixed(1)}:${camera.bearing.toFixed(1)}`,
   );
   const appliedMobileFitKeyRef = useRef<string | null>(null);
 
@@ -1743,32 +1901,9 @@ export function AtlasMap({
     if (!canHover) setHoverState(null);
   }, [canHover]);
 
-  useEffect(() => {
-    if (
-      prefersReducedMotion ||
-      !trafficSnapshot ||
-      layerVisibility.traffic === false
-    ) {
-      return;
-    }
-    setTrafficAnimationTick(Date.now());
-    const timer = window.setInterval(
-      () => setTrafficAnimationTick(Date.now()),
-      900,
-    );
-    return () => window.clearInterval(timer);
-  }, [layerVisibility.traffic, prefersReducedMotion, trafficSnapshot]);
-
   const trafficSegments = useMemo(
     () => trafficSnapshot?.segments.features ?? [],
     [trafficSnapshot],
-  );
-  const trafficParticles = useMemo(
-    () =>
-      prefersReducedMotion
-        ? []
-        : createTrafficParticles(trafficSegments, trafficAnimationTick),
-    [prefersReducedMotion, trafficAnimationTick, trafficSegments],
   );
 
   /* ---- Layers ----------------------------------------------------- */
@@ -2436,26 +2571,6 @@ export function AtlasMap({
           },
         }),
       );
-      if (!prefersReducedMotion && trafficParticles.length > 0) result.push(
-        new ScatterplotLayer<TrafficParticle>({
-          id: "atlas-traffic-flow-particles",
-          data: trafficParticles,
-          pickable: false,
-          stroked: true,
-          filled: true,
-          radiusUnits: "pixels",
-          getPosition: (particle) => particle.position,
-          getRadius: (particle) => particle.radius,
-          getFillColor: (particle) => particle.color,
-          getLineColor: (particle) => particle.lineColor,
-          getLineWidth: 1,
-          lineWidthMinPixels: 1,
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
-        }),
-      );
     }
 
     // Spec PR 4 layer-order table: city boundary stroke + inner glow
@@ -2715,10 +2830,8 @@ export function AtlasMap({
     scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,
-    trafficParticles,
     trafficSegments,
     trafficSnapshot?.generated_at,
-    prefersReducedMotion,
     selectedTrafficSegmentId,
     onTrafficSegmentSelect,
     extraDeckLayers,
@@ -2736,6 +2849,7 @@ export function AtlasMap({
       <Map
         ref={(instance: MapRef | null) => {
           mapRef.current = instance;
+          setMapInstance(instance);
           // Hand the live MapRef up so chrome components can read the
           // bearing/pitch/zoom and trigger imperative camera moves
           // (compass reset, fly-to bookmarks, etc.) without needing
@@ -2751,7 +2865,13 @@ export function AtlasMap({
         style={{ width: "100%", height: "100%" }}
         attributionControl={false}
         onLoad={() => setMapLoaded(true)}
-        onMove={(event) => setMapZoom(event.viewState.zoom)}
+        onMove={(event) => {
+          const { viewState } = event;
+          setMapZoom(viewState.zoom);
+          setMapViewKey(
+            `${viewState.longitude.toFixed(5)}:${viewState.latitude.toFixed(5)}:${viewState.zoom.toFixed(2)}:${viewState.pitch.toFixed(1)}:${viewState.bearing.toFixed(1)}`,
+          );
+        }}
         reuseMaps
       >
         <DeckGLOverlay
@@ -2761,6 +2881,15 @@ export function AtlasMap({
         />
         <NavigationControl position="bottom-right" />
       </Map>
+
+      <AnimeTrafficFlowOverlay
+        map={mapInstance}
+        mapLoaded={mapLoaded}
+        mapViewKey={mapViewKey}
+        segments={trafficSegments}
+        visible={trafficSegments.length > 0 && layerVisibility.traffic !== false}
+        prefersReducedMotion={prefersReducedMotion}
+      />
 
       {/*
         Civic-world vignette. A radial gradient sits above the basemap
