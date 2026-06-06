@@ -151,10 +151,10 @@ export function buildPlannerEditableLayer({
       filled: true,
       pointType: "circle",
       pointRadiusUnits: "pixels",
-      pointRadiusMinPixels: 8,
-      pointRadiusMaxPixels: 14,
+      pointRadiusMinPixels: 18,
+      pointRadiusMaxPixels: 26,
       getPointRadius: (feature) =>
-        feature.properties.placement_id === selectedPlacementId ? 12 : 9,
+        feature.properties.placement_id === selectedPlacementId ? 24 : 20,
       getFillColor: (feature) =>
         feature.properties.placement_id === selectedPlacementId
           ? [255, 255, 255, 190]
@@ -165,6 +165,10 @@ export function buildPlannerEditableLayer({
           : [42, 28, 16, 210],
       lineWidthUnits: "pixels",
       getLineWidth: 2,
+      parameters: {
+        depthCompare: "always",
+        depthWriteEnabled: false,
+      },
       onClick: (info: PickingInfo<PlannerPointFeature>) => {
         const feature = info.object;
         if (!feature) return false;

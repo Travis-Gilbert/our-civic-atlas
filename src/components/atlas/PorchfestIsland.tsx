@@ -13,8 +13,8 @@
  *
  * It does NOT absorb the whole chrome the way the atlas island does. The
  * left panels and the sidebar task rail stay. The island adds two things
- * on top: a bottom search (over placements AND tasks) and a compressed,
- * read + search view of the same data:
+ * on top: a bottom search (over placements AND tasks), mobile edit chrome,
+ * and a compressed, read + search view of the same data:
  *   - collapsed: a search pill, tap the label to expand
  *   - Tasks tab: status-filtered, searchable task list, click to fly
  *   - Places tab: searchable placement list (with addresses), click to fly
@@ -47,7 +47,7 @@ const EXPANDED_WIDTH = 392;
 const COLLAPSED_HEIGHT = 58;
 const EXPANDED_HEIGHT = 452;
 
-type IslandTab = "tasks" | "places" | "key" | "info";
+type IslandTab = "edit" | "tasks" | "places" | "key" | "info";
 
 const STATUS_OPTIONS = ["all", "open", "in_progress", "done"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
@@ -66,6 +66,7 @@ const statusLabel = (value: string): string =>
   STATUS_LABEL[value] ?? value.replace(/_/g, " ");
 
 const TAB_LABEL: Record<IslandTab, string> = {
+  edit: "Edit",
   tasks: "Tasks",
   places: "Places",
   key: "Map key",
@@ -90,23 +91,27 @@ export function PorchfestIsland({
   mobile = false,
   selectedPlacement = null,
   tasksContent,
+  editContent,
   mapKeyContent,
   infoContent,
+  modeLabel,
 }: {
   readonly placements: readonly AtlasEventPlannerPlacement[];
   readonly tasks: readonly IslandTask[];
   readonly onSelectPlacement: (placementId: string) => void;
   /**
-   * Mobile mode: the island IS the chrome. It grows to four tabs (Tasks,
-   * Places, Map key, Info), goes full width, and expands to a tall bottom
-   * sheet. The folded chrome is passed as rendered content so the island
-   * stays a dumb container.
+   * Mobile mode: the island IS the chrome. It grows to planner tabs
+   * (Edit, Tasks, Places, Map key, Info), goes full width, and expands to a
+   * tall bottom sheet. The folded chrome is passed as rendered content so
+   * the island stays a dumb container.
    */
   readonly mobile?: boolean;
   readonly selectedPlacement?: AtlasEventPlannerPlacement | null;
   readonly tasksContent?: ReactNode;
+  readonly editContent?: ReactNode;
   readonly mapKeyContent?: ReactNode;
   readonly infoContent?: ReactNode;
+  readonly modeLabel?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<IslandTab>("tasks");
@@ -142,10 +147,13 @@ export function PorchfestIsland({
   // The extra tabs are mobile-only; if the viewport grows back to desktop
   // while on one of them, fall back to Tasks.
   useEffect(() => {
-    if (!mobile && (activeTab === "key" || activeTab === "info")) {
+    if (
+      (!mobile && (activeTab === "edit" || activeTab === "key" || activeTab === "info")) ||
+      (mobile && activeTab === "edit" && editContent == null)
+    ) {
       setActiveTab("tasks");
     }
-  }, [mobile, activeTab]);
+  }, [mobile, activeTab, editContent]);
 
   const matchedPlaces = useMemo(() => {
     if (!query) return placements;
@@ -182,7 +190,9 @@ export function PorchfestIsland({
 
   const showCollapsedResults = !isExpanded && query.length > 0;
   const tabs: IslandTab[] = mobile
-    ? ["tasks", "places", "key", "info"]
+    ? editContent
+      ? ["edit", "tasks", "places", "key", "info"]
+      : ["tasks", "places", "key", "info"]
     : ["tasks", "places"];
   const usesTasksContent = mobile && tasksContent != null;
   const showSharedSearch =
@@ -327,6 +337,11 @@ export function PorchfestIsland({
                 <span className="truncate text-[15px] font-medium leading-none text-[color:var(--ctx-ink)]">
                   PorchFest
                 </span>
+                {modeLabel ? (
+                  <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                    {modeLabel}
+                  </span>
+                ) : null}
               </button>
 
               <button
@@ -424,6 +439,8 @@ export function PorchfestIsland({
             ) : null}
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+              {activeTab === "edit" ? editContent : null}
+
               {activeTab === "tasks" ? (
                 usesTasksContent ? (
                   tasksContent

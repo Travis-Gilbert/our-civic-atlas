@@ -63,6 +63,55 @@ export interface PlannerPaletteProps {
   readonly setMode: (mode: PaletteMode) => void;
   readonly canEdit: boolean;
   readonly disabledMessage?: string;
+  readonly embedded?: boolean;
+}
+
+export interface PlannerEditModeToggleProps {
+  readonly mode: PaletteMode;
+  readonly setMode: (mode: PaletteMode) => void;
+  readonly canEdit: boolean;
+  readonly disabledMessage?: string;
+  readonly className?: string;
+}
+
+export function PlannerEditModeToggle({
+  mode,
+  setMode,
+  canEdit,
+  disabledMessage,
+  className = "",
+}: PlannerEditModeToggleProps) {
+  const isEditMode = mode.kind !== "view";
+  return (
+    <div
+      className={`grid grid-cols-2 gap-2 ${className}`}
+      role="group"
+      aria-label="Planner mode"
+    >
+      <button
+        type="button"
+        onClick={() => setMode({ kind: "view" })}
+        className={`planner-control min-h-[32px] px-3 py-1.5 text-center text-[13px] ${
+          !isEditMode ? "is-active" : ""
+        }`}
+        aria-pressed={!isEditMode}
+      >
+        View
+      </button>
+      <button
+        type="button"
+        onClick={() => setMode({ kind: "drag" })}
+        className={`planner-control min-h-[32px] px-3 py-1.5 text-center text-[13px] ${
+          isEditMode ? "is-active" : ""
+        }`}
+        aria-pressed={isEditMode}
+        disabled={!canEdit}
+        title={!canEdit ? disabledMessage : undefined}
+      >
+        Edit mode
+      </button>
+    </div>
+  );
 }
 
 export function PlannerPalette({
@@ -70,6 +119,7 @@ export function PlannerPalette({
   setMode,
   canEdit,
   disabledMessage,
+  embedded = false,
 }: PlannerPaletteProps) {
   const toggleDraw = useCallback(
     (button: PaletteCategoryButton) => {
@@ -91,16 +141,23 @@ export function PlannerPalette({
   }, [mode, setMode]);
 
   if (!canEdit) {
+    const disabledClassName = embedded
+      ? "planner-muted px-1 py-1 text-[12px]"
+      : "planner-panel planner-muted absolute bottom-6 right-6 z-[20] px-3 py-2 text-[12px]";
     return (
-      <aside className="planner-panel planner-muted absolute bottom-6 right-6 z-[20] px-3 py-2 text-[12px]">
+      <aside className={disabledClassName}>
         {disabledMessage ?? "Sign in to edit"}
       </aside>
     );
   }
 
+  const className = embedded
+    ? "grid grid-cols-2 gap-2 text-[12px]"
+    : "planner-panel absolute bottom-6 right-6 z-[20] grid w-56 grid-cols-2 gap-2 p-2 text-[12px]";
+
   return (
     <aside
-      className="planner-panel absolute bottom-6 right-6 z-[20] grid w-56 grid-cols-2 gap-2 p-2 text-[12px]"
+      className={className}
       aria-label="Placement palette"
     >
       {BUTTONS.map((button) => {

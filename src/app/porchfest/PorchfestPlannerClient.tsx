@@ -48,7 +48,12 @@ import {
 } from "@/components/atlas/PlannerEditableLayer";
 import { createPlannerTaskLayers } from "@/components/atlas/PlannerTaskLayer";
 import type { PlannerTaskNode, PlannerTaskStatus } from "@/lib/atlas/planner-phase4";
-import { PlannerPalette, CATEGORY_COLOR, type PaletteMode } from "@/components/atlas/PlannerPalette";
+import {
+  PlannerEditModeToggle,
+  PlannerPalette,
+  CATEGORY_COLOR,
+  type PaletteMode,
+} from "@/components/atlas/PlannerPalette";
 import { PorchfestIsland } from "@/components/atlas/PorchfestIsland";
 import {
   PlannerTaskRail,
@@ -85,6 +90,7 @@ import {
 
 const TENANT_SLUG = "flint";
 const EVENT_SLUG = "porchfest-2026";
+const PLANNER_DRAG_BLOCK_LAYER_IDS = ["planner-editable-direct-drag"] as const;
 
 /**
  * Carriage Town extent. Frames the planning area and sets the street-
@@ -283,7 +289,7 @@ function PorchfestPlannerWorkspace({
     null,
   );
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [paletteMode, setPaletteMode] = useState<PaletteMode>({ kind: "drag" });
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>({ kind: "view" });
   const [visibility, setVisibility] = useState<PlannerLayerVisibility>(
     DEFAULT_PLANNER_VISIBILITY,
   );
@@ -367,6 +373,8 @@ function PorchfestPlannerWorkspace({
 
   const editingAvailable = editablePlacements != null && canEdit;
   const placementsLoaded = liveRows != null || initialEditablePlacements != null;
+  const editModeEnabled = paletteMode.kind !== "view";
+  const plannerModeLabel = editModeEnabled ? "Edit mode" : "View mode";
 
   const placementsById = useMemo(() => {
     const map = new Map<string, AtlasEventPlannerPlacement>();
@@ -825,6 +833,26 @@ function PorchfestPlannerWorkspace({
       onDeleteTask={handleDeleteTask}
     />
   );
+  const editDisabledMessage = placementsLoaded
+    ? undefined
+    : "Planner backend offline";
+  const islandEditContent = (
+    <div className="space-y-3">
+      <PlannerEditModeToggle
+        mode={paletteMode}
+        setMode={setPaletteMode}
+        canEdit={editingAvailable}
+        disabledMessage={editDisabledMessage}
+      />
+      <PlannerPalette
+        mode={paletteMode}
+        setMode={setPaletteMode}
+        canEdit={editingAvailable}
+        disabledMessage={editDisabledMessage}
+        embedded
+      />
+    </div>
+  );
   const islandMapKeyContent = (
     <PlannerLayerControls
       visibility={visibility}
@@ -875,7 +903,8 @@ function PorchfestPlannerWorkspace({
           activeLens="explore"
           urbanDesignMaterialMode="sketch_model"
           extraDeckLayers={extraDeckLayers}
-          mapDragPanEnabled={!placementDragActive}
+          mapDragPanEnabled={!editModeEnabled && !placementDragActive}
+          dragPanBlockLayerIds={PLANNER_DRAG_BLOCK_LAYER_IDS}
           className="h-full w-full"
           onMapReady={setMapRef}
         />
@@ -905,6 +934,14 @@ function PorchfestPlannerWorkspace({
                 mapRef={mapRef}
                 canEdit={canEdit}
                 onError={(message) => setToast(message)}
+              />
+            </div>
+            <div className="mt-3">
+              <PlannerEditModeToggle
+                mode={paletteMode}
+                setMode={setPaletteMode}
+                canEdit={editingAvailable}
+                disabledMessage={editDisabledMessage}
               />
             </div>
           </section>
@@ -962,15 +999,13 @@ function PorchfestPlannerWorkspace({
         </div>
         ) : null}
 
-        {/* Palette (bottom-right; desktop only). */}
-        {!isMobile ? (
+        {/* Placement tools (desktop only; mobile folds them into the island). */}
+        {!isMobile && editModeEnabled ? (
           <PlannerPalette
             mode={paletteMode}
             setMode={setPaletteMode}
             canEdit={editingAvailable}
-            disabledMessage={
-              placementsLoaded ? undefined : "Planner backend offline"
-            }
+            disabledMessage={editDisabledMessage}
           />
         ) : null}
 
@@ -985,8 +1020,10 @@ function PorchfestPlannerWorkspace({
           mobile={isMobile}
           selectedPlacement={isMobile ? selectedPlacement : null}
           tasksContent={isMobile ? islandTasksContent : undefined}
+          editContent={isMobile ? islandEditContent : undefined}
           mapKeyContent={isMobile ? islandMapKeyContent : undefined}
           infoContent={isMobile ? islandInfoContent : undefined}
+          modeLabel={isMobile ? plannerModeLabel : undefined}
         />
 
         {/* Right rail reopen handle (desktop only; collapsed by default). */}

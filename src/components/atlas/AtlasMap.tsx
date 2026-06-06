@@ -90,6 +90,7 @@ const ATLAS_MAX_BOUNDS: [[number, number], [number, number]] = [
   [-83.92, 42.88],
   [-83.5, 43.18],
 ];
+const EMPTY_DRAG_PAN_BLOCK_LAYER_IDS: readonly string[] = [];
 
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
@@ -1154,6 +1155,7 @@ export type AtlasMapProps = {
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
   mapDragPanEnabled?: boolean;
+  dragPanBlockLayerIds?: readonly string[];
   /**
    * Optional deck.gl layers appended to the AtlasMap's built-in
    * layer stack. Used by overlay routes (porchfest planner, future
@@ -1209,6 +1211,7 @@ export function AtlasMap({
   scenarioCompareEnabled = false,
   urbanDesignMaterialMode = "typology",
   mapDragPanEnabled = true,
+  dragPanBlockLayerIds = EMPTY_DRAG_PAN_BLOCK_LAYER_IDS,
   selectedBuilding = null,
   onBuildingSelect,
   extraDeckLayers = [],
@@ -1247,6 +1250,18 @@ export function AtlasMap({
   const handleOverlayReady = useCallback((overlay: MapboxOverlay) => {
     overlayRef.current = overlay;
   }, []);
+  const setMapDragPan = useCallback((enabled: boolean) => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    if (enabled) {
+      map.dragPan.enable();
+    } else {
+      map.dragPan.disable();
+    }
+  }, []);
+  useEffect(() => {
+    setMapDragPan(mapDragPanEnabled);
+  }, [mapDragPanEnabled, setMapDragPan]);
   const atlasYearRef = useRef<number | null>(atlasYear);
   useEffect(() => {
     atlasYearRef.current = atlasYear;
@@ -1367,6 +1382,67 @@ export function AtlasMap({
       container.removeEventListener("pointerleave", handlePointerEnd);
     };
   }, [navigateToAtelierForPick]);
+
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container || dragPanBlockLayerIds.length === 0) return;
+
+    let lockedPointerId: number | null = null;
+
+    const restoreDragPan = () => {
+      lockedPointerId = null;
+      setMapDragPan(mapDragPanEnabled);
+    };
+
+    const pointerHitsBlockedLayer = (event: PointerEvent): boolean => {
+      const overlay = overlayRef.current;
+      if (!overlay) return false;
+      const rect = container.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return false;
+      const info = overlay.pickObject({ x, y, radius: 24 });
+      const layerId =
+        typeof info?.layer?.id === "string" ? info.layer.id : null;
+      if (!layerId) return false;
+      return dragPanBlockLayerIds.includes(layerId);
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!event.isPrimary) return;
+      if (!pointerHitsBlockedLayer(event)) return;
+      lockedPointerId = event.pointerId;
+      setMapDragPan(false);
+    };
+
+    const handlePointerEnd = (event: PointerEvent) => {
+      if (lockedPointerId == null || event.pointerId !== lockedPointerId) {
+        return;
+      }
+      restoreDragPan();
+    };
+
+    container.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+    });
+    container.addEventListener("pointerup", handlePointerEnd, {
+      capture: true,
+    });
+    container.addEventListener("pointercancel", handlePointerEnd, {
+      capture: true,
+    });
+    container.addEventListener("pointerleave", handlePointerEnd, {
+      capture: true,
+    });
+
+    return () => {
+      if (lockedPointerId != null) restoreDragPan();
+      container.removeEventListener("pointerdown", handlePointerDown, true);
+      container.removeEventListener("pointerup", handlePointerEnd, true);
+      container.removeEventListener("pointercancel", handlePointerEnd, true);
+      container.removeEventListener("pointerleave", handlePointerEnd, true);
+    };
+  }, [dragPanBlockLayerIds, mapDragPanEnabled, setMapDragPan]);
 
   /*
    * Hover capability detection. Spec PR 1: hover state (1px terracotta

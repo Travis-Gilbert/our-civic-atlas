@@ -85,6 +85,16 @@
   border-color: var(--ctx-ink-mute);
 }
 
+.planner-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.planner-control:disabled:hover {
+  border-color: var(--ctx-rule);
+  color: var(--ctx-ink-soft);
+}
+
 .planner-control.is-active {
   background: var(--ctx-ink);
   border-color: var(--ctx-ink);
