@@ -289,7 +289,9 @@ type ProjectedTrafficParticle = {
   fill: string;
   stroke: string;
   strokeWidth: number;
-  radius: number;
+  rx: number;
+  ry: number;
+  opacity: number;
 };
 
 type ProjectedTrafficPath = {
@@ -303,6 +305,7 @@ const TRAFFIC_BUILDING: [number, number, number, number] = [217, 162, 59, 226];
 const TRAFFIC_HEAVY: [number, number, number, number] = [193, 74, 44, 236];
 const TRAFFIC_SELECTED: [number, number, number, number] = [42, 36, 25, 245];
 const TRAFFIC_FLOW_SPEED_SCALE = 0.4;
+const TRAFFIC_MUTED_TARGET: [number, number, number] = [206, 199, 181];
 
 const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   explore: [193, 132, 58, 34],
@@ -802,17 +805,22 @@ function trafficColor(
       : props.congestion_ratio >= 0.28
         ? TRAFFIC_BUILDING
         : TRAFFIC_FREE;
+  const mutedBase: [number, number, number] = [
+    Math.round(base[0] + (TRAFFIC_MUTED_TARGET[0] - base[0]) * 0.28),
+    Math.round(base[1] + (TRAFFIC_MUTED_TARGET[1] - base[1]) * 0.28),
+    Math.round(base[2] + (TRAFFIC_MUTED_TARGET[2] - base[2]) * 0.28),
+  ];
   const confidence = Math.max(0.45, Math.min(1, props.confidence ?? 0.72));
   const sourceOpacity =
     props.source_status === "live"
-      ? Math.max(0.82, confidence)
+      ? Math.max(0.78, confidence * 0.9)
       : props.source_status === "historic_average"
-        ? Math.max(0.68, confidence * 0.86)
-      : props.source_status === "pending_live_source"
-        ? Math.max(0.54, confidence * 0.72)
-        : Math.max(0.38, confidence * 0.54);
+        ? Math.max(0.56, confidence * 0.72)
+        : props.source_status === "pending_live_source"
+          ? Math.max(0.46, confidence * 0.62)
+          : Math.max(0.32, confidence * 0.46);
   const alpha = Math.round(base[3] * sourceOpacity);
-  return [base[0], base[1], base[2], alpha];
+  return [mutedBase[0], mutedBase[1], mutedBase[2], alpha];
 }
 
 function trafficWidth(props: TrafficSegmentProperties): number {
@@ -829,7 +837,7 @@ function rgba(color: [number, number, number, number]): string {
 }
 
 function trafficParticleCount(props: TrafficSegmentProperties): number {
-  return Math.max(1, Math.min(8, Math.round(props.volume_per_hour / 350)));
+  return Math.max(1, Math.min(5, Math.round(props.volume_per_hour / 1400)));
 }
 
 function trafficParticleDurationMs(props: TrafficSegmentProperties): number {
@@ -843,7 +851,7 @@ function trafficParticleDurationMs(props: TrafficSegmentProperties): number {
 
 function trafficParticleStyle(props: TrafficSegmentProperties): Pick<
   ProjectedTrafficParticle,
-  "fill" | "stroke" | "strokeWidth" | "radius"
+  "fill" | "stroke" | "strokeWidth" | "rx" | "ry" | "opacity"
 > {
   const base = trafficColor(props, false);
   if (props.source_status === "live") {
@@ -851,15 +859,19 @@ function trafficParticleStyle(props: TrafficSegmentProperties): Pick<
       fill: rgba([base[0], base[1], base[2], Math.min(255, base[3] + 28)]),
       stroke: "rgba(255, 255, 255, 0.72)",
       strokeWidth: 1.2,
-      radius: 4.3,
+      rx: 5.4,
+      ry: 2.5,
+      opacity: 0.95,
     };
   }
   if (props.source_status === "historic_average") {
     return {
-      fill: rgba([base[0], base[1], base[2], 178]),
-      stroke: "rgba(255, 255, 255, 0.54)",
-      strokeWidth: 1.1,
-      radius: 3.8,
+      fill: rgba([base[0], base[1], base[2], 184]),
+      stroke: "rgba(255, 255, 255, 0.46)",
+      strokeWidth: 0.9,
+      rx: 4.8,
+      ry: 2.1,
+      opacity: 0.82,
     };
   }
   if (props.source_status === "pending_live_source") {
@@ -867,14 +879,18 @@ function trafficParticleStyle(props: TrafficSegmentProperties): Pick<
       fill: "rgba(255, 255, 255, 0.1)",
       stroke: rgba([base[0], base[1], base[2], 182]),
       strokeWidth: 1.4,
-      radius: 3.9,
+      rx: 4.5,
+      ry: 2.0,
+      opacity: 0.7,
     };
   }
   return {
     fill: rgba([base[0], base[1], base[2], 122]),
     stroke: "rgba(255, 255, 255, 0.38)",
     strokeWidth: 0.9,
-    radius: 3.3,
+    rx: 3.8,
+    ry: 1.8,
+    opacity: 0.58,
   };
 }
 
@@ -974,7 +990,7 @@ function AnimeTrafficFlowOverlay({
 
     const scope = createScope({ root }).add(() => {
       root
-        .querySelectorAll<SVGCircleElement>("[data-traffic-flow-particle]")
+        .querySelectorAll<SVGEllipseElement>("[data-traffic-flow-particle]")
         .forEach((particle) => {
           const pathId = particle.dataset.pathId;
           if (!pathId) return;
@@ -1027,7 +1043,7 @@ function AnimeTrafficFlowOverlay({
         </defs>
         {projected.paths.flatMap((path) =>
           path.particles.map((particle) => (
-            <circle
+            <ellipse
               key={particle.id}
               data-traffic-flow-particle="true"
               data-path-id={particle.pathId}
@@ -1035,10 +1051,12 @@ function AnimeTrafficFlowOverlay({
               data-offset={particle.offset}
               cx="0"
               cy="0"
-              r={particle.radius}
+              rx={particle.rx}
+              ry={particle.ry}
               fill={particle.fill}
               stroke={particle.stroke}
               strokeWidth={particle.strokeWidth}
+              opacity={particle.opacity}
             />
           )),
         )}
@@ -1916,6 +1934,16 @@ export function AtlasMap({
   const trafficSegments = useMemo(
     () => trafficSnapshot?.segments.features ?? [],
     [trafficSnapshot],
+  );
+  const animatedTrafficSegments = useMemo(
+    () =>
+      trafficSegments.filter(
+        (segment) =>
+          segment.properties.source_status === "live" ||
+          segment.properties.source_status === "historic_average" ||
+          segment.properties.source_status === "fixture",
+      ),
+    [trafficSegments],
   );
 
   /* ---- Layers ----------------------------------------------------- */
@@ -2891,8 +2919,11 @@ export function AtlasMap({
         map={mapInstance}
         mapLoaded={mapLoaded}
         mapViewKey={mapViewKey}
-        segments={trafficSegments}
-        visible={trafficSegments.length > 0 && layerVisibility.traffic !== false}
+        segments={animatedTrafficSegments}
+        visible={
+          animatedTrafficSegments.length > 0 &&
+          layerVisibility.traffic !== false
+        }
         prefersReducedMotion={prefersReducedMotion}
       />
 
