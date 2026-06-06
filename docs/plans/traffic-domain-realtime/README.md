@@ -102,9 +102,10 @@ Frontend:
 - [ ] TR-05d Visual-register polish still open: TripsLayer decision, final token tuning, contrast/color-blind review.
 - [ ] TR-06 Browser validation (preview): segments render, flow animates, support labels honest, reduced-motion respected.
 
-Backend:
-- [ ] TR-B1 GraphQL `trafficRealtime(networkId)` resolver returning schema Extension 8
-- [ ] TR-B2 RustyRed road-network subgraph for `flint-downtown` (segments + capacity + free-flow speed)
+Backend (sister repo `our-civic-atlas-backend`, **live on Railway**):
+- [x] TR-B1 GraphQL `trafficRealtime(networkId)` resolver, schema Extension 8 (honest fixture) — deployed (`e1d0e36`). `useTrafficRealtime` auto-flips `fallback`->`graphql` once the frontend reaches this backend; no frontend change needed.
+- [x] TR-B2 `traffic_segments` PostGIS table + RLS + FK-safe 6-corridor seed; migration validated against a real postgis container — deployed (`ca58a57`)
+- [ ] TR-B2b Wire the resolver to READ `traffic_segments` (tenant-RLS transaction + `ST_AsGeoJSON`), fixture fallback on empty/error
 - [ ] TR-B3 Realtime feed ingestion (511 / MDOT / probe) OR SUMO+TraCI pod; provenance per segment
 - [ ] TR-B4 Calibration against any measured counts; `confidence` per segment honest
 
