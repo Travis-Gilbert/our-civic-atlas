@@ -97,6 +97,7 @@ export type ResponsiveAtlasMapProps = {
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
   extraDeckLayers?: Layer[];
+  mapDragPanEnabled?: boolean;
 };
 
 function useHydrated(): boolean {

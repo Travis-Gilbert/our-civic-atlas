@@ -76,6 +76,11 @@ export interface PlannerEditableLayerOptions {
    */
   readonly onSelect?: (placementId: string) => void;
   /**
+   * Tell the map shell when a placement drag owns the pointer so the
+   * basemap can pause camera panning until the marker is released.
+   */
+  readonly onTranslateDragStateChange?: (active: boolean) => void;
+  /**
    * Commit a draw. The layer hands back the new Point geometry; we
    * fire createPlacement with the pre-bound category.
    */
@@ -112,6 +117,7 @@ export function buildPlannerEditableLayer({
   onTranslate,
   onTranslatePreview,
   onSelect,
+  onTranslateDragStateChange,
   onDraw,
 }: PlannerEditableLayerOptions): Layer | null {
   if (mode.type === "off") return null;
@@ -169,6 +175,7 @@ export function buildPlannerEditableLayer({
         const feature = info.object;
         if (!feature) return false;
         onSelect?.(feature.properties.placement_id);
+        onTranslateDragStateChange?.(true);
         return true;
       },
       onDrag: (info: PickingInfo<PlannerPointFeature>) => {
@@ -183,6 +190,7 @@ export function buildPlannerEditableLayer({
         const geometry = pointFromPickingCoordinate(info.coordinate);
         if (!feature || !geometry) {
           if (feature) onTranslatePreview?.(feature.properties.placement_id, null);
+          onTranslateDragStateChange?.(false);
           return false;
         }
         onTranslate(
@@ -190,6 +198,7 @@ export function buildPlannerEditableLayer({
           feature.properties.version,
           geometry,
         );
+        onTranslateDragStateChange?.(false);
         return true;
       },
       updateTriggers: {

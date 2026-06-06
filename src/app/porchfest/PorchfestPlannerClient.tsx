@@ -291,6 +291,7 @@ function PorchfestPlannerWorkspace({
   const [dragPreview, setDragPreview] = useState<PlacementDragPreview | null>(
     null,
   );
+  const [placementDragActive, setPlacementDragActive] = useState(false);
   // The right task rail is collapsible and collapsed by default; the
   // island is the at-a-glance task surface, the rail is full management.
   const [taskRailOpen, setTaskRailOpen] = useState(false);
@@ -585,6 +586,9 @@ function PorchfestPlannerWorkspace({
     },
     [],
   );
+  const handleTranslateDragStateChange = useCallback((active: boolean) => {
+    setPlacementDragActive(active);
+  }, []);
 
   const handleDraw = useCallback(
     (category: string, sublabel: string | undefined, geometry: Record<string, unknown>) => {
@@ -761,6 +765,7 @@ function PorchfestPlannerWorkspace({
         onSelect: setSelectedPlacementId,
         onTranslate: handleTranslate,
         onTranslatePreview: handleTranslatePreview,
+        onTranslateDragStateChange: handleTranslateDragStateChange,
         onDraw: handleDraw,
       });
       if (editable) layers.push(editable);
@@ -791,6 +796,7 @@ function PorchfestPlannerWorkspace({
     editMode,
     handleTranslate,
     handleTranslatePreview,
+    handleTranslateDragStateChange,
     handleDraw,
     taskNodes,
     mapZoom,
@@ -869,6 +875,7 @@ function PorchfestPlannerWorkspace({
           activeLens="explore"
           urbanDesignMaterialMode="sketch_model"
           extraDeckLayers={extraDeckLayers}
+          mapDragPanEnabled={!placementDragActive}
           className="h-full w-full"
           onMapReady={setMapRef}
         />

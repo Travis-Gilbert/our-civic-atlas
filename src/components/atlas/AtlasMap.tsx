@@ -1153,6 +1153,7 @@ export type AtlasMapProps = {
   >;
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
+  mapDragPanEnabled?: boolean;
   /**
    * Optional deck.gl layers appended to the AtlasMap's built-in
    * layer stack. Used by overlay routes (porchfest planner, future
@@ -1207,6 +1208,7 @@ export function AtlasMap({
   scenarioDeltaFeatures,
   scenarioCompareEnabled = false,
   urbanDesignMaterialMode = "typology",
+  mapDragPanEnabled = true,
   selectedBuilding = null,
   onBuildingSelect,
   extraDeckLayers = [],
@@ -2896,6 +2898,7 @@ export function AtlasMap({
         maxZoom={19}
         mapStyle={BASEMAP_STYLE}
         style={{ width: "100%", height: "100%" }}
+        dragPan={mapDragPanEnabled}
         attributionControl={false}
         onLoad={() => setMapLoaded(true)}
         onMove={(event) => {
