@@ -3,8 +3,10 @@
 Status: **DRAFT for review / hardening**. Design-gate deliverable for the on-map
 traffic flow render. Routed through the visual-work design-gate forcing function
 (`~/.claude/skills/visual-work-design-gate/SKILL.md`) and the project posture in
-`AGENTS.md`. A first REST-backed render is already implemented; this document is
-the gate for hardening it before the traffic slice is treated as product-ready.
+`AGENTS.md`. A first render is already implemented through the
+GraphQL-canonical `useTrafficRealtime` hook with a REST fixture fallback; this
+document is the gate for hardening it before the traffic slice is treated as
+product-ready.
 
 This proposal honors the existing register rather than inventing one. It anchors
 to: `docs/design/visual-grammar-v1.md` (the provenance + confidence contract,
@@ -18,12 +20,13 @@ tokens in `src/app/open-flint-atlas/atlas.css`.
 A first traffic slice is already in the tree. The proposal's job is to formalize
 and correct it, not to start over:
 
-- **REST contract**: `src/lib/api/openFlintAtlas.ts` defines
-  `TrafficRealtimeSnapshot` as a render-ready GeoJSON FeatureCollection. The
-  public read seam is
-  `/api/v2/theseus/open-flint-atlas/traffic/realtime`, which forwards to the
-  backend when available and otherwise returns the repo fixture fallback. This
-  is the canonical realtime contract for this slice.
+- **Canonical data source + render view model**:
+  `src/lib/atlas/use-traffic-realtime.ts` fetches canonical GraphQL
+  `trafficRealtime(networkId)` data and adapts it into
+  `TrafficRealtimeSnapshot`, the render-ready GeoJSON view model defined in
+  `src/lib/api/openFlintAtlas.ts`. The REST route
+  `/api/v2/theseus/open-flint-atlas/traffic/realtime` remains a dev /
+  resolver-not-ready fallback only.
 - **Main map component**: `src/components/atlas/AtlasMap.tsx`, loaded through
   `ResponsiveAtlasMap` and mounted by `src/components/atlas/OpenFlintAtlasScene.tsx`.
   deck.gl composes onto MapLibre via `MapboxOverlay` + `useControl`
@@ -37,12 +40,10 @@ and correct it, not to start over:
   CPU interpolation (`interpolateLine`).
 - **Panel**: `src/components/atlas/TrafficFlowPanel.tsx` renders the snapshot as a
   data panel inside the dynamic island (no map motion).
-- **Contract to harden**: the render reads the REST shape
-  (`congestion_ratio`, `volume_per_hour`, `estimate_basis`, `source_status`)
-  from `src/app/api/v2/.../route.ts`. The live backend should return this same
-  shape, or the route should adapt the backend response into it, so the deck.gl
-  layer does not need to know whether a snapshot came from a fixture or a live
-  source.
+- **Contract to harden**: the render reads the adapted view-model shape
+  (`congestion_ratio`, `volume_per_hour`, `estimate_basis`, `source_status`).
+  The hook owns GraphQL polling and REST fallback, so the deck.gl layer does not
+  need to know whether a snapshot came from the backend resolver or a fixture.
 
 So "the new visual surface" is concretely: **the animated flow render of the
 traffic snapshot, made contract-correct, support-honest, token-disciplined, and
@@ -377,10 +378,9 @@ Lock gate (mirrors the atelier validation gates, binding before implementation i
 - The backend live feed endpoint for `traffic/realtime` (Axum/RustyRed, in
   `our-civic-atlas-backend`). This is frontend render only; the backend lane
   tracks separately.
-- A GraphQL traffic query. The Git coordination decision in
-  `docs/plans/traffic-domain-realtime/README.md` keeps realtime on REST and
-  reserves GraphQL for composed dossiers, planner workflows, and future scenario
-  comparisons.
+- Re-litigating the API seam. The Git coordination decision in
+  `docs/plans/traffic-domain-realtime/decision-2026-06-05-graphql-canonical.md`
+  keeps GraphQL canonical and uses the REST route only as the dev fallback.
 - The exact `getDashArray` pixel cadences and `TripsLayer` `trailLength`/`fadeTrail`
   tuning (implementation-time, validated at the visual gate).
 - Emissions / crash-risk overlays (handoff "cheap overlays"); separate surfaces.

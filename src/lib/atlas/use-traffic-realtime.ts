@@ -208,7 +208,7 @@ export function useTrafficRealtime(
       timer = setTimeout(run, Math.max(1, seconds) * 1000);
     };
 
-    const useRestFallback = async (reason: string) => {
+    const loadRestFallback = async (reason: string) => {
       if (!fallback) {
         fail(reason);
         return;
@@ -241,7 +241,7 @@ export function useTrafficRealtime(
           const recoverable =
             looksLikeSchemaError(message) || Boolean(result.error.networkError);
           if (recoverable) {
-            await useRestFallback(message);
+            await loadRestFallback(message);
           } else {
             fail(message);
           }
@@ -251,11 +251,11 @@ export function useTrafficRealtime(
         if (result.data?.trafficRealtime) {
           apply(adaptGraphqlTrafficSnapshot(result.data.trafficRealtime), "graphql");
         } else {
-          await useRestFallback("Traffic snapshot not found.");
+          await loadRestFallback("Traffic snapshot not found.");
         }
       } catch (error: unknown) {
         if (cancelled) return;
-        await useRestFallback(
+        await loadRestFallback(
           error instanceof Error ? error.message : String(error),
         );
       }

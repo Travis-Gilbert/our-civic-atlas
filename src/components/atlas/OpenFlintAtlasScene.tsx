@@ -13,6 +13,7 @@ import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDoss
 import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
 import { ScenarioControls } from "@/components/atlas/ScenarioControls";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
+import { TrafficFlowPanel } from "@/components/atlas/TrafficFlowPanel";
 import {
   fetchPlaces,
   fetchEvents,
@@ -52,6 +53,7 @@ import {
   reconstructionExistsInYear,
 } from "@/lib/atlas/atlas-time";
 import { useHistoricalReconstructions } from "@/lib/atlas/use-historical-reconstructions";
+import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
 import {
   ATLAS_SCENARIOS,
   getKpiBundle,
@@ -104,7 +106,10 @@ const DEFAULT_LAYERS: Record<string, boolean> = {
   wards: true,
   infrastructure: true,
   scenarioEnvelopes: true,
+  traffic: true,
 };
+
+const TRAFFIC_NETWORK_ID = "flint-downtown";
 
 const EMPTY_SCENARIO_ENVELOPES: ScenarioEnvelopeCollection = {
   type: "FeatureCollection",
@@ -258,6 +263,12 @@ export function OpenFlintAtlasScene(props: {
   const [places, setPlaces] = useState<PlacesCollection | null>(null);
   const [events, setEvents] = useState<SpatialEvent[]>([]);
   const [signals, setSignals] = useState<FreshSignal[]>([]);
+  const [selectedTrafficSegmentId, setSelectedTrafficSegmentId] =
+    useState<string | null>(null);
+  const trafficRealtime = useTrafficRealtime(TRAFFIC_NETWORK_ID, {
+    fallback: true,
+  });
+  const trafficSnapshot = trafficRealtime.snapshot;
   const [mobileCandidateRuntime, setMobileCandidateRuntime] =
     useState<MobileCandidateSceneRuntime | null>(null);
   const [mobileCandidateBounds, setMobileCandidateBounds] =
@@ -543,6 +554,21 @@ export function OpenFlintAtlasScene(props: {
     return () => { cancelled = true; };
   }, [usesPacketCandidate]);
 
+  useEffect(() => {
+    if (!trafficSnapshot) return;
+    setSelectedTrafficSegmentId((current) => {
+      if (
+        current &&
+        trafficSnapshot.segments.features.some(
+          (segment) => segment.properties.segment_id === current,
+        )
+      ) {
+        return current;
+      }
+      return trafficSnapshot.segments.features[0]?.properties.segment_id ?? null;
+    });
+  }, [trafficSnapshot]);
+
   /* Initialize Mosaic + DuckDB-WASM once on mount. The singleton in
      getAtlasMosaic guards against double-init under React strict mode. */
   useEffect(() => {
@@ -780,6 +806,10 @@ export function OpenFlintAtlasScene(props: {
 
   const handleSignalSelect = useCallback((signalId: string) => {
     setSelectedSignalId(signalId);
+  }, []);
+
+  const handleTrafficSegmentSelect = useCallback((segmentId: string) => {
+    setSelectedTrafficSegmentId(segmentId);
   }, []);
 
   const handleLayerChange = useCallback((key: string, visible: boolean) => {
@@ -1069,6 +1099,21 @@ export function OpenFlintAtlasScene(props: {
       ),
     },
     {
+      id: "traffic",
+      name: "Traffic Flow",
+      extension: "geojson",
+      countLabel: trafficSnapshot
+        ? `${trafficSnapshot.summary.segment_count} segments`
+        : "loading",
+      controls: (
+        <TrafficFlowPanel
+          snapshot={trafficSnapshot}
+          selectedSegmentId={selectedTrafficSegmentId}
+          onSegmentSelect={handleTrafficSegmentSelect}
+        />
+      ),
+    },
+    {
       id: "scenarioEnvelopes",
       name: "Buildable Envelopes",
       extension: "geojson",
@@ -1138,6 +1183,13 @@ export function OpenFlintAtlasScene(props: {
       onDraftHeightBoostChange={setDraftHeightBoostM}
     />
   );
+  const trafficControlsContent = (
+    <TrafficFlowPanel
+      snapshot={trafficSnapshot}
+      selectedSegmentId={selectedTrafficSegmentId}
+      onSegmentSelect={handleTrafficSegmentSelect}
+    />
+  );
 
   return (
     <div
@@ -1171,10 +1223,13 @@ export function OpenFlintAtlasScene(props: {
               places={places}
               events={visibleEvents}
               signals={signals}
+              trafficSnapshot={trafficSnapshot}
               onPlaceSelect={handlePlaceSelect}
               onSignalSelect={handleSignalSelect}
+              onTrafficSegmentSelect={handleTrafficSegmentSelect}
               selectedPlaceId={selectedPlaceId}
               selectedSignalId={selectedSignalId}
+              selectedTrafficSegmentId={selectedTrafficSegmentId}
               selectedBuilding={selectedBuilding}
               onBuildingSelect={handleBuildingSelect}
               layerVisibility={layerVisibility}
@@ -1249,6 +1304,7 @@ export function OpenFlintAtlasScene(props: {
             onClearBuilding={handleClearBuilding}
             layerControlsContent={layerControlsContent}
             scenarioControlsContent={scenarioControlsContent}
+            trafficControlsContent={trafficControlsContent}
           />
         </div>
       </AtlasShell>

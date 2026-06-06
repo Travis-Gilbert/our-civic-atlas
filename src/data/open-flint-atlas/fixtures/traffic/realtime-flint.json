@@ -1,0 +1,168 @@
+{
+  "feed_id": "traffic:flint:realtime-seed",
+  "source_label": "MDOT RIDE connection target; local Flint fixture fallback",
+  "source_url": "https://www.michigan.gov/mdot/travel/safety/efforts/its/its-data",
+  "status": "fixture_fallback",
+  "refresh_interval_seconds": 15,
+  "segments": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-83.7514, 42.9989],
+            [-83.7347, 42.9992],
+            [-83.7116, 42.9995],
+            [-83.6904, 42.9991]
+          ]
+        },
+        "properties": {
+          "segment_id": "traffic:flint:i-69:west",
+          "corridor_name": "I-69 west approach",
+          "direction_label": "Eastbound / west-side approach",
+          "estimate_basis": "live_feed",
+          "source_status": "fixture",
+          "source_label": "MDOT RIDE target, fixture mirror",
+          "support_note": "Fixture segment shaped to the public RIDE handoff contract until the authenticated live feed is wired.",
+          "base_speed_mph": 56,
+          "free_flow_speed_mph": 65,
+          "base_volume_per_hour": 1280,
+          "confidence": 0.82,
+          "phase_offset": 0.1
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-83.7047, 43.0476],
+            [-83.7041, 43.0315],
+            [-83.7016, 43.0122],
+            [-83.6991, 42.9918]
+          ]
+        },
+        "properties": {
+          "segment_id": "traffic:flint:i-475:spine",
+          "corridor_name": "I-475 city spine",
+          "direction_label": "North / south trunkline",
+          "estimate_basis": "live_feed",
+          "source_status": "fixture",
+          "source_label": "MDOT RIDE target, fixture mirror",
+          "support_note": "Represents the first trunkline corridor a live loop-detector feed should map onto.",
+          "base_speed_mph": 49,
+          "free_flow_speed_mph": 60,
+          "base_volume_per_hour": 1640,
+          "confidence": 0.84,
+          "phase_offset": 0.28
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-83.7346, 43.012],
+            [-83.7168, 43.0121],
+            [-83.6978, 43.0124],
+            [-83.6798, 43.0125]
+          ]
+        },
+        "properties": {
+          "segment_id": "traffic:flint:court:midtown",
+          "corridor_name": "Court Street / M-21",
+          "direction_label": "Downtown east-west corridor",
+          "estimate_basis": "hourly_pattern",
+          "source_status": "fixture",
+          "source_label": "AADT pattern seed",
+          "support_note": "Local arterial sample inferred from an hourly traffic pattern until current counts are available.",
+          "base_speed_mph": 27,
+          "free_flow_speed_mph": 35,
+          "base_volume_per_hour": 760,
+          "confidence": 0.62,
+          "phase_offset": 0.46
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-83.6938, 43.0308],
+            [-83.694, 43.0218],
+            [-83.6933, 43.0142],
+            [-83.6925, 43.0046]
+          ]
+        },
+        "properties": {
+          "segment_id": "traffic:flint:saginaw:downtown",
+          "corridor_name": "Saginaw Street downtown",
+          "direction_label": "Downtown north-south street",
+          "estimate_basis": "hourly_pattern",
+          "source_status": "fixture",
+          "source_label": "Hourly pattern seed",
+          "support_note": "Downtown street sample, useful for proving density-and-speed rendering before signal timing feeds are connected.",
+          "base_speed_mph": 18,
+          "free_flow_speed_mph": 28,
+          "base_volume_per_hour": 540,
+          "confidence": 0.58,
+          "phase_offset": 0.62
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-83.6558, 43.0412],
+            [-83.6557, 43.0228],
+            [-83.6552, 43.0004],
+            [-83.6547, 42.981]
+          ]
+        },
+        "properties": {
+          "segment_id": "traffic:flint:dort:east",
+          "corridor_name": "Dort Highway",
+          "direction_label": "East-side north-south corridor",
+          "estimate_basis": "live_feed",
+          "source_status": "fixture",
+          "source_label": "MDOT RIDE target, fixture mirror",
+          "support_note": "High-volume east-side corridor sample for live-feed segment mapping.",
+          "base_speed_mph": 42,
+          "free_flow_speed_mph": 50,
+          "base_volume_per_hour": 1120,
+          "confidence": 0.78,
+          "phase_offset": 0.74
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [-83.7835, 42.9901],
+            [-83.7612, 42.9904],
+            [-83.7418, 42.9906],
+            [-83.7228, 42.9908]
+          ]
+        },
+        "properties": {
+          "segment_id": "traffic:flint:miller:southwest",
+          "corridor_name": "Miller Road",
+          "direction_label": "Southwest commercial corridor",
+          "estimate_basis": "hourly_pattern",
+          "source_status": "fixture",
+          "source_label": "Hourly pattern seed",
+          "support_note": "Commercial-corridor sample for inferred demand and later count calibration.",
+          "base_speed_mph": 31,
+          "free_flow_speed_mph": 40,
+          "base_volume_per_hour": 880,
+          "confidence": 0.6,
+          "phase_offset": 0.88
+        }
+      }
+    ]
+  }
+}

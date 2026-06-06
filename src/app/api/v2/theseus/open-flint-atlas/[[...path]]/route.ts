@@ -11,6 +11,7 @@ import sourceRegistry from "@/data/open-flint-atlas/source-registry.json";
 import primitiveLibrary from "@/data/open-flint-atlas/fixtures/static-package/data/primitive-library.json";
 import geoComments from "@/data/open-flint-atlas/fixtures/static-package/data/geo-comments.json";
 import layerRecipes from "@/data/open-flint-atlas/fixtures/static-package/data/layer-recipes.json";
+import trafficRealtimeSeed from "@/data/open-flint-atlas/fixtures/traffic/realtime-flint.json";
 import {
   buildPlaceDossierPayload,
   type RawAtlasMetric,
@@ -19,6 +20,10 @@ import type {
   AtlasSource,
   ReviewStatus,
   SpatialEvent,
+  TrafficEstimateBasis,
+  TrafficRealtimeSnapshot,
+  TrafficSegmentProperties,
+  TrafficSourceStatus,
   TimeShape,
 } from "@/lib/api/openFlintAtlas";
 import {
@@ -93,6 +98,33 @@ type AtlasSignal = {
   expires_at: string | null;
   warning_copy: string | null;
   metadata: JsonRecord;
+};
+
+type TrafficSeedSegmentProperties = Omit<
+  TrafficSegmentProperties,
+  | "observed_at"
+  | "expires_at"
+  | "speed_mph"
+  | "volume_per_hour"
+  | "congestion_ratio"
+> & {
+  base_speed_mph: number;
+  base_volume_per_hour: number;
+  phase_offset: number;
+  estimate_basis: TrafficEstimateBasis;
+  source_status: TrafficSourceStatus;
+};
+
+type TrafficSeed = {
+  feed_id: string;
+  source_label: string;
+  source_url: string | null;
+  status: TrafficRealtimeSnapshot["status"];
+  refresh_interval_seconds: number;
+  segments: GeoJSON.FeatureCollection<
+    GeoJSON.LineString,
+    TrafficSeedSegmentProperties
+  >;
 };
 
 function json(data: unknown, init?: ResponseInit) {
@@ -365,6 +397,115 @@ function signalStream(signals: AtlasSignal[]) {
   });
 }
 
+function roundTo(value: number, digits: number) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function trafficRealtimePayload(): TrafficRealtimeSnapshot {
+  const seed = trafficRealtimeSeed as TrafficSeed;
+  const now = new Date();
+  const expiresAt = new Date(
+    now.getTime() + seed.refresh_interval_seconds * 1000,
+  ).toISOString();
+  const hour = now.getHours();
+  const isPeak = (hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18);
+  const minuteBucket = Math.floor(now.getTime() / 60_000);
+  let speedTotal = 0;
+  let congestionTotal = 0;
+
+  const features = seed.segments.features.map((feature, index) => {
+    const phase = minuteBucket / 8 + feature.properties.phase_offset + index;
+    const wave = Math.sin(phase) * 0.5 + 0.5;
+    const peakMultiplier = isPeak ? 1.18 : 0.92;
+    const inferredPenalty =
+      feature.properties.estimate_basis === "hourly_pattern" ? 0.88 : 1;
+    const volume = Math.round(
+      feature.properties.base_volume_per_hour *
+        peakMultiplier *
+        (0.88 + wave * 0.28),
+    );
+    const speed = roundTo(
+      clamp(
+        feature.properties.base_speed_mph *
+          inferredPenalty *
+          (1.06 - wave * (isPeak ? 0.22 : 0.12)),
+        9,
+        feature.properties.free_flow_speed_mph,
+      ),
+      1,
+    );
+    const congestionRatio = roundTo(
+      clamp(
+        1 - speed / feature.properties.free_flow_speed_mph + wave * 0.08,
+        0,
+        0.92,
+      ),
+      2,
+    );
+    speedTotal += speed;
+    congestionTotal += congestionRatio;
+
+    const properties: TrafficSegmentProperties = {
+      segment_id: feature.properties.segment_id,
+      corridor_name: feature.properties.corridor_name,
+      direction_label: feature.properties.direction_label,
+      estimate_basis: feature.properties.estimate_basis,
+      source_status: feature.properties.source_status,
+      source_label: feature.properties.source_label,
+      support_note: feature.properties.support_note,
+      observed_at: now.toISOString(),
+      expires_at: expiresAt,
+      speed_mph: speed,
+      free_flow_speed_mph: feature.properties.free_flow_speed_mph,
+      volume_per_hour: volume,
+      congestion_ratio: congestionRatio,
+      confidence: feature.properties.confidence,
+    };
+
+    return {
+      type: "Feature" as const,
+      geometry: feature.geometry,
+      properties,
+    };
+  });
+
+  const segmentCount = features.length;
+  const inferredSegments = features.filter(
+    (feature) => feature.properties.estimate_basis !== "live_feed",
+  ).length;
+  const congestedSegments = features.filter(
+    (feature) => feature.properties.congestion_ratio >= 0.35,
+  ).length;
+
+  return {
+    feed_id: seed.feed_id,
+    source_label: seed.source_label,
+    source_url: seed.source_url,
+    status: seed.status,
+    generated_at: now.toISOString(),
+    refresh_interval_seconds: seed.refresh_interval_seconds,
+    summary: {
+      segment_count: segmentCount,
+      live_feed_segments: segmentCount - inferredSegments,
+      inferred_segments: inferredSegments,
+      congested_segments: congestedSegments,
+      average_speed_mph:
+        segmentCount === 0 ? 0 : roundTo(speedTotal / segmentCount, 1),
+      average_congestion_ratio:
+        segmentCount === 0 ? 0 : roundTo(congestionTotal / segmentCount, 2),
+    },
+    segments: {
+      type: "FeatureCollection",
+      features,
+    },
+  };
+}
+
 function provenancePayload(params: URLSearchParams) {
   const placeId = params.get("place_id");
   const sourceId = params.get("source_id");
@@ -594,6 +735,19 @@ export async function GET(request: Request, { params }: RouteContext) {
     const signal = allSignals().find((item) => item.signal_id === signalId);
     if (!signal) return notFound("Signal not found");
     return json(signal);
+  }
+
+  if (segment === "traffic" && id === "realtime") {
+    const qs = searchParams.toString();
+    const { data } = await fetchTheseusOrFallback(
+      qs ? `traffic/realtime?${qs}` : "traffic/realtime",
+      () => trafficRealtimePayload(),
+    );
+    return json(data, {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
   if (segment === "provenance") {

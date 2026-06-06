@@ -185,6 +185,63 @@ export type FreshSignal = AtlasSignal;
 
 export type FreshSignalsResponse = SignalsResponse;
 
+export type TrafficEstimateBasis =
+  | "live_feed"
+  | "hourly_pattern"
+  | "scenario_model";
+
+export type TrafficSourceStatus =
+  | "live"
+  | "fixture"
+  | "pending_live_source";
+
+export type TrafficSegmentProperties = {
+  segment_id: string;
+  corridor_name: string;
+  direction_label: string;
+  estimate_basis: TrafficEstimateBasis;
+  source_status: TrafficSourceStatus;
+  source_label: string;
+  support_note: string;
+  observed_at: string;
+  expires_at: string;
+  speed_mph: number;
+  free_flow_speed_mph: number;
+  volume_per_hour: number;
+  congestion_ratio: number;
+  confidence: number;
+};
+
+export type TrafficSegmentFeature = GeoJSON.Feature<
+  GeoJSON.LineString,
+  TrafficSegmentProperties
+>;
+
+export type TrafficSegmentsCollection = GeoJSON.FeatureCollection<
+  GeoJSON.LineString,
+  TrafficSegmentProperties
+>;
+
+export type TrafficRealtimeSummary = {
+  segment_count: number;
+  live_feed_segments: number;
+  inferred_segments: number;
+  congested_segments: number;
+  average_speed_mph: number;
+  average_congestion_ratio: number;
+};
+
+export type TrafficRealtimeSnapshot = {
+  feed_id: string;
+  source_label: string;
+  source_url: string | null;
+  status: "live" | "fixture_fallback" | "unavailable";
+  generated_at: string;
+  refresh_interval_seconds: number;
+  summary: TrafficRealtimeSummary;
+  segments: TrafficSegmentsCollection;
+};
+
 export type AtlasMetric = {
   metric_id: string;
   metric_key?: string;
@@ -735,6 +792,10 @@ export function fetchEvents(filters?: EventFilters) {
 
 export function fetchSignals(filters?: SignalFilters) {
   return get<SignalsResponse>(`/signals/${qs(filters ?? {})}`);
+}
+
+export function fetchTrafficRealtime() {
+  return get<TrafficRealtimeSnapshot>("/traffic/realtime");
 }
 
 export function fetchSignal(signalId: string) {

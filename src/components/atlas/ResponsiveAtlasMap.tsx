@@ -27,6 +27,7 @@ import type {
   FreshSignal,
   PlacesCollection,
   SpatialEvent,
+  TrafficRealtimeSnapshot,
 } from "@/lib/api/openFlintAtlas";
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import type { SelectedBuilding } from "@/lib/atlas/selected-building";
@@ -51,10 +52,13 @@ export type ResponsiveAtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
   signals: FreshSignal[];
+  trafficSnapshot?: TrafficRealtimeSnapshot | null;
   onPlaceSelect: (placeId: string) => void;
   onSignalSelect: (signalId: string) => void;
+  onTrafficSegmentSelect?: (segmentId: string) => void;
   selectedPlaceId: string | null;
   selectedSignalId: string | null;
+  selectedTrafficSegmentId?: string | null;
   /**
    * Selected building, if any. Separate from `selectedPlaceId` (which
    * carries civic places: wards, parcels, addresses). Spec PR 1.

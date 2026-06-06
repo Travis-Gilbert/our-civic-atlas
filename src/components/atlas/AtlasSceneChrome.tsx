@@ -55,6 +55,7 @@ type AtlasSceneChromeProps = {
   onClearBuilding?: () => void;
   layerControlsContent: ReactNode;
   scenarioControlsContent: ReactNode;
+  trafficControlsContent?: ReactNode;
 };
 
 export function AtlasSceneChrome({
@@ -84,6 +85,7 @@ export function AtlasSceneChrome({
   onClearBuilding,
   layerControlsContent,
   scenarioControlsContent,
+  trafficControlsContent,
 }: AtlasSceneChromeProps) {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1400]">
@@ -148,6 +150,7 @@ export function AtlasSceneChrome({
         onClearBuilding={onClearBuilding}
         layerControlsContent={layerControlsContent}
         scenarioControlsContent={scenarioControlsContent}
+        trafficControlsContent={trafficControlsContent}
       />
     </div>
   );

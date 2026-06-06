@@ -46,7 +46,14 @@ import {
 } from "@/components/atlas/CivicResearchPanel";
 import { cn } from "@/lib/utils";
 
-type IslandTab = "ask" | "layers" | "scenarios" | "time" | "place" | "horizon";
+type IslandTab =
+  | "ask"
+  | "layers"
+  | "scenarios"
+  | "traffic"
+  | "time"
+  | "place"
+  | "horizon";
 
 type AtlasDynamicIslandProps = {
   activeLens: AtlasLensId;
@@ -93,6 +100,7 @@ type AtlasDynamicIslandProps = {
   onClearBuilding?: () => void;
   layerControlsContent?: ReactNode;
   scenarioControlsContent?: ReactNode;
+  trafficControlsContent?: ReactNode;
 };
 
 const lensIcons: Record<AtlasLensId, ComponentType<{ className?: string }>> = {
@@ -123,6 +131,7 @@ const TAB_LABELS: Record<IslandTab, string> = {
   ask: "Ask",
   layers: "Layers",
   scenarios: "Scenarios",
+  traffic: "Traffic",
   time: "Time",
   place: "Place",
   horizon: "Horizon",
@@ -193,6 +202,7 @@ export function AtlasDynamicIsland({
   onClearBuilding,
   layerControlsContent,
   scenarioControlsContent,
+  trafficControlsContent,
 }: AtlasDynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<IslandTab>("ask");
@@ -237,16 +247,19 @@ export function AtlasDynamicIsland({
   }, [activeTab, horizonNodes, selectedHorizonId]);
 
   const hasScenarioControls = scenarioControlsContent != null;
+  const hasTrafficControls = trafficControlsContent != null;
 
   const availableTabs = useMemo<IslandTab[]>(() => {
     const tabs: IslandTab[] = ["ask", "layers"];
     if (hasScenarioControls) tabs.push("scenarios");
+    if (hasTrafficControls) tabs.push("traffic");
     tabs.push("time");
     if (selectedPlaceId || selectedBuilding) tabs.push("place");
     if (horizonNodes.length > 0) tabs.push("horizon");
     return tabs;
   }, [
     hasScenarioControls,
+    hasTrafficControls,
     horizonNodes.length,
     selectedPlaceId,
     selectedBuilding,
@@ -298,6 +311,8 @@ export function AtlasDynamicIsland({
   const expandedIslandHeight =
     activeTab === "scenarios"
       ? isMobileViewport ? 520 : 500
+      : activeTab === "traffic"
+        ? isMobileViewport ? 520 : 500
       : isMobileViewport ? 436 : 394;
   const collapsedSearchActive =
     !isExpanded && searchValue.trim().length > 0 && atlasYear === null;
@@ -633,6 +648,12 @@ export function AtlasDynamicIsland({
                 </section>
               ) : null}
 
+              {activeTab === "traffic" ? (
+                <section className="atlas-island-traffic-panel">
+                  {trafficControlsContent}
+                </section>
+              ) : null}
+
               {activeTab === "time" ? (
                 /*
                  * Flat Time tab: no nested card chrome. The tab label
@@ -768,7 +789,7 @@ export function AtlasDynamicIsland({
               ) : null}
             </div>
 
-            {activeTab === "scenarios" ? null : (
+            {activeTab === "scenarios" || activeTab === "traffic" ? null : (
               <div className="border-t border-[rgba(42,36,25,0.08)] px-4 py-3">
                 <div className="grid grid-cols-4 gap-2">
                   <MetaPill label="View" value={activeView.label} />

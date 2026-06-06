@@ -51,6 +51,9 @@ import type {
   PlaceFeature,
   PlaceProperties,
   SpatialEvent,
+  TrafficRealtimeSnapshot,
+  TrafficSegmentFeature,
+  TrafficSegmentProperties,
 } from "@/lib/api/openFlintAtlas";
 import {
   ATLAS_SCENE_VIEW_MODE_LOOKUP,
@@ -60,6 +63,7 @@ import {
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
+import { usePrefersReducedMotion } from "@/lib/atlas/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -269,6 +273,19 @@ const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
   community: [160, 100, 220],
 };
 const EVENT_TYPE_COLOR_DEFAULT: [number, number, number] = [140, 140, 150];
+
+type TrafficParticle = {
+  id: string;
+  position: [number, number];
+  color: [number, number, number, number];
+  lineColor: [number, number, number, number];
+  radius: number;
+};
+
+const TRAFFIC_FREE: [number, number, number, number] = [45, 166, 153, 210];
+const TRAFFIC_BUILDING: [number, number, number, number] = [217, 162, 59, 226];
+const TRAFFIC_HEAVY: [number, number, number, number] = [193, 74, 44, 236];
+const TRAFFIC_SELECTED: [number, number, number, number] = [42, 36, 25, 245];
 
 const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   explore: [193, 132, 58, 34],
@@ -757,6 +774,110 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
   return x * x * (3 - 2 * x);
 }
 
+function trafficColor(
+  props: TrafficSegmentProperties,
+  selected: boolean,
+): [number, number, number, number] {
+  if (selected) return TRAFFIC_SELECTED;
+  const base =
+    props.congestion_ratio >= 0.5
+      ? TRAFFIC_HEAVY
+      : props.congestion_ratio >= 0.28
+        ? TRAFFIC_BUILDING
+        : TRAFFIC_FREE;
+  const alpha =
+    props.source_status === "live" ? base[3] : Math.max(128, base[3] - 76);
+  return [base[0], base[1], base[2], alpha];
+}
+
+function trafficWidth(props: TrafficSegmentProperties): number {
+  const volumeWidth = Math.min(7.5, Math.max(2.2, props.volume_per_hour / 250));
+  return volumeWidth + props.congestion_ratio * 2.2;
+}
+
+function trafficDashArray(props: TrafficSegmentProperties): [number, number] {
+  if (props.source_status === "live") return [12, 0];
+  if (props.source_status === "pending_live_source") return [6, 4];
+  return [2, 4];
+}
+
+function lineLength(coordinates: GeoJSON.Position[]): number {
+  let total = 0;
+  for (let i = 1; i < coordinates.length; i += 1) {
+    const [lngA, latA] = coordinates[i - 1];
+    const [lngB, latB] = coordinates[i];
+    total += Math.hypot(lngB - lngA, latB - latA);
+  }
+  return total;
+}
+
+function interpolateLine(
+  coordinates: GeoJSON.Position[],
+  phase: number,
+): [number, number] | null {
+  if (coordinates.length === 0) return null;
+  if (coordinates.length === 1) {
+    const [lng, lat] = coordinates[0];
+    return [lng, lat];
+  }
+  const total = lineLength(coordinates);
+  if (total <= 0) {
+    const [lng, lat] = coordinates[0];
+    return [lng, lat];
+  }
+  const target = total * ((phase % 1) + 1) % total;
+  let walked = 0;
+  for (let i = 1; i < coordinates.length; i += 1) {
+    const [lngA, latA] = coordinates[i - 1];
+    const [lngB, latB] = coordinates[i];
+    const segmentLength = Math.hypot(lngB - lngA, latB - latA);
+    if (walked + segmentLength >= target) {
+      const t = segmentLength === 0 ? 0 : (target - walked) / segmentLength;
+      return [lngA + (lngB - lngA) * t, latA + (latB - latA) * t];
+    }
+    walked += segmentLength;
+  }
+  const [lng, lat] = coordinates[coordinates.length - 1];
+  return [lng, lat];
+}
+
+function createTrafficParticles(
+  features: TrafficSegmentFeature[],
+  nowMs: number,
+): TrafficParticle[] {
+  const nowSeconds = nowMs / 1000;
+  const particles: TrafficParticle[] = [];
+  for (const [segmentIndex, feature] of features.entries()) {
+    const coordinates = feature.geometry.coordinates;
+    const props = feature.properties;
+    const count = Math.max(1, Math.min(8, Math.round(props.volume_per_hour / 360)));
+    const durationSeconds = Math.max(
+      2.4,
+      Math.min(12, (props.free_flow_speed_mph / Math.max(props.speed_mph, 1)) * 3.6),
+    );
+    const color = trafficColor(props, false);
+    for (let i = 0; i < count; i += 1) {
+      const phase =
+        nowSeconds / durationSeconds +
+        segmentIndex * 0.17 +
+        i / count;
+      const position = interpolateLine(coordinates, phase);
+      if (!position) continue;
+      particles.push({
+        id: `${props.segment_id}:${i}`,
+        position,
+        color: [color[0], color[1], color[2], Math.min(248, color[3] + 22)],
+        lineColor:
+          props.source_status === "live"
+            ? [255, 255, 255, 170]
+            : [255, 255, 255, 96],
+        radius: props.source_status === "live" ? 4.2 : 3.4,
+      });
+    }
+  }
+  return particles;
+}
+
 /* ------------------------------------------------------------------ */
 /*  DeckGL overlay hook                                                */
 /* ------------------------------------------------------------------ */
@@ -794,8 +915,11 @@ function DeckGLOverlay(
 export type AtlasMapProps = {
   places: PlacesCollection | null;
   events: SpatialEvent[];
+  trafficSnapshot?: TrafficRealtimeSnapshot | null;
   onPlaceSelect: (placeId: string) => void;
+  onTrafficSegmentSelect?: (segmentId: string) => void;
   selectedPlaceId: string | null;
+  selectedTrafficSegmentId?: string | null;
   layerVisibility: Record<string, boolean>;
   mobileSurface?: MobileRuntimeSurfaceId;
   initialBounds?: [[number, number], [number, number]] | null;
@@ -878,8 +1002,11 @@ export type UrbanDesignMaterialMode = "typology" | "sketch_model";
 export function AtlasMap({
   places,
   events,
+  trafficSnapshot = null,
   onPlaceSelect,
+  onTrafficSegmentSelect,
   selectedPlaceId,
+  selectedTrafficSegmentId = null,
   layerVisibility,
   mobileSurface = "leaflet_baseline",
   initialBounds = null,
@@ -898,10 +1025,14 @@ export function AtlasMap({
   extraDeckLayers = [],
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const camera = ATLAS_SCENE_VIEW_MODE_LOOKUP[viewMode].camera;
   const mapRef = useRef<MapRef | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapZoom, setMapZoom] = useState(camera.zoom);
+  const [trafficAnimationTick, setTrafficAnimationTick] = useState(() =>
+    Date.now(),
+  );
   const appliedMobileFitKeyRef = useRef<string | null>(null);
 
   /*
@@ -1612,6 +1743,34 @@ export function AtlasMap({
     if (!canHover) setHoverState(null);
   }, [canHover]);
 
+  useEffect(() => {
+    if (
+      prefersReducedMotion ||
+      !trafficSnapshot ||
+      layerVisibility.traffic === false
+    ) {
+      return;
+    }
+    setTrafficAnimationTick(Date.now());
+    const timer = window.setInterval(
+      () => setTrafficAnimationTick(Date.now()),
+      900,
+    );
+    return () => window.clearInterval(timer);
+  }, [layerVisibility.traffic, prefersReducedMotion, trafficSnapshot]);
+
+  const trafficSegments = useMemo(
+    () => trafficSnapshot?.segments.features ?? [],
+    [trafficSnapshot],
+  );
+  const trafficParticles = useMemo(
+    () =>
+      prefersReducedMotion
+        ? []
+        : createTrafficParticles(trafficSegments, trafficAnimationTick),
+    [prefersReducedMotion, trafficAnimationTick, trafficSegments],
+  );
+
   /* ---- Layers ----------------------------------------------------- */
   const layers = useMemo(() => {
     const result: Layer[] = [];
@@ -2228,6 +2387,77 @@ export function AtlasMap({
       );
     }
 
+    if (trafficSegments.length > 0 && layerVisibility.traffic !== false) {
+      result.push(
+        new GeoJsonLayer({
+          id: "atlas-traffic-flow-segments",
+          data: {
+            type: "FeatureCollection",
+            features: trafficSegments,
+          },
+          pickable: true,
+          stroked: true,
+          filled: false,
+          extruded: false,
+          lineWidthUnits: "pixels",
+          lineWidthMinPixels: 2,
+          lineWidthMaxPixels: 11,
+          getLineWidth: (
+            feature: GeoJSON.Feature<GeoJSON.Geometry, TrafficSegmentProperties>,
+          ) =>
+            trafficWidth(feature.properties),
+          getLineColor: (
+            feature: GeoJSON.Feature<GeoJSON.Geometry, TrafficSegmentProperties>,
+          ) =>
+            trafficColor(
+              feature.properties,
+              feature.properties.segment_id === selectedTrafficSegmentId,
+            ),
+          getDashArray: (
+            feature: GeoJSON.Feature<GeoJSON.Geometry, TrafficSegmentProperties>,
+          ) =>
+            trafficDashArray(feature.properties),
+          dashJustified: true,
+          extensions: [new PathStyleExtension({ dash: true })],
+          onClick: (info) => {
+            const segment = info.object as TrafficSegmentFeature | undefined;
+            if (!segment) return false;
+            onTrafficSegmentSelect?.(segment.properties.segment_id);
+            return true;
+          },
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+          updateTriggers: {
+            getLineColor: [selectedTrafficSegmentId],
+            getLineWidth: [trafficSnapshot?.generated_at],
+            getDashArray: [trafficSnapshot?.generated_at],
+          },
+        }),
+      );
+      if (!prefersReducedMotion && trafficParticles.length > 0) result.push(
+        new ScatterplotLayer<TrafficParticle>({
+          id: "atlas-traffic-flow-particles",
+          data: trafficParticles,
+          pickable: false,
+          stroked: true,
+          filled: true,
+          radiusUnits: "pixels",
+          getPosition: (particle) => particle.position,
+          getRadius: (particle) => particle.radius,
+          getFillColor: (particle) => particle.color,
+          getLineColor: (particle) => particle.lineColor,
+          getLineWidth: 1,
+          lineWidthMinPixels: 1,
+          parameters: {
+            depthCompare: "always",
+            depthWriteEnabled: false,
+          },
+        }),
+      );
+    }
+
     // Spec PR 4 layer-order table: city boundary stroke + inner glow
     // render ABOVE the building stack. Pushed here, after the last
     // building layer (buildingFabric), so the terracotta perimeter
@@ -2485,6 +2715,12 @@ export function AtlasMap({
     scenarioEnvelopeFeatures,
     scenarioCompareEnabled,
     scenarioDeltaFeatures,
+    trafficParticles,
+    trafficSegments,
+    trafficSnapshot?.generated_at,
+    prefersReducedMotion,
+    selectedTrafficSegmentId,
+    onTrafficSegmentSelect,
     extraDeckLayers,
   ]);
 
