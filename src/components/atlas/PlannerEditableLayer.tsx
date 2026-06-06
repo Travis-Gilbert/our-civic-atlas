@@ -2,8 +2,8 @@
  * EditableGeoJsonLayer wrapper for the planner.
  *
  * Two modes:
- *   - TranslateMode: select a pin, drag, drop. Commits the new
- *     coordinates via updatePlacement(geometry, expectedVersion).
+ *   - Direct drag: mouse down on a pin, drag, drop. Commits the new
+ *     coordinates once via updatePlacement(geometry, expectedVersion).
  *   - DrawPointMode: the user clicked a category in the palette; the
  *     next map click drops a new placement of that category.
  *
@@ -25,11 +25,10 @@
 import {
   DrawPointMode,
   EditableGeoJsonLayer,
-  TranslateMode,
-  ViewMode,
 } from "@deck.gl-community/editable-layers";
-import type { Layer } from "@deck.gl/core";
-import type { FeatureCollection, Point } from "geojson";
+import type { Layer, PickingInfo } from "@deck.gl/core";
+import { GeoJsonLayer } from "@deck.gl/layers";
+import type { Feature, FeatureCollection, Point } from "geojson";
 
 import type { AtlasEventPlannerPlacement } from "@/components/atlas/AtlasEventPlannerLayer";
 
@@ -65,6 +64,18 @@ export interface PlannerEditableLayerOptions {
     geometry: Record<string, unknown>,
   ) => void;
   /**
+   * Preview a drag before commit. The parent patches the displayed
+   * geometry optimistically, then clears it after the mutation/refetch.
+   */
+  readonly onTranslatePreview?: (
+    placementId: string,
+    geometry: Record<string, unknown> | null,
+  ) => void;
+  /**
+   * Select the placement currently being clicked or dragged.
+   */
+  readonly onSelect?: (placementId: string) => void;
+  /**
    * Commit a draw. The layer hands back the new Point geometry; we
    * fire createPlacement with the pre-bound category.
    */
@@ -83,11 +94,24 @@ interface EditCallbackPayload {
   readonly updatedData: FeatureCollection<Point, PlannerFeatureProperties>;
 }
 
+type PlannerPointFeature = Feature<Point, PlannerFeatureProperties>;
+
+function pointFromPickingCoordinate(
+  coordinate: readonly number[] | undefined,
+): Record<string, unknown> | null {
+  if (!coordinate) return null;
+  const [lng, lat] = coordinate;
+  if (typeof lng !== "number" || typeof lat !== "number") return null;
+  return { type: "Point", coordinates: [lng, lat] };
+}
+
 export function buildPlannerEditableLayer({
   placements,
   mode,
   selectedPlacementId,
   onTranslate,
+  onTranslatePreview,
+  onSelect,
   onDraw,
 }: PlannerEditableLayerOptions): Layer | null {
   if (mode.type === "off") return null;
@@ -112,29 +136,75 @@ export function buildPlannerEditableLayer({
       })),
   };
 
-  const selectedIndexes: number[] = (() => {
-    if (!selectedPlacementId) return [];
-    const idx = data.features.findIndex(
-      (f) => f.properties.placement_id === selectedPlacementId,
-    );
-    return idx >= 0 ? [idx] : [];
-  })();
-
-  // Translate only fires when at least one feature is selected; when
-  // nothing is selected we degrade to ViewMode so clicks become
-  // selection events instead of no-ops.
-  const modeInstance =
-    mode.type === "draw"
-      ? DrawPointMode
-      : mode.type === "translate" && selectedIndexes.length > 0
-        ? TranslateMode
-        : ViewMode;
+  if (mode.type === "translate") {
+    return new GeoJsonLayer<PlannerFeatureProperties>({
+      id: "planner-editable-direct-drag",
+      data,
+      pickable: true,
+      stroked: true,
+      filled: true,
+      pointType: "circle",
+      pointRadiusUnits: "pixels",
+      pointRadiusMinPixels: 8,
+      pointRadiusMaxPixels: 14,
+      getPointRadius: (feature) =>
+        feature.properties.placement_id === selectedPlacementId ? 12 : 9,
+      getFillColor: (feature) =>
+        feature.properties.placement_id === selectedPlacementId
+          ? [255, 255, 255, 190]
+          : [255, 255, 255, 90],
+      getLineColor: (feature) =>
+        feature.properties.placement_id === selectedPlacementId
+          ? [193, 74, 44, 255]
+          : [42, 28, 16, 210],
+      lineWidthUnits: "pixels",
+      getLineWidth: 2,
+      onClick: (info: PickingInfo<PlannerPointFeature>) => {
+        const feature = info.object;
+        if (!feature) return false;
+        onSelect?.(feature.properties.placement_id);
+        return true;
+      },
+      onDragStart: (info: PickingInfo<PlannerPointFeature>) => {
+        const feature = info.object;
+        if (!feature) return false;
+        onSelect?.(feature.properties.placement_id);
+        return true;
+      },
+      onDrag: (info: PickingInfo<PlannerPointFeature>) => {
+        const feature = info.object;
+        const geometry = pointFromPickingCoordinate(info.coordinate);
+        if (!feature || !geometry) return false;
+        onTranslatePreview?.(feature.properties.placement_id, geometry);
+        return true;
+      },
+      onDragEnd: (info: PickingInfo<PlannerPointFeature>) => {
+        const feature = info.object;
+        const geometry = pointFromPickingCoordinate(info.coordinate);
+        if (!feature || !geometry) {
+          if (feature) onTranslatePreview?.(feature.properties.placement_id, null);
+          return false;
+        }
+        onTranslate(
+          feature.properties.placement_id,
+          feature.properties.version,
+          geometry,
+        );
+        return true;
+      },
+      updateTriggers: {
+        getPointRadius: selectedPlacementId,
+        getFillColor: selectedPlacementId,
+        getLineColor: selectedPlacementId,
+      },
+    });
+  }
 
   return new EditableGeoJsonLayer({
     id: "planner-editable",
     data,
-    mode: modeInstance,
-    selectedFeatureIndexes: selectedIndexes,
+    mode: DrawPointMode,
+    selectedFeatureIndexes: [],
     pickable: true,
     pointRadiusMinPixels: 6,
     pointRadiusMaxPixels: 12,

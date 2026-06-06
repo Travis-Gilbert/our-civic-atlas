@@ -126,6 +126,10 @@ type LivePlacement = EventPlacementsQuery["placements"][number];
 type InitialPorchfestPlacement = AtlasEventPlannerPlacement & {
   readonly version?: number;
 };
+type PlacementDragPreview = {
+  readonly placementId: string;
+  readonly geometry: Record<string, unknown>;
+};
 
 function hasPlacementVersion(
   placement: InitialPorchfestPlacement,
@@ -150,6 +154,18 @@ function toRenderPlacement(row: LivePlacement): AtlasEventPlannerPlacement {
 /** Map a live GraphQL placement row to the editable-layer shape (+version). */
 function toEditablePlacement(row: LivePlacement): PlannerEditablePlacement {
   return { ...toRenderPlacement(row), version: row.version };
+}
+
+function applyDragPreview<T extends AtlasEventPlannerPlacement>(
+  placements: readonly T[],
+  preview: PlacementDragPreview | null,
+): readonly T[] {
+  if (!preview) return placements;
+  return placements.map((placement) =>
+    placement.id === preview.placementId
+      ? { ...placement, geometry: preview.geometry }
+      : placement,
+  );
 }
 
 function mapTaskStatus(status: string): PlannerTaskStatus {
@@ -272,6 +288,9 @@ function PorchfestPlannerWorkspace({
     DEFAULT_PLANNER_VISIBILITY,
   );
   const [toast, setToast] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<PlacementDragPreview | null>(
+    null,
+  );
   // The right task rail is collapsible and collapsed by default; the
   // island is the at-a-glance task surface, the rail is full management.
   const [taskRailOpen, setTaskRailOpen] = useState(false);
@@ -327,9 +346,22 @@ function PorchfestPlannerWorkspace({
   );
 
   // Rendered placements: live rows when present, else SSR fixture.
-  const renderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
+  const baseRenderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
     () => (liveRows ? liveRows.map(toRenderPlacement) : initialPlacements),
     [liveRows, initialPlacements],
+  );
+  const renderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
+    () => applyDragPreview(baseRenderPlacements, dragPreview),
+    [baseRenderPlacements, dragPreview],
+  );
+  const activeEditablePlacements = useMemo<
+    readonly PlannerEditablePlacement[] | null
+  >(
+    () =>
+      editablePlacements
+        ? applyDragPreview(editablePlacements, dragPreview)
+        : null,
+    [editablePlacements, dragPreview],
   );
 
   const editingAvailable = editablePlacements != null && canEdit;
@@ -524,9 +556,11 @@ function PorchfestPlannerWorkspace({
 
   const handleTranslate = useCallback(
     (placementId: string, expectedVersion: number, geometry: Record<string, unknown>) => {
+      setDragPreview({ placementId, geometry });
       void updatePlacement({
         input: { placementId, expectedVersion, geometry },
       }).then((result) => {
+        setDragPreview(null);
         if (result.error) {
           setToast(`Move failed: ${result.error.message}`);
           return;
@@ -538,6 +572,18 @@ function PorchfestPlannerWorkspace({
       });
     },
     [updatePlacement, refreshPlacements],
+  );
+
+  const handleTranslatePreview = useCallback(
+    (placementId: string, geometry: Record<string, unknown> | null) => {
+      setDragPreview((current) => {
+        if (!geometry) {
+          return current?.placementId === placementId ? null : current;
+        }
+        return { placementId, geometry };
+      });
+    },
+    [],
   );
 
   const handleDraw = useCallback(
@@ -684,11 +730,11 @@ function PorchfestPlannerWorkspace({
         sublabel: paletteMode.sublabel,
       };
     }
-    if (paletteMode.kind === "drag" && selectedPlacementId) {
+    if (paletteMode.kind === "drag") {
       return { type: "translate" };
     }
     return { type: "off" };
-  }, [editingAvailable, paletteMode, selectedPlacementId]);
+  }, [editingAvailable, paletteMode]);
 
   const taskNodes = useMemo(
     () => tasksToNodes(liveTasks, placementsById),
@@ -707,12 +753,14 @@ function PorchfestPlannerWorkspace({
       }),
     );
 
-    if (editablePlacements && editMode.type !== "off") {
+    if (activeEditablePlacements && editMode.type !== "off") {
       const editable = buildPlannerEditableLayer({
-        placements: editablePlacements,
+        placements: activeEditablePlacements,
         mode: editMode,
         selectedPlacementId,
+        onSelect: setSelectedPlacementId,
         onTranslate: handleTranslate,
+        onTranslatePreview: handleTranslatePreview,
         onDraw: handleDraw,
       });
       if (editable) layers.push(editable);
@@ -739,9 +787,10 @@ function PorchfestPlannerWorkspace({
     visibility,
     selectedPlacementId,
     handleSelectPlacement,
-    editablePlacements,
+    activeEditablePlacements,
     editMode,
     handleTranslate,
+    handleTranslatePreview,
     handleDraw,
     taskNodes,
     mapZoom,
