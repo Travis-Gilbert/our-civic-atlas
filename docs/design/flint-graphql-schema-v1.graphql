@@ -152,6 +152,43 @@ enum ScenarioRecomputeStatus {
   FAILED
 }
 
+enum LayerKind {
+  PLACE
+  SIGNAL
+  EVENT
+  RECONSTRUCTION
+  TRAFFIC
+  METRIC
+  SCENARIO
+  EVENT_SURFACE
+  FRESH_SIGNAL
+  UPLOAD
+  MODEL_OUTPUT
+}
+
+enum LayerSourceAction {
+  SEARCH
+  UPLOAD
+  MODEL
+  BASE
+}
+
+enum LayerLifecycleState {
+  RAW
+  CANDIDATE
+  REVIEWED
+  PUBLIC
+}
+
+"""Whole-projection status for the generic LayerView. The UI must keep
+FIXTURE and REVIEW_PENDING visibly distinct from public reviewed data."""
+enum LayerViewStatus {
+  PUBLIC
+  REVIEW_PENDING
+  FIXTURE
+  UNAVAILABLE
+}
+
 # -----------------------------------------------------------------------------
 # Input types
 # -----------------------------------------------------------------------------
@@ -166,6 +203,119 @@ input BboxInput {
 input TimeRangeInput {
   start: DateTime
   end: DateTime
+}
+
+# -----------------------------------------------------------------------------
+# Data Platform Slice 1: Layer contract
+# -----------------------------------------------------------------------------
+
+"""Inclusive temporal range carried by a layer or layer projection."""
+type LayerTemporalRange {
+  start: DateTime
+  end: DateTime
+}
+
+"""Confidence span across a layer or record set."""
+type LayerConfidenceRange {
+  min: Float!
+  max: Float!
+}
+
+"""Review-state count used by layer summaries."""
+type LayerReviewStatusCount {
+  status: ReviewStatus!
+  count: Int!
+}
+
+"""Compact sourcing and confidence summary. Full detail stays on the
+producer-specific queries and dossiers."""
+type LayerProvenanceSummary {
+  sourceCount: Int!
+  confidenceRange: LayerConfidenceRange!
+  reviewStatusMix: [LayerReviewStatusCount!]!
+}
+
+"""Catalog descriptor for a civic layer. This is additive: type-specific
+queries such as trafficRealtime, placements, and reconstructionDossier remain
+the detail surfaces."""
+type Layer {
+  id: ID!
+  kind: LayerKind!
+  sourceAction: LayerSourceAction!
+  title: String!
+  lifecycleState: LayerLifecycleState!
+  rendererBoundaryId: String!
+  recordCount: Int!
+  temporalRange: LayerTemporalRange
+  provenanceSummary: LayerProvenanceSummary!
+  updatedAt: DateTime!
+}
+
+"""One display-ready public record from a layer projection."""
+type LayerRecord {
+  id: ID!
+  geometry: GeoJSON!
+  properties: JSON!
+  confidence: Float!
+  reviewStatus: ReviewStatus!
+  visibility: VisibilityLevel!
+  provenanceSummary: LayerProvenanceSummary!
+  observedAt: DateTime
+  expiresAt: DateTime
+}
+
+type LayerViewSummary {
+  recordCount: Int!
+  sourceCount: Int!
+  minConfidence: Float!
+  maxConfidence: Float!
+}
+
+"""Public layer projection consumed by the map, analytics workbench, and data lab.
+Candidate and raw records are withheld from this projection."""
+type LayerView {
+  layerId: ID!
+  status: LayerViewStatus!
+  records: [LayerRecord!]!
+  summary: LayerViewSummary!
+  generatedAt: DateTime!
+}
+
+type LayerRecipeSourceRef {
+  layerId: ID
+  searchQuery: String
+  uploadId: ID
+  modelRunId: ID
+}
+
+type LayerRecipeTransform {
+  """DuckDB-compatible SQL predicate or expression for Mosaic/DuckDB-WASM."""
+  duckdbSql: String
+}
+
+type LayerDisplayEncoding {
+  rendererBoundaryId: String!
+  deckGlLayerType: String!
+  colorField: String
+  scaleField: String
+  opacityByConfidence: Boolean!
+}
+
+type LayerProvenancePolicy {
+  visibilityFloor: VisibilityLevel!
+  ghostInferredRecords: Boolean!
+}
+
+"""Portable declarative definition for reproducing and rendering a layer."""
+type LayerRecipe {
+  id: ID!
+  layerId: ID!
+  title: String!
+  sourceRef: LayerRecipeSourceRef!
+  transform: LayerRecipeTransform
+  displayEncoding: LayerDisplayEncoding!
+  provenancePolicy: LayerProvenancePolicy!
+  updatedAt: DateTime!
 }
 
 input ObservationInput {
@@ -584,6 +734,28 @@ type Query {
     scope: String = "city"
     scopeId: ID = "flint"
   ): KpiBundle!
+
+  # ---- Data Platform Slice 1: Layer catalog + projection ----
+
+  """Catalog descriptors for registered public layers. The generic catalog
+  sits beside richer type-specific queries; it does not replace them."""
+  layers(
+    tenantSlug: String! = "flint"
+    kinds: [LayerKind!]
+    lifecycleState: LayerLifecycleState
+  ): [Layer!]!
+
+  """Display-ready public projection for one layer. RAW and CANDIDATE records
+  are withheld from this public read model."""
+  layerView(
+    layerId: ID!
+    bbox: BboxInput
+    timeRange: TimeRangeInput
+    minConfidence: Float = 0.0
+  ): LayerView!
+
+  """Declarative renderer/workbench recipe for a registered layer."""
+  layerRecipe(layerId: ID!): LayerRecipe
 
   # ---- Provenance ----
 

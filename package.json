@@ -21,6 +21,7 @@
     "validate:dossier:live": "node scripts/validate-dossier-payload.mjs --fail-on-warning --base-url http://localhost:3000",
     "validate:traffic": "node scripts/validate-traffic-realtime.mjs --fail-on-warning",
     "validate:traffic:live": "node scripts/validate-traffic-realtime.mjs --fail-on-warning --base-url http://localhost:3000",
+    "validate:layer-contract": "node scripts/validate-layer-contract.mjs",
     "validate:routes:live": "node scripts/smoke-open-flint-routes.mjs",
     "validate:time-travel": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-atlas-time-travel.mjs",
     "validate:urban-model": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-urban-design-model.mjs",

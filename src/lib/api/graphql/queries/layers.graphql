@@ -1,0 +1,109 @@
+query Layers(
+  $tenantSlug: String! = "flint"
+  $kinds: [LayerKind!]
+  $lifecycleState: LayerLifecycleState
+) {
+  layers(
+    tenantSlug: $tenantSlug
+    kinds: $kinds
+    lifecycleState: $lifecycleState
+  ) {
+    id
+    kind
+    sourceAction
+    title
+    lifecycleState
+    rendererBoundaryId
+    recordCount
+    temporalRange {
+      start
+      end
+    }
+    provenanceSummary {
+      sourceCount
+      confidenceRange {
+        min
+        max
+      }
+      reviewStatusMix {
+        status
+        count
+      }
+    }
+    updatedAt
+  }
+}
+
+query LayerView(
+  $layerId: ID!
+  $bbox: BboxInput
+  $timeRange: TimeRangeInput
+  $minConfidence: Float = 0.0
+) {
+  layerView(
+    layerId: $layerId
+    bbox: $bbox
+    timeRange: $timeRange
+    minConfidence: $minConfidence
+  ) {
+    layerId
+    status
+    generatedAt
+    summary {
+      recordCount
+      sourceCount
+      minConfidence
+      maxConfidence
+    }
+    records {
+      id
+      geometry
+      properties
+      confidence
+      reviewStatus
+      visibility
+      provenanceSummary {
+        sourceCount
+        confidenceRange {
+          min
+          max
+        }
+        reviewStatusMix {
+          status
+          count
+        }
+      }
+      observedAt
+      expiresAt
+    }
+  }
+}
+
+query LayerRecipe($layerId: ID!) {
+  layerRecipe(layerId: $layerId) {
+    id
+    layerId
+    title
+    sourceRef {
+      layerId
+      searchQuery
+      uploadId
+      modelRunId
+    }
+    transform {
+      duckdbSql
+    }
+    displayEncoding {
+      rendererBoundaryId
+      deckGlLayerType
+      colorField
+      scaleField
+      opacityByConfidence
+    }
+    provenancePolicy {
+      visibilityFloor
+      ghostInferredRecords
+    }
+    updatedAt
+  }
+}

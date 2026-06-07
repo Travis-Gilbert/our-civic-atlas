@@ -390,6 +390,136 @@ export type LayerCatalog = {
   layers: LayerCatalogEntry[];
 };
 
+export type LayerKind =
+  | "PLACE"
+  | "SIGNAL"
+  | "EVENT"
+  | "RECONSTRUCTION"
+  | "TRAFFIC"
+  | "METRIC"
+  | "SCENARIO"
+  | "EVENT_SURFACE"
+  | "FRESH_SIGNAL"
+  | "UPLOAD"
+  | "MODEL_OUTPUT";
+
+export type LayerSourceAction = "SEARCH" | "UPLOAD" | "MODEL" | "BASE";
+
+export type LayerLifecycleState = "RAW" | "CANDIDATE" | "REVIEWED" | "PUBLIC";
+
+export type LayerViewStatus =
+  | "PUBLIC"
+  | "REVIEW_PENDING"
+  | "FIXTURE"
+  | "UNAVAILABLE";
+
+export type GraphqlReviewStatus =
+  | "ACCEPTED"
+  | "NEEDS_REVIEW"
+  | "CORROBORATED"
+  | "CONTESTED"
+  | "RETRACTED"
+  | "OUTDATED"
+  | "WITHDRAWN";
+
+export type GraphqlVisibilityLevel = "PUBLIC" | "REVIEW_ONLY" | "PRIVATE";
+
+export type LayerTemporalRange = {
+  start: string | null;
+  end: string | null;
+};
+
+export type LayerConfidenceRange = {
+  min: number;
+  max: number;
+};
+
+export type LayerReviewStatusCount = {
+  status: GraphqlReviewStatus;
+  count: number;
+};
+
+export type LayerProvenanceSummary = {
+  sourceCount: number;
+  confidenceRange: LayerConfidenceRange;
+  reviewStatusMix: LayerReviewStatusCount[];
+};
+
+export type Layer = {
+  id: string;
+  kind: LayerKind;
+  sourceAction: LayerSourceAction;
+  title: string;
+  lifecycleState: LayerLifecycleState;
+  rendererBoundaryId: string;
+  recordCount: number;
+  temporalRange: LayerTemporalRange | null;
+  provenanceSummary: LayerProvenanceSummary;
+  updatedAt: string;
+};
+
+export type LayerRecord = {
+  id: string;
+  geometry: GeoJSON.Geometry | null;
+  properties: Record<string, unknown>;
+  confidence: number;
+  reviewStatus: GraphqlReviewStatus;
+  visibility: GraphqlVisibilityLevel;
+  provenanceSummary: LayerProvenanceSummary;
+  observedAt: string | null;
+  expiresAt: string | null;
+};
+
+export type LayerViewSummary = {
+  recordCount: number;
+  sourceCount: number;
+  minConfidence: number;
+  maxConfidence: number;
+};
+
+export type LayerView = {
+  layerId: string;
+  status: LayerViewStatus;
+  records: LayerRecord[];
+  summary: LayerViewSummary;
+  generatedAt: string;
+};
+
+export type LayerRecipeSourceRef = {
+  layerId: string | null;
+  searchQuery: string | null;
+  uploadId: string | null;
+  modelRunId: string | null;
+};
+
+export type LayerRecipeTransform = {
+  duckdbSql: string | null;
+};
+
+export type LayerDisplayEncoding = {
+  rendererBoundaryId: string;
+  deckGlLayerType: string;
+  colorField: string | null;
+  scaleField: string | null;
+  opacityByConfidence: boolean;
+};
+
+export type LayerProvenancePolicy = {
+  visibilityFloor: GraphqlVisibilityLevel;
+  ghostInferredRecords: boolean;
+};
+
+export type LayerRecipe = {
+  id: string;
+  layerId: string;
+  title: string;
+  sourceRef: LayerRecipeSourceRef;
+  transform: LayerRecipeTransform | null;
+  displayEncoding: LayerDisplayEncoding;
+  provenancePolicy: LayerProvenancePolicy;
+  updatedAt: string;
+};
+
 export type ReadModelCatalog = {
   schema_version: string;
   atlas_id: string;
