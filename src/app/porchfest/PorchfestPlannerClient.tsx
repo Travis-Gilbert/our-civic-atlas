@@ -34,6 +34,7 @@ import { GeoJsonLayer } from "@deck.gl/layers";
 import type { Layer } from "@deck.gl/core";
 import { ListChecks } from "lucide-react";
 import { useIsMobile } from "@/lib/atlas/use-is-mobile";
+import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
 import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
@@ -116,7 +117,17 @@ const DEFAULT_BASEMAP_LAYERS: Record<string, boolean> = {
   wards: true,
   infrastructure: true,
   scenarioEnvelopes: false,
+  // Realtime traffic flow: parity with /open-flint-atlas. The MDOT 2024 AADT
+  // segments (honest HISTORIC_AVERAGE provenance) render under the planner
+  // placements, so road-congestion context is visible while siting porches,
+  // stages, and parking. The flow overlay is pointer-events-none and the deck
+  // line layer sits below extraDeckLayers, so planner clicks are unaffected.
+  traffic: true,
 };
+
+// The traffic network the realtime snapshot resolves. Matches
+// OpenFlintAtlasScene so both routes show the same Flint traffic data.
+const TRAFFIC_NETWORK_ID = "flint-downtown";
 
 const CATEGORY_HUMAN_LABEL: Record<AtlasEventPlannerCategory, string> = {
   music: "Music",
@@ -369,6 +380,16 @@ function PorchfestPlannerWorkspace({
   );
   // On phones the whole chrome folds into the bottom island.
   const isMobile = useIsMobile();
+
+  // Realtime traffic flow, parity with /open-flint-atlas. Self-contained:
+  // polls the trafficRealtime GraphQL resolver and falls back to the honest
+  // fixture when the resolver is unreachable. The snapshot drives the same
+  // AnimeTrafficFlowOverlay + deck line layer the atlas route uses, rendered
+  // beneath the planner placements.
+  const trafficRealtime = useTrafficRealtime(TRAFFIC_NETWORK_ID, {
+    fallback: true,
+  });
+  const trafficSnapshot = trafficRealtime.snapshot;
 
   /* --- live planner data (urql) ----------------------------------- */
 
@@ -1049,6 +1070,7 @@ function PorchfestPlannerWorkspace({
           places={places}
           events={events}
           signals={signals}
+          trafficSnapshot={trafficSnapshot}
           onPlaceSelect={() => {}}
           onSignalSelect={() => {}}
           selectedPlaceId={null}
