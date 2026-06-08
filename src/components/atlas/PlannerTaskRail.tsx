@@ -22,9 +22,10 @@
  * parent's `onFlyTo(placementId)` which uses the existing MapRef.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { usePlannerOwners } from "@/lib/atlas/planner-owners";
+import PlannerNotesEditor from "@/components/atlas/PlannerNotesEditor";
 
 import {
   CreatePlacementNoteDocument,
@@ -84,6 +85,7 @@ export interface TaskPatch {
   readonly status?: string;
   readonly placementId?: string | null;
   readonly ownerDisplay?: string | null;
+  readonly notes?: string;
 }
 
 export function PlannerTaskRail({
@@ -104,6 +106,56 @@ export function PlannerTaskRail({
   const { owners, addOwner, renameOwner, removeOwner } = usePlannerOwners();
   const [newOwner, setNewOwner] = useState("");
   const [manageOwners, setManageOwners] = useState(false);
+  const [openNotesId, setOpenNotesId] = useState<string | null>(null);
+
+  // Debounced autosave for the per-task notes editor. Tiptap binds its
+  // onUpdate handler once at mount, so capturing task.version in that closure
+  // would go stale after the first save and trip the backend's optimistic
+  // concurrency (staleWrite). Instead we hold the freshest tasks list in a ref
+  // and resolve the current version at flush time.
+  const tasksRef = useRef(tasks);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+  const pendingNoteRef = useRef<{ taskId: string; markdown: string } | null>(
+    null,
+  );
+  const noteSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushNoteSave = useCallback(() => {
+    if (noteSaveTimer.current) {
+      clearTimeout(noteSaveTimer.current);
+      noteSaveTimer.current = null;
+    }
+    const pending = pendingNoteRef.current;
+    pendingNoteRef.current = null;
+    if (!pending) return;
+    const current = tasksRef.current.find((t) => t.id === pending.taskId);
+    if (current) {
+      onUpdateTask(current.id, current.version, { notes: pending.markdown });
+    }
+  }, [onUpdateTask]);
+
+  const queueNoteSave = useCallback(
+    (taskId: string, markdown: string) => {
+      pendingNoteRef.current = { taskId, markdown };
+      if (noteSaveTimer.current) clearTimeout(noteSaveTimer.current);
+      noteSaveTimer.current = setTimeout(flushNoteSave, 800);
+    },
+    [flushNoteSave],
+  );
+
+  const toggleNotes = useCallback(
+    (taskId: string) => {
+      // Persist any pending edits before switching or closing the panel.
+      flushNoteSave();
+      setOpenNotesId((current) => (current === taskId ? null : taskId));
+    },
+    [flushNoteSave],
+  );
+
+  // Flush a pending note if the rail unmounts mid-edit.
+  useEffect(() => () => flushNoteSave(), [flushNoteSave]);
 
   const placementsById = useMemo(() => {
     const map = new Map<string, Placement>();
@@ -280,6 +332,44 @@ export function PlannerTaskRail({
                     >
                       Delete
                     </button>
+                  </div>
+                ) : null}
+                {canEdit || task.notes ? (
+                  <div className="planner-divider mt-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleNotes(task.id)}
+                      aria-expanded={openNotesId === task.id}
+                      className="planner-control flex min-h-[24px] items-center gap-1 px-2 py-0.5 text-[12px]"
+                    >
+                      {openNotesId === task.id
+                        ? "Hide notes"
+                        : task.notes
+                          ? "Notes"
+                          : "Add notes"}
+                      {task.notes && openNotesId !== task.id ? (
+                        <span className="planner-accent" aria-hidden="true">
+                          &bull;
+                        </span>
+                      ) : null}
+                    </button>
+                    {openNotesId === task.id ? (
+                      <div className="mt-2">
+                        <PlannerNotesEditor
+                          key={task.id}
+                          initialContent={task.notes ?? ""}
+                          initialContentFormat="markdown"
+                          editable={canEdit}
+                          placeholder="Add a note. **bold**, - lists, [ ] checklists all work."
+                          ariaLabel={`Notes for ${task.title}`}
+                          onUpdate={
+                            canEdit
+                              ? ({ markdown }) => queueNoteSave(task.id, markdown)
+                              : undefined
+                          }
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </li>

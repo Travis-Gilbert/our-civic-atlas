@@ -868,6 +868,7 @@ function PorchfestPlannerWorkspace({
           ...(patch.placementId !== undefined
             ? { placementId: patch.placementId }
             : {}),
+          ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
         },
       }).then((result) => {
         if (result.error) {
