@@ -829,12 +829,18 @@ function PorchfestPlannerWorkspace({
 
   const handleCreateTask = useCallback(
     (input: NewTaskInput) => {
+      // ownerDisplay is intentionally omitted. The deployed GraphQL backend's
+      // TaskCreateInput predates the free-text `ownerDisplay` field this repo's
+      // schema contract added, so sending it makes async-graphql reject the
+      // whole mutation ("unknown field ownerDisplay of type TaskCreateInput")
+      // and the task never persists. Sending only the supported fields restores
+      // task persistence. Re-add ownerDisplay here and in handleUpdateTask once
+      // the backend's TaskCreateInput/TaskUpdateInput accept it.
       void createTask({
         input: {
           eventSlug: EVENT_SLUG,
           title: input.title,
           placementId: input.placementId,
-          ownerDisplay: input.ownerDisplay ?? null,
         },
       }).then((result) => {
         if (result.error) {
@@ -849,8 +855,20 @@ function PorchfestPlannerWorkspace({
 
   const handleUpdateTask = useCallback(
     (taskId: string, version: number, patch: TaskPatch) => {
+      // ownerDisplay is stripped from the patch: the deployed backend's
+      // TaskUpdateInput rejects it (see handleCreateTask). Title, status, and
+      // placement edits still persist; an owner-only change is a no-op until
+      // the backend accepts ownerDisplay.
       void updateTask({
-        input: { taskId, expectedVersion: version, ...patch },
+        input: {
+          taskId,
+          expectedVersion: version,
+          ...(patch.title !== undefined ? { title: patch.title } : {}),
+          ...(patch.status !== undefined ? { status: patch.status } : {}),
+          ...(patch.placementId !== undefined
+            ? { placementId: patch.placementId }
+            : {}),
+        },
       }).then((result) => {
         if (result.error) {
           setToast(`Task update failed: ${result.error.message}`);
