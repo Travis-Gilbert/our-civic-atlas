@@ -52,6 +52,7 @@ import {
 } from "@/components/atlas/PlannerEditableLayer";
 import { createPlannerTaskLayers } from "@/components/atlas/PlannerTaskLayer";
 import type { PlannerTaskNode, PlannerTaskStatus } from "@/lib/atlas/planner-phase4";
+import { taskProgress } from "@/lib/atlas/task-progress";
 import {
   PlannerEditModeToggle,
   PlannerPalette,
@@ -278,7 +279,9 @@ function tasksToNodes(
       ownerDisplay: task.ownerDisplay ?? null,
       priority: 0,
       status: mapTaskStatus(task.status),
-      completionPct: task.status === "done" ? 1 : 0,
+      // Granular progress: notes-checklist ratio, else status-derived. Unifies
+      // the map icon's progress bar with the task rail and event bars.
+      completionPct: taskProgress(task),
       childIds: [],
       geoAnchorKind: task.placementId ? "placement" : "unanchored",
       effectivePlacementId: task.placementId ?? null,
