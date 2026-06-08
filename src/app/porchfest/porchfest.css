@@ -436,3 +436,43 @@
   pointer-events: none;
   color: var(--ctx-ink-faint);
 }
+
+/* --- progress bars ------------------------------------------------- */
+/* Linear progress, ported from the commonplace task bars and conformed to
+   the --ctx-* register: a faint ink-tint track with a single accent fill.
+   Used per-task (sm, 3px) and for the overall event (md, 6px). Width is set
+   inline from the progress fraction; everything else is here. */
+
+.planner-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planner-progress-track {
+  flex: 1;
+  height: 3px;
+  background: color-mix(in srgb, var(--ctx-ink) 8%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.planner-progress--md .planner-progress-track {
+  height: 6px;
+  border-radius: 3px;
+}
+
+.planner-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ctx-accent);
+  transition: width 240ms ease;
+}
+
+.planner-progress-label {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--ctx-ink-mute);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

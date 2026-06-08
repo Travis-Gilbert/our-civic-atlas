@@ -26,6 +26,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { usePlannerOwners } from "@/lib/atlas/planner-owners";
 import PlannerNotesEditor from "@/components/atlas/PlannerNotesEditor";
+import { PlannerProgressBar } from "@/components/atlas/PlannerProgressBar";
+import {
+  checklistProgress,
+  eventProgress,
+  taskProgress,
+} from "@/lib/atlas/task-progress";
 
 import {
   CreatePlacementNoteDocument,
@@ -157,6 +163,8 @@ export function PlannerTaskRail({
   // Flush a pending note if the rail unmounts mid-edit.
   useEffect(() => () => flushNoteSave(), [flushNoteSave]);
 
+  const eventProg = useMemo(() => eventProgress(tasks), [tasks]);
+
   const placementsById = useMemo(() => {
     const map = new Map<string, Placement>();
     for (const p of placements) map.set(p.id, p);
@@ -218,6 +226,18 @@ export function PlannerTaskRail({
         </header>
       )}
 
+      {eventProg.tasksTotal > 0 ? (
+        <div className="mb-3">
+          <p className="planner-kicker mb-1">Event progress</p>
+          <PlannerProgressBar
+            size="md"
+            value={eventProg.fraction}
+            ariaLabel="Overall event task progress"
+            caption={`${eventProg.tasksDone}/${eventProg.tasksTotal} done`}
+          />
+        </div>
+      ) : null}
+
       <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[12px]">
         {STATUS_OPTIONS.map((option) => (
           <button
@@ -264,6 +284,9 @@ export function PlannerTaskRail({
                 : task.status === "blocked"
                   ? "is-blocked"
                   : "";
+            const checklist = checklistProgress(task.notes);
+            const taskFraction = taskProgress(task);
+            const showProgress = checklist !== null || taskFraction > 0;
             return (
               <li
                 key={task.id}
@@ -283,6 +306,19 @@ export function PlannerTaskRail({
                 <p className="planner-muted mt-1 text-[12px]">
                   Status: {statusLabel(task.status)}
                 </p>
+                {showProgress ? (
+                  <div className="mt-1.5">
+                    <PlannerProgressBar
+                      value={taskFraction}
+                      ariaLabel={`Progress for ${task.title}`}
+                      caption={
+                        checklist
+                          ? `${checklist.done}/${checklist.total}`
+                          : undefined
+                      }
+                    />
+                  </div>
+                ) : null}
                 {placement ? (
                   <button
                     type="button"
