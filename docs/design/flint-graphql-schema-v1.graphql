@@ -766,6 +766,15 @@ type Query {
   """Every event layer (Porchfest, art fair, etc.) the tenant owns."""
   eventLayers(tenantSlug: String! = "flint"): [EventLayer!]!
 
+  """Submitted public applications for an event layer. These are captured
+  before payment, email, notification, or map placement work."""
+  eventApplications(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+    category: String
+    status: String
+  ): [EventApplication!]!
+
   """Every placement (vendor, music porch, parking pin, amenity) on a
   given event layer, scoped to the tenant."""
   placements(
@@ -806,6 +815,32 @@ type EventLayer {
   title: String!
   startsAt: DateTime
   endsAt: DateTime
+}
+
+"""A submitted event application captured as the civic object intake unit.
+Shared fields are first-class; category-specific fields live in
+categoryPayload so the Porchfest form can evolve without blocking capture."""
+type EventApplication {
+  id: ID!
+  eventLayerId: ID!
+  category: String!
+  displayName: String!
+  contactName: String
+  contactEmail: String!
+  contactPhone: String
+  city: String
+  bio: String
+  flintBased: Boolean!
+  accessNeeds: String
+  categoryPayload: JSON!
+  planningPayload: JSON!
+  status: String!
+  location: GeoJSON!
+  setTime: DateTime
+  sourceKey: String!
+  createdAt: DateTime
+  updatedAt: DateTime
+  version: Int!
 }
 
 """A single thing dropped on an event layer's map. Geometry is a
@@ -896,6 +931,8 @@ type Mutation {
   civicResearch(input: CivicResearchInput!): CivicResearchPayload!
 
   # ---- Porchfest / Event Planner (Phase 2) ----
+
+  submitEventApplication(input: EventApplicationSubmitInput!): EventApplicationSubmitResult!
 
   createPlacement(input: PlacementCreateInput!): PlacementMutationResult!
   updatePlacement(input: PlacementUpdateInput!): PlacementMutationResult!
@@ -1004,6 +1041,28 @@ type TaskMutationResult {
   task: EventTask
   staleWrite: Boolean!
   deleted: Boolean!
+}
+
+type EventApplicationSubmitResult {
+  application: EventApplication
+  created: Boolean!
+  duplicate: Boolean!
+  backupRecorded: Boolean!
+}
+
+input EventApplicationSubmitInput {
+  eventSlug: String!
+  category: String!
+  displayName: String!
+  contactName: String
+  contactEmail: String!
+  contactPhone: String
+  city: String
+  bio: String
+  flintBased: Boolean
+  accessNeeds: String
+  categoryPayload: JSON
+  sourceKey: String
 }
 
 input PlacementCreateInput {

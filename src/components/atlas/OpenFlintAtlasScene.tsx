@@ -73,10 +73,10 @@ const ProvenancePanel = dynamic(
   { ssr: false },
 );
 
-const AtlasTimelineHistogram = dynamic(
+const AnalyticalWorkbenchPanel = dynamic(
   () =>
-    import("@/components/atlas/AtlasTimelineHistogram").then(
-      (m) => m.AtlasTimelineHistogram,
+    import("@/components/atlas/AnalyticalWorkbenchPanel").then(
+      (m) => m.AnalyticalWorkbenchPanel,
     ),
   { ssr: false },
 );
@@ -1206,13 +1206,21 @@ export function OpenFlintAtlasScene(props: {
     >
       <AtlasShell
         showTabs={false}
-        showTimeline={activeLens === "memory"}
+        showTimeline={
+          activeLens === "memory" ||
+          activeLens === "safety" ||
+          activeLens === "interventions"
+        }
         showDossier={false}
         showProvenance={false}
+        bottomRailLabel="Workbench"
         timeline={
-          <AtlasTimelineHistogram
+          <AnalyticalWorkbenchPanel
             mosaic={mosaic}
-            dataVersion={atlasTablesVersion}
+            activeMode={activeLens}
+            selectedPlaceId={selectedPlaceId}
+            atlasEventsVersion={atlasTablesVersion}
+            compact={isMobileViewport}
           />
         }
         provenance={provenancePanel}

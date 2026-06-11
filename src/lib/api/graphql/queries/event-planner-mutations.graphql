@@ -6,6 +6,25 @@
 # staleWrite flag for optimistic-concurrency races, and a deleted
 # flag for hard-delete confirmation.
 
+mutation SubmitEventApplication($input: EventApplicationSubmitInput!) {
+  submitEventApplication(input: $input) {
+    application {
+      id
+      eventLayerId
+      category
+      displayName
+      contactEmail
+      status
+      sourceKey
+      createdAt
+      version
+    }
+    created
+    duplicate
+    backupRecorded
+  }
+}
+
 mutation CreatePlacement($input: PlacementCreateInput!) {
   createPlacement(input: $input) {
     placement {

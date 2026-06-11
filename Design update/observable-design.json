@@ -1,0 +1,224 @@
+{
+  "color": {
+    "Navy Primary": {
+      "$type": "color",
+      "$value": "#005186",
+      "$description": "Primary brand color, used for links, CTA borders, and key interactive elements"
+    },
+    "Near Black": {
+      "$type": "color",
+      "$value": "#1c1c1c",
+      "$description": "Primary body text and nav text color"
+    },
+    "Pure White": {
+      "$type": "color",
+      "$value": "#ffffff",
+      "$description": "Modal backgrounds, card surfaces, nav background"
+    },
+    "Near White": {
+      "$type": "color",
+      "$value": "#f5f5f5",
+      "$description": "Hero heading text on dark background, secondary surface fills"
+    },
+    "Light Gray": {
+      "$type": "color",
+      "$value": "#e2e2e2",
+      "$description": "Card borders, dividers, hero container borders"
+    },
+    "Dark Gray": {
+      "$type": "color",
+      "$value": "#454545",
+      "$description": "Secondary text, icon buttons, muted UI labels"
+    },
+    "Syntax Purple": {
+      "$type": "color",
+      "$value": "#6636b4",
+      "$description": "Syntax highlighting for keywords in code blocks"
+    },
+    "Syntax Teal": {
+      "$type": "color",
+      "$value": "#20a5ba",
+      "$description": "Syntax highlighting for numbers and values in code blocks"
+    },
+    "Syntax Navy": {
+      "$type": "color",
+      "$value": "#005f87",
+      "$description": "Syntax highlighting for known variables in code blocks"
+    },
+    "Code Surface Blue": {
+      "$type": "color",
+      "$value": "#f1f6fb",
+      "$description": "Code block / pre element background fill"
+    },
+    "Mid Gray": {
+      "$type": "color",
+      "$value": "#c5c5c5",
+      "$description": "Nav secondary text, placeholder and muted label text"
+    }
+  },
+  "typography": {
+    "Hero Display": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Spline_Sans_Mono_1999fd, SFMono-Regular, Menlo, Consolas, monospace",
+        "fontSize": "56px",
+        "fontWeight": 500,
+        "lineHeight": "64px",
+        "letterSpacing": "normal"
+      },
+      "$description": "Hero headline — large monospace display text for primary page heading"
+    },
+    "Section Heading": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Spline_Sans_Mono_1999fd, SFMono-Regular, Menlo, Consolas, monospace",
+        "fontSize": "24px",
+        "fontWeight": 500,
+        "lineHeight": "32px",
+        "letterSpacing": "normal"
+      },
+      "$description": "Section-level headings in monospace style"
+    },
+    "UI Heading Large": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Inter_e798ec, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontSize": "22px",
+        "fontWeight": 600,
+        "lineHeight": "28px",
+        "letterSpacing": "normal"
+      },
+      "$description": "Modal titles and prominent UI headings"
+    },
+    "UI Heading Medium": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Inter_e798ec, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontSize": "20px",
+        "fontWeight": 700,
+        "lineHeight": "28px",
+        "letterSpacing": "normal"
+      },
+      "$description": "Card headings and sub-section titles"
+    },
+    "Body Regular": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Inter_e798ec, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontSize": "14px",
+        "fontWeight": 400,
+        "lineHeight": "normal",
+        "letterSpacing": "normal"
+      },
+      "$description": "Primary body copy, nav links, modal text"
+    },
+    "Body Semibold": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Inter_e798ec, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontSize": "14px",
+        "fontWeight": 600,
+        "lineHeight": "16.1px",
+        "letterSpacing": "normal"
+      },
+      "$description": "Button labels, emphasized UI text"
+    },
+    "Label Small": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Inter_e798ec, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontSize": "12px",
+        "fontWeight": 400,
+        "lineHeight": "normal",
+        "letterSpacing": "normal"
+      },
+      "$description": "Small labels, captions, metadata text"
+    },
+    "Code Inline": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Spline_Sans_Mono_1999fd, SFMono-Regular, Menlo, Consolas, monospace",
+        "fontSize": "10px",
+        "fontWeight": 400,
+        "lineHeight": "13px",
+        "letterSpacing": "normal"
+      },
+      "$description": "Inline code and code block content"
+    },
+    "Overline / Label Caps": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "__Inter_e798ec, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": 700,
+        "lineHeight": "28px",
+        "letterSpacing": "1.6px"
+      },
+      "$description": "Overline labels and section category tags"
+    }
+  },
+  "spacing": {
+    "spacing-extra-small": {
+      "$type": "dimension",
+      "$value": "4px"
+    },
+    "spacing-small": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "spacing-medium": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "spacing-large": {
+      "$type": "dimension",
+      "$value": "32px"
+    },
+    "spacing-extra-large": {
+      "$type": "dimension",
+      "$value": "64px"
+    },
+    "spacing-extra-extra-large": {
+      "$type": "dimension",
+      "$value": "80px"
+    },
+    "spacing-24": {
+      "$type": "dimension",
+      "$value": "24px"
+    },
+    "spacing-48": {
+      "$type": "dimension",
+      "$value": "48px"
+    },
+    "spacing-10": {
+      "$type": "dimension",
+      "$value": "10px"
+    }
+  },
+  "borderRadius": {
+    "radius-none": {
+      "$type": "dimension",
+      "$value": "0px"
+    },
+    "radius-1": {
+      "$type": "dimension",
+      "$value": "2px"
+    },
+    "radius-2": {
+      "$type": "dimension",
+      "$value": "4px"
+    },
+    "radius-3": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "radius-circle": {
+      "$type": "dimension",
+      "$value": "100%"
+    },
+    "radius-pill": {
+      "$type": "dimension",
+      "$value": "9999px"
+    }
+  }
+}

@@ -32,6 +32,7 @@ import {
   CIVIC_EVENT_DOC_ID,
   createCivicCollection,
   ensureCivicDatabase,
+  ingestCivicObjectsBySourceId,
   insertCivicObject,
   readCivicObjects,
   updateCivicObjectField,
@@ -136,21 +137,7 @@ export async function mountCivicWorkspace(
         key as Parameters<typeof updateCivicObjectField>[2],
         value,
       ),
-    ingestLedgerRows: (rows) => {
-      const seen = new Set(
-        readCivicObjects(handles)
-          .map((row) => row.fields.sourceId)
-          .filter((v): v is string => typeof v === 'string'),
-      );
-      let added = 0;
-      for (const row of rows) {
-        if (row.sourceId && seen.has(row.sourceId)) continue;
-        insertCivicObject(handles, row);
-        if (row.sourceId) seen.add(row.sourceId);
-        added += 1;
-      }
-      return added;
-    },
+    ingestLedgerRows: (rows) => ingestCivicObjectsBySourceId(handles, rows),
     onChange: (listener) => {
       const subscription = handles.store.slots.blockUpdated.subscribe(() =>
         listener(),

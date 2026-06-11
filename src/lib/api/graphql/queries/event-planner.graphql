@@ -18,6 +18,41 @@ query EventLayers($tenantSlug: String! = "flint") {
   }
 }
 
+query EventApplications(
+  $tenantSlug: String! = "flint"
+  $eventSlug: String!
+  $category: String
+  $status: String
+) {
+  eventApplications(
+    tenantSlug: $tenantSlug
+    eventSlug: $eventSlug
+    category: $category
+    status: $status
+  ) {
+    id
+    eventLayerId
+    category
+    displayName
+    contactName
+    contactEmail
+    contactPhone
+    city
+    bio
+    flintBased
+    accessNeeds
+    categoryPayload
+    planningPayload
+    status
+    location
+    setTime
+    sourceKey
+    createdAt
+    updatedAt
+    version
+  }
+}
+
 query EventPlacements($tenantSlug: String! = "flint", $eventSlug: String!) {
   placements(tenantSlug: $tenantSlug, eventSlug: $eventSlug) {
     id

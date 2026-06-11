@@ -459,6 +459,30 @@ export function insertCivicObject(
   return rowId;
 }
 
+/**
+ * One-way capture-ledger ingestion: insert civic objects whose `sourceId`
+ * is not yet present in the planning store. Existing rows win because the
+ * CRDT workspace owns organizer edits after first ingestion.
+ */
+export function ingestCivicObjectsBySourceId(
+  handles: CivicDatabaseHandles,
+  rows: readonly CivicObjectFields[],
+): number {
+  const seen = new Set(
+    readCivicObjects(handles)
+      .map((row) => row.fields.sourceId)
+      .filter((value): value is string => typeof value === 'string'),
+  );
+  let added = 0;
+  for (const row of rows) {
+    if (row.sourceId && seen.has(row.sourceId)) continue;
+    insertCivicObject(handles, row);
+    if (row.sourceId) seen.add(row.sourceId);
+    added += 1;
+  }
+  return added;
+}
+
 export interface CivicObjectRow {
   rowId: string;
   title: string;

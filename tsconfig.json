@@ -46,6 +46,8 @@
     "src/civic-editor",
     "src/lib/civic/civic-workspace.ts",
     "scripts/validate-civic-store.ts",
-    "scripts/validate-civic-apply-bridge.ts"
+    "scripts/validate-civic-apply-bridge.ts",
+    "scripts/validate-civic-ledger-ingest.ts",
+    "scripts/validate-civic-map-binding.ts"
   ]
 }

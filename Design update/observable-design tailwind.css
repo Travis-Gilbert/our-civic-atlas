@@ -1,0 +1,42 @@
+@theme {
+  /* Colors */
+  --color-navy-primary: #005186;
+  --color-near-black: #1c1c1c;
+  --color-pure-white: #ffffff;
+  --color-near-white: #f5f5f5;
+  --color-light-gray: #e2e2e2;
+  --color-dark-gray: #454545;
+  --color-syntax-purple: #6636b4;
+  --color-syntax-teal: #20a5ba;
+  --color-syntax-navy: #005f87;
+  --color-code-surface-blue: #f1f6fb;
+  --color-mid-gray: #c5c5c5;
+
+  /* Spacing */
+  --spacing-spacing-extra-small: 4px;
+  --spacing-spacing-small: 8px;
+  --spacing-spacing-medium: 16px;
+  --spacing-spacing-large: 32px;
+  --spacing-spacing-extra-large: 64px;
+  --spacing-spacing-extra-extra-large: 80px;
+  --spacing-spacing-24: 24px;
+  --spacing-spacing-48: 48px;
+  --spacing-spacing-10: 10px;
+
+  /* Border Radius */
+  --radius-radius-none: 0px;
+  --radius-radius-1: 2px;
+  --radius-radius-2: 4px;
+  --radius-radius-3: 8px;
+  --radius-radius-circle: 100%;
+  --radius-radius-pill: 9999px;
+
+  /* Fonts */
+  --font-__inter_e798ec: "__Inter_e798ec", sans-serif;
+  --font-__spline_sans_mono_1999fd: "__Spline_Sans_Mono_1999fd", sans-serif;
+  --font-sans-serif: "sans-serif", sans-serif;
+  --font-sfmono-regular: "SFMono-Regular", sans-serif;
+  --font-menlo: "Menlo", sans-serif;
+  --font-consolas: "Consolas", sans-serif;
+
+}

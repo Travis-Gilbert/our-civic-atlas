@@ -3,6 +3,10 @@ import type { Layer as DeckLayer, PickingInfo } from "@deck.gl/core";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 
 import type { LayerRecipe, LayerRecord, LayerView } from "@/lib/atlas/contracts";
+import {
+  loadLayerViewIntoAtlasTables,
+  tableNameForLayer,
+} from "@/lib/atlas/atlas-data";
 import { getAtlasMosaic } from "@/lib/atlas/mosaic";
 import { getRendererBoundary } from "@/lib/atlas/renderer-registry";
 
@@ -110,47 +114,7 @@ export async function loadLayerViewIntoMosaic(
   tableName = tableNameForLayer(view.layerId),
 ): Promise<LayerMosaicLoadResult> {
   const mosaic = await getAtlasMosaic();
-  const table = quoteIdentifier(tableName);
-  await mosaic.conn.query(`DROP TABLE IF EXISTS ${table}`);
-  await mosaic.conn.query(`
-    CREATE TABLE ${table} (
-      id VARCHAR,
-      geometry_json VARCHAR,
-      properties_json VARCHAR,
-      confidence DOUBLE,
-      review_status VARCHAR,
-      visibility VARCHAR,
-      observed_at VARCHAR,
-      expires_at VARCHAR
-    )
-  `);
-
-  if (view.records.length === 0) {
-    return { tableName, recordCount: 0 };
-  }
-
-  const values = view.records
-    .map((record) =>
-      [
-        quoteSqlLiteral(record.id),
-        quoteSqlLiteral(JSON.stringify(record.geometry)),
-        quoteSqlLiteral(JSON.stringify(record.properties)),
-        Number.isFinite(record.confidence) ? String(record.confidence) : "0",
-        quoteSqlLiteral(record.reviewStatus),
-        quoteSqlLiteral(record.visibility),
-        quoteSqlLiteral(record.observedAt),
-        quoteSqlLiteral(record.expiresAt),
-      ].join(", ")
-    )
-    .map((row) => `(${row})`)
-    .join(",\n");
-
-  await mosaic.conn.query(`INSERT INTO ${table} VALUES ${values}`);
-  return { tableName, recordCount: view.records.length };
-}
-
-export function tableNameForLayer(layerId: string): string {
-  return `layer_${layerId.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "")}`;
+  return loadLayerViewIntoAtlasTables(mosaic, view, tableName);
 }
 
 function colorForFeature(
@@ -222,13 +186,4 @@ function pointRadiusForFeature(
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1, value));
-}
-
-function quoteIdentifier(identifier: string): string {
-  return `"${identifier.replaceAll('"', '""')}"`;
-}
-
-function quoteSqlLiteral(value: string | null): string {
-  if (value === null) return "NULL";
-  return `'${value.replaceAll("'", "''")}'`;
 }

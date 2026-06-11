@@ -10,22 +10,20 @@
  * proven mosaic.timeFilter consumption pattern from OpenFlintAtlasScene.tsx.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Map, NavigationControl, useControl } from "react-map-gl/maplibre";
 import { MapboxOverlay, type MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { Layer as DeckLayer } from "@deck.gl/core";
 import type { StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import * as vg from "@uwdata/vgplot";
 
+import { CardRenderer } from "@/components/atlas/CardRenderer";
 import { useLayers } from "@/lib/atlas/use-layer-catalog";
 import { useLayerView } from "@/lib/atlas/use-layer-view";
-import {
-  createDeckLayerFromRecipe,
-  loadLayerViewIntoMosaic,
-} from "@/lib/atlas/layer-recipe";
+import { createDeckLayerFromRecipe } from "@/lib/atlas/layer-recipe";
 import { getAtlasMosaic, type AtlasMosaic } from "@/lib/atlas/mosaic";
 import type { LayerRecipe, LayerView } from "@/lib/atlas/contracts";
+import type { CardSpec } from "@/lib/atlas/analytical-workbench";
 
 // CARTO basemap + Flint bounds copied from AtlasMap.tsx so the verification
 // render sits on the same cartographic substrate as the live atlas (parity).
@@ -99,7 +97,6 @@ export function LayerLabClient() {
   const [mosaic, setMosaic] = useState<AtlasMosaic | null>(null);
   const [brushedIds, setBrushedIds] = useState<Set<string> | null>(null);
   const [mosaicNote, setMosaicNote] = useState<string>("");
-  const histogramRef = useRef<HTMLDivElement | null>(null);
 
   // Bring up the Mosaic/DuckDB-WASM coordinator once on the client.
   useEffect(() => {
@@ -123,164 +120,37 @@ export function LayerLabClient() {
     };
   }, [hydrated]);
 
-  // D5 cross-filter: load the recipe-driven view's records into DuckDB, render a
-  // vgplot time histogram bound to mosaic.timeFilter, and refilter the deck
-  // layer from the brushed range. The histogram itself hits DuckDB via
-  // vg.from(table, { filterBy: timeFilter }); the layer reacts to the shared
-  // Selection (the proven OpenFlintAtlasScene.tsx pattern).
-  useEffect(() => {
-    if (!mosaic || !view) return;
-    const container = histogramRef.current;
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    let chartEl: HTMLElement | null = null;
-
-    const tf = mosaic.timeFilter;
-    const records = view.records;
-
-    function recompute() {
-      const clauses = (tf as unknown as { clauses?: unknown[] }).clauses ?? [];
-      if (!Array.isArray(clauses) || clauses.length === 0) {
-        setBrushedIds(null);
-        return;
-      }
-      let lo: number | null = null;
-      let hi: number | null = null;
-      for (const c of clauses) {
-        const value = (c as { value?: unknown }).value;
-        if (Array.isArray(value) && value.length === 2) {
-          const a = value[0] instanceof Date ? value[0].getTime() : Number(value[0]);
-          const b = value[1] instanceof Date ? value[1].getTime() : Number(value[1]);
-          if (!Number.isNaN(a) && !Number.isNaN(b)) {
-            lo = Math.min(a, b);
-            hi = Math.max(a, b);
-            break;
-          }
-        }
-      }
-      if (lo == null || hi == null) {
-        setBrushedIds(null);
-        return;
-      }
-      const ids = new Set<string>();
-      for (const record of records) {
-        const iso = record.observedAt;
-        if (!iso) continue;
-        const t = new Date(iso).getTime();
-        if (!Number.isNaN(t) && t >= lo && t <= hi) ids.add(record.id);
-      }
-      setBrushedIds(ids);
-    }
-
-    (async () => {
-      try {
-        const { tableName, recordCount } = await loadLayerViewIntoMosaic(
-          view as unknown as LayerView,
-        );
-        if (cancelled) return;
-        if (recordCount === 0) {
-          setMosaicNote("Layer has no public records to load into DuckDB.");
-          return;
-        }
-        // observed_at is stored VARCHAR; add a TIMESTAMP column so vgplot can
-        // bin it on a time axis without editing the shared loader.
-        const q = `"${tableName.replaceAll('"', '""')}"`;
-        // Numeric epoch-ms column so the histogram bins on a non-degenerate
-        // numeric axis. Binning a TIMESTAMP whose values are all identical makes
-        // DuckDB derive a zero time-bucket period ("Period must be greater than
-        // 0"); a numeric bin over a padded domain renders cleanly even for a
-        // single-observation fixture.
-        await mosaic.conn.query(
-          `ALTER TABLE ${q} ADD COLUMN IF NOT EXISTS observed_ms BIGINT`,
-        );
-        await mosaic.conn.query(
-          `UPDATE ${q} SET observed_ms = epoch_ms(TRY_CAST(observed_at AS TIMESTAMP))`,
-        );
-        if (cancelled || !container) return;
-
-        const distinct = await mosaic.conn.query(
-          `SELECT COUNT(DISTINCT observed_ms) AS n FROM ${q}`,
-        );
-        const distinctCount = Number(distinct.toArray()[0]?.n ?? 0);
-        setMosaicNote(
-          distinctCount <= 1
-            ? `${recordCount} records loaded into DuckDB table ${tableName}. ` +
-                "Fixture records share one observation time, so the histogram is " +
-                "a single bin; brushing it still toggles the layer (mechanism " +
-                "verified). Varied-time data lands with the live feed."
-            : `${recordCount} records across ${distinctCount} observation times ` +
-                `loaded into DuckDB table ${tableName}. Brush the histogram to ` +
-                "cross-filter the layer.",
-        );
-
-        // Pre-bucket into hour buckets in DuckDB with explicit x1/x2 columns, so
-        // the chart never relies on vgplot deriving a bin step from the data
-        // extent (which is zero for a single-observation fixture and throws
-        // "Period must be greater than 0"). One honest bar per occupied hour.
-        const histName = `${tableName}_hist`;
-        const hq = `"${histName.replaceAll('"', '""')}"`;
-        await mosaic.conn.query(`DROP TABLE IF EXISTS ${hq}`);
-        await mosaic.conn.query(
-          `CREATE TABLE ${hq} AS
-           SELECT (observed_ms - (observed_ms % 3600000)) AS bucket_lo,
-                  (observed_ms - (observed_ms % 3600000)) + 3600000 AS bucket_hi,
-                  CAST(COUNT(*) AS INTEGER) AS n
-           FROM ${q} WHERE observed_ms IS NOT NULL GROUP BY 1, 2`,
-        );
-        if (cancelled) return;
-        // The brush (intervalX) publishes its range into timeFilter; the deck
-        // layer reacts via the addEventListener recompute below. The bar itself
-        // is static (no filterBy) so it renders robustly regardless of how
-        // intervalX binds its predicate field for an x1/x2 rect.
-        const chart = await (
-          vg.plot as (...args: unknown[]) => Promise<HTMLElement>
-        )(
-          vg.rectY(vg.from(histName), {
-            x1: "bucket_lo",
-            x2: "bucket_hi",
-            y: "n",
-            fill: "var(--ctx-accent, #c14a2c)",
-            fillOpacity: 0.78,
-          }),
-          vg.intervalX({ as: tf }),
-          vg.xLabel("Observation time (epoch ms, hour buckets)"),
-          vg.yLabel("Records"),
-          vg.width(360),
-          vg.height(120),
-          vg.marginLeft(36),
-          vg.marginBottom(30),
-          vg.style({
-            backgroundColor: "transparent",
-            color: "var(--ctx-ink-soft, #4a463f)",
-            fontFamily: "var(--font-mono, monospace)",
-          }),
-        );
-        if (cancelled) return;
-        container.replaceChildren(chart);
-        chartEl = chart;
-
-        unlisten = tf.addEventListener("value", recompute) as unknown as
-          | (() => void)
-          | undefined;
-        recompute();
-      } catch (error: unknown) {
-        if (!cancelled) {
-          setMosaicNote(
-            `Mosaic load failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (typeof unlisten === "function") unlisten();
-      if (chartEl && chartEl.parentNode) chartEl.parentNode.removeChild(chartEl);
-      setBrushedIds(null);
-    };
-  }, [mosaic, view]);
+  const layerLabCard = useMemo<CardSpec>(
+    () => ({
+      id: `layer-lab-${selectedLayerId}`,
+      title: "Layer records by observation",
+      layer: { kind: "layerView", layerId: selectedLayerId },
+      rendererBoundaryId: "analytics",
+      renderer: "vgplot",
+      chartType: "rect",
+      encoding: {
+        x: "observed_ms",
+        y: "count",
+        bin: "hour",
+        aggregate: "count",
+        fields: ["id", "observed_ms", "category", "corridor", "confidence"],
+      },
+      selections: {
+        reads: ["timeFilter"],
+        writes: ["timeFilter"],
+      },
+      scope: {
+        modes: ["explore"],
+        hideWhenEmpty: false,
+      },
+      honesty: {
+        statusSource: "layerView",
+        inferredPolicy: "showStatus",
+      },
+      mobileStrategy: "compact",
+    }),
+    [selectedLayerId],
+  );
 
   // Recipe-driven deck.gl layer, refiltered to the brushed record set.
   const deckLayers: DeckLayer[] = useMemo(() => {
@@ -401,7 +271,17 @@ export function LayerLabClient() {
         <h2 className="mt-3 text-xs font-semibold uppercase tracking-wide opacity-60">
           Time brush (Mosaic / DuckDB)
         </h2>
-        <div ref={histogramRef} data-testid="layer-histogram" className="mt-1" />
+        {view && (
+          <div data-testid="layer-histogram" className="mt-1">
+            <CardRenderer
+              spec={layerLabCard}
+              mosaic={mosaic}
+              layerView={view as unknown as LayerView}
+              compact
+              onBrushIdsChange={setBrushedIds}
+            />
+          </div>
+        )}
         {mosaicNote && (
           <p className="mt-1 text-[11px] opacity-70">{mosaicNote}</p>
         )}

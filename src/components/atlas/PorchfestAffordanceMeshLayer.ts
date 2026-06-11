@@ -47,8 +47,8 @@ const AFFORDANCE_SIZE_M: Record<
   AtlasEventPlannerCategory,
   [number, number, number]
 > = {
-  music: [4, 4, 5],
-  vendor: [6, 6, 4],
+  music: [3.5, 3.5, 2.4],
+  vendor: [3.5, 3, 3.2],
   food_court: [9, 4, 4.5],
   kid_zone: [7, 6, 4],
   parking: [5, 2.5, 2.5],

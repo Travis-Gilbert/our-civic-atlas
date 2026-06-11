@@ -16,6 +16,7 @@ export function AtlasAppShell({
   leftRail,
   rightRail,
   bottomRail,
+  bottomRailLabel = "Timeline",
   dossier,
   timeline,
   provenance,
@@ -41,6 +42,8 @@ export function AtlasAppShell({
   rightRail?: ReactNode;
   /** Named bottom shell region. */
   bottomRail?: ReactNode;
+  /** Label for the named bottom shell region. */
+  bottomRailLabel?: string;
   /** Left dossier slot. */
   dossier?: ReactNode;
   /** Bottom timeline slot. */
@@ -192,7 +195,7 @@ export function AtlasAppShell({
                 className="font-mono text-[10px] uppercase tracking-[0.14em]"
                 style={{ color: "var(--ctx-ink-mute)" }}
               >
-                Timeline
+                {bottomRailLabel}
               </span>
             </div>
             <div className="atlas-scroll-hidden max-h-[140px] overflow-y-auto">

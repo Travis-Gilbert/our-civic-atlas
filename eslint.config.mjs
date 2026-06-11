@@ -13,6 +13,7 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     "node_modules/**",
+    "public/civic-editor/**",
     "src/lib/api/graphql/generated/**",
   ]),
 ]);

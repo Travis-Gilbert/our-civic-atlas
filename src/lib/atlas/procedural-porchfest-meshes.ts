@@ -5,8 +5,9 @@
  * unit-cube building masses by `BuildingFabricArchetype`, this module
  * keys recognizable event-affordance masses by the planner's placement
  * category (`AtlasEventPlannerCategory`): a food truck reads as a small
- * truck, a band as a figure with an instrument, a vendor as a canopy
- * tent, a restroom as a portable-toilet form, and so on.
+ * truck, a band as a small cluster of figures with an instrument, a
+ * vendor as a market stall, a restroom as a portable-toilet form, and
+ * so on.
  *
  * Coordinate convention (shared with procedural-archetype-meshes.ts and
  * LostFlintGeometries.ts):
@@ -161,51 +162,122 @@ function emptyArrays(): MeshArrays {
 }
 
 /* ------------------------------------------------------------------ */
-/*  music: a performer with an instrument.                             */
-/*  Vertical body box + head + an angular guitar slab held at the      */
-/*  front. Reads as "a performer here."                                */
+/*  music: a small band (a cluster of performers).                     */
+/*  Four slim figures at slightly different heights and positions, the */
+/*  front-left one holding a guitar. Reads as "a band here," not one    */
+/*  giant person. Consumer scale keeps it human-height, not building-   */
+/*  height.                                                            */
 /* ------------------------------------------------------------------ */
 
-export function createMusicFigureGeometry(): Geometry {
+export function createMusicBandGeometry(): Geometry {
   const m = emptyArrays();
-  // Torso.
-  pushBox(m.positions, m.normals, m.indices, [-0.12, -0.1, -0.5], [0.12, 0.1, 0.16]);
-  // Head.
-  pushBox(m.positions, m.normals, m.indices, [-0.09, -0.09, 0.16], [0.09, 0.09, 0.4]);
-  // Guitar body: an angular slab across the front (-y), tilted by being
-  // offset in z so it reads as held, not lying flat.
-  pushBox(m.positions, m.normals, m.indices, [-0.04, -0.2, -0.18], [0.22, -0.08, 0.04]);
-  // Guitar neck: thin bar extending up-and-out from the body.
-  pushBox(m.positions, m.normals, m.indices, [0.18, -0.16, 0.0], [0.34, -0.1, 0.06]);
+  // Each figure is a slim torso box + a head box. Heights and footprint
+  // positions vary a little so the group reads as several people.
+  type Figure = { x: number; y: number; halfW: number; torsoTop: number };
+  const figures: Figure[] = [
+    { x: -0.18, y: -0.06, halfW: 0.07, torsoTop: 0.12 }, // front-left (guitarist)
+    { x: 0.12, y: -0.02, halfW: 0.07, torsoTop: 0.06 }, // front-right
+    { x: -0.08, y: 0.2, halfW: 0.06, torsoTop: 0.02 }, // back-left
+    { x: 0.16, y: 0.22, halfW: 0.06, torsoTop: 0.1 }, // back-right
+  ];
+  for (const f of figures) {
+    // Torso.
+    pushBox(
+      m.positions, m.normals, m.indices,
+      [f.x - f.halfW, f.y - f.halfW, -0.5],
+      [f.x + f.halfW, f.y + f.halfW, f.torsoTop],
+    );
+    // Head.
+    const hw = f.halfW * 0.8;
+    pushBox(
+      m.positions, m.normals, m.indices,
+      [f.x - hw, f.y - hw, f.torsoTop],
+      [f.x + hw, f.y + hw, f.torsoTop + 0.16],
+    );
+  }
+  // Guitar on the front-left figure: body slab + neck, held across the
+  // front (-y) so the group is unmistakably musicians.
+  const g = figures[0];
+  pushBox(
+    m.positions, m.normals, m.indices,
+    [g.x - 0.02, g.y - 0.16, -0.16], [g.x + 0.12, g.y - 0.06, -0.02],
+  );
+  pushBox(
+    m.positions, m.normals, m.indices,
+    [g.x + 0.1, g.y - 0.14, -0.06], [g.x + 0.26, g.y - 0.08, 0.0],
+  );
   return buildGeometry(m.positions, m.normals, m.indices);
 }
 
 /* ------------------------------------------------------------------ */
-/*  vendor: a market tent / pop-up canopy.                             */
-/*  Low body box + a peaked canopy roof wider than the body (the       */
-/*  canopy overhang). The most common category, so it stays clean and  */
-/*  unmistakable. Ridge runs along x; gable ends face +/-x.            */
+/*  vendor: a street-market stall (open-counter bar).                  */
+/*                                                                     */
+/*  Modelled on the timber market-bar silhouette: a tall solid back    */
+/*  wall and side walls, a mono-pitch (pent) roof that slopes from the */
+/*  high back down to the front and cantilevers out as a deep overhang,*/
+/*  an open serving counter on the front (-y) with an overhanging bar  */
+/*  lip, front posts carrying the overhang, and a fold-down awning flap*/
+/*  propped open above the counter. The roofed, taller-than-it-is-flat */
+/*  massing reads as a stall, not the low slab ("bed") the earlier     */
+/*  canopy form produced. Front (open) face is -y; +x is the bar's     */
+/*  long axis.                                                         */
 /* ------------------------------------------------------------------ */
 
-export function createVendorTentGeometry(): Geometry {
+export function createVendorStandGeometry(): Geometry {
   const m = emptyArrays();
-  // Counter / body under the canopy.
-  pushBox(m.positions, m.normals, m.indices, [-0.32, -0.3, -0.5], [0.32, 0.3, -0.08]);
-  const eaveZ = 0.02;
-  const ridgeZ = 0.5;
-  // South slope (-y).
-  const sSW: Vec3 = [-0.5, -0.5, eaveZ];
-  const sSE: Vec3 = [0.5, -0.5, eaveZ];
-  const sRE: Vec3 = [0.5, 0, ridgeZ];
-  const sRW: Vec3 = [-0.5, 0, ridgeZ];
-  pushQuad(m.positions, m.normals, m.indices, sSW, sSE, sRE, sRW, triNormal(sSW, sSE, sRE));
-  // North slope (+y).
-  const nNE: Vec3 = [0.5, 0.5, eaveZ];
-  const nNW: Vec3 = [-0.5, 0.5, eaveZ];
-  pushQuad(m.positions, m.normals, m.indices, nNE, nNW, sRW, sRE, triNormal(nNE, nNW, sRW));
-  // Gable end triangles at x = -0.5 and x = +0.5.
-  pushTri(m.positions, m.normals, m.indices, sSW, sRW, nNW, [-1, 0, 0]);
-  pushTri(m.positions, m.normals, m.indices, sSE, nNE, sRE, [1, 0, 0]);
+
+  const backTopZ = 0.42; // top of back wall / high edge of roof
+  const frontTopZ = 0.26; // low (front) edge of roof -> pent slope
+  const roofT = 0.06; // roof slab thickness
+  const counterTopZ = -0.04; // bar surface height
+  const counterUnderZ = -0.14; // underside of bar slab
+
+  // Solid back wall (+y), full height up to where the roof lands.
+  pushBox(m.positions, m.normals, m.indices, [-0.5, 0.4, -0.5], [0.5, 0.5, backTopZ - roofT]);
+  // Side walls (partial depth: back of the stall to the counter line).
+  pushBox(m.positions, m.normals, m.indices, [-0.5, -0.34, -0.5], [-0.42, 0.5, 0.28]);
+  pushBox(m.positions, m.normals, m.indices, [0.42, -0.34, -0.5], [0.5, 0.5, 0.28]);
+  // Solid kick panel under the counter (set back so the bar lip overhangs).
+  pushBox(m.positions, m.normals, m.indices, [-0.46, -0.4, -0.5], [0.46, -0.3, counterUnderZ]);
+  // Counter / bar top, overhanging the kick panel toward the customer.
+  pushBox(m.positions, m.normals, m.indices, [-0.48, -0.5, counterUnderZ], [0.48, -0.3, counterTopZ]);
+  // Front posts (left, centre, right) carrying the roof overhang.
+  for (const px of [-0.45, -0.03, 0.39] as const) {
+    pushBox(
+      m.positions, m.normals, m.indices,
+      [px, -0.4, counterTopZ], [px + 0.06, -0.34, frontTopZ],
+    );
+  }
+
+  // Pent roof: a sloped slab, high at the back (+y) and low at the front
+  // (-y), cantilevering out to the front edge as a deep overhang. Built
+  // as top + underside + four edge quads (same slope technique as the
+  // gable/sawtooth roofs above).
+  const TbL: Vec3 = [-0.5, 0.5, backTopZ];
+  const TbR: Vec3 = [0.5, 0.5, backTopZ];
+  const TfL: Vec3 = [-0.5, -0.5, frontTopZ];
+  const TfR: Vec3 = [0.5, -0.5, frontTopZ];
+  const BbL: Vec3 = [-0.5, 0.5, backTopZ - roofT];
+  const BbR: Vec3 = [0.5, 0.5, backTopZ - roofT];
+  const BfL: Vec3 = [-0.5, -0.5, frontTopZ - roofT];
+  const BfR: Vec3 = [0.5, -0.5, frontTopZ - roofT];
+  pushQuad(m.positions, m.normals, m.indices, TfL, TfR, TbR, TbL, triNormal(TfL, TfR, TbR)); // top
+  pushQuad(m.positions, m.normals, m.indices, BbL, BbR, BfR, BfL, triNormal(BbL, BbR, BfR)); // underside
+  pushQuad(m.positions, m.normals, m.indices, TfR, TfL, BfL, BfR, triNormal(TfR, TfL, BfL)); // front edge
+  pushQuad(m.positions, m.normals, m.indices, TbL, TbR, BbR, BbL, triNormal(TbL, TbR, BbR)); // back edge
+  pushQuad(m.positions, m.normals, m.indices, TbL, BbL, BfL, TfL, triNormal(TbL, BbL, BfL)); // left edge
+  pushQuad(m.positions, m.normals, m.indices, TfR, BfR, BbR, TbR, triNormal(TfR, BfR, BbR)); // right edge
+
+  // Fold-down awning flap: hinged at the counter's front edge and propped
+  // open up-and-inward over the bar (the signature market-stall shutter).
+  const flByZ = counterTopZ; // hinge at the counter front lip
+  const fl0: Vec3 = [-0.42, -0.5, flByZ];
+  const fl1: Vec3 = [0.42, -0.5, flByZ];
+  const fl2: Vec3 = [0.42, -0.4, 0.16];
+  const fl3: Vec3 = [-0.42, -0.4, 0.16];
+  pushQuad(m.positions, m.normals, m.indices, fl0, fl1, fl2, fl3, triNormal(fl0, fl1, fl2));
+  pushQuad(m.positions, m.normals, m.indices, fl3, fl2, fl1, fl0, triNormal(fl3, fl2, fl1));
+
   return buildGeometry(m.positions, m.normals, m.indices);
 }
 
@@ -403,10 +475,10 @@ export function getPorchfestAffordanceGeometry(
   let geometry: Geometry;
   switch (key) {
     case "music":
-      geometry = createMusicFigureGeometry();
+      geometry = createMusicBandGeometry();
       break;
     case "vendor":
-      geometry = createVendorTentGeometry();
+      geometry = createVendorStandGeometry();
       break;
     case "food_court":
       geometry = createFoodTruckGeometry();

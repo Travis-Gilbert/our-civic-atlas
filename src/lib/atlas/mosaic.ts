@@ -38,6 +38,14 @@ export interface AtlasMosaic {
   timeFilter: ReturnType<typeof vg.Selection.crossfilter>;
   /** Tracks the currently-selected place_id for highlighting. */
   placeFilter: ReturnType<typeof vg.Selection.single>;
+  /** Crossfilter selections used by analytical cards for categorical facets. */
+  facetFilters: {
+    eventType: ReturnType<typeof vg.Selection.crossfilter>;
+    severity: ReturnType<typeof vg.Selection.crossfilter>;
+    corridor: ReturnType<typeof vg.Selection.crossfilter>;
+    sourceTier: ReturnType<typeof vg.Selection.crossfilter>;
+    status: ReturnType<typeof vg.Selection.crossfilter>;
+  };
 }
 
 async function _initMosaic(): Promise<AtlasMosaic> {
@@ -61,6 +69,13 @@ async function _initMosaic(): Promise<AtlasMosaic> {
 
   const timeFilter = vg.Selection.crossfilter();
   const placeFilter = vg.Selection.single();
+  const facetFilters = {
+    eventType: vg.Selection.crossfilter(),
+    severity: vg.Selection.crossfilter(),
+    corridor: vg.Selection.crossfilter(),
+    sourceTier: vg.Selection.crossfilter(),
+    status: vg.Selection.crossfilter(),
+  };
 
   return {
     db,
@@ -68,6 +83,7 @@ async function _initMosaic(): Promise<AtlasMosaic> {
     coordinator: vg.coordinator(),
     timeFilter,
     placeFilter,
+    facetFilters,
   };
 }
 
