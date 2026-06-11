@@ -73,3 +73,24 @@ Browser-direct spatial queries against RustyRed (HTTP routes are
 bearer-gated; the frontend carries no service token per AGENTS.md), Theseus
 LLM extraction of unstructured drops (job 2 of the engine hook; later), and
 event-scoping/productization (consolidation gap G).
+
+## Execution status (2026-06-11, end of day)
+
+Lanes 1 and 2 are LIVE in production:
+
+- Geo plugin merged onto RustyRed main (e119963, clean merge, 170 tests)
+  and deployed; spatial routes answering.
+- Civic projection job shipped (26ea931) after adversarial review fixes:
+  decoder structural guards (missing prop:columns/prop:cells/sys:children
+  error instead of wiping), tenant allowlist
+  (RUSTY_RED_CIVIC_PROJECTION_TENANTS=flint on the service), 10k row cap,
+  doc-scoped node ids (civic-row:<docId>:<rowId>), H3 spatial index
+  eviction symmetry, room-open priming (post-restart designation
+  recovery), pre-commit generation re-check.
+- Verified in production: authenticated nodes/query returns the projected
+  civic_object rows; yjs room state survived the deploy restart (server
+  persists room docs via save_doc, correcting this plan's earlier
+  in-memory caveat: restarts do NOT lose the doc).
+
+Lane 3 (engine jobs) is the open frontier: entity resolution proposals in
+the import preview, gap demons, briefing endpoint.
