@@ -27,11 +27,19 @@
  * honestly (no version -> no drag) with a visible "backend pending" note.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 import { useMutation, useQuery } from "urql";
 import type { MapRef } from "react-map-gl/maplibre";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import type { Layer } from "@deck.gl/core";
+import type { Feature, FeatureCollection, Geometry } from "geojson";
 import { ListChecks } from "lucide-react";
 import { useIsMobile } from "@/lib/atlas/use-is-mobile";
 import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
@@ -69,6 +77,8 @@ import {
   type TaskPatch,
 } from "@/components/atlas/PlannerTaskRail";
 import { PlannerBookmarks } from "@/components/atlas/PlannerBookmarks";
+import { PlannerImportPanel } from "@/components/atlas/PlannerImportPanel";
+import type { KmlEventFeature } from "@/lib/civic/kml-event-layer-rules";
 import {
   PlannerLayerControls,
   DEFAULT_PLANNER_VISIBILITY,
@@ -315,6 +325,32 @@ function tasksToNodes(
   });
 }
 
+/**
+ * PlannerPalette's CATEGORY_COLOR carries the planner's category palette as
+ * CSS "rgb(r g b)" strings (the legend swatch format); deck.gl wants numeric
+ * RGBA. Parsing the one shared table keeps the imported-line stroke in
+ * lockstep with the legend without a second color list.
+ */
+function categoryLineColor(
+  category: string | undefined,
+): [number, number, number, number] {
+  const css =
+    CATEGORY_COLOR[(category ?? "amenity") as AtlasEventPlannerCategory] ??
+    CATEGORY_COLOR.amenity;
+  const channels = css.match(/\d+/g);
+  return [
+    Number(channels?.[0] ?? 0),
+    Number(channels?.[1] ?? 0),
+    Number(channels?.[2] ?? 0),
+    255,
+  ];
+}
+
+type ImportedLineFeatureProperties = {
+  readonly placement_id: string;
+  readonly category: string;
+};
+
 /** Carriage Town boundary outline drawn under everything as a frame. */
 function buildBoundaryLayer(): Layer {
   const [[west, south], [east, north]] = CARRIAGE_TOWN_BOUNDS;
@@ -406,6 +442,13 @@ function PorchfestPlannerWorkspace({
   );
   // On phones the whole chrome folds into the bottom island.
   const isMobile = useIsMobile();
+  // Feature 2 drop target: a file dropped anywhere on the map wrapper opens
+  // the import flow. Only the first file is read; the import panel detects
+  // the kind (CSV vs KML vs GeoJSON) and owns the preview/commit UI.
+  const [droppedFile, setDroppedFile] = useState<{
+    name: string;
+    text: string;
+  } | null>(null);
 
   // Realtime traffic flow, parity with /open-flint-atlas. Self-contained:
   // polls the trafficRealtime GraphQL resolver and falls back to the honest
@@ -451,6 +494,10 @@ function PorchfestPlannerWorkspace({
   // same layers as GraphQL placements; drag moves write `location` back to
   // the store, so the workspace table reflects them live (FR-010/011).
   const civicApiRef = useRef<CivicStoreApi | null>(null);
+  // The same handle, mirrored into state for render-time consumers (the
+  // import panel's commit gating). The ref stays for the drag handlers,
+  // which need a stable identity without re-rendering per pointer move.
+  const [civicApi, setCivicApi] = useState<CivicStoreApi | null>(null);
   const [civicRows, setCivicRows] = useState<
     ReturnType<CivicStoreApi["list"]>
   >([]);
@@ -461,6 +508,7 @@ function PorchfestPlannerWorkspace({
       .then((api) => {
         if (disposed) return;
         civicApiRef.current = api;
+        setCivicApi(api);
         const refresh = () => setCivicRows(api.list());
         offChange = api.onChange(refresh);
         refresh();
@@ -941,6 +989,44 @@ function PorchfestPlannerWorkspace({
     [createPlacement, placementCountByCategory, refreshPlacements],
   );
 
+  /* --- file import (Feature 2) ------------------------------------- */
+
+  const handleMapDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    // Without preventDefault the browser navigates away to the dropped file.
+    event.preventDefault();
+  }, []);
+  const handleMapDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (!file) return;
+    void file.text().then(
+      (text) => setDroppedFile({ name: file.name, text }),
+      () => setToast(`Could not read ${file.name}.`),
+    );
+  }, []);
+  const consumeDroppedFile = useCallback(() => setDroppedFile(null), []);
+
+  // Geometry commit for the import panel: imported KML/GeoJSON features
+  // become ordinary GraphQL placements (the contract's geometry is GeoJSON,
+  // lines included), so they share the selection, render, and realtime
+  // paths with hand-drawn points.
+  const handleCreateEventFeature = useCallback(
+    async (feature: KmlEventFeature): Promise<boolean> => {
+      const result = await createPlacement({
+        input: {
+          eventSlug: EVENT_SLUG,
+          category: feature.category,
+          label: feature.label,
+          geometry: feature.geometry as unknown as Record<string, unknown>,
+        },
+      });
+      if (result.error) return false;
+      refreshPlacements();
+      return true;
+    },
+    [createPlacement, refreshPlacements],
+  );
+
   const handleDeletePlacement = useCallback(
     (placement: AtlasEventPlannerPlacement) => {
       const editable = editablePlacements?.find((p) => p.id === placement.id);
@@ -1093,6 +1179,62 @@ function PorchfestPlannerWorkspace({
   const extraDeckLayers = useMemo<Layer[]>(() => {
     const layers: Layer[] = [buildBoundaryLayer()];
 
+    // Non-Point placements (imported closures, barrier runs) have no mesh
+    // form; one flat GeoJsonLayer strokes them in category color so line
+    // imports stay visible and selectable. Pushed before the meshes so the
+    // 3D forms draw over the ground-level strokes.
+    const linePlacements = renderPlacements.filter((placement) => {
+      const geom = placement.geometry as { type?: string } | null;
+      return typeof geom?.type === "string" && geom.type !== "Point";
+    });
+    if (linePlacements.length > 0) {
+      const lineData: FeatureCollection<
+        Geometry,
+        ImportedLineFeatureProperties
+      > = {
+        type: "FeatureCollection",
+        features: linePlacements.map((placement) => ({
+          type: "Feature",
+          geometry: placement.geometry as unknown as Geometry,
+          properties: {
+            placement_id: placement.id,
+            category: placement.category,
+          },
+        })),
+      };
+      layers.push(
+        new GeoJsonLayer<ImportedLineFeatureProperties>({
+          id: "porchfest-imported-lines",
+          data: lineData,
+          pickable: true,
+          stroked: true,
+          filled: false,
+          lineWidthUnits: "pixels",
+          getLineWidth: 3,
+          getLineColor: (feature: unknown) =>
+            categoryLineColor(
+              (
+                feature as Feature<Geometry, ImportedLineFeatureProperties>
+              ).properties?.category,
+            ),
+          onClick: (info) => {
+            const props = (
+              info.object as
+                | Feature<Geometry, ImportedLineFeatureProperties>
+                | undefined
+            )?.properties;
+            if (!props) return false;
+            const placement = linePlacements.find(
+              (row) => row.id === props.placement_id,
+            );
+            if (!placement) return false;
+            handleSelectPlacement(placement);
+            return true;
+          },
+        }),
+      );
+    }
+
     layers.push(
       ...buildPorchfestAffordanceMeshLayers({
         placements: renderPlacements,
@@ -1235,7 +1377,13 @@ function PorchfestPlannerWorkspace({
 
   return (
     <main className="relative flex h-screen overflow-hidden">
-      <div className="relative flex-1">
+      {/* The map wrapper doubles as the Feature 2 drop target: dropping a
+          file anywhere on the map opens the import flow in the left panel. */}
+      <div
+        className="relative flex-1"
+        onDragOver={handleMapDragOver}
+        onDrop={handleMapDrop}
+      >
         <ResponsiveAtlasMap
           places={places}
           events={events}
@@ -1386,6 +1534,18 @@ function PorchfestPlannerWorkspace({
               </p>
             </section>
           ) : null}
+
+          {/* Import / export (Feature 2). The panel owns the whole flow UI;
+              this client only feeds it dropped files, the civic store
+              handle, and the createPlacement wrapper for geometry. */}
+          <PlannerImportPanel
+            civicRows={civicRows}
+            civicApi={civicApi}
+            onCreateEventFeature={handleCreateEventFeature}
+            droppedFile={droppedFile}
+            onConsumeDroppedFile={consumeDroppedFile}
+            onToast={setToast}
+          />
 
           {selectedPlacement ? (
             <section className="planner-panel pointer-events-auto p-4">
