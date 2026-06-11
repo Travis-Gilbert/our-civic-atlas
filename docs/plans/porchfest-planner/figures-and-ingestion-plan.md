@@ -9,6 +9,24 @@ Source specs (committed beside this plan):
 - `porchfest-kmz-audit-2026-06-11.md` (attached KMZ evidence: Google My Maps
   NetworkLink wrapper, 92 point features, 9 line features)
 
+Reference site checkout (Travis, 2026-06-11): the CTHNA repo
+(github.com/Travis-Gilbert/CTHNA.git) is the porchfest site of record; a
+local checkout lives in the backend repo at
+`docs/"Planning the planner "/Refs/CTHNA-main`. The apply form's field
+grounding (civic-object-schema.ts header, "porchfest-2026 at a27715e")
+points into it; ground any form-parity question there, not in memory.
+
+Organizer follow-ups captured 2026-06-11 (not in either feature's scope):
+
+1. Apply form asks food twice: `foodDescription` ("What do you serve",
+   required free text) and `foodType` (multi-select taxonomy) read as
+   redundant to applicants. Data-wise distinct, and `foodType` now drives
+   the figure resolver, so the fix is form presentation (one primary input,
+   one detail field), pending Travis's call.
+2. Workspace bug: a newly created page/doc cannot scroll by default. Likely
+   the 54950a0 scroll-container fix covers the initially mounted doc but
+   not docs created or switched via createNote/openDoc.
+
 Maintainer of this plan: Claude Code. Codex lane defined in section 3.
 Coordination room: `repo:open-flint-atlas-main-release:branch:main` (harness
 intents); the working tree is the fallback substrate.
