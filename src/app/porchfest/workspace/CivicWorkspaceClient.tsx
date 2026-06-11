@@ -102,6 +102,7 @@ function WorkspaceInner() {
   const mountedRef = useRef(false);
   const [docs, setDocs] = useState<CivicDocSummary[]>([]);
   const [currentDocId, setCurrentDocId] = useState("");
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [billingAmount, setBillingAmount] = useState("");
   const [billingNotice, setBillingNotice] = useState<BillingNotice>({
@@ -221,7 +222,15 @@ function WorkspaceInner() {
         const refresh = () => setState({ kind: "ready" });
         offChange = mounted.api.onChange(refresh);
         const refreshDocs = () => {
-          setDocs(mounted.docs());
+          const list = mounted.docs();
+          setDocs(list);
+          // A deletion arriving over sync can orphan the open doc; fall
+          // back to the applications doc (always first in the rail) rather
+          // than leave the editor on a disposed store.
+          if (!list.some((doc) => doc.id === mounted.currentDocId())) {
+            const fallback = list[0]?.id;
+            if (fallback) mounted.openDoc(fallback);
+          }
           setCurrentDocId(mounted.currentDocId());
         };
         offDocs = mounted.onDocsChanged(refreshDocs);
@@ -247,6 +256,7 @@ function WorkspaceInner() {
   const handleOpenDoc = (docId: string) => {
     apiRef.current?.openDoc(docId);
     setCurrentDocId(docId);
+    setDeleteNotice(null);
   };
 
   const handleNewNote = () => {
@@ -255,6 +265,24 @@ function WorkspaceInner() {
     const docId = mounted.createNote("Untitled note");
     setDocs(mounted.docs());
     handleOpenDoc(docId);
+  };
+
+  const handleDeleteNote = (doc: CivicDocSummary) => {
+    const mounted = apiRef.current;
+    if (!mounted) return;
+    // The store is shared CRDT state: this deletion lands on every
+    // organizer's workspace, so it gets a hard confirm.
+    const confirmed = window.confirm(
+      `Delete "${doc.title}"? This removes it for every organizer.`,
+    );
+    if (!confirmed) return;
+    if (!mounted.deleteNote(doc.id)) {
+      setDeleteNotice(`"${doc.title}" cannot be deleted.`);
+      return;
+    }
+    setDeleteNotice(null);
+    setDocs(mounted.docs());
+    setCurrentDocId(mounted.currentDocId());
   };
 
   // One-way ledger ingestion once both the editor and the query are ready.
@@ -296,17 +324,34 @@ function WorkspaceInner() {
       </header>
       <div className="civic-workspace-docbar" role="tablist" aria-label="Workspace docs">
         {docs.map((doc) => (
-          <button
+          // Buttons cannot nest, so the tab pill is a presentation wrapper
+          // around the tab button and (for notes) the delete affordance.
+          <span
             key={doc.id}
-            type="button"
-            role="tab"
-            aria-selected={doc.id === currentDocId}
+            role="presentation"
             className="civic-workspace-doctab"
             data-current={doc.id === currentDocId || undefined}
-            onClick={() => handleOpenDoc(doc.id)}
           >
-            {doc.title}
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={doc.id === currentDocId}
+              className="civic-workspace-doctab-open"
+              onClick={() => handleOpenDoc(doc.id)}
+            >
+              {doc.title}
+            </button>
+            {doc.kind === "note" ? (
+              <button
+                type="button"
+                className="planner-iconbtn civic-workspace-doctab-delete"
+                aria-label={`Delete note "${doc.title}"`}
+                onClick={() => handleDeleteNote(doc)}
+              >
+                ×
+              </button>
+            ) : null}
+          </span>
         ))}
         <button
           type="button"
@@ -316,6 +361,11 @@ function WorkspaceInner() {
         >
           + New note
         </button>
+        {deleteNotice ? (
+          <span className="planner-note civic-workspace-docnote" role="status">
+            {deleteNotice}
+          </span>
+        ) : null}
       </div>
       <form className="civic-billing-band" onSubmit={handleBillingRequest}>
         <div className="civic-billing-field civic-billing-field--application">
@@ -448,13 +498,13 @@ function WorkspaceInner() {
           overflow-x: auto;
         }
         .civic-workspace-doctab {
-          padding: 6px 12px;
+          display: inline-flex;
+          align-items: center;
           border: 1px solid transparent;
           border-radius: 4px;
           background: transparent;
           color: #454545;
           font-size: 13px;
-          cursor: pointer;
           white-space: nowrap;
         }
         .civic-workspace-doctab:hover {
@@ -465,16 +515,53 @@ function WorkspaceInner() {
           background: #f1f6fb;
           border-color: #005186;
           color: #005186;
+        }
+        .civic-workspace-doctab[data-current] .civic-workspace-doctab-open {
           font-weight: 600;
         }
+        .civic-workspace-doctab-open {
+          padding: 6px 12px;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        /* Note tabs: the title button cedes its right padding to the 16px
+           delete target so the x sits inside the pill. */
+        .civic-workspace-doctab-open:not(:only-child) {
+          padding-right: 4px;
+        }
+        .civic-workspace-doctab-delete {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 16px;
+          height: 16px;
+          margin-right: 6px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          font-size: 13px;
+          line-height: 1;
+          cursor: pointer;
+        }
         .civic-workspace-doctab--new {
+          padding: 6px 12px;
           color: #005186;
           font-weight: 600;
+          cursor: pointer;
         }
         .civic-workspace-doctab--new:disabled {
           color: #c5c5c5;
           cursor: default;
           background: transparent;
+        }
+        .civic-workspace-docnote {
+          margin: 0 0 0 8px;
+          padding: 4px 10px;
+          white-space: nowrap;
         }
         .civic-workspace-overline {
           margin: 0;

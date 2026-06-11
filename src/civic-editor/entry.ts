@@ -90,7 +90,14 @@ export interface CivicWorkspaceMountResult {
   openDoc(docId: string): void;
   /** Create a fresh organizer note doc (page + todo starter) and return its id. */
   createNote(title?: string): string;
-  /** Doc list changes (creation, rename, sync arrivals). */
+  /**
+   * Delete a note doc for every organizer. The removal is a plain CRDT
+   * update on the workspace root doc, so it propagates over sync like any
+   * other edit; no special server handling. Refuses (returns false) for the
+   * applications doc and for any id that is not a note doc.
+   */
+  deleteNote(docId: string): boolean;
+  /** Doc list changes (creation, rename, deletion, sync arrivals). */
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;
   destroy(): void;
@@ -127,13 +134,35 @@ interface CivicCore {
 const CIVIC_NOTES_DOC_ID = 'civic:notes:porchfest-2026';
 
 /**
+ * Root-doc Y map recording which seeded docs this workspace has ever held.
+ * Without it, deleteNote on the starter notes doc would be silently undone:
+ * ensureNotesDoc runs at every core open, sees no doc, and reseeds. The
+ * flag lives on the workspace root doc, so the "was deleted on purpose"
+ * decision syncs to every client exactly the way the deletion itself did.
+ */
+const SEEDED_DOCS_MAP_KEY = 'civic:seeded-docs';
+
+/**
  * Seed the starter notes doc once (adopt-not-reseed: runs after sync-ready,
  * and an existing doc is left untouched). The todo items are plain
  * `affine:list` blocks with type "todo"; organizers add more anywhere with
  * the editor's slash menu ("/to-do list", "/heading", and so on).
+ *
+ * A workspace whose seeded flag is set but whose doc is gone had the doc
+ * deleted through deleteNote; reseeding would resurrect it on every client,
+ * so that state is left alone.
  */
 function ensureNotesDoc(collection: ReturnType<typeof createCivicCollection>) {
-  if (collection.getDoc(CIVIC_NOTES_DOC_ID)) return;
+  const seededDocs = collection.doc.getMap<boolean>(SEEDED_DOCS_MAP_KEY);
+  if (collection.getDoc(CIVIC_NOTES_DOC_ID)) {
+    // Adopted docs from before the flag existed mark themselves here, so a
+    // later deletion sticks for them too.
+    if (!seededDocs.get(CIVIC_NOTES_DOC_ID)) {
+      seededDocs.set(CIVIC_NOTES_DOC_ID, true);
+    }
+    return;
+  }
+  if (seededDocs.get(CIVIC_NOTES_DOC_ID)) return;
   const doc = collection.createDoc(CIVIC_NOTES_DOC_ID);
   const store = doc.getStore({ id: CIVIC_NOTES_DOC_ID });
   if (!doc.loaded) doc.load();
@@ -165,6 +194,7 @@ function ensureNotesDoc(collection: ReturnType<typeof createCivicCollection>) {
     );
   }
   collection.meta.setDocMeta(CIVIC_NOTES_DOC_ID, { title: 'Organizer notes' });
+  seededDocs.set(CIVIC_NOTES_DOC_ID, true);
 }
 
 /**
@@ -379,6 +409,32 @@ export async function mountCivicWorkspace(
     return docId;
   };
 
+  const deleteNote = (docId: string): boolean => {
+    // Only note docs are deletable. kind in docs() is id-derived (every doc
+    // except the applications database reads as 'note'), so the explicit
+    // event-doc guard plus the kind lookup refuse the applications doc and
+    // any id the workspace meta does not know.
+    if (docId === CIVIC_EVENT_DOC_ID) return false;
+    const summary = docs().find((entry) => entry.id === docId);
+    if (!summary || summary.kind !== 'note') return false;
+    // The removal disposes the doc's store; the mounted editor must not be
+    // left rendering it.
+    if (activeDocId === docId) openDoc(CIVIC_EVENT_DOC_ID);
+    try {
+      // Workspace.removeDoc clears the doc's blocks, splices its meta entry
+      // inside a root-doc transact, and drops the root 'spaces' entry: all
+      // plain CRDT updates, so the deletion reaches every client over sync,
+      // and the meta observer fires slots.docListUpdated (the feed
+      // onDocsChanged listeners subscribe to).
+      collection.removeDoc(docId);
+    } catch {
+      // removeDoc throws when the meta is already gone (a remote deletion
+      // racing this one); "already deleted" still counts as deleted.
+      return collection.meta.getDocMeta(docId) === undefined;
+    }
+    return true;
+  };
+
   const onDocsChanged = (listener: () => void) => {
     const subscription = collection.slots.docListUpdated.subscribe(() =>
       listener(),
@@ -393,6 +449,7 @@ export async function mountCivicWorkspace(
     docs,
     openDoc,
     createNote,
+    deleteNote,
     onDocsChanged,
     currentDocId: () => activeDocId,
     destroy: () => {

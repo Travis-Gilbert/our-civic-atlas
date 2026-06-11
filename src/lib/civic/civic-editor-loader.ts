@@ -39,6 +39,12 @@ export interface CivicWorkspaceMounted {
   docs(): CivicDocSummary[];
   openDoc(docId: string): void;
   createNote(title?: string): string;
+  /**
+   * Delete a note doc for every organizer (a plain CRDT update, synced like
+   * any other edit). Returns false instead of deleting for the applications
+   * doc and for any id that is not a note doc.
+   */
+  deleteNote(docId: string): boolean;
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;
   destroy(): void;
