@@ -44,9 +44,25 @@ function bridgeWindow(): { __civicWorkspace?: CivicBridge } {
 
 let bridgePromise: Promise<CivicBridge> | null = null;
 
+/**
+ * Server-sync configuration handoff. The bundle reads
+ * window.__civicSyncConfig at core init, so it must be set BEFORE the
+ * script tag is injected. Build-time public env keeps the value static
+ * per deployment (no service-tier secret involved; the endpoint is the
+ * browser-facing collaborative sync).
+ */
+function publishSyncConfig() {
+  const url = process.env.NEXT_PUBLIC_RUSTYRED_SYNC_URL;
+  if (!url) return;
+  (
+    window as unknown as { __civicSyncConfig?: { url: string } }
+  ).__civicSyncConfig = { url };
+}
+
 /** Inject the bundle once and resolve the window bridge. */
 export function loadCivicBridge(): Promise<CivicBridge> {
   bridgePromise ??= new Promise((resolve, reject) => {
+    publishSyncConfig();
     const existingBridge = bridgeWindow().__civicWorkspace;
     if (existingBridge) {
       resolve(existingBridge);

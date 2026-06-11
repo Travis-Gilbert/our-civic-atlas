@@ -42,6 +42,7 @@ import {
   type CivicDatabaseHandles,
   type CivicObjectRow,
 } from '../lib/civic/civic-workspace';
+import { RustyRedDocSource } from './rustyred-doc-source';
 
 // Register the editor container and, through it, the affine view effects.
 editorEffects();
@@ -106,11 +107,30 @@ interface CivicCore {
  */
 let corePromise: Promise<CivicCore> | null = null;
 
+/**
+ * Optional server sync configuration, set by the Next page (from
+ * NEXT_PUBLIC_RUSTYRED_SYNC_URL) BEFORE the bundle script loads. When the
+ * URL is present, a RustyRedDocSource joins the engine as a shadow peer:
+ * IndexedDB stays the local-first main source, RustyRed carries updates
+ * across devices (Phase 1, SC-006 beyond one browser).
+ */
+function rustyRedSyncUrl(): string | null {
+  const config = (
+    window as unknown as { __civicSyncConfig?: { url?: string } }
+  ).__civicSyncConfig;
+  const url = config?.url?.trim();
+  return url ? url : null;
+}
+
 function openCivicCore(): Promise<CivicCore> {
   corePromise ??= (async () => {
+    const syncUrl = rustyRedSyncUrl();
     const collection = createCivicCollection({
       id: SYNC_DB_NAME,
-      docSources: { main: new IndexedDBDocSource(SYNC_DB_NAME) },
+      docSources: {
+        main: new IndexedDBDocSource(SYNC_DB_NAME),
+        ...(syncUrl ? { shadows: [new RustyRedDocSource(syncUrl)] } : {}),
+      },
       awarenessSources: [new BroadcastChannelAwarenessSource(SYNC_DB_NAME)],
     });
 
