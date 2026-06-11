@@ -125,7 +125,12 @@ function WorkspaceInner() {
         .civic-workspace-shell {
           display: flex;
           flex-direction: column;
-          min-height: 100vh;
+          /* The porchfest layout wraps routes in overflow-hidden h-full for
+             the map surface, so the page itself can never scroll here. The
+             shell pins to the viewport and the editor pane below becomes
+             the scroll container instead. */
+          height: 100vh;
+          height: 100dvh;
           background: #ffffff;
           color: #1c1c1c;
         }
@@ -161,11 +166,15 @@ function WorkspaceInner() {
         .civic-workspace-editor {
           flex: 1;
           min-height: 0;
+          overflow-y: auto;
+          overscroll-behavior: contain;
           background: #ffffff;
         }
         .civic-workspace-editor affine-editor-container {
           display: block;
-          height: 100%;
+          /* Fill the pane when content is short; grow past it when the
+             database is tall so the pane scrolls. */
+          min-height: 100%;
         }
       `}</style>
     </div>
