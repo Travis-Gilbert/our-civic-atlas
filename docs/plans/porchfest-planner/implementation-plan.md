@@ -25,8 +25,8 @@ The spec was written against a monorepo layout. This repo
   mutations update cache). Live data appearing depends on the backend.
 - **G2 (spec section 7, SSE):** the `LISTEN/NOTIFY` -> EventSource stream server
   is backend. FE can wire an `EventSource` consumer that connects to the
-  documented endpoint and degrades silently when absent. Live multi-planner
-  echo depends on the backend stream.
+  documented endpoint and degrades silently when absent. Backend commit
+  `f5833ef` now exposes the native Axum stream at `/sse/event-planner`.
 
 ### Deferral source
 
@@ -51,12 +51,22 @@ Current receipts:
   rows from the private Formspree CSV. The importer parsed 76 rows, detected 1
   duplicate source key, and recorded 76 backup receipts. One imported row is
   missing `canDoThirty` and should be organizer-reviewed in the workspace.
+- Backend commit `f5833ef` (`feat(planner): add native event stream`) resolves
+  the GraphQL placement/task SSE decision by moving the planner stream onto the
+  canonical Axum backend. It listens on `event_planner_<tenant>` and emits
+  `planner_change` events at `/sse/event-planner`.
 - Validation run without Playwright/Chrome by user direction:
   `npm run validate:civic-map-binding`,
   `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
   `npm run typecheck`, `npm run lint`, `npm run build`, a `curl -I` smoke for
   `http://127.0.0.1:3000/porchfest/workspace`, and a production GraphQL
   `eventApplications` count query.
+- Backend SSE validation: `cargo test -p civic-atlas-server
+  planner_sse_reports_missing_database_without_opening_stream`,
+  `cargo test -p civic-atlas-server event_planner::tests`, `cargo test -p
+  civic-atlas-server schema_builds_with_event_planner_fields`, `cargo test -p
+  civic-atlas-server --test event_application_intake_schema`, and `cargo check
+  -p civic-atlas-server`.
 
 Remaining gates for the approved end-to-end plan:
 
@@ -72,9 +82,9 @@ Remaining gates for the approved end-to-end plan:
 - [ ] **RG-4 Deployment:** ship the event-planning surface on
   `porchfestflint.com` with the production GraphQL URL, sync URL, and billing
   env configured. Local note: the Vercel CLI is not installed on this machine.
-- [ ] **RG-5 Backend realtime stream decision:** either finish the planner SSE
-  stream for GraphQL placements/tasks or explicitly retire it once YCRDT owns
-  the shared planning state.
+- [x] **RG-5 Backend realtime stream decision:** finish the planner SSE stream
+  for GraphQL placements/tasks on the native Axum backend (`f5833ef`). YCRDT
+  still owns the shared BlockSuite workspace lane under RG-1/RG-2.
 
 ## Buildable checklist (this repo)
 
