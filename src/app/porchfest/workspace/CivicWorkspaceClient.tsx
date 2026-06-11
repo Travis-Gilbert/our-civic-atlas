@@ -22,83 +22,20 @@ import { useQuery } from "urql";
 import { EventApplicationsDocument } from "@/lib/api/graphql/generated/graphql";
 import { PlannerClientProvider } from "@/lib/api/graphql/PlannerClientProvider";
 import {
+  loadCivicBridge,
+  type CivicWorkspaceMounted,
+} from "@/lib/civic/civic-editor-loader";
+import {
   mapEventApplicationToCivicFields,
   type EventApplicationLedgerRow,
 } from "@/lib/civic/civic-ledger-ingest";
-import type { CivicObjectFields } from "@/lib/civic/civic-object-schema";
 
 const EVENT_SLUG = "porchfest-2026";
-const EDITOR_SRC = "/civic-editor/civic-editor.mjs";
-const EDITOR_CSS = "/civic-editor/civic-editor.css";
-
-type CivicWorkspaceBridge = {
-  mount(container: HTMLElement): Promise<{
-    api: {
-      list(): Array<{ rowId: string; title: string }>;
-      ingestLedgerRows(rows: CivicObjectFields[]): number;
-      onChange(listener: () => void): () => void;
-    };
-    destroy(): void;
-  }>;
-};
 
 type MountState =
   | { kind: "loading" }
   | { kind: "ready"; objectCount: number; ingested: number | null }
   | { kind: "error"; message: string };
-
-/**
- * The bundle publishes the bridge on window; typed structurally here so the
- * Next typecheck never follows imports into BlockSuite's raw-TS sources.
- */
-function bridgeWindow(): { __civicWorkspace?: CivicWorkspaceBridge } {
-  return window as unknown as { __civicWorkspace?: CivicWorkspaceBridge };
-}
-
-/** Load the prebuilt editor bundle once and resolve the window bridge. */
-function loadEditorBridge(): Promise<CivicWorkspaceBridge> {
-  return new Promise((resolve, reject) => {
-    const existing0 = bridgeWindow().__civicWorkspace;
-    if (existing0) {
-      resolve(existing0);
-      return;
-    }
-    if (!document.querySelector(`link[href="${EDITOR_CSS}"]`)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = EDITOR_CSS;
-      document.head.append(link);
-    }
-    const existing = document.querySelector(`script[src="${EDITOR_SRC}"]`);
-    const script = existing ?? document.createElement("script");
-    const onReady = () => {
-      const bridge = bridgeWindow().__civicWorkspace;
-      if (bridge) {
-        resolve(bridge);
-      } else {
-        reject(new Error("civic editor bundle loaded without bridge"));
-      }
-    };
-    script.addEventListener("load", onReady, { once: true });
-    script.addEventListener(
-      "error",
-      () =>
-        reject(
-          new Error(
-            "civic editor bundle missing; run npm run build:civic-editor",
-          ),
-        ),
-      { once: true },
-    );
-    if (!existing) {
-      (script as HTMLScriptElement).type = "module";
-      (script as HTMLScriptElement).src = EDITOR_SRC;
-      document.head.append(script);
-    } else if (bridgeWindow().__civicWorkspace) {
-      onReady();
-    }
-  });
-}
 
 function WorkspaceInner() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,16 +48,14 @@ function WorkspaceInner() {
   });
 
   // Mount the editor bundle once.
-  const apiRef = useRef<Awaited<
-    ReturnType<CivicWorkspaceBridge["mount"]>
-  > | null>(null);
+  const apiRef = useRef<CivicWorkspaceMounted | null>(null);
   useEffect(() => {
     if (mountedRef.current || !containerRef.current) return;
     mountedRef.current = true;
     let disposed = false;
     let offChange: (() => void) | undefined;
 
-    loadEditorBridge()
+    loadCivicBridge()
       .then((bridge) => bridge.mount(containerRef.current as HTMLElement))
       .then((mounted) => {
         if (disposed) {

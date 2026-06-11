@@ -27,7 +27,7 @@
  * honestly (no version -> no drag) with a visible "backend pending" note.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "urql";
 import type { MapRef } from "react-map-gl/maplibre";
 import { GeoJsonLayer } from "@deck.gl/layers";
@@ -91,10 +91,25 @@ import {
   type PlacesCollection,
   type SpatialEvent,
 } from "@/lib/api/openFlintAtlas";
+import {
+  openCivicStore,
+  type CivicStoreApi,
+} from "@/lib/civic/civic-editor-loader";
+import {
+  bindCivicRowsToMap,
+  pointGeometryToCivicLocation,
+} from "@/lib/civic/civic-map-binding";
 
 const TENANT_SLUG = "flint";
 const EVENT_SLUG = "porchfest-2026";
 const PLANNER_DRAG_BLOCK_LAYER_IDS = ["planner-editable-direct-drag"] as const;
+/**
+ * Sentinel version for civic-object placements inside the editable layer.
+ * Civic objects live in the BlockSuite/Yjs store, not the GraphQL
+ * placements table, so they carry no optimistic-concurrency version; drags
+ * are intercepted by civic row id before the version branch runs.
+ */
+const CIVIC_PLACEMENT_VERSION = -1;
 
 /**
  * Carriage Town extent. Frames the planning area and sets the street-
@@ -420,6 +435,54 @@ function PorchfestPlannerWorkspace({
     [tasksResult.data],
   );
 
+  /* --- civic-object store (Phase 5 two-way binding) ---------------- */
+
+  // Headless handle on the shared BlockSuite/Yjs civic store: the same doc
+  // the /porchfest/workspace editor edits, kept in sync across tabs by the
+  // IndexedDB broadcast channel. Placed civic objects render through the
+  // same layers as GraphQL placements; drag moves write `location` back to
+  // the store, so the workspace table reflects them live (FR-010/011).
+  const civicApiRef = useRef<CivicStoreApi | null>(null);
+  const [civicRows, setCivicRows] = useState<
+    ReturnType<CivicStoreApi["list"]>
+  >([]);
+  useEffect(() => {
+    let disposed = false;
+    let offChange: (() => void) | undefined;
+    openCivicStore()
+      .then((api) => {
+        if (disposed) return;
+        civicApiRef.current = api;
+        const refresh = () => setCivicRows(api.list());
+        offChange = api.onChange(refresh);
+        refresh();
+      })
+      .catch((error: unknown) => {
+        // The planner stays fully functional on GraphQL placements alone.
+        console.warn(
+          "civic store unavailable; map shows GraphQL placements only:",
+          error,
+        );
+      });
+    return () => {
+      disposed = true;
+      offChange?.();
+      civicApiRef.current = null;
+    };
+  }, []);
+
+  const civicBinding = useMemo(() => bindCivicRowsToMap(civicRows), [civicRows]);
+  const civicRowIdByPlacementId = useMemo(
+    () =>
+      new Map(
+        civicBinding.placed.map((placement) => [
+          placement.id,
+          placement.civicRowId,
+        ]),
+      ),
+    [civicBinding.placed],
+  );
+
   const initialEditablePlacements = useMemo<PlannerEditablePlacement[] | null>(
     () => {
       if (dataSource !== "graphql") return null;
@@ -460,22 +523,40 @@ function PorchfestPlannerWorkspace({
       liveRows ? liveRows.map(toEditablePlacement) : initialEditablePlacements,
     [liveRows, initialEditablePlacements],
   );
+  // Civic objects join the editable set with a sentinel version so the
+  // direct-drag layer picks them; their drags never reach the GraphQL
+  // mutation (intercepted by civic row id in onDragEnd).
+  const civicEditablePlacements = useMemo<readonly PlannerEditablePlacement[]>(
+    () =>
+      civicBinding.placed.map((placement) => ({
+        ...placement,
+        version: CIVIC_PLACEMENT_VERSION,
+      })),
+    [civicBinding.placed],
+  );
+
   const editablePlacements = useMemo<readonly PlannerEditablePlacement[] | null>(
     () =>
       editablePlacementRows
-        ? applyPlacementOverrides(editablePlacementRows, placementOverrides)
+        ? [
+            ...applyPlacementOverrides(editablePlacementRows, placementOverrides),
+            ...civicEditablePlacements,
+          ]
         : null,
-    [editablePlacementRows, placementOverrides],
+    [editablePlacementRows, placementOverrides, civicEditablePlacements],
   );
 
-  // Rendered placements: live rows when present, else SSR fixture.
+  // Rendered placements: live rows when present, else SSR fixture, plus
+  // placed civic objects from the collaborative store.
   const baseRenderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
-    () =>
-      applyPlacementOverrides(
+    () => [
+      ...applyPlacementOverrides(
         liveRows ? liveRows.map(toRenderPlacement) : initialPlacements,
         placementOverrides,
       ),
-    [liveRows, initialPlacements, placementOverrides],
+      ...civicBinding.placed,
+    ],
+    [liveRows, initialPlacements, placementOverrides, civicBinding.placed],
   );
   const renderPlacements = useMemo<readonly AtlasEventPlannerPlacement[]>(
     () => applyDragPreview(baseRenderPlacements, dragPreview),
@@ -759,6 +840,23 @@ function PorchfestPlannerWorkspace({
         onDragEnd: ({ object, coordinate }) => {
           const feature = plannerDragFeature(object);
           const placementId = feature?.properties?.placement_id;
+          // Civic objects first: their system of record is the CRDT store,
+          // so the write is local-first (no version, no snap-back) and the
+          // IndexedDB broadcast carries it to the workspace live.
+          const civicRowId = placementId
+            ? civicRowIdByPlacementId.get(placementId)
+            : undefined;
+          if (placementId && civicRowId) {
+            const location = pointGeometryToCivicLocation(
+              pointGeometryFromCoordinate(coordinate),
+            );
+            if (location) {
+              civicApiRef.current?.update(civicRowId, "location", location);
+            }
+            setDragPreview(null);
+            handleTranslateDragStateChange(false);
+            return;
+          }
           const version = feature?.properties?.version;
           if (placementId && typeof version === "number") {
             handleTranslate(
@@ -773,6 +871,7 @@ function PorchfestPlannerWorkspace({
     }, [
       editingAvailable,
       paletteMode.kind,
+      civicRowIdByPlacementId,
       handleTranslate,
       handleTranslateDragStateChange,
       handleTranslatePreview,
@@ -1180,6 +1279,50 @@ function PorchfestPlannerWorkspace({
               />
             </div>
           </section>
+
+          {/* Applications from the shared civic store (Phase 5). Unplaced
+              entries are listed rather than hidden, per the spec edge case:
+              an applicant with no location never disappears. */}
+          {civicRows.length > 0 ? (
+            <section className="planner-panel pointer-events-auto p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="planner-kicker">Applications</p>
+                <span className="planner-ink-soft text-[11px] tabular-nums">
+                  {civicBinding.placed.length} placed ·{" "}
+                  {civicBinding.unplaced.length} unplaced
+                </span>
+              </div>
+              {civicBinding.unplaced.length > 0 ? (
+                <ul className="mt-2 flex max-h-44 flex-col gap-1 overflow-y-auto">
+                  {civicBinding.unplaced.map((row) => (
+                    <li
+                      key={row.rowId}
+                      className="flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
+                    >
+                      <span className="planner-ink truncate">{row.title}</span>
+                      <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
+                        {row.fields.category}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="planner-ink-soft mt-2 text-[12px]">
+                  Every application is placed on the map.
+                </p>
+              )}
+              <p className="planner-ink-soft mt-2 text-[11px] leading-4">
+                Drag a placed marker to move it. Set a location in the{" "}
+                <a
+                  className="underline underline-offset-2"
+                  href="/porchfest/workspace"
+                >
+                  workspace
+                </a>{" "}
+                to place the rest.
+              </p>
+            </section>
+          ) : null}
 
           {selectedPlacement ? (
             <section className="planner-panel pointer-events-auto p-4">

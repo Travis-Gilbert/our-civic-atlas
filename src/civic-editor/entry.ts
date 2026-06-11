@@ -93,32 +93,89 @@ function ensureCivicViews(handles: CivicDatabaseHandles): void {
   }
 }
 
+interface CivicCore {
+  handles: CivicDatabaseHandles;
+  api: CivicWorkspaceApi;
+}
+
+/**
+ * One civic client runtime per page: collection, sync engine, handles, and
+ * the plain-data api. Both the workspace editor mount and the headless map
+ * binding share this core, so a page never holds two IndexedDB connections
+ * or two Y.Doc replicas of the event doc.
+ */
+let corePromise: Promise<CivicCore> | null = null;
+
+function openCivicCore(): Promise<CivicCore> {
+  corePromise ??= (async () => {
+    const collection = createCivicCollection({
+      id: SYNC_DB_NAME,
+      docSources: { main: new IndexedDBDocSource(SYNC_DB_NAME) },
+      awarenessSources: [new BroadcastChannelAwarenessSource(SYNC_DB_NAME)],
+    });
+
+    // Boot-race guard: let IndexedDB hydrate the collection meta and the
+    // event doc BEFORE deciding whether to seed, so a persisted database is
+    // adopted rather than double-seeded (CRDT merge would keep both).
+    const docSync = (
+      collection as unknown as {
+        docSync?: {
+          waitForLoadedRootDoc(): Promise<void>;
+          waitForSynced(): Promise<void>;
+        };
+      }
+    ).docSync;
+    await docSync?.waitForLoadedRootDoc();
+    const existing = collection.getDoc(CIVIC_EVENT_DOC_ID);
+    if (existing && !existing.loaded) existing.load();
+    await docSync?.waitForSynced();
+
+    const handles = ensureCivicDatabase(collection);
+
+    const api: CivicWorkspaceApi = {
+      insert: (fields) => insertCivicObject(handles, fields),
+      list: () => readCivicObjects(handles),
+      update: (rowId, key, value) =>
+        updateCivicObjectField(
+          handles,
+          rowId,
+          key as Parameters<typeof updateCivicObjectField>[2],
+          value,
+        ),
+      ingestLedgerRows: (rows) => ingestCivicObjectsBySourceId(handles, rows),
+      onChange: (listener) => {
+        const subscription = handles.store.slots.blockUpdated.subscribe(() =>
+          listener(),
+        );
+        return () => subscription.unsubscribe();
+      },
+    };
+
+    return { handles, api };
+  })();
+  return corePromise;
+}
+
+export interface CivicStoreOpenResult {
+  api: CivicWorkspaceApi;
+  handles: CivicDatabaseHandles;
+}
+
+/**
+ * Headless access to the civic store for surfaces that bind data without
+ * mounting the editor: the planner map (Phase 5 two-way location binding)
+ * and diagnostics. Shares the page-wide core with mountCivicWorkspace.
+ */
+export async function openCivicStore(): Promise<CivicStoreOpenResult> {
+  const core = await openCivicCore();
+  return { api: core.api, handles: core.handles };
+}
+
 export async function mountCivicWorkspace(
   container: HTMLElement,
 ): Promise<CivicWorkspaceMountResult> {
-  const collection = createCivicCollection({
-    id: SYNC_DB_NAME,
-    docSources: { main: new IndexedDBDocSource(SYNC_DB_NAME) },
-    awarenessSources: [new BroadcastChannelAwarenessSource(SYNC_DB_NAME)],
-  });
-
-  // Boot-race guard: let IndexedDB hydrate the collection meta and the
-  // event doc BEFORE deciding whether to seed, so a persisted database is
-  // adopted rather than double-seeded (CRDT merge would keep both).
-  const docSync = (
-    collection as unknown as {
-      docSync?: {
-        waitForLoadedRootDoc(): Promise<void>;
-        waitForSynced(): Promise<void>;
-      };
-    }
-  ).docSync;
-  await docSync?.waitForLoadedRootDoc();
-  const existing = collection.getDoc(CIVIC_EVENT_DOC_ID);
-  if (existing && !existing.loaded) existing.load();
-  await docSync?.waitForSynced();
-
-  const handles = ensureCivicDatabase(collection);
+  const core = await openCivicCore();
+  const { handles, api } = core;
   ensureCivicViews(handles);
 
   const editor = document.createElement(
@@ -129,25 +186,6 @@ export async function mountCivicWorkspace(
   editor.edgelessSpecs = viewManager.get('edgeless');
   editor.doc = handles.store;
   container.append(editor);
-
-  const api: CivicWorkspaceApi = {
-    insert: (fields) => insertCivicObject(handles, fields),
-    list: () => readCivicObjects(handles),
-    update: (rowId, key, value) =>
-      updateCivicObjectField(
-        handles,
-        rowId,
-        key as Parameters<typeof updateCivicObjectField>[2],
-        value,
-      ),
-    ingestLedgerRows: (rows) => ingestCivicObjectsBySourceId(handles, rows),
-    onChange: (listener) => {
-      const subscription = handles.store.slots.blockUpdated.subscribe(() =>
-        listener(),
-      );
-      return () => subscription.unsubscribe();
-    },
-  };
 
   const result: CivicWorkspaceMountResult = {
     api,
@@ -171,9 +209,13 @@ declare global {
   interface Window {
     __civicWorkspace?: {
       mount: typeof mountCivicWorkspace;
+      openStore: typeof openCivicStore;
     };
     __civicWorkspaceMounted?: CivicWorkspaceMountResult;
   }
 }
 
-window.__civicWorkspace = { mount: mountCivicWorkspace };
+window.__civicWorkspace = {
+  mount: mountCivicWorkspace,
+  openStore: openCivicStore,
+};
