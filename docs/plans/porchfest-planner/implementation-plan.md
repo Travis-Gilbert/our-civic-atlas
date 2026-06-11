@@ -99,6 +99,15 @@ Current receipts:
   `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
   `npm run typecheck`, `npm run lint`, `npm run build`, and a production
   `next start -p 3007` + `curl -I /porchfest/workspace` smoke.
+- RG-4 deployment validation: `npx --yes vercel deploy --project
+  porchfest-2026 --prod --logs` built the Next.js app with Vercel deployment
+  `dpl_4CMHqWCk28FSjzjA2i4WDfpb682M`, aliased it to
+  `https://porchfestflint.com`, and curl-smoked `https://porchfestflint.com/`,
+  `/porchfest`, `/porchfest/apply`, and `/porchfest/workspace`. The
+  `porchfest-2026` Vercel project now has production/development GraphQL and
+  RustyRed sync env values configured; preview deployment was also proven with
+  explicit env flags because Vercel requires branch targeting for preview env
+  writes in noninteractive CLI mode.
 
 Remaining gates for the approved end-to-end plan:
 
@@ -114,10 +123,13 @@ Remaining gates for the approved end-to-end plan:
   surface.
 - [ ] **RG-3 Square billing:** backend support landed in `784b06b` and the
   organizer request-link UI is wired in the workspace. Still open: Square
-  env/live payment-link proof and deployment env wiring.
-- [ ] **RG-4 Deployment:** ship the event-planning surface on
+  backend env/live payment-link proof.
+- [x] **RG-4 Deployment:** ship the event-planning surface on
   `porchfestflint.com` with the production GraphQL URL, sync URL, and billing
-  env configured. Local note: the Vercel CLI is not installed on this machine.
+  trigger routed through the backend GraphQL mutation. Vercel deployment
+  `dpl_4CMHqWCk28FSjzjA2i4WDfpb682M` is live at `https://porchfestflint.com`;
+  browser proof remains skipped by user direction because Chrome/Playwright is
+  unavailable on this machine.
 - [x] **RG-5 Backend realtime stream decision:** finish the planner SSE stream
   for GraphQL placements/tasks on the native Axum backend (`f5833ef`). YCRDT
   still owns the shared BlockSuite workspace lane under RG-1/RG-2.
