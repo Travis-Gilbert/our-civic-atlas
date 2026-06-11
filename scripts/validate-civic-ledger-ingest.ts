@@ -137,6 +137,24 @@ const fallbackCategoryLedger = ledgerRow({
   sourceKey: 'public:other:poetry@example.com',
 });
 
+const squareBillingLedger = ledgerRow({
+  id: 'ledger-billing-1',
+  category: 'vendor',
+  displayName: 'Billing Vendor',
+  contactName: 'Billie Vendor',
+  contactEmail: 'billing@example.com',
+  planningPayload: {
+    square: {
+      billingRequestId: 'billing-123',
+      paymentLinkUrl: 'https://square.example/pay/123',
+      amountCents: 2500,
+      currency: 'USD',
+    },
+  },
+  status: 'payment_requested',
+  sourceKey: 'public:vendor:billing@example.com',
+});
+
 function expectFields(
   label: string,
   actual: Partial<CivicObjectFields> | undefined,
@@ -179,6 +197,22 @@ async function main() {
     'unknown category falls back to other',
     fallback?.fields.category === 'other',
     fallback?.fields.category,
+  );
+  const billing = mapEventApplicationToCivicFields(squareBillingLedger);
+  check(
+    'Square billing id maps to billingRef',
+    billing.fields.billingRef === 'billing-123',
+    billing.fields.billingRef,
+  );
+  check(
+    'Square amountCents maps to dollars',
+    billing.fields.feePaid === 25,
+    billing.fields.feePaid,
+  );
+  check(
+    'payment_requested status is preserved',
+    billing.fields.status === 'payment_requested',
+    billing.fields.status,
   );
 
   console.log('2. ingest into BlockSuite/YCRDT planning store idempotently');

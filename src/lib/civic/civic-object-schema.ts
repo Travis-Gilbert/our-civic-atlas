@@ -100,6 +100,7 @@ export const PLANNING_STATUSES = [
   'in-review',
   'contacted',
   'accepted',
+  'payment_requested',
   'declined',
   'waitlisted',
 ] as const;

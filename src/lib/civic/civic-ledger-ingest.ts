@@ -89,6 +89,12 @@ function geoJsonPointToLocation(
   return undefined;
 }
 
+function objectValue(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
 /**
  * Map one ledger row onto the civic-object schema. categoryPayload keys are
  * taken verbatim when they are schema keys, routed through
@@ -168,7 +174,17 @@ export function mapEventApplicationToCivicFields(
   if (typeof planning['contacted'] === 'boolean' && planning['contacted']) {
     fields.contacted = true;
   }
-  if (typeof planning['fee'] === 'number') fields.feePaid = planning['fee'];
+  const square = objectValue(planning['square']);
+  const squareAmountCents = square?.['amountCents'];
+  const billingRequestId = square?.['billingRequestId'];
+  if (typeof billingRequestId === 'string' && billingRequestId) {
+    fields.billingRef = billingRequestId;
+  }
+  if (typeof squareAmountCents === 'number') {
+    fields.feePaid = squareAmountCents / 100;
+  } else if (typeof planning['fee'] === 'number') {
+    fields.feePaid = planning['fee'];
+  }
   if (typeof planning['payment_to_band'] === 'number') {
     fields.paymentToBand = planning['payment_to_band'];
   }

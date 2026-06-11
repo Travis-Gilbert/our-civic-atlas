@@ -25,6 +25,34 @@ mutation SubmitEventApplication($input: EventApplicationSubmitInput!) {
   }
 }
 
+mutation RequestEventApplicationBilling($input: EventApplicationBillingInput!) {
+  requestEventApplicationBilling(input: $input) {
+    billing {
+      id
+      eventApplicationId
+      provider
+      status
+      amountCents
+      currency
+      paymentLinkUrl
+      providerPaymentLinkId
+      providerOrderId
+      idempotencyKey
+      createdAt
+      updatedAt
+    }
+    application {
+      id
+      status
+      planningPayload
+      updatedAt
+      version
+    }
+    created
+    squareRequested
+  }
+}
+
 mutation CreatePlacement($input: PlacementCreateInput!) {
   createPlacement(input: $input) {
     placement {

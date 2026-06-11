@@ -60,6 +60,18 @@ Current receipts:
   `requestEventApplicationBilling` GraphQL mutation, Square payment-link
   creation through server-side env, and planning-payload billing references on
   the application civic object.
+- The RG-3 frontend organizer trigger is now wired: the checked-in GraphQL
+  contract/codegen includes `EventApplicationBillingInput`, the workspace has a
+  compact request-link action band, successful mutation results update the local
+  civic row's `billingRef`, `feePaid`, and `payment_requested` status, and
+  returned Square URLs can be opened by organizers without exposing Square
+  credentials in the browser.
+- Frontend commit `620c64d` (`feat(civic): RustyRedDocSource client for the yrs
+  sync endpoint`) resolves the RG-1 client side: the BlockSuite workspace can
+  add a RustyRed/YCRDT shadow doc source from `NEXT_PUBLIC_RUSTYRED_SYNC_URL`,
+  and `npm run validate:yjs-sync` proves two Yjs clients converge through the
+  RustyRed `/sync/yjs` endpoint without lost writes. Frontend commit `54950a0`
+  keeps the workspace editor pane scroll-local after that integration.
 - Validation run without Playwright/Chrome by user direction:
   `npm run validate:civic-map-binding`,
   `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
@@ -77,19 +89,32 @@ Current receipts:
   event_planner::tests`, `cargo test -p civic-atlas-server
   schema_builds_with_event_planner_fields`, and `cargo check -p
   civic-atlas-server`.
+- RustyRed/YCRDT frontend validation: with a local `rustyred-server` listening
+  on `127.0.0.1:6464`, `npm run validate:yjs-sync` passed the A-push/B-pull,
+  live broadcast, concurrent write convergence, fresh-client pull, and no-op
+  incremental pull checks. Follow-up no-Chrome checks also passed:
+  `npm run build:civic-editor`, `npm run typecheck`, `npm run lint`, and
+  `npm run build`.
+- RG-3 frontend billing validation: `npm run codegen`,
+  `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
+  `npm run typecheck`, `npm run lint`, `npm run build`, and a production
+  `next start -p 3007` + `curl -I /porchfest/workspace` smoke.
 
 Remaining gates for the approved end-to-end plan:
 
-- [ ] **RG-1 RustyRed/YCRDT sync backend:** replace the current
+- [x] **RG-1 RustyRed/YCRDT sync backend/client:** replace the current
   IndexedDB-only BlockSuite doc source with a shared RustyRed/YCRDT doc source
-  and prove two BlockSuite clients converge with no lost write.
-- [ ] **RG-2 Multi-organizer proof:** after RG-1, verify two organizers can
+  and prove the RustyRed YCRDT wire path converges with no lost write
+  (`620c64d`, `npm run validate:yjs-sync`). Browser-driven BlockSuite UI proof
+  remains skipped because Chrome/Playwright is unavailable on this machine.
+- [ ] **RG-2 Multi-organizer proof:** RG-1's headless YCRDT convergence proof is
+  green; still verify two organizers can
   edit planning fields in table/kanban and move map anchors while both clients
-  see the same civic object state.
-- [ ] **RG-3 Square billing:** backend support landed in `784b06b` (relational
-  billing store, Square payment-link mutation, application planning-payload
-  reference). Still open: organizer UI trigger, Square env/live payment-link
-  proof, and deployment env wiring.
+  see the same civic object state on the deployed or otherwise browser-usable
+  surface.
+- [ ] **RG-3 Square billing:** backend support landed in `784b06b` and the
+  organizer request-link UI is wired in the workspace. Still open: Square
+  env/live payment-link proof and deployment env wiring.
 - [ ] **RG-4 Deployment:** ship the event-planning surface on
   `porchfestflint.com` with the production GraphQL URL, sync URL, and billing
   env configured. Local note: the Vercel CLI is not installed on this machine.
