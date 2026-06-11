@@ -24,6 +24,7 @@ import { viewPresets } from '@blocksuite/data-view/view-presets';
 import { effects as editorEffects } from '@blocksuite/integration-test/effects';
 import { getTestViewManager } from '@blocksuite/integration-test/view';
 import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
+import { Text } from '@blocksuite/affine/store';
 
 import '@toeverything/theme/style.css';
 // Observable register overrides; must follow the stock theme import so
@@ -65,10 +66,25 @@ export interface CivicWorkspaceApi {
   onChange(listener: () => void): () => void;
 }
 
+export interface CivicDocSummary {
+  id: string;
+  title: string;
+  kind: 'applications' | 'note';
+}
+
 export interface CivicWorkspaceMountResult {
   api: CivicWorkspaceApi;
   editor: TestAffineEditorContainer;
   handles: CivicDatabaseHandles;
+  /** All workspace docs: the applications database plus organizer notes. */
+  docs(): CivicDocSummary[];
+  /** Switch the mounted editor to another doc. */
+  openDoc(docId: string): void;
+  /** Create a fresh organizer note doc (page + todo starter) and return its id. */
+  createNote(title?: string): string;
+  /** Doc list changes (creation, rename, sync arrivals). */
+  onDocsChanged(listener: () => void): () => void;
+  currentDocId(): string;
   destroy(): void;
 }
 
@@ -97,6 +113,50 @@ function ensureCivicViews(handles: CivicDatabaseHandles): void {
 interface CivicCore {
   handles: CivicDatabaseHandles;
   api: CivicWorkspaceApi;
+}
+
+/** Organizer notes doc: docs + todo lists are first-class BlockSuite blocks. */
+const CIVIC_NOTES_DOC_ID = 'civic:notes:porchfest-2026';
+
+/**
+ * Seed the starter notes doc once (adopt-not-reseed: runs after sync-ready,
+ * and an existing doc is left untouched). The todo items are plain
+ * `affine:list` blocks with type "todo"; organizers add more anywhere with
+ * the editor's slash menu ("/to-do list", "/heading", and so on).
+ */
+function ensureNotesDoc(collection: ReturnType<typeof createCivicCollection>) {
+  if (collection.getDoc(CIVIC_NOTES_DOC_ID)) return;
+  const doc = collection.createDoc(CIVIC_NOTES_DOC_ID);
+  const store = doc.getStore({ id: CIVIC_NOTES_DOC_ID });
+  if (!doc.loaded) doc.load();
+  if (store.getModelsByFlavour('affine:page').length > 0) return;
+
+  const rootId = store.addBlock('affine:page', {
+    title: new Text('Organizer notes'),
+  });
+  store.addBlock('affine:surface', {}, rootId);
+  const noteId = store.addBlock('affine:note', {}, rootId);
+  store.addBlock(
+    'affine:paragraph',
+    {
+      text: new Text(
+        'Shared notes for the planning crew. Everything here syncs live, same as the applications database. Type / for to-do lists, headings, and more.',
+      ),
+    },
+    noteId,
+  );
+  for (const item of [
+    'Confirm porch hosts for the accepted acts',
+    'Walk the route and mark power access',
+    'Draft the day-of volunteer schedule',
+  ]) {
+    store.addBlock(
+      'affine:list',
+      { type: 'todo', checked: false, text: new Text(item) },
+      noteId,
+    );
+  }
+  collection.meta.setDocMeta(CIVIC_NOTES_DOC_ID, { title: 'Organizer notes' });
 }
 
 /**
@@ -151,6 +211,10 @@ function openCivicCore(): Promise<CivicCore> {
     await docSync?.waitForSynced();
 
     const handles = ensureCivicDatabase(collection);
+    if (!collection.meta.getDocMeta(CIVIC_EVENT_DOC_ID)?.title) {
+      collection.meta.setDocMeta(CIVIC_EVENT_DOC_ID, { title: 'Applications' });
+    }
+    ensureNotesDoc(collection);
 
     const api: CivicWorkspaceApi = {
       insert: (fields) => insertCivicObject(handles, fields),
@@ -196,6 +260,7 @@ export async function mountCivicWorkspace(
 ): Promise<CivicWorkspaceMountResult> {
   const core = await openCivicCore();
   const { handles, api } = core;
+  const collection = handles.collection;
   ensureCivicViews(handles);
 
   const editor = document.createElement(
@@ -207,10 +272,70 @@ export async function mountCivicWorkspace(
   editor.doc = handles.store;
   container.append(editor);
 
+  let activeDocId = CIVIC_EVENT_DOC_ID;
+
+  const openDoc = (docId: string) => {
+    const doc = collection.getDoc(docId);
+    if (!doc) return;
+    const store = doc.getStore({ id: docId });
+    if (!doc.loaded) doc.load();
+    editor.doc = store;
+    activeDocId = docId;
+  };
+
+  const docs = (): CivicDocSummary[] => {
+    const metas = collection.meta.docMetas ?? [];
+    const summaries: CivicDocSummary[] = [];
+    for (const meta of metas) {
+      const id = (meta as { id: string }).id;
+      const title = (meta as { title?: string }).title;
+      summaries.push({
+        id,
+        title:
+          title && title.trim() !== ''
+            ? title
+            : id === CIVIC_EVENT_DOC_ID
+              ? 'Applications'
+              : 'Untitled note',
+        kind: id === CIVIC_EVENT_DOC_ID ? 'applications' : 'note',
+      });
+    }
+    // The applications doc always leads the rail.
+    summaries.sort((a, b) =>
+      a.kind === b.kind ? a.title.localeCompare(b.title) : a.kind === 'applications' ? -1 : 1,
+    );
+    return summaries;
+  };
+
+  const createNote = (title = 'Untitled note'): string => {
+    const docId = `civic:note:${crypto.randomUUID().slice(0, 8)}`;
+    const doc = collection.createDoc(docId);
+    const store = doc.getStore({ id: docId });
+    if (!doc.loaded) doc.load();
+    const rootId = store.addBlock('affine:page', { title: new Text(title) });
+    store.addBlock('affine:surface', {}, rootId);
+    const noteId = store.addBlock('affine:note', {}, rootId);
+    store.addBlock('affine:paragraph', { text: new Text('') }, noteId);
+    collection.meta.setDocMeta(docId, { title });
+    return docId;
+  };
+
+  const onDocsChanged = (listener: () => void) => {
+    const subscription = collection.slots.docListUpdated.subscribe(() =>
+      listener(),
+    );
+    return () => subscription.unsubscribe();
+  };
+
   const result: CivicWorkspaceMountResult = {
     api,
     editor,
     handles,
+    docs,
+    openDoc,
+    createNote,
+    onDocsChanged,
+    currentDocId: () => activeDocId,
     destroy: () => {
       editor.remove();
       if (window.__civicWorkspaceMounted === result) {

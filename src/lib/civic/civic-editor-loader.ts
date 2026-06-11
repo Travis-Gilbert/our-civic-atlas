@@ -28,8 +28,19 @@ export interface CivicStoreApi {
   onChange(listener: () => void): () => void;
 }
 
+export interface CivicDocSummary {
+  id: string;
+  title: string;
+  kind: "applications" | "note";
+}
+
 export interface CivicWorkspaceMounted {
   api: CivicStoreApi;
+  docs(): CivicDocSummary[];
+  openDoc(docId: string): void;
+  createNote(title?: string): string;
+  onDocsChanged(listener: () => void): () => void;
+  currentDocId(): string;
   destroy(): void;
 }
 

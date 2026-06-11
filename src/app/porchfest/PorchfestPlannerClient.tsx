@@ -1278,6 +1278,20 @@ function PorchfestPlannerWorkspace({
                 disabledMessage={editDisabledMessage}
               />
             </div>
+            <div className="mt-3 flex gap-2">
+              <a
+                href="/porchfest/workspace"
+                className="planner-tile flex-1 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide planner-ink no-underline"
+              >
+                Workspace
+              </a>
+              <a
+                href="/porchfest/apply"
+                className="planner-tile flex-1 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide planner-ink no-underline"
+              >
+                Apply form
+              </a>
+            </div>
           </section>
 
           {/* Applications from the shared civic store (Phase 5). Unplaced

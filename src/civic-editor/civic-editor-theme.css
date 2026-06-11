@@ -61,3 +61,21 @@
 affine-editor-container {
   font-stretch: var(--font-plex-width, 87.5%);
 }
+
+/*
+ * Uniform table rows: the applications table reads as a roster, so every
+ * row clamps to a single line and long cell content (bios, proposals)
+ * truncates in the preview. Opening a cell still shows and edits the full
+ * text in BlockSuite's editing overlay, and kanban cards are unaffected
+ * (selectors are scoped to the table row container).
+ */
+affine-database .affine-database-block-row {
+  height: 38px;
+  max-height: 38px;
+  overflow: hidden;
+}
+
+affine-database .affine-database-block-row .database-cell {
+  max-height: 38px;
+  overflow: hidden;
+}

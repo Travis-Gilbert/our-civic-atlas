@@ -27,6 +27,7 @@ import {
 import { PlannerClientProvider } from "@/lib/api/graphql/PlannerClientProvider";
 import {
   loadCivicBridge,
+  type CivicDocSummary,
   type CivicWorkspaceMounted,
 } from "@/lib/civic/civic-editor-loader";
 import {
@@ -99,6 +100,8 @@ function WorkspaceInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MountState>({ kind: "loading" });
   const mountedRef = useRef(false);
+  const [docs, setDocs] = useState<CivicDocSummary[]>([]);
+  const [currentDocId, setCurrentDocId] = useState("");
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [billingAmount, setBillingAmount] = useState("");
   const [billingNotice, setBillingNotice] = useState<BillingNotice>({
@@ -206,6 +209,7 @@ function WorkspaceInner() {
     let disposed = false;
     let offChange: (() => void) | undefined;
 
+    let offDocs: (() => void) | undefined;
     loadCivicBridge()
       .then((bridge) => bridge.mount(containerRef.current as HTMLElement))
       .then((mounted) => {
@@ -216,6 +220,12 @@ function WorkspaceInner() {
         apiRef.current = mounted;
         const refresh = () => setState({ kind: "ready" });
         offChange = mounted.api.onChange(refresh);
+        const refreshDocs = () => {
+          setDocs(mounted.docs());
+          setCurrentDocId(mounted.currentDocId());
+        };
+        offDocs = mounted.onDocsChanged(refreshDocs);
+        refreshDocs();
         refresh();
       })
       .catch((error: unknown) => {
@@ -228,10 +238,24 @@ function WorkspaceInner() {
     return () => {
       disposed = true;
       offChange?.();
+      offDocs?.();
       apiRef.current?.destroy();
       apiRef.current = null;
     };
   }, []);
+
+  const handleOpenDoc = (docId: string) => {
+    apiRef.current?.openDoc(docId);
+    setCurrentDocId(docId);
+  };
+
+  const handleNewNote = () => {
+    const mounted = apiRef.current;
+    if (!mounted) return;
+    const docId = mounted.createNote("Untitled note");
+    setDocs(mounted.docs());
+    handleOpenDoc(docId);
+  };
 
   // One-way ledger ingestion once both the editor and the query are ready.
   const ingestedRef = useRef(false);
@@ -265,7 +289,34 @@ function WorkspaceInner() {
           </p>
           <h1>Planning workspace</h1>
         </div>
+        <nav className="civic-workspace-nav" aria-label="Planner surfaces">
+          <a href="/porchfest">Map</a>
+          <a href="/porchfest/apply">Apply form</a>
+        </nav>
       </header>
+      <div className="civic-workspace-docbar" role="tablist" aria-label="Workspace docs">
+        {docs.map((doc) => (
+          <button
+            key={doc.id}
+            type="button"
+            role="tab"
+            aria-selected={doc.id === currentDocId}
+            className="civic-workspace-doctab"
+            data-current={doc.id === currentDocId || undefined}
+            onClick={() => handleOpenDoc(doc.id)}
+          >
+            {doc.title}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="civic-workspace-doctab civic-workspace-doctab--new"
+          onClick={handleNewNote}
+          disabled={state.kind !== "ready"}
+        >
+          + New note
+        </button>
+      </div>
       <form className="civic-billing-band" onSubmit={handleBillingRequest}>
         <div className="civic-billing-field civic-billing-field--application">
           <label htmlFor="civic-billing-application">Application</label>
@@ -359,8 +410,71 @@ function WorkspaceInner() {
           color: #1c1c1c;
         }
         .civic-workspace-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
           padding: 24px 24px 16px;
           border-bottom: 1px solid #e2e2e2;
+        }
+        .civic-workspace-nav {
+          display: flex;
+          gap: 8px;
+        }
+        .civic-workspace-nav a {
+          padding: 6px 12px;
+          border: 1px solid #e2e2e2;
+          border-radius: 9999px;
+          background: #ffffff;
+          color: #454545;
+          font-family: var(--font-mono, inherit);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .civic-workspace-nav a:hover {
+          border-color: #454545;
+          color: #1c1c1c;
+        }
+        .civic-workspace-docbar {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 24px;
+          border-bottom: 1px solid #e2e2e2;
+          overflow-x: auto;
+        }
+        .civic-workspace-doctab {
+          padding: 6px 12px;
+          border: 1px solid transparent;
+          border-radius: 4px;
+          background: transparent;
+          color: #454545;
+          font-size: 13px;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .civic-workspace-doctab:hover {
+          background: #f5f5f5;
+          color: #1c1c1c;
+        }
+        .civic-workspace-doctab[data-current] {
+          background: #f1f6fb;
+          border-color: #005186;
+          color: #005186;
+          font-weight: 600;
+        }
+        .civic-workspace-doctab--new {
+          color: #005186;
+          font-weight: 600;
+        }
+        .civic-workspace-doctab--new:disabled {
+          color: #c5c5c5;
+          cursor: default;
+          background: transparent;
         }
         .civic-workspace-overline {
           margin: 0;
