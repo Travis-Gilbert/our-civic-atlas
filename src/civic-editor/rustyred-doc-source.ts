@@ -14,9 +14,22 @@
  * One lazy WebSocket per doc. On close, subscribers get the disconnect
  * callback (the sync engine re-pulls on reconnect) and the next pull/push
  * reopens the socket with capped exponential backoff.
+ *
+ * Push batching: the sync engine calls push() once per Yjs update, which
+ * amplifies every keystroke into a WebSocket frame plus a server-side
+ * persistence write. To cut that write amplification, pushes accumulate
+ * per doc and flush as ONE Y.mergeUpdates frame after 300ms of quiet or
+ * past 64KB pending, whichever comes first. Yjs updates merge
+ * associatively, so the server sees an ordinary 0x02 update frame that is
+ * semantically identical to the original sequence. Invariant: pull()
+ * flushes the pending batch before sending its 0x00 handshake, so a pull
+ * reply can never be computed against a server state that is missing our
+ * own queued local updates. On socket loss the pending batch stays queued
+ * and re-sends after reconnect rather than being dropped.
  */
 
 import type { DocSource } from '@blocksuite/affine/sync';
+import * as Y from 'yjs';
 
 const TAG_PULL = 0x00;
 const TAG_PULL_REPLY = 0x01;
@@ -25,6 +38,11 @@ const TAG_UPDATE = 0x02;
 const PULL_TIMEOUT_MS = 8000;
 const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 8000;
+
+/** Quiet window before a pending batch flushes; resets on each push. */
+const FLUSH_QUIET_MS = 300;
+/** Pending-byte ceiling that forces an immediate flush mid-burst. */
+const FLUSH_MAX_PENDING_BYTES = 64 * 1024;
 
 interface PendingPull {
   resolve: (data: Uint8Array | null) => void;
@@ -37,6 +55,12 @@ interface DocChannel {
   /** FIFO of outstanding pull handshakes awaiting 0x01 replies. */
   pendingPulls: PendingPull[];
   attempts: number;
+  /** Unsent local updates awaiting the next batch flush, oldest first. */
+  pendingUpdates: Uint8Array[];
+  /** Running byte total of pendingUpdates, checked against the ceiling. */
+  pendingBytes: number;
+  /** Quiet-window timer; null whenever no flush is scheduled. */
+  flushTimer: ReturnType<typeof setTimeout> | null;
 }
 
 function tagged(tag: number, payload: Uint8Array): Uint8Array {
@@ -62,7 +86,15 @@ export class RustyRedDocSource implements DocSource {
   private channel(docId: string): DocChannel {
     let channel = this.channels.get(docId);
     if (!channel) {
-      channel = { socket: null, opening: null, pendingPulls: [], attempts: 0 };
+      channel = {
+        socket: null,
+        opening: null,
+        pendingPulls: [],
+        attempts: 0,
+        pendingUpdates: [],
+        pendingBytes: 0,
+        flushTimer: null,
+      };
       this.channels.set(docId, channel);
     }
     return channel;
@@ -128,10 +160,53 @@ export class RustyRedDocSource implements DocSource {
     return channel.opening;
   }
 
+  /**
+   * Sends the pending batch as one merged 0x02 frame. Failure keeps the
+   * batch queued (offline pushes must survive until reconnect, not drop);
+   * IndexedDB remains the local source of truth either way.
+   */
+  private async flushPendingUpdates(docId: string): Promise<void> {
+    const channel = this.channel(docId);
+    if (channel.flushTimer !== null) {
+      clearTimeout(channel.flushTimer);
+      channel.flushTimer = null;
+    }
+    if (channel.pendingUpdates.length === 0) return;
+
+    let socket: WebSocket;
+    try {
+      socket = await this.socketFor(docId);
+    } catch {
+      return;
+    }
+    // A push during the connect await may have re-armed the quiet timer
+    // for updates this flush is about to drain; disarm it again.
+    if (channel.flushTimer !== null) {
+      clearTimeout(channel.flushTimer);
+      channel.flushTimer = null;
+    }
+    const batch = channel.pendingUpdates.splice(0);
+    channel.pendingBytes = 0;
+    if (batch.length === 0) return;
+    const merged = batch.length === 1 ? batch[0] : Y.mergeUpdates(batch);
+    if (socket.readyState !== WebSocket.OPEN) {
+      // Closed between connect and send: browsers discard frames sent on
+      // a closing socket silently, so re-queue instead of sending.
+      channel.pendingUpdates.unshift(merged);
+      channel.pendingBytes += merged.byteLength;
+      return;
+    }
+    socket.send(tagged(TAG_UPDATE, merged));
+  }
+
   async pull(
     docId: string,
     state: Uint8Array,
   ): Promise<{ data: Uint8Array; state?: Uint8Array } | null> {
+    // Flush-before-pull invariant: the merged 0x02 frame must reach the
+    // server ahead of the 0x00 handshake, otherwise the diff it computes
+    // against our state vector omits our own queued local updates.
+    await this.flushPendingUpdates(docId);
     try {
       const socket = await this.socketFor(docId);
       const channel = this.channel(docId);
@@ -153,13 +228,18 @@ export class RustyRedDocSource implements DocSource {
   }
 
   async push(docId: string, data: Uint8Array): Promise<void> {
-    try {
-      const socket = await this.socketFor(docId);
-      socket.send(tagged(TAG_UPDATE, data));
-    } catch {
-      // Offline push: IndexedDB keeps the truth locally; the engine
-      // re-pulls and re-pushes when the socket returns.
+    const channel = this.channel(docId);
+    channel.pendingUpdates.push(data);
+    channel.pendingBytes += data.byteLength;
+    if (channel.pendingBytes > FLUSH_MAX_PENDING_BYTES) {
+      await this.flushPendingUpdates(docId);
+      return;
     }
+    if (channel.flushTimer !== null) clearTimeout(channel.flushTimer);
+    channel.flushTimer = setTimeout(() => {
+      channel.flushTimer = null;
+      void this.flushPendingUpdates(docId);
+    }, FLUSH_QUIET_MS);
   }
 
   subscribe(
