@@ -100,14 +100,12 @@ export function AtlasSceneChrome({
         (docs/plans/atelier-real-reconstruction-plan.md, Task H)
         flagged as a regression from the desktop chrome.
       */}
-      {/* left-[72px] clears the CivicAtlasSidebar's 56px icon rail on
-          md+; the mobile media block in atlas.css overrides the header
-          back to left 12px below 768px where the sidebar is hidden. */}
-      <header className="atlas-scene-header pointer-events-auto absolute left-[72px] right-5 top-4">
+      {/* Right-anchored and content-hugging: no wordmark (removed by
+          request in both the strip and the sidebar), so the strip is only
+          slightly longer than its nav links. The mobile media block in
+          atlas.css restores full-width placement below 768px. */}
+      <header className="atlas-scene-header pointer-events-auto absolute right-5 top-4">
         <div className="atlas-scene-top-strip">
-          <Link href="/open-flint-atlas" className="atlas-scene-wordmark">
-            Flint Atlas
-          </Link>
           <nav aria-label="Flint Atlas links" className="atlas-scene-top-actions">
             <Link href="/open-flint-atlas/sources">About</Link>
             <Link href="/open-flint-atlas/methodology">Methodology</Link>

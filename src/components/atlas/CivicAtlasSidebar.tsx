@@ -657,12 +657,12 @@ export function CivicAtlasSidebar({
           the hidden content from tab order and the a11y tree. */}
       <div className="atlas-sidebar-panel" inert={isCollapsed}>
         <div className="atlas-sidebar-panel-inner">
-          <header className="flex items-start justify-between gap-2 px-4 pb-3 pt-4">
+          {/* Wordmark removed by request (here and in the top strip);
+              the kicker alone carries the identity, and the panel gets
+              the vertical room back. */}
+          <header className="flex items-center justify-between gap-2 px-4 pb-2 pt-4">
             <div className="min-w-0">
               <SidebarKicker>Our Civic Atlas</SidebarKicker>
-              <h2 className="m-0 mt-1 font-display text-[22px] leading-none text-[color:var(--ctx-ink)]">
-                Flint Atlas
-              </h2>
             </div>
             <button
               type="button"
