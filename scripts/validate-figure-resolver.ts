@@ -48,6 +48,16 @@ expectKey('Duo -> musician-band', { category: 'musician', bandSize: 'Duo' }, 'mu
 expectKey('3-5 members -> musician-band', { category: 'musician', bandSize: '3-5 members' }, 'musician-band');
 expectKey('6+ members -> musician-band', { category: 'musician', bandSize: '6+ members' }, 'musician-band');
 expectKey('unset bandSize -> musician-band', { category: 'musician' }, 'musician-band');
+expectKey(
+  'unset bandSize + electronic genre -> musician-dj (spec genre discriminator)',
+  { category: 'musician', genre: 'Electronic / House' },
+  'musician-dj',
+);
+expectKey(
+  'explicit bandSize beats genre',
+  { category: 'musician', bandSize: 'Duo', genre: 'DJ sets' },
+  'musician-band',
+);
 
 console.log('2. vendor discrimination by footprint / needs / foodType');
 expectKey('truck footprint -> food-truck', { category: 'vendor', footprint: 'Food truck, 20 ft' }, 'food-truck');

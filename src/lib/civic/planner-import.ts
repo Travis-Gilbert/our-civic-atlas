@@ -7,8 +7,11 @@
  * browser. The panel component owns only presentation.
  *
  * Contract decisions, recorded:
- *  - Dedup key is normalized `email` (the schema's documented dedup key).
- *    Rows without an email never collide; they always import as new.
+ *  - Dedup key is normalized `email` (the schema's documented dedup key),
+ *    with `sourceId` as the secondary key so email-less rows still round
+ *    trip: civic-export writes `civic-row:<rowId>` for rows that never had
+ *    a sourceId, and the plan matches both real sourceIds and that synth
+ *    form back to their store rows instead of duplicating them.
  *  - Nothing writes until commit; the plan object is inert (deliverable 3).
  *  - Collisions resolve per row: `skip` writes nothing; `update` writes only
  *    NON-EMPTY incoming INTAKE fields (shared + category scopes). Planning
@@ -68,6 +71,8 @@ function looksLikeGeoJson(text: string): boolean {
   try {
     const parsed: unknown = JSON.parse(text);
     const type = (parsed as { type?: string } | null)?.type;
+    // Bare Features count too; parseGeoJsonEventFeatures wraps them, so
+    // detection and parsing agree.
     return type === 'FeatureCollection' || type === 'Feature';
   } catch {
     return false;
@@ -111,10 +116,31 @@ export function buildCsvImportPlan(
   const candidates = mapFormspreeRowsToApplications(rows);
 
   const existingByEmail = new Map<string, ExistingCivicRow>();
+  const existingBySourceId = new Map<string, ExistingCivicRow>();
+  const existingByRowId = new Map<string, ExistingCivicRow>();
   for (const row of existingRows) {
     const email = normalizedEmail(row.fields.email);
     if (email && !existingByEmail.has(email)) existingByEmail.set(email, row);
+    const sourceId = row.fields.sourceId?.trim();
+    if (sourceId && !existingBySourceId.has(sourceId)) {
+      existingBySourceId.set(sourceId, row);
+    }
+    existingByRowId.set(row.rowId, row);
   }
+  // Secondary dedup: a real sourceId, or the civic-row:<rowId> form the
+  // export synthesizes for rows that never had one.
+  const existingForSourceId = (
+    sourceId: string | undefined,
+  ): ExistingCivicRow | undefined => {
+    const trimmed = sourceId?.trim();
+    if (!trimmed) return undefined;
+    return (
+      existingBySourceId.get(trimmed) ??
+      (trimmed.startsWith('civic-row:')
+        ? existingByRowId.get(trimmed.slice('civic-row:'.length))
+        : undefined)
+    );
+  };
 
   const perCategory: Record<CivicCategory, number> = {
     musician: 0,
@@ -133,15 +159,12 @@ export function buildCsvImportPlan(
     perCategory[candidate.civicObject.category] += 1;
     if (candidate.missingFields.length > 0) issueCount += 1;
     const email = normalizedEmail(candidate.civicObject.email);
-    const existing = email ? existingByEmail.get(email) : undefined;
-    if (existing) {
-      collisions.push({
-        candidate,
-        existingRowId: existing.rowId,
-        existingTitle: existing.title,
-      });
-      continue;
-    }
+    // In-file duplicates FIRST: only the first occurrence of an email gets
+    // a real (resolvable) collision or new-row slot. Later occurrences
+    // downgrade to a fixed-skip pending collision, so the resolutions map
+    // (keyed by existingRowId) never covers two candidates with one key,
+    // where a single update choice would silently apply both, last writer
+    // per field.
     if (email && seenInFile.has(email)) {
       collisions.push({
         candidate,
@@ -151,6 +174,17 @@ export function buildCsvImportPlan(
       continue;
     }
     if (email) seenInFile.set(email, candidate);
+    const existing =
+      (email ? existingByEmail.get(email) : undefined) ??
+      existingForSourceId(candidate.civicObject.sourceId);
+    if (existing) {
+      collisions.push({
+        candidate,
+        existingRowId: existing.rowId,
+        existingTitle: existing.title,
+      });
+      continue;
+    }
     newCandidates.push(candidate);
   }
 
@@ -260,17 +294,20 @@ export function parseGeoJsonEventFeatures(text: string): KmlEventFeature[] {
   } catch {
     return [];
   }
-  const collection = parsed as {
+  type RawFeature = {
     type?: string;
-    features?: Array<{
-      geometry?: { type?: string; coordinates?: unknown };
-      properties?: Record<string, unknown>;
-    }>;
+    geometry?: { type?: string; coordinates?: unknown };
+    properties?: Record<string, unknown>;
   };
+  const collection = parsed as { type?: string; features?: RawFeature[] };
+  // A bare Feature wraps into a one-element collection so detection
+  // (looksLikeGeoJson accepts both) and parsing agree.
   const features =
     collection.type === 'FeatureCollection' && Array.isArray(collection.features)
       ? collection.features
-      : [];
+      : collection.type === 'Feature'
+        ? [collection as RawFeature]
+        : [];
   const out: KmlEventFeature[] = [];
   for (const feature of features) {
     const geometry = feature.geometry;
@@ -305,19 +342,19 @@ export function parseGeoJsonEventFeatures(text: string): KmlEventFeature[] {
       });
       continue;
     }
-    if (
-      geometry.type === 'LineString' &&
-      Array.isArray(geometry.coordinates) &&
-      geometry.coordinates.length >= 2
-    ) {
-      const coords = (geometry.coordinates as unknown[])
-        .filter(
-          (pair): pair is [number, number] =>
-            Array.isArray(pair) &&
-            typeof pair[0] === 'number' &&
-            typeof pair[1] === 'number',
-        )
-        .map((pair) => [pair[0], pair[1]] as [number, number]);
+    const coordPairs = (raw: unknown): [number, number][] =>
+      Array.isArray(raw)
+        ? (raw as unknown[])
+            .filter(
+              (pair): pair is [number, number] =>
+                Array.isArray(pair) &&
+                typeof pair[0] === 'number' &&
+                typeof pair[1] === 'number',
+            )
+            .map((pair) => [pair[0], pair[1]] as [number, number])
+        : [];
+    if (geometry.type === 'LineString') {
+      const coords = coordPairs(geometry.coordinates);
       if (coords.length >= 2) {
         out.push({
           label,
@@ -325,6 +362,20 @@ export function parseGeoJsonEventFeatures(text: string): KmlEventFeature[] {
           category: resolved.category,
           note: resolved.note,
           geometry: { type: 'LineString', coordinates: coords },
+        });
+      }
+      continue;
+    }
+    if (geometry.type === 'Polygon' && Array.isArray(geometry.coordinates)) {
+      // Outer ring only, matching the KML walk: zones and boundaries.
+      const ring = coordPairs((geometry.coordinates as unknown[])[0]);
+      if (ring.length >= 3) {
+        out.push({
+          label,
+          folderPath: [],
+          category: resolved.category,
+          note: resolved.note,
+          geometry: { type: 'Polygon', coordinates: [ring] },
         });
       }
     }

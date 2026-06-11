@@ -97,6 +97,12 @@ function sublabelFor(fields: Partial<CivicObjectFields>): string | null {
  * and socials, which an IconLayer cannot rasterize. A link counts as the
  * submission's image when it is an http(s) URL ending in a raster
  * extension; everything else falls back to name + category color.
+ *
+ * CORS caveat: deck.gl's IconLayer fetches icons in-browser, so an image
+ * host that does not send CORS headers silently drops the billboard and
+ * the figure shows label-only. That is the designed fallback, not a bug;
+ * if billboards matter for a specific host, route it through a
+ * same-origin proxy.
  */
 const IMAGE_LINK_KEYS = [
   'musicLink',

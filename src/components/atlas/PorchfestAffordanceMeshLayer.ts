@@ -387,9 +387,12 @@ export function buildPorchfestFigureDecorations({
       getTextAnchor: "middle",
       getAlignmentBaseline: "bottom",
       // Sit above the figure; leave headroom for the billboard when the
-      // submission carries one.
-      getPixelOffset: (placement) =>
-        placement.imageUrl ? [0, -52] : [0, -18],
+      // submission carries one, and lift with the selected figure's pop so
+      // the label tracks the mesh's selection lift.
+      getPixelOffset: (placement) => {
+        const base = placement.imageUrl ? -52 : -18;
+        return [0, placement.id === selectedPlacementId ? base - 8 : base];
+      },
       updateTriggers: { getPixelOffset: selectedPlacementId },
     }),
   );

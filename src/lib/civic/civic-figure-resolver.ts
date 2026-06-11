@@ -12,8 +12,10 @@
  * Determinism rules, most specific signal first, category default last:
  *
  *   musician    bandSize Solo -> musician-solo; DJ / electronic ->
- *               musician-dj; Duo / 3-5 members / 6+ members (or unset) ->
- *               musician-band.
+ *               musician-dj; Duo / 3-5 members / 6+ members ->
+ *               musician-band. When bandSize is unset, a genre naming
+ *               dj/electronic resolves musician-dj (the spec lists genre
+ *               as a musician discriminator); otherwise musician-band.
  *   vendor      footprint mentioning a truck (or "Parking for truck" in
  *               vendorNeeds) -> food-truck; footprint mentioning a cart ->
  *               food-cart when foodType says they serve food, else
@@ -52,8 +54,15 @@ function resolveMusician(fields: Partial<CivicObjectFields>): CivicFigureKey {
       return 'musician-solo';
     case 'DJ / electronic':
       return 'musician-dj';
-    default:
+    case 'Duo':
+    case '3-5 members':
+    case '6+ members':
       return 'musician-band';
+    default:
+      // bandSize unset: genre is the secondary discriminator.
+      return /\b(dj|electronic|edm|house|techno)\b/i.test(fields.genre ?? '')
+        ? 'musician-dj'
+        : 'musician-band';
   }
 }
 

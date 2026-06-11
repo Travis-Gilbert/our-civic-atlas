@@ -248,6 +248,80 @@ check(
   lineFeatures.map((f) => ({ type: f.geometry.type, category: f.category })),
 );
 
+console.log('8. review fixes: email-less round trip, polygons, bare Feature, formula guard');
+// Email-less organizer row: export synthesizes civic-row:<rowId> as the
+// sourceId, and re-import must match it back instead of duplicating.
+const emaillessRowId = insertCivicObject(handles, {
+  category: 'other',
+  name: 'Walk-up Organizer Entry',
+  email: '',
+  orgName: 'Paper Form Org',
+  proposal: 'Brought a paper form to the table.',
+});
+const csvWithEmailless = civicRowsToCsv(listRows());
+check(
+  'export synthesizes civic-row sourceId for email-less rows',
+  csvWithEmailless.includes(`civic-row:${emaillessRowId}`),
+);
+const emaillessPlan = buildCsvImportPlan(csvWithEmailless, listRows());
+check(
+  'email-less row round trips with zero new records',
+  emaillessPlan.newCandidates.length === 0,
+  emaillessPlan.newCandidates.map((c) => c.civicObject.name),
+);
+
+// Two file rows colliding with the SAME store row: the second downgrades
+// to a pending collision so one resolutions-map key never covers both.
+const doubleCollisionCsv = [
+  'Applying as,Full Name,Email Address,Band Name,Genre',
+  'Musician,Sol A,solo@example.com,First Version,Folk',
+  'Musician,Sol B,solo@example.com,Second Version,Rock',
+].join('\r\n');
+const doublePlan = buildCsvImportPlan(doubleCollisionCsv, listRows());
+const doubleIds = doublePlan.collisions.map((c) => c.existingRowId);
+check(
+  'second same-store-row collision downgrades to pending',
+  doublePlan.collisions.length === 2 &&
+    !doubleIds[0].startsWith('pending:') &&
+    doubleIds[1].startsWith('pending:'),
+  doubleIds,
+);
+
+// Polygon + bare-Feature GeoJSON parse.
+const polygonFeatures = parseGeoJsonEventFeatures(
+  JSON.stringify({
+    type: 'Feature',
+    properties: { name: 'Festival zone', category: 'rest_area' },
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[[-83.7, 43.01], [-83.71, 43.01], [-83.71, 43.02], [-83.7, 43.01]]],
+    },
+  }),
+);
+check(
+  'bare Feature with Polygon parses (wrap + outer ring)',
+  polygonFeatures.length === 1 &&
+    polygonFeatures[0].geometry.type === 'Polygon' &&
+    polygonFeatures[0].category === 'rest_area',
+  polygonFeatures,
+);
+
+// Spreadsheet formula injection is neutralized in free-text exports.
+insertCivicObject(handles, {
+  category: 'other',
+  name: '=HYPERLINK("https://evil.test","click")',
+  email: 'hostile@example.com',
+  orgName: '@SUM(1,1)',
+  proposal: 'legit text',
+});
+const hostileCsv = civicRowsToCsv(listRows());
+check(
+  'formula-shaped free text exports with a neutralizing apostrophe',
+  hostileCsv.includes(`"'=HYPERLINK(""https://evil.test"",""click"")"`) &&
+    hostileCsv.includes(`'@SUM(1,1)`) &&
+    !hostileCsv.includes(`,=HYPERLINK`),
+);
+
 if (failures > 0) {
   console.error(`\nvalidate-planner-import: ${failures} failure(s)`);
   process.exit(1);

@@ -7,7 +7,11 @@
  *    KEYS (not display names): every key normalizes back to itself through
  *    formspree-import's FIELD_KEY_BY_NORMALIZED, so re-importing an export
  *    maps 1:1 and dedups to zero new records (acceptance 4). All columns
- *    export, planning fields included, because the CSV is the data backup.
+ *    export, planning fields included, for the organizer's records; note
+ *    that re-IMPORT restores intake fields only (planning state is
+ *    CRDT-owned and never written by an import), so this is a data export,
+ *    not a backup-restore path. Rows without a sourceId get a synthesized
+ *    `civic-row:<rowId>` so email-less rows still dedup on re-import.
  *  - GeoJSON: the sharing format for GIS (acceptance 5). PLACED objects
  *    only, and properties are deliberately minimal (title, category,
  *    status, setTime, figure key): an export meant for sharing must not
@@ -35,13 +39,24 @@ function csvEscape(value: string): string {
   return value;
 }
 
+/**
+ * Spreadsheet formula neutralizer: applicant-controlled free text starting
+ * with =, +, -, @, tab, or CR would execute as a formula when the organizer
+ * opens the export in Excel/Sheets. The standard leading apostrophe
+ * disarms it; it only applies to string-typed field values (numbers,
+ * booleans, and option-list arrays are schema-controlled).
+ */
+function neutralizeFormula(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function cellFor(fields: Partial<CivicObjectFields>, key: string): string {
   const value = fields[key as keyof CivicObjectFields];
   if (value === undefined || value === null) return '';
   if (Array.isArray(value)) return value.join('; ');
   if (typeof value === 'boolean') return value ? 'yes' : 'no';
   if (typeof value === 'number') return String(value);
-  return String(value);
+  return neutralizeFormula(String(value));
 }
 
 /** All civic objects as a schema-keyed CSV string (with trailing newline). */
@@ -49,7 +64,15 @@ export function civicRowsToCsv(rows: readonly ExistingCivicRow[]): string {
   const lines: string[] = [EXPORT_KEYS.join(',')];
   for (const row of rows) {
     lines.push(
-      EXPORT_KEYS.map((key) => csvEscape(cellFor(row.fields, key))).join(','),
+      EXPORT_KEYS.map((key) => {
+        // Synthesize a stable sourceId for rows that never had one so the
+        // export round-trips email-less rows (planner-import matches the
+        // civic-row:<rowId> form back to the store row).
+        if (key === 'sourceId' && !row.fields.sourceId) {
+          return csvEscape(`civic-row:${row.rowId}`);
+        }
+        return csvEscape(cellFor(row.fields, key));
+      }).join(','),
     );
   }
   return `${lines.join('\r\n')}\r\n`;

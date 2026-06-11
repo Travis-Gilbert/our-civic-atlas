@@ -50,6 +50,13 @@ editorEffects();
 
 const SYNC_DB_NAME = 'civic-atlas-event-planning';
 const SYNC_BOOT_TIMEOUT_MS = 4_000;
+/**
+ * Second, much longer bound used ONLY when the local store is empty and a
+ * sync URL is configured: seeding a fresh store before the server doc
+ * arrives would fork the shared doc under CRDT merge, so an empty store
+ * waits out a cold server start before concluding it really is first.
+ */
+const SEED_GUARD_TIMEOUT_MS = 45_000;
 
 export interface CivicWorkspaceApi {
   /** Insert one civic object (used by ingestion and local testing). */
@@ -218,18 +225,22 @@ function openCivicCore(): Promise<CivicCore> {
         };
       }
     ).docSync;
-    const boundedSyncWait = (label: string, wait?: Promise<void>) => {
+    const boundedSyncWait = (
+      label: string,
+      wait?: Promise<void>,
+      boundMs: number = SYNC_BOOT_TIMEOUT_MS,
+    ) => {
       if (!wait) return Promise.resolve();
       return Promise.race([
         wait,
         new Promise<void>((resolve) => {
           setTimeout(() => {
             console.warn(
-              `civic sync: ${label} still pending after ${SYNC_BOOT_TIMEOUT_MS}ms; ` +
+              `civic sync: ${label} still pending after ${boundMs}ms; ` +
                 'continuing local-first (server sync keeps retrying in the background)',
             );
             resolve();
-          }, SYNC_BOOT_TIMEOUT_MS);
+          }, boundMs);
         }),
       ]);
     };
@@ -237,6 +248,26 @@ function openCivicCore(): Promise<CivicCore> {
     const existing = collection.getDoc(CIVIC_EVENT_DOC_ID);
     if (existing && !existing.loaded) existing.load();
     await boundedSyncWait('waitForSynced', docSync?.waitForSynced());
+
+    // Seed guard for the double-seed window the bound reopens: on a FRESH
+    // browser (no local database block) with a configured shadow, racing
+    // out after SYNC_BOOT_TIMEOUT_MS and seeding would fork the shared doc
+    // when the slow-but-alive server's copy merges in later (two
+    // affine:database blocks, nondeterministic adoption). A fresh store
+    // has nothing to show anyway, so it alone waits a much longer second
+    // bound before the seed decision; stores with local data (every
+    // organizer's normal boot) never pay this.
+    if (
+      syncUrl &&
+      (existing?.getStore({ id: CIVIC_EVENT_DOC_ID })
+        .getModelsByFlavour('affine:database').length ?? 0) === 0
+    ) {
+      await boundedSyncWait(
+        'waitForSynced (empty local store, seed guard)',
+        docSync?.waitForSynced(),
+        SEED_GUARD_TIMEOUT_MS,
+      );
+    }
 
     const handles = ensureCivicDatabase(collection);
     if (!collection.meta.getDocMeta(CIVIC_EVENT_DOC_ID)?.title) {

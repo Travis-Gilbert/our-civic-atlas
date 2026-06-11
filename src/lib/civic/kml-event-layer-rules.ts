@@ -77,7 +77,7 @@ const LABEL_RULES: ReadonlyArray<{
   },
   { pattern: /\b(kid|child|playground)/i, category: 'kid_zone' },
   { pattern: /\b(restroom|toilet|porta|bathroom)/i, category: 'restroom' },
-  { pattern: /\b(parking|lot|ada)\b/i, category: 'parking' },
+  { pattern: /\b(parking|lot|ada)/i, category: 'parking' },
   {
     pattern: /\b(music|porch|band|trio|choir|jazz|blues|folk|stage)/i,
     category: 'music',
@@ -88,14 +88,15 @@ export function categoryFor(
   folderPath: readonly string[],
   label: string,
 ): KmlCategoryResult {
-  // Most specific folder first: walk from the immediate parent outward.
+  // Most specific folder first: walk from the immediate parent outward. A
+  // mixed-folder match (category null) stops scanning THAT folder's rules
+  // but keeps walking outer folders, mirroring the original script: a
+  // placemark in "Vendors" > "Misc" still resolves to vendor.
   for (let i = folderPath.length - 1; i >= 0; i -= 1) {
     const lower = folderPath[i].toLowerCase();
     for (const rule of FOLDER_TO_CATEGORY) {
       if (!lower.includes(rule.match)) continue;
       if (rule.category) return { category: rule.category, note: null };
-      // Mixed folder: fall through to the label rules below.
-      i = -1;
       break;
     }
   }
@@ -110,7 +111,8 @@ export function categoryFor(
 
 export type KmlFeatureGeometry =
   | { type: 'Point'; coordinates: [number, number] }
-  | { type: 'LineString'; coordinates: [number, number][] };
+  | { type: 'LineString'; coordinates: [number, number][] }
+  | { type: 'Polygon'; coordinates: [number, number][][] };
 
 export interface KmlEventFeature {
   readonly label: string;
@@ -138,9 +140,17 @@ export function parseKmlCoordinates(text: string): [number, number][] {
 /**
  * Walk a parsed KML Document and return categorized event features. Browser
  * callers parse with `new DOMParser().parseFromString(text, 'text/xml')`;
- * the walk itself only uses the cross-environment DOM surface.
+ * the walk itself only uses the cross-environment DOM surface, matching by
+ * localName THROUGHOUT so prefixed-namespace KML (<kml:Point>) walks the
+ * same as default-namespace Google exports.
+ *
+ * Throws on a DOMParser parsererror document: a corrupt file must surface
+ * as an error the panel can toast, never as a silent zero-feature import.
  */
 export function collectKmlPlacemarks(doc: Document): KmlEventFeature[] {
+  if (doc.getElementsByTagName('parsererror').length > 0) {
+    throw new Error('The file is not well-formed XML/KML.');
+  }
   const features: KmlEventFeature[] = [];
 
   const directChildText = (el: Element, tag: string): string => {
@@ -151,6 +161,20 @@ export function collectKmlPlacemarks(doc: Document): KmlEventFeature[] {
     }
     return '';
   };
+
+  // Prefix-safe descendant lookup: getElementsByTagName('Point') misses
+  // <kml:Point>, so scan all descendants and compare localName.
+  const firstDescendantByLocalName = (
+    el: Element,
+    name: string,
+  ): Element | null => {
+    for (const node of Array.from(el.getElementsByTagName('*'))) {
+      if ((node.localName || node.tagName) === name) return node;
+    }
+    return null;
+  };
+  const coordinatesTextOf = (el: Element): string =>
+    firstDescendantByLocalName(el, 'coordinates')?.textContent ?? '';
 
   const walk = (node: Element, folderPath: string[]): void => {
     for (const child of Array.from(node.children)) {
@@ -163,19 +187,20 @@ export function collectKmlPlacemarks(doc: Document): KmlEventFeature[] {
       if (name !== 'Placemark') continue;
 
       const label = directChildText(child, 'name') || 'Unnamed feature';
-      const point = child.getElementsByTagName('Point')[0];
-      const line = child.getElementsByTagName('LineString')[0];
+      const point = firstDescendantByLocalName(child, 'Point');
+      const line = firstDescendantByLocalName(child, 'LineString');
+      const polygon = firstDescendantByLocalName(child, 'Polygon');
       let geometry: KmlFeatureGeometry | null = null;
       if (point) {
-        const coords = parseKmlCoordinates(
-          point.getElementsByTagName('coordinates')[0]?.textContent ?? '',
-        );
+        const coords = parseKmlCoordinates(coordinatesTextOf(point));
         if (coords.length > 0) geometry = { type: 'Point', coordinates: coords[0] };
       } else if (line) {
-        const coords = parseKmlCoordinates(
-          line.getElementsByTagName('coordinates')[0]?.textContent ?? '',
-        );
+        const coords = parseKmlCoordinates(coordinatesTextOf(line));
         if (coords.length >= 2) geometry = { type: 'LineString', coordinates: coords };
+      } else if (polygon) {
+        // Outer boundary only: zones and boundaries; holes are out of scope.
+        const ring = parseKmlCoordinates(coordinatesTextOf(polygon));
+        if (ring.length >= 3) geometry = { type: 'Polygon', coordinates: [ring] };
       }
       if (!geometry) continue;
 
