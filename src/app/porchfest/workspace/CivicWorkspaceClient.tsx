@@ -402,8 +402,8 @@ function WorkspaceInner() {
           flex-direction: column;
           /* The porchfest layout wraps routes in overflow-hidden h-full for
              the map surface, so the page itself can never scroll here. The
-             shell pins to the viewport and the editor pane below becomes
-             the scroll container instead. */
+             shell pins to the viewport and scrolling happens inside the
+             editor's .affine-page-viewport (see the editor pane rules). */
           height: 100vh;
           height: 100dvh;
           background: #ffffff;
@@ -584,15 +584,34 @@ function WorkspaceInner() {
         .civic-workspace-editor {
           flex: 1;
           min-height: 0;
-          overflow-y: auto;
-          overscroll-behavior: contain;
+          /* The pane is a fixed frame, not the scroll container: BlockSuite
+             page mode binds every scroll behavior (caret follow while
+             typing, drag-handle autoscroll, click-to-append in the blank
+             area below the last block, getScrollContainer for sticky
+             database headers) to .affine-page-viewport, so that element
+             must own the scrolling. When the pane scrolled instead, the
+             applications database happened to work (native wheel over a
+             grown pane) but freshly created note docs could not scroll:
+             the viewport never overflowed and caret follow no-oped. */
+          overflow: hidden;
           background: #ffffff;
         }
         .civic-workspace-editor affine-editor-container {
           display: block;
-          /* Fill the pane when content is short; grow past it when the
-             database is tall so the pane scrolls. */
-          min-height: 100%;
+          height: 100%;
+        }
+        /* Same height contract the upstream BlockSuite playground and
+           AFFiNE apply to the page editor: a definite-height
+           .affine-page-viewport (overflow-y auto in the component styles)
+           with the editor wrapper filling it, so page content taller than
+           the pane scrolls inside the viewport for every doc, applications
+           and organizer notes alike. */
+        .civic-workspace-editor .affine-page-viewport {
+          height: 100%;
+          overscroll-behavior: contain;
+        }
+        .civic-workspace-editor .playground-page-editor-container {
+          height: 100%;
         }
         @media (max-width: 780px) {
           .civic-billing-band {
