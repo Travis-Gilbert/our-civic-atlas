@@ -179,11 +179,27 @@ function WorkspaceInner() {
     });
   }, [applicationsResult.data, state.kind]);
 
+  const statusChips: string[] = [];
+  if (state.kind === "ready") {
+    statusChips.push(
+      `${state.objectCount} civic object${state.objectCount === 1 ? "" : "s"}`,
+    );
+    if (state.ingested !== null && state.ingested > 0) {
+      statusChips.push(`${state.ingested} ingested from intake`);
+    }
+    if (applicationsResult.error) {
+      statusChips.push("intake ledger unreachable; local-first");
+    }
+  }
+
   return (
     <div className="civic-workspace-shell">
       <header className="civic-workspace-header">
         <div>
-          <h1>Porchfest 2026 planning workspace</h1>
+          <p className="civic-workspace-overline">
+            PorchFest 2026 · Organizers
+          </p>
+          <h1>Planning workspace</h1>
           <p className="civic-workspace-sub">
             Applications as one shared civic-object database: table and kanban
             views, edits sync live through the CRDT store.
@@ -191,19 +207,11 @@ function WorkspaceInner() {
         </div>
         <div className="civic-workspace-status" role="status">
           {state.kind === "loading" && <span>Loading editor…</span>}
-          {state.kind === "ready" && (
-            <span>
-              {state.objectCount} civic object
-              {state.objectCount === 1 ? "" : "s"}
-              {state.ingested !== null && state.ingested > 0
-                ? ` (${state.ingested} ingested from intake)`
-                : ""}
-              {applicationsResult.error
-                ? " ; intake ledger unreachable (workspace remains local-first)"
-                : ""}
-            </span>
+          {state.kind === "ready" &&
+            statusChips.map((chip) => <span key={chip}>{chip}</span>)}
+          {state.kind === "error" && (
+            <span data-tone="error">{state.message}</span>
           )}
-          {state.kind === "error" && <span>{state.message}</span>}
         </div>
       </header>
       <div ref={containerRef} className="civic-workspace-editor" />
@@ -212,36 +220,65 @@ function WorkspaceInner() {
           display: flex;
           flex-direction: column;
           min-height: 100vh;
-          background: var(--ctx-paper, #ffffff);
+          background: #ffffff;
+          color: #1c1c1c;
         }
         .civic-workspace-header {
           display: flex;
-          align-items: baseline;
+          align-items: flex-end;
           justify-content: space-between;
           gap: 16px;
-          padding: 18px 24px 10px;
-          border-bottom: 1px solid rgba(43, 38, 34, 0.14);
+          padding: 24px 24px 16px;
+          border-bottom: 1px solid #e2e2e2;
+        }
+        .civic-workspace-overline {
+          margin: 0;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1.6px;
+          text-transform: uppercase;
+          color: #454545;
         }
         .civic-workspace-header h1 {
-          font-size: 18px;
-          font-weight: 700;
-          margin: 0;
+          margin: 4px 0 0;
+          font-family: var(--font-mono, inherit);
+          font-size: 24px;
+          font-weight: 500;
+          line-height: 32px;
         }
         .civic-workspace-sub {
-          margin: 2px 0 0;
-          font-size: 12.5px;
-          opacity: 0.72;
+          margin: 4px 0 0;
+          font-size: 13px;
+          color: #454545;
+          max-width: 64ch;
         }
         .civic-workspace-status {
-          font-size: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+          font-family: var(--font-mono, inherit);
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
           font-variant-numeric: tabular-nums;
-          opacity: 0.8;
+          color: #454545;
+        }
+        .civic-workspace-status span {
+          padding: 6px 12px;
+          border: 1px solid #e2e2e2;
+          border-radius: 9999px;
+          background: #ffffff;
           white-space: nowrap;
+        }
+        .civic-workspace-status span[data-tone="error"] {
+          border-left: 2px solid #bf5f52;
+          color: #1c1c1c;
         }
         .civic-workspace-editor {
           flex: 1;
           min-height: 0;
-          background: #fff;
+          background: #ffffff;
         }
         .civic-workspace-editor affine-editor-container {
           display: block;

@@ -1,0 +1,59 @@
+/*
+ * Observable register for the embedded BlockSuite editor.
+ *
+ * Imported by entry.ts AFTER @toeverything/theme/style.css, so these
+ * overrides win in the bundled civic-editor.css by cascade order. Maps
+ * the affine light-theme variables onto the Observable palette
+ * (docs/Design update/observable-DESIGN.md): white surfaces, near-black
+ * and dark-gray text, light-gray hairlines, navy-primary as the brand
+ * and action color, code-surface-blue selection washes, and the
+ * evidence-backed shadow depths. Body type rides the page font chain
+ * (IBM Plex Sans Condensed) instead of the bundled Inter, per Path B.
+ */
+
+:root {
+  --affine-font-family:
+    var(--font-ibm-plex-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --affine-font-sans-family:
+    var(--font-ibm-plex-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --affine-font-number-family:
+    var(--font-ibm-plex-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+
+  --affine-brand-color: #005186;
+  --affine-primary-color: #005186;
+
+  --affine-text-primary-color: #1c1c1c;
+  --affine-text-secondary-color: #454545;
+  --affine-text-disable-color: #c5c5c5;
+  --affine-icon-color: #454545;
+  --affine-icon-secondary: #c5c5c5;
+  --affine-placeholder-color: #c5c5c5;
+
+  --affine-background-primary-color: #ffffff;
+  --affine-background-secondary-color: #f5f5f5;
+  --affine-background-tertiary-color: #e2e2e2;
+  --affine-background-overlay-panel-color: #ffffff;
+  --affine-background-modal-color: rgba(0, 0, 0, 0.4);
+  --affine-background-code-block: #f1f6fb;
+
+  --affine-border-color: #e2e2e2;
+  --affine-divider-color: #e2e2e2;
+
+  --affine-hover-color: rgba(28, 28, 28, 0.04);
+  --affine-hover-color-filled: rgba(28, 28, 28, 0.04);
+
+  /* Evidence-backed depth set: card 0.12, popover 0.15, elevated 0.25. */
+  --affine-shadow-1: 0 2px 8px -4px rgba(0, 0, 0, 0.12);
+  --affine-shadow-2: 0 4px 15px rgba(0, 0, 0, 0.12);
+  --affine-shadow-3: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --affine-popover-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --affine-menu-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  /* Selection and link emphasis stay in the navy family. */
+  --affine-link-color: #005186;
+  --affine-selected-color: rgba(0, 81, 134, 0.16);
+  --affine-hover-color-secondary: rgba(0, 81, 134, 0.08);
+}

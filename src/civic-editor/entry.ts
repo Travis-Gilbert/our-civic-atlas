@@ -26,6 +26,9 @@ import { getTestViewManager } from '@blocksuite/integration-test/view';
 import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
 
 import '@toeverything/theme/style.css';
+// Observable register overrides; must follow the stock theme import so
+// the bundled css wins by cascade order.
+import './civic-editor-theme.css';
 
 import type { CivicObjectFields } from '../lib/civic/civic-object-schema';
 import {
