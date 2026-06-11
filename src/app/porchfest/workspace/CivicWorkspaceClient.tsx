@@ -459,23 +459,33 @@ function WorkspaceInner() {
           background: #ffffff;
           color: #1c1c1c;
         }
+        /* Top-strip treatment (carried over from AtlasSceneChrome): no
+           full-width band, no big wordmark. The kicker overline carries
+           the identity, the h1 stays for the document outline but reads
+           as a quiet line, and the nav is a content-hugging hairline
+           strip anchored right. */
         .civic-workspace-header {
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding: 24px 24px 16px;
-          border-bottom: 1px solid #e2e2e2;
+          padding: 14px 24px 10px;
         }
         .civic-workspace-nav {
           display: flex;
-          gap: 8px;
-        }
-        .civic-workspace-nav a {
-          padding: 6px 12px;
+          align-items: center;
+          gap: 2px;
+          padding: 4px;
           border: 1px solid #e2e2e2;
           border-radius: 9999px;
           background: #ffffff;
+          box-shadow: 0 1px 2px rgba(28, 28, 28, 0.05);
+        }
+        .civic-workspace-nav a {
+          padding: 6px 12px;
+          border: 1px solid transparent;
+          border-radius: 9999px;
+          background: transparent;
           color: #454545;
           font-family: var(--font-mono, inherit);
           font-size: 11px;
@@ -486,7 +496,7 @@ function WorkspaceInner() {
           white-space: nowrap;
         }
         .civic-workspace-nav a:hover {
-          border-color: #454545;
+          border-color: #e2e2e2;
           color: #1c1c1c;
         }
         .civic-workspace-docbar {
@@ -571,12 +581,14 @@ function WorkspaceInner() {
           text-transform: uppercase;
           color: #454545;
         }
+        /* Quiet page title, not a wordmark: the overline above it is
+           the identity. Kept as an h1 for the document outline. */
         .civic-workspace-header h1 {
-          margin: 4px 0 0;
+          margin: 2px 0 0;
           font-family: var(--font-mono, inherit);
-          font-size: 24px;
-          font-weight: 500;
-          line-height: 32px;
+          font-size: 13px;
+          font-weight: 600;
+          line-height: 18px;
         }
         .civic-billing-band {
           display: grid;

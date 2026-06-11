@@ -78,6 +78,7 @@ import {
 } from "@/components/atlas/PlannerTaskRail";
 import { PlannerBookmarks } from "@/components/atlas/PlannerBookmarks";
 import { PlannerImportPanel } from "@/components/atlas/PlannerImportPanel";
+import { PorchfestPlannerSidebar } from "@/components/atlas/PorchfestPlannerSidebar";
 import type { KmlEventFeature } from "@/lib/civic/kml-event-layer-rules";
 import {
   PlannerLayerControls,
@@ -1427,6 +1428,252 @@ function PorchfestPlannerWorkspace({
     </div>
   );
 
+  /* --- desktop sidebar section bodies ------------------------------ */
+  // The approved CivicAtlasSidebar treatment carried over (see
+  // PorchfestPlannerSidebar.tsx). Composition only: these are the SAME
+  // panels the old left column stacked, props and state owned here; the
+  // sidebar adds rail navigation, search, and collapse around them.
+  const sidebarPlannerContent = (
+    <>
+      <div>
+        <h1 className="planner-ink m-0 font-display text-[26px] leading-none">
+          PorchFest
+        </h1>
+        <p className="planner-ink-soft mt-1 text-[13px] leading-5">
+          {eventTitle}
+        </p>
+      </div>
+      {!placementsLoaded ? (
+        <p className="planner-note px-2 py-1 leading-4">
+          Backend pending: showing fixture data. Editing unlocks when the
+          planner GraphQL service responds.
+        </p>
+      ) : null}
+      <div>
+        <p className="planner-kicker">Mode</p>
+        <div className="mt-1.5 space-y-2">
+          <PlannerEditModeToggle
+            mode={paletteMode}
+            setMode={setPaletteMode}
+            canEdit={editingAvailable}
+            disabledMessage={editDisabledMessage}
+          />
+          <PlannerPalette
+            mode={paletteMode}
+            setMode={setPaletteMode}
+            canEdit={editingAvailable}
+            disabledMessage={editDisabledMessage}
+            embedded
+          />
+        </div>
+      </div>
+      <div>
+        <p className="planner-kicker">Camera</p>
+        <div className="mt-1.5">
+          <PlannerBookmarks
+            eventSlug={EVENT_SLUG}
+            mapRef={mapRef}
+            canEdit={canEdit}
+            onError={(message) => setToast(message)}
+          />
+        </div>
+      </div>
+    </>
+  );
+
+  const sidebarLayersContent = (
+    <PlannerLayerControls
+      visibility={visibility}
+      setVisibility={setVisibility}
+      placementCountByCategory={placementCountByCategory}
+    />
+  );
+
+  const sidebarImportContent = (
+    <PlannerImportPanel
+      civicRows={civicRows}
+      civicApi={civicApi}
+      onCreateEventFeature={handleCreateEventFeature}
+      droppedFile={droppedFile}
+      onConsumeDroppedFile={consumeDroppedFile}
+      onToast={setToast}
+    />
+  );
+
+  // Applications render prop: the sidebar's search query narrows the
+  // unplaced list; the Place/Cancel arming buttons keep their exact
+  // wiring (placementArm state + the one-shot map-click effect above).
+  const renderSidebarApplications = (query: string) => {
+    if (civicRows.length === 0) {
+      return (
+        <p className="planner-ink-soft text-[12px] leading-4">
+          No applications in the shared planning store yet. Submissions
+          appear here once the workspace ingests them.
+        </p>
+      );
+    }
+    const normalized = query.trim().toLowerCase();
+    const unplacedRows =
+      normalized === ""
+        ? civicBinding.unplaced
+        : civicBinding.unplaced.filter(
+            (row) =>
+              row.title.toLowerCase().includes(normalized) ||
+              (row.fields.category ?? "").toLowerCase().includes(normalized),
+          );
+    return (
+      <>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="planner-kicker">Unplaced</p>
+          <span className="planner-ink-soft text-[11px] tabular-nums">
+            {civicBinding.placed.length} placed ·{" "}
+            {civicBinding.unplaced.length} unplaced
+          </span>
+        </div>
+        {placementArm ? (
+          <p className="planner-note px-2 py-1 leading-4">
+            Click the map to place &quot;{placementArm.armedTitle}&quot;. Esc
+            cancels.
+          </p>
+        ) : null}
+        {unplacedRows.length > 0 ? (
+          <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+            {unplacedRows.map((row) => {
+              const isArmed = placementArm?.armedRowId === row.rowId;
+              return (
+                <li
+                  key={row.rowId}
+                  className="flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
+                >
+                  <span className="planner-ink min-w-0 flex-1 truncate">
+                    {row.title}
+                  </span>
+                  <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
+                    {row.fields.category}
+                  </span>
+                  <button
+                    type="button"
+                    aria-pressed={isArmed}
+                    onClick={() =>
+                      setPlacementArm(
+                        isArmed
+                          ? null
+                          : {
+                              armedRowId: row.rowId,
+                              armedTitle: row.title,
+                            },
+                      )
+                    }
+                    className="planner-tile shrink-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide planner-ink"
+                  >
+                    {isArmed ? "Cancel" : "Place"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : normalized !== "" ? (
+          <p className="planner-ink-soft text-[12px]">
+            No unplaced applications match &ldquo;{query}&rdquo;.
+          </p>
+        ) : (
+          <p className="planner-ink-soft text-[12px]">
+            Every application is placed on the map.
+          </p>
+        )}
+        <p className="planner-ink-soft text-[11px] leading-4">
+          Drag a placed marker to move it. Set a location in the{" "}
+          <a
+            className="underline underline-offset-2"
+            href="/porchfest/workspace"
+          >
+            workspace
+          </a>{" "}
+          to place the rest.
+        </p>
+      </>
+    );
+  };
+
+  // Pinned selection card: the same Selected panel body the old column
+  // rendered (clear button, swatch, address, figure override select),
+  // pinned under the sidebar's section body so the selection stays
+  // visible across section switches.
+  const sidebarSelectionContent = selectedPlacement ? (
+    <section aria-label="Selected placement">
+      <div className="flex items-start justify-between gap-2">
+        <p className="planner-kicker">Selected</p>
+        <button
+          type="button"
+          onClick={() => setSelectedPlacementId(null)}
+          className="planner-iconbtn flex h-6 w-6 items-center justify-center text-[12px]"
+          aria-label="Clear selection"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="planner-swatch"
+          style={{
+            backgroundColor:
+              CATEGORY_COLOR[
+                selectedPlacement.category as AtlasEventPlannerCategory
+              ] ?? CATEGORY_COLOR.amenity,
+          }}
+        />
+        <p className="planner-ink text-[16px] font-medium leading-tight">
+          {selectedPlacement.label}
+        </p>
+      </div>
+      <p className="planner-muted mt-1 text-[12px]">
+        {CATEGORY_HUMAN_LABEL[
+          selectedPlacement.category as AtlasEventPlannerCategory
+        ] ?? selectedPlacement.category}
+      </p>
+      {selectedPlacement.address ? (
+        <p className="planner-ink-soft mt-2 text-[13px] leading-snug">
+          {selectedPlacement.address}
+        </p>
+      ) : (
+        <p className="planner-faint mt-2 text-[12px]">Address pending</p>
+      )}
+      {/* Figure override (Feature 1): civic-backed selections only.
+          Auto shows what the resolver picked; choosing a key writes
+          the override to the CRDT store and the map swaps live. */}
+      {selectedCivicRowId ? (
+        <div className="mt-3">
+          <label
+            htmlFor="planner-figure-override"
+            className="planner-kicker block"
+          >
+            Figure
+          </label>
+          <select
+            id="planner-figure-override"
+            className="planner-tile mt-1 w-full px-2 py-1.5 text-[12px] planner-ink"
+            value={selectedCivicFigureOverride ?? ""}
+            onChange={(event) =>
+              handleFigureOverrideChange(event.target.value)
+            }
+          >
+            <option value="">
+              {selectedCivicAutoKey
+                ? `Auto (${selectedCivicAutoKey})`
+                : "Auto"}
+            </option>
+            {CIVIC_FIGURE_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {key}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+    </section>
+  ) : null;
+
   return (
     <main className="relative flex h-screen overflow-hidden">
       {/* The map wrapper doubles as the Feature 2 drop target: dropping a
@@ -1492,236 +1739,24 @@ function PorchfestPlannerWorkspace({
           ) : null}
         </div>
 
-        {/* Left column (desktop only; on mobile it folds into the island).
-            The container is pointer-transparent so the gap between panels
-            does not block the map; each panel re-enables pointer events. */}
+        {/* Left sidebar (desktop only; on mobile every control folds into
+            the island, untouched). The approved CivicAtlasSidebar chrome:
+            56px icon rail + 320px detail panel, collapse-to-rail. Section
+            bodies compose the SAME panels the old left column stacked;
+            props and state stay here. The floating bottom-right palette
+            moved into the Planner section (embedded variant, beside the
+            mode toggle), and the Workspace/Applications tiles became Links
+            rows inside the sidebar. */}
         {!isMobile ? (
-        <div className="pointer-events-none absolute left-4 top-4 z-10 flex w-[min(320px,calc(100vw-2rem))] flex-col gap-3">
-          <section className="planner-panel planner-panel--primary pointer-events-auto p-4">
-            <p className="planner-kicker">Our Civic Atlas</p>
-            <h1 className="planner-ink mt-1 font-display text-[32px] leading-none">
-              PorchFest
-            </h1>
-            <p className="planner-ink-soft mt-2 text-[14px] leading-5">
-              {eventTitle}
-            </p>
-            {!placementsLoaded ? (
-              <p className="planner-note mt-2 px-2 py-1 leading-4">
-                Backend pending: showing fixture data. Editing unlocks when the
-                planner GraphQL service responds.
-              </p>
-            ) : null}
-            <div className="mt-3">
-              <PlannerBookmarks
-                eventSlug={EVENT_SLUG}
-                mapRef={mapRef}
-                canEdit={canEdit}
-                onError={(message) => setToast(message)}
-              />
-            </div>
-            <div className="mt-3">
-              <PlannerEditModeToggle
-                mode={paletteMode}
-                setMode={setPaletteMode}
-                canEdit={editingAvailable}
-                disabledMessage={editDisabledMessage}
-              />
-            </div>
-            <div className="mt-3 flex gap-2">
-              <a
-                href="/porchfest/workspace"
-                className="planner-tile flex-1 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide planner-ink no-underline"
-              >
-                Workspace
-              </a>
-              {/* Team surface: routes to the finished applications, not the
-                  public form. Applicants only ever receive the direct
-                  /porchfest/apply link. */}
-              <a
-                href="/porchfest/workspace"
-                className="planner-tile flex-1 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide planner-ink no-underline"
-              >
-                Applications
-              </a>
-            </div>
-          </section>
-
-          {/* Applications from the shared civic store (Phase 5). Unplaced
-              entries are listed rather than hidden, per the spec edge case:
-              an applicant with no location never disappears. */}
-          {civicRows.length > 0 ? (
-            <section className="planner-panel pointer-events-auto p-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="planner-kicker">Applications</p>
-                <span className="planner-ink-soft text-[11px] tabular-nums">
-                  {civicBinding.placed.length} placed ·{" "}
-                  {civicBinding.unplaced.length} unplaced
-                </span>
-              </div>
-              {placementArm ? (
-                <p className="planner-note mt-2 px-2 py-1 leading-4">
-                  Click the map to place &quot;{placementArm.armedTitle}&quot;.
-                  Esc cancels.
-                </p>
-              ) : null}
-              {civicBinding.unplaced.length > 0 ? (
-                <ul className="mt-2 flex max-h-44 flex-col gap-1 overflow-y-auto">
-                  {civicBinding.unplaced.map((row) => {
-                    const isArmed = placementArm?.armedRowId === row.rowId;
-                    return (
-                      <li
-                        key={row.rowId}
-                        className="flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
-                      >
-                        <span className="planner-ink min-w-0 flex-1 truncate">
-                          {row.title}
-                        </span>
-                        <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
-                          {row.fields.category}
-                        </span>
-                        <button
-                          type="button"
-                          aria-pressed={isArmed}
-                          onClick={() =>
-                            setPlacementArm(
-                              isArmed
-                                ? null
-                                : {
-                                    armedRowId: row.rowId,
-                                    armedTitle: row.title,
-                                  },
-                            )
-                          }
-                          className="planner-tile shrink-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide planner-ink"
-                        >
-                          {isArmed ? "Cancel" : "Place"}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="planner-ink-soft mt-2 text-[12px]">
-                  Every application is placed on the map.
-                </p>
-              )}
-              <p className="planner-ink-soft mt-2 text-[11px] leading-4">
-                Drag a placed marker to move it. Set a location in the{" "}
-                <a
-                  className="underline underline-offset-2"
-                  href="/porchfest/workspace"
-                >
-                  workspace
-                </a>{" "}
-                to place the rest.
-              </p>
-            </section>
-          ) : null}
-
-          {/* Import / export (Feature 2). The panel owns the whole flow UI;
-              this client only feeds it dropped files, the civic store
-              handle, and the createPlacement wrapper for geometry. */}
-          <PlannerImportPanel
-            civicRows={civicRows}
-            civicApi={civicApi}
-            onCreateEventFeature={handleCreateEventFeature}
-            droppedFile={droppedFile}
-            onConsumeDroppedFile={consumeDroppedFile}
-            onToast={setToast}
-          />
-
-          {selectedPlacement ? (
-            <section className="planner-panel pointer-events-auto p-4">
-              <div className="flex items-start justify-between gap-2">
-                <p className="planner-kicker">Selected</p>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlacementId(null)}
-                  className="planner-iconbtn flex h-6 w-6 items-center justify-center text-[12px]"
-                  aria-label="Clear selection"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="mt-1 flex items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className="planner-swatch"
-                  style={{
-                    backgroundColor:
-                      CATEGORY_COLOR[
-                        selectedPlacement.category as AtlasEventPlannerCategory
-                      ] ?? CATEGORY_COLOR.amenity,
-                  }}
-                />
-                <p className="planner-ink text-[16px] font-medium leading-tight">
-                  {selectedPlacement.label}
-                </p>
-              </div>
-              <p className="planner-muted mt-1 text-[12px]">
-                {CATEGORY_HUMAN_LABEL[
-                  selectedPlacement.category as AtlasEventPlannerCategory
-                ] ?? selectedPlacement.category}
-              </p>
-              {selectedPlacement.address ? (
-                <p className="planner-ink-soft mt-2 text-[13px] leading-snug">
-                  {selectedPlacement.address}
-                </p>
-              ) : (
-                <p className="planner-faint mt-2 text-[12px]">Address pending</p>
-              )}
-              {/* Figure override (Feature 1): civic-backed selections only.
-                  Auto shows what the resolver picked; choosing a key writes
-                  the override to the CRDT store and the map swaps live. */}
-              {selectedCivicRowId ? (
-                <div className="mt-3">
-                  <label
-                    htmlFor="planner-figure-override"
-                    className="planner-kicker block"
-                  >
-                    Figure
-                  </label>
-                  <select
-                    id="planner-figure-override"
-                    className="planner-tile mt-1 w-full px-2 py-1.5 text-[12px] planner-ink"
-                    value={selectedCivicFigureOverride ?? ""}
-                    onChange={(event) =>
-                      handleFigureOverrideChange(event.target.value)
-                    }
-                  >
-                    <option value="">
-                      {selectedCivicAutoKey
-                        ? `Auto (${selectedCivicAutoKey})`
-                        : "Auto"}
-                    </option>
-                    {CIVIC_FIGURE_KEYS.map((key) => (
-                      <option key={key} value={key}>
-                        {key}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          <aside className="planner-panel pointer-events-auto p-4">
-            <PlannerLayerControls
-              visibility={visibility}
-              setVisibility={setVisibility}
-              placementCountByCategory={placementCountByCategory}
-            />
-          </aside>
-        </div>
-        ) : null}
-
-        {/* Placement tools (desktop only; mobile folds them into the island). */}
-        {!isMobile && editModeEnabled ? (
-          <PlannerPalette
-            mode={paletteMode}
-            setMode={setPaletteMode}
-            canEdit={editingAvailable}
-            disabledMessage={editDisabledMessage}
+          <PorchfestPlannerSidebar
+            className="hidden md:flex"
+            plannerContent={sidebarPlannerContent}
+            layersContent={sidebarLayersContent}
+            applicationsContent={renderSidebarApplications}
+            importContent={sidebarImportContent}
+            importSignal={droppedFile}
+            selectionContent={sidebarSelectionContent}
+            selectionId={selectedPlacement?.id ?? null}
           />
         ) : null}
 
