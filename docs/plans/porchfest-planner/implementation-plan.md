@@ -55,6 +55,11 @@ Current receipts:
   the GraphQL placement/task SSE decision by moving the planner stream onto the
   canonical Axum backend. It listens on `event_planner_<tenant>` and emits
   `planner_change` events at `/sse/event-planner`.
+- Backend commit `784b06b` (`feat(planner): add Square billing requests`) adds
+  the RG-3 backend support: `event_application_billing_requests`, the
+  `requestEventApplicationBilling` GraphQL mutation, Square payment-link
+  creation through server-side env, and planning-payload billing references on
+  the application civic object.
 - Validation run without Playwright/Chrome by user direction:
   `npm run validate:civic-map-binding`,
   `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
@@ -67,6 +72,11 @@ Current receipts:
   civic-atlas-server schema_builds_with_event_planner_fields`, `cargo test -p
   civic-atlas-server --test event_application_intake_schema`, and `cargo check
   -p civic-atlas-server`.
+- Backend Square billing validation: `cargo test -p civic-atlas-server --test
+  event_application_billing_schema`, `cargo test -p civic-atlas-server
+  event_planner::tests`, `cargo test -p civic-atlas-server
+  schema_builds_with_event_planner_fields`, and `cargo check -p
+  civic-atlas-server`.
 
 Remaining gates for the approved end-to-end plan:
 
@@ -76,9 +86,10 @@ Remaining gates for the approved end-to-end plan:
 - [ ] **RG-2 Multi-organizer proof:** after RG-1, verify two organizers can
   edit planning fields in table/kanban and move map anchors while both clients
   see the same civic object state.
-- [ ] **RG-3 Square billing:** add the post-acceptance Square payment request
-  flow, keep billing in a small relational store, and write the resulting
-  billing reference/status back onto the civic object.
+- [ ] **RG-3 Square billing:** backend support landed in `784b06b` (relational
+  billing store, Square payment-link mutation, application planning-payload
+  reference). Still open: organizer UI trigger, Square env/live payment-link
+  proof, and deployment env wiring.
 - [ ] **RG-4 Deployment:** ship the event-planning surface on
   `porchfestflint.com` with the production GraphQL URL, sync URL, and billing
   env configured. Local note: the Vercel CLI is not installed on this machine.
