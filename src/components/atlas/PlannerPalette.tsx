@@ -82,35 +82,22 @@ export function PlannerEditModeToggle({
   className = "",
 }: PlannerEditModeToggleProps) {
   const isEditMode = mode.kind !== "view";
+  // One toggle, not a two-button group: pressing Edit again returns to
+  // view, and the active mode reads as a subtle navy glow (the single
+  // accent doing its one job) rather than a second filled button.
   return (
-    <div
-      className={`grid grid-cols-2 gap-2 ${className}`}
-      role="group"
-      aria-label="Planner mode"
+    <button
+      type="button"
+      onClick={() => setMode(isEditMode ? { kind: "view" } : { kind: "drag" })}
+      className={`planner-control min-h-[32px] w-full px-3 py-1.5 text-center text-[13px] ${
+        isEditMode ? "is-active is-glowing" : ""
+      } ${className}`}
+      aria-pressed={isEditMode}
+      disabled={!canEdit}
+      title={!canEdit ? disabledMessage : undefined}
     >
-      <button
-        type="button"
-        onClick={() => setMode({ kind: "view" })}
-        className={`planner-control min-h-[32px] px-3 py-1.5 text-center text-[13px] ${
-          !isEditMode ? "is-active" : ""
-        }`}
-        aria-pressed={!isEditMode}
-      >
-        View
-      </button>
-      <button
-        type="button"
-        onClick={() => setMode({ kind: "drag" })}
-        className={`planner-control min-h-[32px] px-3 py-1.5 text-center text-[13px] ${
-          isEditMode ? "is-active" : ""
-        }`}
-        aria-pressed={isEditMode}
-        disabled={!canEdit}
-        title={!canEdit ? disabledMessage : undefined}
-      >
-        Edit mode
-      </button>
-    </div>
+      Edit
+    </button>
   );
 }
 

@@ -101,6 +101,16 @@
   color: var(--ctx-paper);
 }
 
+/* Edit-mode indicator: the single mode button glows navy instead of a
+   second button carrying the state. Subtle by design: a 1px accent ring
+   plus a soft outer bloom over the is-active ink fill. */
+.planner-control.is-glowing {
+  border-color: var(--ctx-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ctx-accent) 45%, transparent),
+    0 0 14px color-mix(in srgb, var(--ctx-accent) 28%, transparent);
+}
+
 /* Charged / destructive: terracotta accent, never an off-palette red. */
 .planner-control.is-danger:hover {
   border-color: var(--ctx-accent);

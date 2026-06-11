@@ -1534,11 +1534,14 @@ function PorchfestPlannerWorkspace({
               >
                 Workspace
               </a>
+              {/* Team surface: routes to the finished applications, not the
+                  public form. Applicants only ever receive the direct
+                  /porchfest/apply link. */}
               <a
-                href="/porchfest/apply"
+                href="/porchfest/workspace"
                 className="planner-tile flex-1 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wide planner-ink no-underline"
               >
-                Apply form
+                Applications
               </a>
             </div>
           </section>
