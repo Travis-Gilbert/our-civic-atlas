@@ -60,6 +60,12 @@ export interface AtlasEventPlannerPlacement {
    * category's default form.
    */
   readonly figureKey?: string | null;
+  /**
+   * Direct image URL for the per-submission billboard decoration.
+   * Carried by civic-object placements when a link field holds a raster
+   * image; absent otherwise.
+   */
+  readonly imageUrl?: string | null;
 }
 
 export type AtlasEventPlannerCategory =

@@ -24,6 +24,7 @@
  */
 
 import { ScenegraphLayer, SimpleMeshLayer } from "@deck.gl/mesh-layers";
+import { IconLayer, TextLayer } from "@deck.gl/layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { GLTFLoader } from "@loaders.gl/gltf";
 
@@ -298,5 +299,100 @@ export function buildPorchfestAffordanceMeshLayers({
       }),
     );
   }
+  return layers;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Per-submission decoration (Feature 1 deliverable 5).               */
+/*                                                                     */
+/*  Civic-object placements (the ones carrying a figureKey) get a      */
+/*  small name label above the figure so a specific vendor reads as    */
+/*  itself, not only as its category archetype. When the submission's  */
+/*  link fields hold a direct raster-image URL, an IconLayer billboard */
+/*  joins the label; otherwise the label + category-colored figure is  */
+/*  the whole decoration (the spec's no-image fallback). Labels render */
+/*  in the Observable register: near-black ink on a white chip, IBM    */
+/*  Plex Sans, pixel-sized so zoom does not blow them up.              */
+/* ------------------------------------------------------------------ */
+
+const LABEL_INK: [number, number, number, number] = [28, 28, 28, 235];
+const LABEL_CHIP: [number, number, number, number] = [255, 255, 255, 210];
+
+export interface PorchfestFigureDecorationOptions {
+  readonly placements: readonly AtlasEventPlannerPlacement[];
+  readonly visibility?: Partial<Record<AtlasEventPlannerCategory, boolean>>;
+  readonly selectedPlacementId?: string | null;
+  readonly layerIdPrefix?: string;
+}
+
+export function buildPorchfestFigureDecorations({
+  placements,
+  visibility,
+  selectedPlacementId = null,
+  layerIdPrefix = "porchfest-affordance",
+}: PorchfestFigureDecorationOptions): Layer[] {
+  const decorated = placements.filter(
+    (placement) =>
+      isCivicFigureKey(placement.figureKey) &&
+      readPointPosition(placement) !== null &&
+      (visibility?.[placement.category as AtlasEventPlannerCategory] ?? true),
+  );
+  if (decorated.length === 0) return [];
+
+  const layers: Layer[] = [];
+  const withImages = decorated.filter(
+    (placement) =>
+      typeof placement.imageUrl === "string" && placement.imageUrl !== "",
+  );
+
+  if (withImages.length > 0) {
+    layers.push(
+      new IconLayer<AtlasEventPlannerPlacement>({
+        id: `${layerIdPrefix}-figure-billboards`,
+        data: withImages,
+        pickable: false,
+        billboard: true,
+        getPosition: (placement) => readPointPosition(placement) ?? [0, 0],
+        // Per-object icon URLs use deck.gl's auto-packing path; 128px is
+        // the rasterization budget per image, displayed at 36px.
+        getIcon: (placement) => ({
+          url: placement.imageUrl as string,
+          width: 128,
+          height: 128,
+        }),
+        getSize: (placement) =>
+          placement.id === selectedPlacementId ? 44 : 36,
+        sizeUnits: "pixels",
+        getPixelOffset: [0, -30],
+        updateTriggers: { getSize: selectedPlacementId },
+      }),
+    );
+  }
+
+  layers.push(
+    new TextLayer<AtlasEventPlannerPlacement>({
+      id: `${layerIdPrefix}-figure-labels`,
+      data: decorated,
+      pickable: false,
+      billboard: true,
+      getPosition: (placement) => readPointPosition(placement) ?? [0, 0],
+      getText: (placement) => placement.label,
+      getSize: 11,
+      getColor: LABEL_INK,
+      background: true,
+      getBackgroundColor: LABEL_CHIP,
+      backgroundPadding: [4, 2, 4, 2],
+      fontFamily: '"IBM Plex Sans", "Plex Sans", system-ui, sans-serif',
+      characterSet: "auto",
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "bottom",
+      // Sit above the figure; leave headroom for the billboard when the
+      // submission carries one.
+      getPixelOffset: (placement) =>
+        placement.imageUrl ? [0, -52] : [0, -18],
+      updateTriggers: { getPixelOffset: selectedPlacementId },
+    }),
+  );
+
   return layers;
 }

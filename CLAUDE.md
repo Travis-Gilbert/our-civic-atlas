@@ -189,16 +189,19 @@ in the bundle, enabled by `NEXT_PUBLIC_RUSTYRED_SYNC_URL` (base up to
 service worker caches dev chunks across dev-server restarts; unregister it
 when an edit refuses to appear.
 
-Remaining gates (post-2026-06-11 session):
+Remaining gates (post-2026-06-11 session, updated after the RustyRed deploy):
 
-1. RG-2 ops: deploy the RustyRed build with yjs_sync to Railway, set
-   `NEXT_PUBLIC_RUSTYRED_SYNC_URL` on Vercel, two-browser hand check
-   (protocol + local E2E already proven via `validate:yjs-sync`).
+1. RG-2 UI hand check: RustyRed yjs_sync is deployed to Railway
+   (`bf407747-aecb-4d88-a10c-323ac682fa65`), `/ready` is green, Vercel
+   production/development `NEXT_PUBLIC_RUSTYRED_SYNC_URL` points at the Flint
+   tenant URL, and production `validate:yjs-sync` passes. Still open only as a
+   browser/user-surface check: two organizers editing table/kanban fields and
+   map anchors together. Browser automation remains skipped by user direction.
 2. RG-3 verify: Square credentials in the deployed backend + one live
    payment through the workspace billing band (frontend + backend shipped).
-3. RG-4: porchfestflint.com domain cutover to the PorchFest Vercel project
-   (project configured in 6ddc58c) + the workspace AUTH decision (everything
-   is currently no-login by design; ship gate).
+3. RG-4 launch decision: porchfestflint.com domain cutover is complete; the
+   remaining launch question is the workspace AUTH decision (everything is
+   currently no-login by design; ship gate).
 4. Hardening follow-ups: batch/debounce yjs persistence (currently
    write-per-push), swap test-only TestWorkspace for a first-party Workspace
    impl, click-to-place from the planner unplaced panel (needs a map-click

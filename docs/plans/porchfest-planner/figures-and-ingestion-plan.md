@@ -6,6 +6,8 @@ Source specs (committed beside this plan):
   drag-and-drop ingestion and export)
 - `porchfest-consolidation-and-engine-hook.md` (grounding: real source data,
   gaps A-G, Theseus hook; informs but does not expand this plan's scope)
+- `porchfest-kmz-audit-2026-06-11.md` (attached KMZ evidence: Google My Maps
+  NetworkLink wrapper, 92 point features, 9 line features)
 
 Maintainer of this plan: Claude Code. Codex lane defined in section 3.
 Coordination room: `repo:open-flint-atlas-main-release:branch:main` (harness
@@ -22,6 +24,7 @@ intents); the working tree is the fallback substrate.
 | Store API (browser) | `src/lib/civic/civic-editor-loader.ts` `CivicStoreApi`: `insert`, `list`, `update`, `ingestLedgerRows` (dedup by `sourceId`), `onChange` |
 | CSV parsing + mapping | `src/lib/civic/formspree-import.ts`: full CSV parser, header normalization, alias map, category inference, per-row `missingFields` + `droppedKeys`. Already the heart of Feature 2's CSV path |
 | KML category strategy | `scripts/kml-to-event-layer.mjs`: folder-name + label-rule category mapping for Google My Maps exports. Node-only today, Point-only today |
+| Attached KMZ map | `porchfest-kmz-audit-2026-06-11.md`: local KMZ is a NetworkLink wrapper; live My Maps payload has 101 placemarks, including 9 LineStrings for closures/barriers |
 | Planner surface | `src/app/porchfest/PorchfestPlannerClient.tsx`: `extraDeckLayers` stack, civic store binding, selection card, Applications (unplaced) panel, drag write-back via `pointGeometryToCivicLocation` |
 | GraphQL placements | `Placement.geometry` is `GeoJSON!`; the schema comment says any PostGIS geometry is accepted (lines and polygons do not need a schema change) |
 
@@ -219,14 +222,15 @@ with a note in this file.
 
 ## 7. Relation to the outstanding gate board (unchanged by this plan)
 
-RG-2 (RustyRed Railway deploy + `NEXT_PUBLIC_RUSTYRED_SYNC_URL` + two-browser
-check), RG-3 (Square credentials + one live payment), RG-4 (domain cutover +
-the no-login ship decision) stay exactly as recorded in CLAUDE.md; nothing
-here blocks on them. Both features work against the local-first store today
-and become multi-organizer automatically when RG-2 lands (spec section "What
-these depend on"). The consolidation doc's gaps A-G and the Theseus hook are
-explicitly OUT of this plan's scope except where Feature 2's preview step is
-built as the seam the engine will later propose into (no engine code now).
+RG-2's ops/protocol side is now deployed and production-validated; the remaining
+RG-2 item is the browser/user-surface hand check. RG-3 (Square credentials + one
+live payment) and RG-4's workspace auth decision stay as recorded in
+`CLAUDE.md`; nothing here blocks on them. Both features work against the
+local-first store today and become multi-organizer through the deployed
+RustyRed/YCRDT path (spec section "What these depend on"). The consolidation
+doc's gaps A-G and the Theseus hook are explicitly OUT of this plan's scope
+except where Feature 2's preview step is built as the seam the engine will
+later propose into (no engine code now).
 
 ## 8. Design-gate conformance
 

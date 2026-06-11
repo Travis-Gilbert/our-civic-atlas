@@ -48,6 +48,12 @@ export interface CivicMapPlacement {
   readonly sourceId: string | null;
   /** Override-first figure key; the mesh layer picks geometry from it. */
   readonly figureKey: CivicFigureKey;
+  /**
+   * Direct image URL found on the submission's link fields, if any. Drives
+   * the per-submission billboard (Feature 1 deliverable 5); null falls
+   * back to category color + name label.
+   */
+  readonly imageUrl: string | null;
 }
 
 export interface CivicMapBindingResult {
@@ -84,6 +90,33 @@ function sublabelFor(fields: Partial<CivicObjectFields>): string | null {
     return `${fields.status} · ${fields.setTime}`;
   }
   return fields.setTime ?? fields.status ?? null;
+}
+
+/**
+ * Direct image URLs only: the schema's link fields usually hold band pages
+ * and socials, which an IconLayer cannot rasterize. A link counts as the
+ * submission's image when it is an http(s) URL ending in a raster
+ * extension; everything else falls back to name + category color.
+ */
+const IMAGE_LINK_KEYS = [
+  'musicLink',
+  'musicLink2',
+  'vendorLink',
+  'workLink',
+  'otherLinks',
+] as const;
+const IMAGE_URL_PATTERN = /^https?:\/\/\S+\.(png|jpe?g|webp|gif)(\?\S*)?$/i;
+
+export function civicImageUrl(
+  fields: Partial<CivicObjectFields>,
+): string | null {
+  for (const key of IMAGE_LINK_KEYS) {
+    const value = fields[key];
+    if (typeof value === 'string' && IMAGE_URL_PATTERN.test(value.trim())) {
+      return value.trim();
+    }
+  }
+  return null;
 }
 
 function notesFor(fields: Partial<CivicObjectFields>): string | null {
@@ -134,6 +167,7 @@ export function civicRowToMapPlacement(
     civicRowId: row.rowId,
     sourceId: row.fields.sourceId ?? null,
     figureKey: effectiveCivicFigureKey(row.fields),
+    imageUrl: civicImageUrl(row.fields),
   };
 }
 

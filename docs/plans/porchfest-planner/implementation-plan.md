@@ -2,6 +2,9 @@
 
 Source spec: `PORCHFEST-PLANNER-SPEC.md` (Downloads, read into the run).
 Harness run: `run:f1307eda55324224b953b4836493a971`.
+Follow-on specs: `porchfest-two-feature-specs.md`,
+`porchfest-consolidation-and-engine-hook.md`, and
+`porchfest-kmz-audit-2026-06-11.md`.
 
 ## Spec-vs-repo reconciliation (read before building)
 
@@ -66,6 +69,12 @@ Current receipts:
   civic row's `billingRef`, `feePaid`, and `payment_requested` status, and
   returned Square URLs can be opened by organizers without exposing Square
   credentials in the browser.
+- The attached `Carriage Town Porch Fest 2026 (1).kmz` was audited in
+  `porchfest-kmz-audit-2026-06-11.md`. It is a Google My Maps NetworkLink
+  wrapper whose live payload has 101 placemarks: 92 points and 9 line features
+  for requested closures and barricades. The checked-in fixture has 76 point
+  placements, so Feature 2 is a reconciliation/import lane, not a blind fixture
+  replacement.
 - Frontend commit `620c64d` (`feat(civic): RustyRedDocSource client for the yrs
   sync endpoint`) resolves the RG-1 client side: the BlockSuite workspace can
   add a RustyRed/YCRDT shadow doc source from `NEXT_PUBLIC_RUSTYRED_SYNC_URL`,
@@ -95,6 +104,14 @@ Current receipts:
   incremental pull checks. Follow-up no-Chrome checks also passed:
   `npm run build:civic-editor`, `npm run typecheck`, `npm run lint`, and
   `npm run build`.
+- RustyRed/YCRDT production validation: RustyRed Railway deployment
+  `bf407747-aecb-4d88-a10c-323ac682fa65` is successful and `/ready` reports
+  the embedded durable store ready. Against
+  `wss://rustyred-production.up.railway.app/v1/tenants/validate/sync/yjs`,
+  `npm run validate:yjs-sync` passed A-push/B-pull, live broadcast,
+  concurrent write convergence, fresh-client pull, and no-op incremental pull.
+  The `porchfest-2026` Vercel project has `NEXT_PUBLIC_RUSTYRED_SYNC_URL`
+  updated for production/development to the Flint tenant sync URL.
 - RG-3 frontend billing validation: `npm run codegen`,
   `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
   `npm run typecheck`, `npm run lint`, `npm run build`, and a production
@@ -116,11 +133,13 @@ Remaining gates for the approved end-to-end plan:
   and prove the RustyRed YCRDT wire path converges with no lost write
   (`620c64d`, `npm run validate:yjs-sync`). Browser-driven BlockSuite UI proof
   remains skipped because Chrome/Playwright is unavailable on this machine.
-- [ ] **RG-2 Multi-organizer proof:** RG-1's headless YCRDT convergence proof is
-  green; still verify two organizers can
-  edit planning fields in table/kanban and move map anchors while both clients
-  see the same civic object state on the deployed or otherwise browser-usable
-  surface.
+- [ ] **RG-2 Multi-organizer proof:** RustyRed is deployed, Vercel production
+  and development env values point at the Flint tenant sync URL, and the
+  production WebSocket passed the headless two-client convergence suite. Still
+  open only as a UI proof: verify two organizers can edit planning fields in
+  table/kanban and move map anchors while both clients see the same civic
+  object state. Browser automation remains skipped by user direction because
+  Chrome/Playwright is unavailable on this machine.
 - [ ] **RG-3 Square billing:** backend support landed in `784b06b` and the
   organizer request-link UI is wired in the workspace. Still open: Square
   backend env/live payment-link proof.

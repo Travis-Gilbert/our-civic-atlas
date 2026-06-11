@@ -44,7 +44,10 @@ import {
   type AtlasEventPlannerCategory,
   type AtlasEventPlannerPlacement,
 } from "@/components/atlas/AtlasEventPlannerLayer";
-import { buildPorchfestAffordanceMeshLayers } from "@/components/atlas/PorchfestAffordanceMeshLayer";
+import {
+  buildPorchfestAffordanceMeshLayers,
+  buildPorchfestFigureDecorations,
+} from "@/components/atlas/PorchfestAffordanceMeshLayer";
 import {
   buildPlannerEditableLayer,
   type PlannerEditMode,
@@ -99,6 +102,11 @@ import {
   bindCivicRowsToMap,
   pointGeometryToCivicLocation,
 } from "@/lib/civic/civic-map-binding";
+import { CIVIC_FIGURE_KEYS } from "@/lib/civic/civic-object-schema";
+import {
+  isCivicFigureKey,
+  resolveCivicFigureKey,
+} from "@/lib/civic/civic-figure-resolver";
 
 const TENANT_SLUG = "flint";
 const EVENT_SLUG = "porchfest-2026";
@@ -590,6 +598,37 @@ function PorchfestPlannerWorkspace({
     ? placementsById.get(selectedPlacementId) ?? null
     : null;
 
+  // Figure override editing (Feature 1 acceptance 2): available when the
+  // selection is civic-backed. The select writes `figureKey` straight to
+  // the CRDT store; the store change event re-binds the map, so the
+  // rendered figure swaps live with no reload.
+  const selectedCivicRowId = selectedPlacementId
+    ? civicRowIdByPlacementId.get(selectedPlacementId) ?? null
+    : null;
+  const selectedCivicFields = useMemo(
+    () =>
+      selectedCivicRowId
+        ? civicRows.find((row) => row.rowId === selectedCivicRowId)?.fields ??
+          null
+        : null,
+    [selectedCivicRowId, civicRows],
+  );
+  const selectedCivicAutoKey = selectedCivicFields
+    ? resolveCivicFigureKey(selectedCivicFields)
+    : null;
+  const selectedCivicFigureOverride = isCivicFigureKey(
+    selectedCivicFields?.figureKey,
+  )
+    ? selectedCivicFields.figureKey
+    : null;
+  const handleFigureOverrideChange = useCallback(
+    (value: string) => {
+      if (!selectedCivicRowId) return;
+      civicApiRef.current?.update(selectedCivicRowId, "figureKey", value);
+    },
+    [selectedCivicRowId],
+  );
+
   const placementCountByCategory = useMemo<[string, number][]>(() => {
     const counts = new Map<string, number>();
     for (const p of renderPlacements) {
@@ -1063,6 +1102,16 @@ function PorchfestPlannerWorkspace({
       }),
     );
 
+    // Per-submission decoration: name labels (and image billboards when a
+    // link field holds a raster URL) above civic-object figures.
+    layers.push(
+      ...buildPorchfestFigureDecorations({
+        placements: renderPlacements,
+        visibility,
+        selectedPlacementId,
+      }),
+    );
+
     if (activeEditablePlacements && editMode.type !== "off") {
       const editable = buildPlannerEditableLayer({
         placements: activeEditablePlacements,
@@ -1378,6 +1427,38 @@ function PorchfestPlannerWorkspace({
               ) : (
                 <p className="planner-faint mt-2 text-[12px]">Address pending</p>
               )}
+              {/* Figure override (Feature 1): civic-backed selections only.
+                  Auto shows what the resolver picked; choosing a key writes
+                  the override to the CRDT store and the map swaps live. */}
+              {selectedCivicRowId ? (
+                <div className="mt-3">
+                  <label
+                    htmlFor="planner-figure-override"
+                    className="planner-kicker block"
+                  >
+                    Figure
+                  </label>
+                  <select
+                    id="planner-figure-override"
+                    className="planner-tile mt-1 w-full px-2 py-1.5 text-[12px] planner-ink"
+                    value={selectedCivicFigureOverride ?? ""}
+                    onChange={(event) =>
+                      handleFigureOverrideChange(event.target.value)
+                    }
+                  >
+                    <option value="">
+                      {selectedCivicAutoKey
+                        ? `Auto (${selectedCivicAutoKey})`
+                        : "Auto"}
+                    </option>
+                    {CIVIC_FIGURE_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {key}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
             </section>
           ) : null}
 
