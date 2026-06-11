@@ -13,3 +13,6 @@ test-results/
 .vercel
 .claude/
 .theorem/
+
+# Generated civic workspace editor bundle (npm run build:civic-editor)
+/public/civic-editor/

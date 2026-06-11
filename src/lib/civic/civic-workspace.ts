@@ -61,14 +61,17 @@ const COLUMN_ID_MAP_KEY = 'civic:column-ids';
 /**
  * BlockSuite property `type` strings, bound to the preset sources rather
  * than imported, because the presets live behind view-layer barrels:
- * `@blocksuite/data-view/src/property-presets/<x>/define.ts` (text, select,
+ * `@blocksuite/data-view/src/property-presets/<x>/define.ts` (select,
  * multi-select, checkbox, number, date) and
- * `@blocksuite/affine-block-database/src/properties/link/define.ts` (link).
- * The Node validation re-checks these against a live DataSource read in the
- * browser at Phase 4 mount.
+ * `@blocksuite/affine-block-database/src/properties/<x>/define.ts`
+ * (rich-text, link).
+ *
+ * Schema `text` maps to the database block's `rich-text` property, NOT the
+ * data-view `text` preset: that preset is `hide: true` legacy and the table
+ * renders its cells blank. Rich-text cells store Text (Y.Text) instances.
  */
 const PROPERTY_TYPE_BY_COLUMN: Record<CivicColumnType, string> = {
-  text: 'text',
+  text: 'rich-text',
   select: 'select',
   'multi-select': 'multi-select',
   checkbox: 'checkbox',
@@ -124,6 +127,10 @@ const storeExtensionManager = new StoreExtensionManager(
   getInternalStoreExtensions(),
 );
 
+type TestWorkspaceOptions = NonNullable<
+  ConstructorParameters<typeof TestWorkspace>[0]
+>;
+
 export interface CivicCollectionOptions {
   id?: string;
   /**
@@ -131,10 +138,8 @@ export interface CivicCollectionOptions {
    * later RustyRed) sources; Node validation passes none and stays in
    * memory via the built-in noop source.
    */
-  docSources?: ConstructorParameters<typeof TestWorkspace>[0]['docSources'];
-  awarenessSources?: ConstructorParameters<
-    typeof TestWorkspace
-  >[0]['awarenessSources'];
+  docSources?: TestWorkspaceOptions['docSources'];
+  awarenessSources?: TestWorkspaceOptions['awarenessSources'];
 }
 
 export function createCivicCollection(
@@ -373,6 +378,8 @@ function toCellValue(
       return Number.isFinite(ms) ? ms : null;
     }
     case 'text':
+      // rich-text cells hold Text (Y.Text) instances, never plain strings.
+      return value == null ? null : new Text(String(value));
     case 'link':
     default:
       return value == null ? null : String(value);
@@ -406,7 +413,14 @@ function fromCellValue(
       return typeof raw === 'number' ? raw : undefined;
     case 'date':
       return typeof raw === 'number' ? new Date(raw).toISOString() : undefined;
-    case 'text':
+    case 'text': {
+      // Text or Y.Text instance back from the store; both stringify.
+      const text =
+        typeof raw === 'string'
+          ? raw
+          : (raw as { toString(): string }).toString();
+      return text === '' ? undefined : text;
+    }
     case 'link':
     default:
       return typeof raw === 'string' ? raw : String(raw);

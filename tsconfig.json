@@ -37,6 +37,15 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    // BlockSuite 0.22 publishes raw TypeScript that needs its own compile
+    // flags (useDefineForClassFields=false, esnext libs); tsc would chase
+    // these modules' imports into node_modules sources and fail on upstream
+    // code. They are compiled and validated by the dedicated esbuild
+    // pipeline instead (npm run build:civic-editor / validate:civic-store).
+    "src/civic-editor",
+    "src/lib/civic/civic-workspace.ts",
+    "scripts/validate-civic-store.ts",
+    "scripts/validate-civic-apply-bridge.ts"
   ]
 }
