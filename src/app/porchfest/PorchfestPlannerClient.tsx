@@ -449,6 +449,14 @@ function PorchfestPlannerWorkspace({
     name: string;
     text: string;
   } | null>(null);
+  // Click-to-place arming for an unplaced application: while set, the next
+  // map click writes that row's `location` into the civic store. The title
+  // rides along so the banner and toast can name the row after the unplaced
+  // list re-binds (the row leaves `civicBinding.unplaced` once placed).
+  const [placementArm, setPlacementArm] = useState<{
+    readonly armedRowId: string;
+    readonly armedTitle: string;
+  } | null>(null);
 
   // Realtime traffic flow, parity with /open-flint-atlas. Self-contained:
   // polls the trafficRealtime GraphQL resolver and falls back to the honest
@@ -538,6 +546,50 @@ function PorchfestPlannerWorkspace({
       ),
     [civicBinding.placed],
   );
+
+  /* --- click-to-place for unplaced applications -------------------- */
+
+  // One-shot by construction: the click handler disarms, which re-runs this
+  // effect and detaches the listener. Every other disarm path (Escape, the
+  // row's Cancel button, re-arming another row, edit-mode entry, unmount)
+  // flows through the same cleanup, so a stale listener cannot survive.
+  // Deck placement picks are not filtered: the maplibre click carries no
+  // cheap signal that deck consumed it, so a click on an existing figure
+  // places at that coordinate and the organizer drags to adjust.
+  useEffect(() => {
+    if (!placementArm) return;
+    const { armedRowId, armedTitle } = placementArm;
+    const handleMapClick = (event: {
+      lngLat: { lng: number; lat: number };
+    }) => {
+      const location = pointGeometryToCivicLocation({
+        type: "Point",
+        coordinates: [event.lngLat.lng, event.lngLat.lat],
+      });
+      if (location) {
+        civicApiRef.current?.update(armedRowId, "location", location);
+        setToast(`Placed "${armedTitle}". Drag to adjust.`);
+      }
+      setPlacementArm(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPlacementArm(null);
+    };
+    // Escape registers even before the map handle arrives, so arming is
+    // always cancellable; the click listener attaches once mapRef exists.
+    window.addEventListener("keydown", handleKeyDown);
+    mapRef?.on("click", handleMapClick);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      mapRef?.off("click", handleMapClick);
+    };
+  }, [placementArm, mapRef]);
+
+  // Draw/drag palette modes own map clicks; an armed placement would race
+  // them for the same gesture, so entering edit mode disarms.
+  useEffect(() => {
+    if (paletteMode.kind !== "view") setPlacementArm(null);
+  }, [paletteMode.kind]);
 
   const initialEditablePlacements = useMemo<PlannerEditablePlacement[] | null>(
     () => {
@@ -1503,19 +1555,47 @@ function PorchfestPlannerWorkspace({
                   {civicBinding.unplaced.length} unplaced
                 </span>
               </div>
+              {placementArm ? (
+                <p className="planner-note mt-2 px-2 py-1 leading-4">
+                  Click the map to place &quot;{placementArm.armedTitle}&quot;.
+                  Esc cancels.
+                </p>
+              ) : null}
               {civicBinding.unplaced.length > 0 ? (
                 <ul className="mt-2 flex max-h-44 flex-col gap-1 overflow-y-auto">
-                  {civicBinding.unplaced.map((row) => (
-                    <li
-                      key={row.rowId}
-                      className="flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
-                    >
-                      <span className="planner-ink truncate">{row.title}</span>
-                      <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
-                        {row.fields.category}
-                      </span>
-                    </li>
-                  ))}
+                  {civicBinding.unplaced.map((row) => {
+                    const isArmed = placementArm?.armedRowId === row.rowId;
+                    return (
+                      <li
+                        key={row.rowId}
+                        className="flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
+                      >
+                        <span className="planner-ink min-w-0 flex-1 truncate">
+                          {row.title}
+                        </span>
+                        <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
+                          {row.fields.category}
+                        </span>
+                        <button
+                          type="button"
+                          aria-pressed={isArmed}
+                          onClick={() =>
+                            setPlacementArm(
+                              isArmed
+                                ? null
+                                : {
+                                    armedRowId: row.rowId,
+                                    armedTitle: row.title,
+                                  },
+                            )
+                          }
+                          className="planner-tile shrink-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide planner-ink"
+                        >
+                          {isArmed ? "Cancel" : "Place"}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="planner-ink-soft mt-2 text-[12px]">
