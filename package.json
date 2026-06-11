@@ -34,6 +34,8 @@
     "validate:civic-apply-bridge": "esbuild scripts/validate-civic-apply-bridge.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-civic-apply-bridge.mjs --log-level=warning && node node_modules/.cache/validate-civic-apply-bridge.mjs",
     "validate:civic-ledger-ingest": "esbuild scripts/validate-civic-ledger-ingest.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-civic-ledger-ingest.mjs --log-level=warning && node node_modules/.cache/validate-civic-ledger-ingest.mjs",
     "validate:civic-map-binding": "esbuild scripts/validate-civic-map-binding.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-civic-map-binding.mjs --log-level=warning && node node_modules/.cache/validate-civic-map-binding.mjs",
+    "validate:formspree-import": "esbuild scripts/validate-formspree-import.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-formspree-import.mjs --log-level=warning && node node_modules/.cache/validate-formspree-import.mjs",
+    "porchfest:import-formspree": "tsx scripts/import-formspree-applications.ts",
     "build:civic-editor": "node scripts/build-civic-editor.mjs"
   },
   "dependencies": {
