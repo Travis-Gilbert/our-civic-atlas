@@ -55,6 +55,9 @@ npm run validate:civic-apply-bridge       # Apply form state -> GraphQL input + 
 npm run validate:civic-ledger-ingest      # eventApplications ledger rows -> civic rows
 npm run validate:civic-map-binding        # Civic rows -> map placement contract (both directions)
 npm run validate:formspree-import         # Private CSV -> intake mutation tooling
+npm run validate:figure-resolver          # Civic object -> figure key mapping + override semantics
+npm run validate:figure-library           # Figure geometry invariants + render bucket planner
+npm run validate:planner-import           # Drop-target import core: detection, dedup, commit, round trip
 npm run validate:yjs-sync                 # Two Yjs clients converge through a live rustyred-server
 ```
 
@@ -181,6 +184,24 @@ with Organizer notes + native todo lists, Square billing band), `/porchfest`
 (planner map; civic objects render through the placement layers, drags write
 `location` back to the CRDT store, Applications panel lists unplaced).
 
+Submission figures + import/export (built 2026-06-11, plan at
+`docs/plans/porchfest-planner/figures-and-ingestion-plan.md`): each civic
+object renders as a submission-specific 3D figure resolved from its fields
+(`civic-figure-resolver.ts`, pure; organizer override via the `figureKey`
+planning column, editable from the planner selection card); the figure
+registry is `src/lib/atlas/porchfest-figure-library.ts` (typed exhaustive
+over `CIVIC_FIGURE_KEYS`, procedural SimpleMeshLayer or GLB ScenegraphLayer
+per entry); name labels + image billboards decorate civic figures. The
+planner left column carries an Import / Export panel (`PlannerImportPanel`)
+with a map drop target: CSV (Formspree-alias mapping, email+sourceId dedup,
+preview-and-confirm, organizer planning state never overwritten), KML and
+GeoJSON (shared category rules in `kml-event-layer-rules.ts`, Point +
+LineString + Polygon, lines render via the `porchfest-imported-lines`
+layer), CSV export (schema-keyed, zero-new round trip, formula-injection
+neutralized) and PII-free GeoJSON export. `ensureCivicDatabase` now
+backfills contract columns onto live docs (new schema fields materialize
+without reseeding).
+
 Realtime: yrs (y-crdt) sync server in RustyRed-Graph-Database
 (`crates/rustyred-server/src/yjs_sync.rs`, WS
 `/v1/tenants/:tenant_id/sync/yjs/:doc_id`) + `RustyRedDocSource` shadow peer
@@ -194,9 +215,15 @@ Remaining gates (post-2026-06-11 session, updated after the RustyRed deploy):
 1. RG-2 UI hand check: RustyRed yjs_sync is deployed to Railway
    (`bf407747-aecb-4d88-a10c-323ac682fa65`), `/ready` is green, Vercel
    production/development `NEXT_PUBLIC_RUSTYRED_SYNC_URL` points at the Flint
-   tenant URL, and production `validate:yjs-sync` passes. Still open only as a
-   browser/user-surface check: two organizers editing table/kanban fields and
-   map anchors together. Browser automation remains skipped by user direction.
+   tenant URL, and production `validate:yjs-sync` passes. The shared
+   `civic:porchfest-2026` doc was seeded on the production server from the
+   verified 77-row store (independent Node pull confirmed 1 database block,
+   77 rows, 183KB state). Local `.env.local` now points at the PRODUCTION
+   sync server: local dev edits write to the live shared doc. Boot is
+   bounded local-first (4s, with a 45s empty-store seed guard against
+   double-seeding). Still open only as a browser/user-surface check: two
+   organizers editing table/kanban fields and map anchors together. Browser
+   automation remains skipped by user direction.
 2. RG-3 verify: Square credentials in the deployed backend + one live
    payment through the workspace billing band (frontend + backend shipped).
 3. RG-4 launch decision: porchfestflint.com domain cutover is complete; the
