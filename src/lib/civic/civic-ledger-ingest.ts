@@ -10,6 +10,7 @@
  */
 
 import {
+  CIVIC_CATEGORIES,
   FLINT_BASED,
   IMPORT_FIELD_ALIASES,
   MULTI_SELECT_KEYS,
@@ -47,10 +48,11 @@ const CATEGORY_TITLE_KEY: Record<CivicCategory, CivicFieldKey> = {
   vendor: 'businessName',
   entertainer: 'actName',
   other: 'orgName',
+  something_else: 'orgName',
 };
 
 function isCivicCategory(value: string): value is CivicCategory {
-  return ['musician', 'vendor', 'entertainer', 'other'].includes(value);
+  return (CIVIC_CATEGORIES as readonly string[]).includes(value);
 }
 
 function isPlanningStatus(value: string): value is PlanningStatus {

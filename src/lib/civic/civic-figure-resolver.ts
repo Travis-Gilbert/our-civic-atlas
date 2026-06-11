@@ -105,6 +105,7 @@ export function resolveCivicFigureKey(
     case 'entertainer':
       return resolveEntertainer(fields);
     case 'other':
+    case 'something_else':
     default:
       return 'marker';
   }

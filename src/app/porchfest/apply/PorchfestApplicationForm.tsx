@@ -29,6 +29,7 @@ import {
   ChevronLeft,
   Mic2,
   Music2,
+  Sparkles,
   Store,
 } from "lucide-react";
 import { useMutation } from "urql";
@@ -92,10 +93,16 @@ const CATEGORY_META: Record<
     Icon: Mic2,
   },
   other: {
+    label: "Goods and Services",
+    description:
+      "Community tables, crafts, goods, and services. Tell us what you offer and what you need.",
+    Icon: Building2,
+  },
+  something_else: {
     label: "Something Else",
     description:
-      "Community tables, activities, ideas that do not fit a box. Pitch us.",
-    Icon: Building2,
+      "Ideas that do not fit a box. Tell us what you do and we will find it a place.",
+    Icon: Sparkles,
   },
 };
 
@@ -133,6 +140,11 @@ function validate(state: PorchfestApplicationFormState): Errors {
   if (state.category === "other") {
     if (!state.orgName.trim()) errors.orgName = "Required";
     if (!state.proposal.trim()) errors.proposal = "Tell us your idea";
+  }
+  if (state.category === "something_else") {
+    // Open lane: contact intake plus the pitch. Business name is optional
+    // by design; the shared section already requires name and email.
+    if (!state.proposal.trim()) errors.proposal = "Tell us what you do";
   }
   return errors;
 }
@@ -385,6 +397,13 @@ export function PorchfestApplicationForm() {
     });
   };
 
+  // The porchfest layout locks the page, so .civic-apply is the scroll
+  // container (see apply.css); window.scrollTo would silently no-op.
+  const shellRef = useRef<HTMLElement | null>(null);
+  const scrollShellToTop = () => {
+    shellRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleReview = () => {
     const found = validate(state);
     setErrors(found);
@@ -393,7 +412,7 @@ export function PorchfestApplicationForm() {
       return;
     }
     setStage("review");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollShellToTop();
   };
 
   const handleSubmit = async () => {
@@ -425,7 +444,7 @@ export function PorchfestApplicationForm() {
       // Ignore blocked storage.
     }
     setStage("done");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollShellToTop();
   };
 
   const handleStartOver = () => {
@@ -444,7 +463,7 @@ export function PorchfestApplicationForm() {
   const meta = CATEGORY_META[state.category];
 
   return (
-    <main className="civic-apply">
+    <main className="civic-apply" ref={shellRef}>
       <div className="civic-apply-column">
         <header>
           <p className="civic-apply-overline">
@@ -499,7 +518,7 @@ export function PorchfestApplicationForm() {
                 className="civic-apply-btn civic-apply-btn--primary"
                 onClick={() => {
                   setStage("form");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  scrollShellToTop();
                 }}
               >
                 Start application
@@ -1011,6 +1030,43 @@ export function PorchfestApplicationForm() {
               </section>
             ) : null}
 
+            {state.category === "something_else" ? (
+              <section className="civic-apply-section">
+                <h2 className="civic-apply-section-h">What you do</h2>
+                <p className="civic-apply-section-sub">
+                  The open lane: your contact details above, your pitch here.
+                </p>
+                <Field
+                  label="Business / organization"
+                  hint="Optional. Skip it if this is just you."
+                  htmlFor="apply-se-orgName"
+                >
+                  <input
+                    id="apply-se-orgName"
+                    className="civic-apply-input"
+                    value={state.orgName}
+                    onChange={(e) => set("orgName", e.target.value)}
+                    placeholder="Business or organization name"
+                  />
+                </Field>
+                <Field
+                  label="Tell us what you do *"
+                  htmlFor="apply-se-proposal"
+                  error={errors.proposal}
+                >
+                  <textarea
+                    id="apply-se-proposal"
+                    className="civic-apply-textarea"
+                    data-invalid={Boolean(errors.proposal) || undefined}
+                    rows={6}
+                    value={state.proposal}
+                    onChange={(e) => set("proposal", e.target.value)}
+                    placeholder="What would you bring to PorchFest?"
+                  />
+                </Field>
+              </section>
+            ) : null}
+
             <div className="civic-apply-actions">
               <button
                 type="button"
@@ -1018,7 +1074,7 @@ export function PorchfestApplicationForm() {
                 onClick={() => {
                   setErrors({});
                   setStage("category");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  scrollShellToTop();
                 }}
               >
                 <ChevronLeft aria-hidden="true" size={16} />
@@ -1147,6 +1203,19 @@ export function PorchfestApplicationForm() {
                       <ReviewItem label="Links" value={state.otherLinks} />
                       <ReviewItem
                         label="Proposal"
+                        value={state.proposal}
+                        wide
+                      />
+                    </>
+                  ) : null}
+                  {state.category === "something_else" ? (
+                    <>
+                      <ReviewItem
+                        label="Business / org"
+                        value={state.orgName}
+                      />
+                      <ReviewItem
+                        label="What you do"
                         value={state.proposal}
                         wide
                       />

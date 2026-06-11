@@ -25,6 +25,11 @@ export const CIVIC_CATEGORIES = [
   'vendor',
   'entertainer',
   'other',
+  // Open-ended fifth intake lane (2026-06-11): 'other' presents as "Goods
+  // and Services" on the form; something_else is the true catch-all with
+  // contact intake plus a "tell us what you do" pitch. It reuses the
+  // other-scope columns (orgName, proposal), so no new schema columns.
+  'something_else',
 ] as const;
 export type CivicCategory = (typeof CIVIC_CATEGORIES)[number];
 

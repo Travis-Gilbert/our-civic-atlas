@@ -11,7 +11,8 @@ export const PORCHFEST_APPLICATION_CATEGORIES = [
   { value: "musician", label: "Musician" },
   { value: "vendor", label: "Vendor" },
   { value: "entertainer", label: "Entertainer" },
-  { value: "other", label: "Other" },
+  { value: "other", label: "Goods and Services" },
+  { value: "something_else", label: "Something Else" },
 ] as const satisfies readonly {
   readonly value: CivicCategory;
   readonly label: string;
@@ -265,9 +266,11 @@ export function porchfestApplicationToCivicObject(
     };
   }
 
+  // Shared fallback shape for 'other' (Goods and Services) and
+  // 'something_else' (open pitch): both write orgName + proposal.
   return {
     ...shared,
-    category: "other",
+    category: state.category,
     orgName: state.orgName.trim(),
     proposal: state.proposal.trim(),
     otherLinks: cleanOptional(state.otherLinks) ?? cleanOptional(state.workLink),

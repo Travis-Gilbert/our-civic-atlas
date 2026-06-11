@@ -66,6 +66,7 @@ const DEFAULT_CATEGORY_MAP: Record<CivicCategory, CivicMapCategory> = {
   vendor: 'vendor',
   entertainer: 'amenity',
   other: 'amenity',
+  something_else: 'amenity',
 };
 
 export interface CivicMapBindingOptions {

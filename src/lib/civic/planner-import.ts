@@ -147,6 +147,7 @@ export function buildCsvImportPlan(
     vendor: 0,
     entertainer: 0,
     other: 0,
+    something_else: 0,
   };
   const newCandidates: FormspreeImportCandidate[] = [];
   const collisions: CsvImportCollision[] = [];
