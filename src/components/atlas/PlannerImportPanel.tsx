@@ -57,6 +57,7 @@ export interface PlannerImportPanelProps {
   droppedFile: { name: string; text: string } | null;
   onConsumeDroppedFile: () => void;
   onToast: (message: string) => void;
+  embedded?: boolean;
 }
 
 type PanelState =
@@ -119,6 +120,7 @@ export function PlannerImportPanel({
   droppedFile,
   onConsumeDroppedFile,
   onToast,
+  embedded = false,
 }: PlannerImportPanelProps) {
   const [state, setState] = useState<PanelState>({ phase: "idle" });
   // Per-collision choice, keyed by existingRowId to match the commit
@@ -275,7 +277,11 @@ export function PlannerImportPanel({
       : 0;
 
   return (
-    <section className="planner-panel pointer-events-auto p-4">
+    <section
+      className={
+        embedded ? "pointer-events-auto" : "planner-panel pointer-events-auto p-4"
+      }
+    >
       <div className="flex items-baseline justify-between gap-2">
         <p className="planner-kicker">Import / Export</p>
         {state.phase !== "idle" ? (

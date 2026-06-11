@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Fraunces } from "next/font/google";
+import { Cabin, Courier_Prime, IBM_Plex_Sans, Vollkorn } from "next/font/google";
 import "antd/dist/reset.css";
 import "./globals.css";
 import "./open-flint-atlas/atlas.css";
@@ -16,15 +16,27 @@ const ibmPlexSansSemiCondensed = IBM_Plex_Sans({
   display: "swap",
 });
 
-// Display / title font. Fraunces, a high-contrast variable serif with
-// an optical-size axis, replacing the heavier Block Berthold. The opsz
-// axis lets titles take the large optical cut (pinned in globals.css)
-// so they read refined at hero sizes. Routed to .font-display only.
-const fraunces = Fraunces({
+// Display / title font. Vollkorn gives map titles a warmer book-serif
+// texture while staying sturdy at compact overlay sizes.
+const vollkorn = Vollkorn({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-display-face",
   display: "swap",
-  axes: ["opsz"], // SOFT and WONK are available if you want more character
+});
+
+const porchfestCabin = Cabin({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-porchfest-sans",
+  display: "swap",
+});
+
+const porchfestMono = Courier_Prime({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-porchfest-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -41,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexSansSemiCondensed.variable} ${fraunces.variable}`}
+      className={`${ibmPlexSansSemiCondensed.variable} ${vollkorn.variable} ${porchfestCabin.variable} ${porchfestMono.variable}`}
     >
       <body>{children}</body>
     </html>

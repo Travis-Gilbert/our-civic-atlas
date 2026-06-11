@@ -10,8 +10,13 @@
  *     populated on first fetch
  */
 
-const CACHE = "porchfest-v1";
-const SHELL = ["/porchfest", "/manifest.webmanifest", "/porchfest-icon.svg"];
+const CACHE = "porchfest-v2";
+const SHELL = [
+  "/porchfest",
+  "/porchfest/workspace",
+  "/manifest.webmanifest",
+  "/porchfest-icon.svg",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

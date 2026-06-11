@@ -13,7 +13,7 @@
  * own; the parent decides which category is active.
  */
 
-import { useCallback } from "react";
+import { type DragEvent, useCallback } from "react";
 
 import type {
   AtlasEventPlannerCategory,
@@ -29,6 +29,14 @@ interface PaletteCategoryButton {
   readonly category: AtlasEventPlannerCategory;
   readonly label: string;
   readonly color: string;
+  readonly sublabel?: string;
+}
+
+export const PLANNER_CATEGORY_DRAG_TYPE = "application/x-planner-category";
+
+export interface PlannerCategoryDragPayload {
+  readonly category: AtlasEventPlannerCategory;
+  readonly label: string;
   readonly sublabel?: string;
 }
 
@@ -64,6 +72,7 @@ export interface PlannerPaletteProps {
   readonly canEdit: boolean;
   readonly disabledMessage?: string;
   readonly embedded?: boolean;
+  readonly onCategoryDragStateChange?: (active: boolean) => void;
 }
 
 export interface PlannerEditModeToggleProps {
@@ -107,6 +116,7 @@ export function PlannerPalette({
   canEdit,
   disabledMessage,
   embedded = false,
+  onCategoryDragStateChange,
 }: PlannerPaletteProps) {
   const toggleDraw = useCallback(
     (button: PaletteCategoryButton) => {
@@ -126,6 +136,32 @@ export function PlannerPalette({
   const toggleDelete = useCallback(() => {
     setMode(mode.kind === "delete" ? { kind: "drag" } : { kind: "delete" });
   }, [mode, setMode]);
+
+  const handleCategoryDragStart = useCallback(
+    (event: DragEvent<HTMLButtonElement>, button: PaletteCategoryButton) => {
+      if (!canEdit) {
+        event.preventDefault();
+        return;
+      }
+      const payload: PlannerCategoryDragPayload = {
+        category: button.category,
+        label: button.label,
+        sublabel: button.sublabel,
+      };
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData(
+        PLANNER_CATEGORY_DRAG_TYPE,
+        JSON.stringify(payload),
+      );
+      event.dataTransfer.setData("text/plain", button.label);
+      onCategoryDragStateChange?.(true);
+    },
+    [canEdit, onCategoryDragStateChange],
+  );
+
+  const handleCategoryDragEnd = useCallback(() => {
+    onCategoryDragStateChange?.(false);
+  }, [onCategoryDragStateChange]);
 
   if (!canEdit) {
     const disabledClassName = embedded
@@ -155,10 +191,14 @@ export function PlannerPalette({
             key={button.category}
             type="button"
             onClick={() => toggleDraw(button)}
+            draggable={canEdit}
+            onDragStart={(event) => handleCategoryDragStart(event, button)}
+            onDragEnd={handleCategoryDragEnd}
             className={`planner-control flex min-h-[28px] items-center gap-2 px-2 py-1.5 text-left ${
               isActive ? "is-active" : ""
             }`}
             aria-pressed={isActive}
+            title={`Drag ${button.label} to the map, or click to place by map click`}
           >
             <span
               aria-hidden="true"

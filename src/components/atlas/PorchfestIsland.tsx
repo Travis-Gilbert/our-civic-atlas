@@ -47,7 +47,7 @@ const EXPANDED_WIDTH = 392;
 const COLLAPSED_HEIGHT = 58;
 const EXPANDED_HEIGHT = 452;
 
-type IslandTab = "edit" | "tasks" | "places" | "key" | "info";
+type IslandTab = "edit" | "tasks" | "places" | "key" | "import" | "info";
 
 const STATUS_OPTIONS = ["all", "open", "in_progress", "done"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
@@ -70,6 +70,7 @@ const TAB_LABEL: Record<IslandTab, string> = {
   tasks: "Tasks",
   places: "Places",
   key: "Map key",
+  import: "Import",
   info: "Info",
 };
 
@@ -93,6 +94,7 @@ export function PorchfestIsland({
   tasksContent,
   editContent,
   mapKeyContent,
+  importContent,
   infoContent,
   modeLabel,
 }: {
@@ -110,6 +112,7 @@ export function PorchfestIsland({
   readonly tasksContent?: ReactNode;
   readonly editContent?: ReactNode;
   readonly mapKeyContent?: ReactNode;
+  readonly importContent?: ReactNode;
   readonly infoContent?: ReactNode;
   readonly modeLabel?: string;
 }) {
@@ -135,25 +138,36 @@ export function PorchfestIsland({
 
   useEffect(() => {
     if (!mobile) return;
-    const update = () =>
+    const update = () => {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
       setSheetHeight(
-        Math.min(560, Math.max(360, Math.round(window.innerHeight * 0.76))),
+        Math.min(560, Math.max(360, Math.round(viewportHeight * 0.76))),
       );
+    };
     update();
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
   }, [mobile]);
 
   // The extra tabs are mobile-only; if the viewport grows back to desktop
   // while on one of them, fall back to Tasks.
   useEffect(() => {
     if (
-      (!mobile && (activeTab === "edit" || activeTab === "key" || activeTab === "info")) ||
-      (mobile && activeTab === "edit" && editContent == null)
+      (!mobile &&
+        (activeTab === "edit" ||
+          activeTab === "key" ||
+          activeTab === "import" ||
+          activeTab === "info")) ||
+      (mobile && activeTab === "edit" && editContent == null) ||
+      (mobile && activeTab === "import" && importContent == null)
     ) {
       setActiveTab("tasks");
     }
-  }, [mobile, activeTab, editContent]);
+  }, [mobile, activeTab, editContent, importContent]);
 
   const matchedPlaces = useMemo(() => {
     if (!query) return placements;
@@ -188,11 +202,15 @@ export function PorchfestIsland({
     return [...places, ...taskHits].slice(0, 8);
   }, [matchedPlaces, tasks, query]);
 
-  const showCollapsedResults = !isExpanded && query.length > 0;
+  const showCollapsedResults = !mobile && !isExpanded && query.length > 0;
   const tabs: IslandTab[] = mobile
     ? editContent
-      ? ["edit", "tasks", "places", "key", "info"]
-      : ["tasks", "places", "key", "info"]
+      ? importContent
+        ? ["edit", "tasks", "places", "key", "import", "info"]
+        : ["edit", "tasks", "places", "key", "info"]
+      : importContent
+        ? ["tasks", "places", "key", "import", "info"]
+        : ["tasks", "places", "key", "info"]
     : ["tasks", "places"];
   const usesTasksContent = mobile && tasksContent != null;
   const showSharedSearch =
@@ -226,14 +244,28 @@ export function PorchfestIsland({
       </AnimatePresence>
 
       <div
-        className="pointer-events-none absolute left-1/2 z-[1420] -translate-x-1/2"
+        className="pointer-events-none absolute z-[1420]"
         style={{
           width: mobile
-            ? "min(calc(100vw - 20px), 520px)"
+            ? isExpanded
+              ? "min(calc(100vw - 20px), 520px)"
+              : 58
             : isExpanded
               ? EXPANDED_WIDTH
               : COLLAPSED_WIDTH,
-          bottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
+          left: mobile && !isExpanded ? "auto" : "50%",
+          right:
+            mobile && !isExpanded
+              ? "calc(62px + env(safe-area-inset-right, 0px))"
+              : "auto",
+          transform:
+            mobile && !isExpanded ? "translateX(0)" : "translateX(-50%)",
+          bottom:
+            mobile && !isExpanded
+              ? "calc(98px + env(safe-area-inset-bottom, 0px))"
+              : mobile
+                ? "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))"
+                : "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))",
         }}
       >
         {showCollapsedResults ? (
@@ -279,7 +311,7 @@ export function PorchfestIsland({
         ) : null}
 
         {mobile && selectedPlacement && !isExpanded && !showCollapsedResults ? (
-          <div className="atlas-scene-glass pointer-events-auto absolute bottom-[calc(100%+10px)] left-0 right-0 rounded-[14px] p-3">
+          <div className="atlas-scene-glass pointer-events-auto fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom,0.75rem))+74px)] left-1/2 w-[min(calc(100vw-20px),320px)] -translate-x-1/2 rounded-[14px] p-3">
             <div className="flex items-center gap-2">
               <span
                 aria-hidden="true"
@@ -307,6 +339,7 @@ export function PorchfestIsland({
           animate={
             mobile
               ? {
+                  width: isExpanded ? "100%" : 58,
                   height: isExpanded ? sheetHeight : COLLAPSED_HEIGHT,
                   borderRadius: isExpanded ? 24 : 999,
                 }
@@ -327,47 +360,61 @@ export function PorchfestIsland({
             transition={islandTransition}
             className="absolute inset-0"
           >
-            <div className="relative h-full w-full">
+            {mobile ? (
               <button
                 type="button"
-                className="absolute inset-0 flex flex-col items-center justify-center px-[120px] text-center"
+                className="flex h-full w-full items-center justify-center rounded-full text-[color:var(--ctx-ink)]"
                 onClick={() => openIsland("tasks")}
-                aria-label="Open PorchFest island"
+                aria-label="Open PorchFest controls"
               >
-                <span className="truncate text-[15px] font-medium leading-none text-[color:var(--ctx-ink)]">
-                  PorchFest
-                </span>
-                {modeLabel ? (
-                  <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                    {modeLabel}
-                  </span>
+                <ListChecks className="h-5 w-5" />
+                {openTaskCount > 0 ? (
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[color:var(--ctx-accent)]" />
                 ) : null}
               </button>
+            ) : (
+              <div className="relative h-full w-full">
+                <button
+                  type="button"
+                  className="absolute inset-0 flex flex-col items-center justify-center px-[120px] text-center"
+                  onClick={() => openIsland("tasks")}
+                  aria-label="Open PorchFest island"
+                >
+                  <span className="truncate text-[15px] font-medium leading-none text-[color:var(--ctx-ink)]">
+                    PorchFest
+                  </span>
+                  {modeLabel ? (
+                    <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                      {modeLabel}
+                    </span>
+                  ) : null}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => openIsland("tasks")}
-                aria-label="Open tasks"
-                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.46)] text-[color:var(--ctx-ink)] shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
-              >
-                <ListChecks className="h-4 w-4" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => openIsland("tasks")}
+                  aria-label="Open tasks"
+                  className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(42,36,25,0.12)] bg-[rgba(255,255,255,0.46)] text-[color:var(--ctx-ink)] shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
+                >
+                  <ListChecks className="h-4 w-4" />
+                </button>
 
-              <label
-                className="absolute right-3 top-1/2 z-10 flex h-10 w-[104px] -translate-y-1/2 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.36)] px-3 shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
-                aria-label="Search PorchFest"
-              >
-                <Search className="h-4 w-4 shrink-0 text-[color:var(--ctx-ink-mute)]" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  suppressHydrationWarning
-                  className="min-w-0 flex-1 bg-transparent text-[13px] text-[color:var(--ctx-ink)] outline-none"
-                  placeholder=""
-                  type="search"
-                />
-              </label>
-            </div>
+                <label
+                  className="absolute right-3 top-1/2 z-10 flex h-10 w-[104px] -translate-y-1/2 items-center gap-2 rounded-full border border-[rgba(42,36,25,0.08)] bg-[rgba(255,255,255,0.36)] px-3 shadow-[0_10px_18px_-18px_rgba(42,36,25,0.6)]"
+                  aria-label="Search PorchFest"
+                >
+                  <Search className="h-4 w-4 shrink-0 text-[color:var(--ctx-ink-mute)]" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    suppressHydrationWarning
+                    className="min-w-0 flex-1 bg-transparent text-[13px] text-[color:var(--ctx-ink)] outline-none"
+                    placeholder=""
+                    type="search"
+                  />
+                </label>
+              </div>
+            )}
           </motion.div>
 
           {/* Expanded layer: header, tabs, content, footer. */}
@@ -527,6 +574,7 @@ export function PorchfestIsland({
               ) : null}
 
               {activeTab === "key" ? mapKeyContent : null}
+              {activeTab === "import" ? importContent : null}
               {activeTab === "info" ? infoContent : null}
             </div>
 

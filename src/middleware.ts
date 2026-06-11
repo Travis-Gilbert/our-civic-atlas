@@ -1,10 +1,9 @@
 /**
- * Canonical Porchfest redirect.
+ * PorchFest host routing.
  *
- * The public Porchfest surface lives at
- * `flint.ourcivicatlas.org/porchfest`. The older Porchfest subdomain
- * remains attached only so bookmarked links can land on the canonical
- * Flint route instead of rendering a separate planner route.
+ * flint.ourcivicatlas.org keeps the canonical Civic Atlas paths under
+ * /porchfest. porchfestflint.com is the public brand domain: clean public
+ * paths rewrite into this same Next app without changing the browser URL.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -13,6 +12,20 @@ const PORCHFEST_HOSTS = new Set([
   "porchfest.ourcivicatlas.org",
   "porchfest.localhost:3000",
 ]);
+const PORCHFEST_FLINT_HOSTS = new Set([
+  "porchfestflint.com",
+  "www.porchfestflint.com",
+  "porchfestflint.localhost:3000",
+]);
+
+const PORCHFEST_FLINT_PATHS: ReadonlyMap<string, string> = new Map([
+  ["/", "/porchfest-public"],
+  ["/apply", "/porchfest/apply"],
+  ["/sponsors", "/porchfest-public/sponsors"],
+  ["/board", "/porchfest-public/board"],
+  ["/planning", "/porchfest"],
+  ["/workspace", "/porchfest/workspace"],
+]);
 
 function canonicalPorchfestPath(pathname: string): string {
   return pathname.startsWith("/porchfest") ? pathname : "/porchfest";
@@ -20,6 +33,16 @@ function canonicalPorchfestPath(pathname: string): string {
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host")?.toLowerCase() ?? "";
+  if (PORCHFEST_FLINT_HOSTS.has(host)) {
+    const targetPath = PORCHFEST_FLINT_PATHS.get(req.nextUrl.pathname);
+    if (!targetPath) {
+      return NextResponse.next();
+    }
+    const target = req.nextUrl.clone();
+    target.pathname = targetPath;
+    return NextResponse.rewrite(target);
+  }
+
   if (!PORCHFEST_HOSTS.has(host)) {
     return NextResponse.next();
   }

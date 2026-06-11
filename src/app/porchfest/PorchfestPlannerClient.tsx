@@ -42,6 +42,7 @@ import type { Layer } from "@deck.gl/core";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import { ListChecks } from "lucide-react";
 import { useIsMobile } from "@/lib/atlas/use-is-mobile";
+import { useNetworkStatus } from "@/lib/atlas/use-network-status";
 import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
 import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
@@ -68,6 +69,8 @@ import {
   PlannerEditModeToggle,
   PlannerPalette,
   CATEGORY_COLOR,
+  PLANNER_CATEGORY_DRAG_TYPE,
+  type PlannerCategoryDragPayload,
   type PaletteMode,
 } from "@/components/atlas/PlannerPalette";
 import { PorchfestIsland } from "@/components/atlas/PorchfestIsland";
@@ -112,6 +115,7 @@ import {
 import {
   bindCivicRowsToMap,
   pointGeometryToCivicLocation,
+  type CivicMapRow,
 } from "@/lib/civic/civic-map-binding";
 import { CIVIC_FIGURE_KEYS } from "@/lib/civic/civic-object-schema";
 import {
@@ -160,6 +164,16 @@ const DEFAULT_BASEMAP_LAYERS: Record<string, boolean> = {
   traffic: true,
 };
 
+const MOBILE_BASEMAP_LAYERS: Record<string, boolean> = {
+  ...DEFAULT_BASEMAP_LAYERS,
+  places: false,
+  wards: false,
+  infrastructure: false,
+  buildingFabric: false,
+  events: false,
+  traffic: false,
+};
+
 // The traffic network the realtime snapshot resolves. Matches
 // OpenFlintAtlasScene so both routes show the same Flint traffic data.
 const TRAFFIC_NETWORK_ID = "flint-downtown";
@@ -175,6 +189,57 @@ const CATEGORY_HUMAN_LABEL: Record<AtlasEventPlannerCategory, string> = {
   after_party: "After Party",
   amenity: "Amenity",
 };
+
+const CIVIC_APP_DRAG_TYPE = "application/x-civic-app";
+
+function isPlannerCategory(value: string): value is AtlasEventPlannerCategory {
+  return value in CATEGORY_HUMAN_LABEL;
+}
+
+function civicCategoryToPlannerCategory(
+  category: CivicMapRow["fields"]["category"],
+): AtlasEventPlannerCategory {
+  switch (category) {
+    case "musician":
+      return "music";
+    case "vendor":
+      return "vendor";
+    case "entertainer":
+    case "other":
+    case "something_else":
+    default:
+      return "amenity";
+  }
+}
+
+function hasDataTransferType(dataTransfer: DataTransfer, type: string): boolean {
+  return Array.from(dataTransfer.types).includes(type);
+}
+
+function readPlannerCategoryDropPayload(
+  dataTransfer: DataTransfer,
+): PlannerCategoryDragPayload | null {
+  const raw = dataTransfer.getData(PLANNER_CATEGORY_DRAG_TYPE).trim();
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PlannerCategoryDragPayload>;
+    if (typeof parsed.category === "string" && isPlannerCategory(parsed.category)) {
+      return {
+        category: parsed.category,
+        label:
+          typeof parsed.label === "string" && parsed.label.trim() !== ""
+            ? parsed.label
+            : CATEGORY_HUMAN_LABEL[parsed.category],
+        sublabel:
+          typeof parsed.sublabel === "string" ? parsed.sublabel : undefined,
+      };
+    }
+  } catch {
+    // Fall through: older drag sources may send the category as plain text.
+  }
+  if (!isPlannerCategory(raw)) return null;
+  return { category: raw, label: CATEGORY_HUMAN_LABEL[raw] };
+}
 
 type PlannerPlacementRow = {
   readonly id: string;
@@ -217,6 +282,19 @@ function pointGeometryFromCoordinate(
   coordinate: readonly [number, number],
 ): Record<string, unknown> {
   return { type: "Point", coordinates: [coordinate[0], coordinate[1]] };
+}
+
+function coordinateFromMapDrop(
+  event: DragEvent<HTMLDivElement>,
+  mapRef: MapRef | null,
+): [number, number] | null {
+  if (!mapRef) return null;
+  const rect = event.currentTarget.getBoundingClientRect();
+  const point = mapRef.unproject([
+    event.clientX - rect.left,
+    event.clientY - rect.top,
+  ]);
+  return [point.lng, point.lat];
 }
 
 function hasPlacementVersion(
@@ -432,6 +510,8 @@ function PorchfestPlannerWorkspace({
   const [placementOverrides, setPlacementOverrides] =
     useState<PlacementOverrides>(() => new Map());
   const [placementDragActive, setPlacementDragActive] = useState(false);
+  const [htmlPlannerDragActive, setHtmlPlannerDragActive] = useState(false);
+  const [mapDropActive, setMapDropActive] = useState(false);
   // The right task rail is collapsible and collapsed by default; the
   // island is the at-a-glance task surface, the rail is full management.
   const [taskRailOpen, setTaskRailOpen] = useState(false);
@@ -443,6 +523,7 @@ function PorchfestPlannerWorkspace({
   );
   // On phones the whole chrome folds into the bottom island.
   const isMobile = useIsMobile();
+  const networkOnline = useNetworkStatus();
   // Feature 2 drop target: a file dropped anywhere on the map wrapper opens
   // the import flow. Only the first file is read; the import panel detects
   // the kind (CSV vs KML vs GeoJSON) and owns the preview/commit UI.
@@ -1037,26 +1118,122 @@ function PorchfestPlannerWorkspace({
           return;
         }
         refreshPlacements();
+        setToast(`Created ${human} ${nextIndex}. Drag to adjust.`);
       });
     },
     [createPlacement, placementCountByCategory, refreshPlacements],
   );
 
-  /* --- file import (Feature 2) ------------------------------------- */
+  const handlePlannerSourceDragEnd = useCallback(() => {
+    setHtmlPlannerDragActive(false);
+    setMapDropActive(false);
+  }, []);
+
+  const handlePaletteCategoryDragStateChange = useCallback((active: boolean) => {
+    setHtmlPlannerDragActive(active);
+    if (!active) setMapDropActive(false);
+  }, []);
+
+  const handleApplicationDragStart = useCallback(
+    (event: DragEvent<HTMLLIElement>, row: CivicMapRow) => {
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData(CIVIC_APP_DRAG_TYPE, row.rowId);
+      event.dataTransfer.setData("text/plain", row.title);
+      setPlacementArm(null);
+      setHtmlPlannerDragActive(true);
+    },
+    [],
+  );
+
+  /* --- map drops: files, unplaced applications, and palette tools ---- */
+
+  const handleMapDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
+    const dataTransfer = event.dataTransfer;
+    const acceptsDrop =
+      hasDataTransferType(dataTransfer, "Files") ||
+      hasDataTransferType(dataTransfer, CIVIC_APP_DRAG_TYPE) ||
+      hasDataTransferType(dataTransfer, PLANNER_CATEGORY_DRAG_TYPE);
+    if (!acceptsDrop) return;
+    event.preventDefault();
+    setMapDropActive(true);
+  }, []);
 
   const handleMapDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     // Without preventDefault the browser navigates away to the dropped file.
+    const dataTransfer = event.dataTransfer;
+    const acceptsDrop =
+      hasDataTransferType(dataTransfer, "Files") ||
+      hasDataTransferType(dataTransfer, CIVIC_APP_DRAG_TYPE) ||
+      hasDataTransferType(dataTransfer, PLANNER_CATEGORY_DRAG_TYPE);
+    if (!acceptsDrop) return;
     event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
   }, []);
+
+  const handleMapDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const stillInside =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+    if (stillInside) return;
+    setMapDropActive(false);
+  }, []);
+
   const handleMapDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    setHtmlPlannerDragActive(false);
+    setMapDropActive(false);
+
     const file = event.dataTransfer.files[0];
-    if (!file) return;
-    void file.text().then(
-      (text) => setDroppedFile({ name: file.name, text }),
-      () => setToast(`Could not read ${file.name}.`),
-    );
-  }, []);
+    if (file) {
+      void file.text().then(
+        (text) => setDroppedFile({ name: file.name, text }),
+        () => setToast(`Could not read ${file.name}.`),
+      );
+      return;
+    }
+
+    const civicRowId = event.dataTransfer.getData(CIVIC_APP_DRAG_TYPE).trim();
+    const categoryPayload = readPlannerCategoryDropPayload(event.dataTransfer);
+    if (!civicRowId && !categoryPayload) return;
+
+    const coordinate = coordinateFromMapDrop(event, mapRef);
+    if (!coordinate) {
+      setToast("Map is still loading. Try again.");
+      return;
+    }
+
+    if (civicRowId) {
+      const location = pointGeometryToCivicLocation(
+        pointGeometryFromCoordinate(coordinate),
+      );
+      if (!location) {
+        setToast("Could not place that application.");
+        return;
+      }
+      const api = civicApiRef.current;
+      if (!api) {
+        setToast("Application store is still loading. Try again.");
+        return;
+      }
+      const row = civicRows.find((candidate) => candidate.rowId === civicRowId);
+      api.update(civicRowId, "location", location);
+      setPlacementArm(null);
+      setToast(`Placed "${row?.title ?? "application"}". Drag to adjust.`);
+      return;
+    }
+
+    if (categoryPayload) {
+      handleDraw(
+        categoryPayload.category,
+        categoryPayload.sublabel,
+        pointGeometryFromCoordinate(coordinate),
+      );
+    }
+  }, [civicRows, handleDraw, mapRef]);
+
   const consumeDroppedFile = useCallback(() => setDroppedFile(null), []);
 
   // Geometry commit for the import panel: imported KML/GeoJSON features
@@ -1297,15 +1474,18 @@ function PorchfestPlannerWorkspace({
       }),
     );
 
-    // Per-submission decoration: name labels (and image billboards when a
-    // link field holds a raster URL) above civic-object figures.
-    layers.push(
-      ...buildPorchfestFigureDecorations({
-        placements: renderPlacements,
-        visibility,
-        selectedPlacementId,
-      }),
-    );
+    if (!isMobile) {
+      // Per-submission decoration: name labels (and image billboards when a
+      // link field holds a raster URL) above civic-object figures. Phones
+      // keep the colored figures but drop text/image chrome.
+      layers.push(
+        ...buildPorchfestFigureDecorations({
+          placements: renderPlacements,
+          visibility,
+          selectedPlacementId,
+        }),
+      );
+    }
 
     if (activeEditablePlacements && editMode.type !== "off") {
       const editable = buildPlannerEditableLayer({
@@ -1342,6 +1522,7 @@ function PorchfestPlannerWorkspace({
     visibility,
     selectedPlacementId,
     handleSelectPlacement,
+    isMobile,
     activeEditablePlacements,
     editMode,
     handleTranslate,
@@ -1359,6 +1540,9 @@ function PorchfestPlannerWorkspace({
     () => liveRows ?? [],
     [liveRows],
   );
+  const baseLayerVisibility = isMobile
+    ? MOBILE_BASEMAP_LAYERS
+    : DEFAULT_BASEMAP_LAYERS;
 
   // On mobile the chrome folds into the island. Build the folded surfaces
   // as content so the island stays a dumb container; passed only on mobile.
@@ -1391,6 +1575,7 @@ function PorchfestPlannerWorkspace({
         setMode={setPaletteMode}
         canEdit={editingAvailable}
         disabledMessage={editDisabledMessage}
+        onCategoryDragStateChange={handlePaletteCategoryDragStateChange}
         embedded
       />
     </div>
@@ -1419,12 +1604,24 @@ function PorchfestPlannerWorkspace({
           planner GraphQL service responds.
         </p>
       ) : null}
+      {!networkOnline ? (
+        <p className="planner-note px-2 py-1 leading-4">
+          Offline. Local workspace edits stay on this device and sync when the
+          connection returns.
+        </p>
+      ) : null}
       <PlannerBookmarks
         eventSlug={EVENT_SLUG}
         mapRef={mapRef}
         canEdit={canEdit}
         onError={(message) => setToast(message)}
       />
+      <a
+        className="planner-control planner-ink mt-2 flex min-h-[36px] items-center justify-center px-3 py-2 text-[13px] font-semibold"
+        href="/porchfest/workspace"
+      >
+        Workspace
+      </a>
     </div>
   );
 
@@ -1463,6 +1660,7 @@ function PorchfestPlannerWorkspace({
             setMode={setPaletteMode}
             canEdit={editingAvailable}
             disabledMessage={editDisabledMessage}
+            onCategoryDragStateChange={handlePaletteCategoryDragStateChange}
             embedded
           />
         </div>
@@ -1497,6 +1695,17 @@ function PorchfestPlannerWorkspace({
       droppedFile={droppedFile}
       onConsumeDroppedFile={consumeDroppedFile}
       onToast={setToast}
+    />
+  );
+  const islandImportContent = (
+    <PlannerImportPanel
+      civicRows={civicRows}
+      civicApi={civicApi}
+      onCreateEventFeature={handleCreateEventFeature}
+      droppedFile={droppedFile}
+      onConsumeDroppedFile={consumeDroppedFile}
+      onToast={setToast}
+      embedded
     />
   );
 
@@ -1540,16 +1749,28 @@ function PorchfestPlannerWorkspace({
           <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {unplacedRows.map((row) => {
               const isArmed = placementArm?.armedRowId === row.rowId;
+              const plannerCategory = civicCategoryToPlannerCategory(
+                row.fields.category,
+              );
               return (
                 <li
                   key={row.rowId}
-                  className="flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
+                  draggable
+                  onDragStart={(event) => handleApplicationDragStart(event, row)}
+                  onDragEnd={handlePlannerSourceDragEnd}
+                  className="planner-drag-source flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
+                  title={`Drag ${row.title} to the map`}
                 >
                   <span className="planner-ink min-w-0 flex-1 truncate">
                     {row.title}
                   </span>
-                  <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
-                    {row.fields.category}
+                  <span className="planner-ink-soft flex shrink-0 items-center gap-1 text-[10px] uppercase tracking-wide">
+                    <span
+                      aria-hidden="true"
+                      className="planner-swatch"
+                      style={{ backgroundColor: CATEGORY_COLOR[plannerCategory] }}
+                    />
+                    <span>{row.fields.category ?? "application"}</span>
                   </span>
                   <button
                     type="button"
@@ -1675,12 +1896,14 @@ function PorchfestPlannerWorkspace({
   ) : null;
 
   return (
-    <main className="relative flex h-screen overflow-hidden">
+    <main className="planner-shell relative flex overflow-hidden">
       {/* The map wrapper doubles as the Feature 2 drop target: dropping a
           file anywhere on the map opens the import flow in the left panel. */}
       <div
-        className="relative flex-1"
+        className={`planner-map-shell relative flex-1 ${mapDropActive ? "planner-map-drop-active" : ""}`}
+        onDragEnter={handleMapDragEnter}
         onDragOver={handleMapDragOver}
+        onDragLeave={handleMapDragLeave}
         onDrop={handleMapDrop}
       >
         <ResponsiveAtlasMap
@@ -1692,13 +1915,15 @@ function PorchfestPlannerWorkspace({
           onSignalSelect={() => {}}
           selectedPlaceId={null}
           selectedSignalId={null}
-          layerVisibility={DEFAULT_BASEMAP_LAYERS}
+          layerVisibility={baseLayerVisibility}
           initialBounds={CARRIAGE_TOWN_BOUNDS}
-          viewMode="oblique"
+          viewMode={isMobile ? "atlas" : "oblique"}
           activeLens="explore"
           urbanDesignMaterialMode="sketch_model"
           extraDeckLayers={extraDeckLayers}
-          mapDragPanEnabled={!editModeEnabled && !placementDragActive}
+          mapDragPanEnabled={
+            !editModeEnabled && !placementDragActive && !htmlPlannerDragActive
+          }
           dragPanBlockLayerIds={PLANNER_DRAG_BLOCK_LAYER_IDS}
           deckLayerPointerDragHandler={plannerPointerDragHandler}
           className="h-full w-full"
@@ -1711,6 +1936,7 @@ function PorchfestPlannerWorkspace({
             the click otherwise. The same override store + resolver back the
             atlas building dossier and the map hover tooltip, so a correction
             here shows everywhere. */}
+        {!isMobile ? (
         <div className="pointer-events-none absolute right-4 top-4 z-20 flex w-[min(300px,calc(100vw-2rem))] flex-col items-end gap-2">
           <button
             type="button"
@@ -1738,6 +1964,7 @@ function PorchfestPlannerWorkspace({
             </div>
           ) : null}
         </div>
+        ) : null}
 
         {/* Left sidebar (desktop only; on mobile every control folds into
             the island, untouched). The approved CivicAtlasSidebar chrome:
@@ -1773,6 +2000,7 @@ function PorchfestPlannerWorkspace({
           tasksContent={isMobile ? islandTasksContent : undefined}
           editContent={isMobile ? islandEditContent : undefined}
           mapKeyContent={isMobile ? islandMapKeyContent : undefined}
+          importContent={isMobile ? islandImportContent : undefined}
           infoContent={isMobile ? islandInfoContent : undefined}
           modeLabel={isMobile ? plannerModeLabel : undefined}
         />
@@ -1798,7 +2026,14 @@ function PorchfestPlannerWorkspace({
 
         {/* Transient toast */}
         {toast ? (
-          <div className="planner-toast pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 px-4 py-2 text-[14px]">
+          <div
+            className="planner-toast pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 px-4 py-2 text-[14px]"
+            style={{
+              bottom: isMobile
+                ? "calc(max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) + 72px)"
+                : "1.5rem",
+            }}
+          >
             {toast}
           </div>
         ) : null}

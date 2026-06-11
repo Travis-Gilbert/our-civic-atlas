@@ -22,11 +22,11 @@ export const metadata: Metadata = {
 /**
  * viewportFit: "cover" extends the viewport under the notch and home
  * indicator so env(safe-area-inset-*) returns the real insets the mobile
- * Dynamic Island relies on. themeColor matches the paper surface.
+ * Dynamic Island relies on. themeColor matches the Path B primary action.
  */
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#ffffff",
+  themeColor: "#005186",
 };
 
 export default function PorchfestLayout({

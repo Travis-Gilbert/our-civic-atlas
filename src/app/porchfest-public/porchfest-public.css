@@ -1,0 +1,37 @@
+.porchfest-public,
+.porchfest-public * {
+  box-sizing: border-box;
+}
+
+.porchfest-public {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #f2ede5;
+  color: #2a2420;
+  font-family: var(--font-porchfest-sans), var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.porchfest-public img {
+  max-width: 100%;
+  display: block;
+}
+
+.porchfest-public a {
+  color: inherit;
+}
+
+.porchfest-public button {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .porchfest-public *,
+  .porchfest-public *::before,
+  .porchfest-public *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

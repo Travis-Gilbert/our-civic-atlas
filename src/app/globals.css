@@ -26,12 +26,11 @@
   --font-sans:
     var(--font-ibm-plex-sans), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* Display chain: Fraunces, a high-contrast serif. Fallbacks stay in the
-     same high-contrast-serif register so a load failure does not reflow
-     into a tonally wrong typeface. */
+  /* Display chain: Vollkorn, a sturdy book serif for atlas/map titles.
+     Fallbacks stay in the same serif register so a load failure does not
+     reflow into a tonally wrong typeface. */
   --font-display:
-    var(--font-display-face), "Playfair Display", Georgia, "Times New Roman",
-    serif;
+    var(--font-display-face), Georgia, "Times New Roman", serif;
   /* --font-mono resolves to Plex Sans SemiCondensed; the atlas "mono surface"
      (chips, coords, IDs, section labels) renders in the body family via
      uppercase + tracking. Kept for `font-mono` utilities and direct refs. */
@@ -44,6 +43,9 @@ body {
   min-height: 100%;
   margin: 0;
   background: #ffffff;
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -61,8 +63,6 @@ textarea {
 
 .font-display {
   font-family: var(--font-display);
-  /* Pin Fraunces to its large optical cut for refined, high-contrast
-     titles. Swap to `font-optical-sizing: auto` if you want the cut to
-     track font-size automatically instead. */
-  font-variation-settings: "opsz" 144;
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
 }
