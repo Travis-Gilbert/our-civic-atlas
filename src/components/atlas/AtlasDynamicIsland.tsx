@@ -576,9 +576,14 @@ export function AtlasDynamicIsland({
 
               {activeTab === "layers" ? (
                 <section className="space-y-4">
-                  <div className="atlas-island-layer-dossier">
-                    {layerControlsContent}
-                  </div>
+                  {/* The preset rack arrives only on mobile viewports;
+                      on md+ the CivicAtlasSidebar owns it and the tab
+                      keeps the lens/camera controls below. */}
+                  {layerControlsContent ? (
+                    <div className="atlas-island-layer-dossier">
+                      {layerControlsContent}
+                    </div>
+                  ) : null}
                   <div className="grid grid-cols-3 gap-2">
                     <MetaPill label="Places" value={String(placesCount)} />
                     <MetaPill label="Events" value={String(eventsCount)} />

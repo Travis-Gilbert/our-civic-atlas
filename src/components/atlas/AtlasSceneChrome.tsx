@@ -53,7 +53,9 @@ type AtlasSceneChromeProps = {
   /** Fired when the user clears the building selection (Clear button or
    * empty-area click). Spec PR 1. */
   onClearBuilding?: () => void;
-  layerControlsContent: ReactNode;
+  /** Layer rack for the island's Layers tab. Omitted on md+ where the
+   * CivicAtlasSidebar owns the rack. */
+  layerControlsContent?: ReactNode;
   scenarioControlsContent: ReactNode;
   trafficControlsContent?: ReactNode;
 };
@@ -98,7 +100,10 @@ export function AtlasSceneChrome({
         (docs/plans/atelier-real-reconstruction-plan.md, Task H)
         flagged as a regression from the desktop chrome.
       */}
-      <header className="atlas-scene-header pointer-events-auto absolute left-5 right-5 top-4">
+      {/* left-[72px] clears the CivicAtlasSidebar's 56px icon rail on
+          md+; the mobile media block in atlas.css overrides the header
+          back to left 12px below 768px where the sidebar is hidden. */}
+      <header className="atlas-scene-header pointer-events-auto absolute left-[72px] right-5 top-4">
         <div className="atlas-scene-top-strip">
           <Link href="/open-flint-atlas" className="atlas-scene-wordmark">
             Flint Atlas

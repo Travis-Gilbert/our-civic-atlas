@@ -10,6 +10,7 @@ import {
 } from "@/components/atlas/AtlasSceneChrome";
 import type { UrbanDesignMaterialMode } from "@/components/atlas/AtlasMap";
 import { ControlDossier, type LayerPreset } from "@/components/atlas/ControlDossier";
+import { CivicAtlasSidebar } from "@/components/atlas/CivicAtlasSidebar";
 import { PlaceDossierPanel } from "@/components/atlas/PlaceDossier";
 import { ScenarioControls } from "@/components/atlas/ScenarioControls";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
@@ -1154,12 +1155,34 @@ export function OpenFlintAtlasScene(props: {
       onNodeSelect={handleProvenanceNodeSelect}
     />
   );
-  const layerControlsContent = (
+  /* Below 768px the atlas hides desktop panels and the dynamic island
+     is the only control surface, so the island's Layers tab keeps the
+     preset rack there. On md+ the rack lives inside CivicAtlasSidebar
+     (which composes the same ControlDossier) and the island tab drops
+     it rather than duplicating the controls. */
+  const islandLayerControlsContent = isMobileViewport ? (
     <ControlDossier
       presets={controlDossierPresets}
       visibility={layerVisibility}
       onToggle={handleLayerChange}
       defaultOpenId={selectedPlaceId ? "places" : "urbanDesignModel"}
+    />
+  ) : null;
+  const civicAtlasSidebar = (
+    <CivicAtlasSidebar
+      className="hidden md:flex"
+      presets={controlDossierPresets}
+      visibility={layerVisibility}
+      onToggle={handleLayerChange}
+      defaultOpenPresetId={selectedPlaceId ? "places" : "urbanDesignModel"}
+      placesCount={placeFeatureCount}
+      wardsCount={wardFeatureCount}
+      eventsCount={events.length}
+      atlasYear={atlasYear}
+      visibleReconstructionCount={visibleHistoricalReconstructionCount}
+      totalReconstructionCount={
+        historicalReconstructionsState.reconstructions.length
+      }
     />
   );
   const scenarioControlsContent = (
@@ -1310,10 +1333,11 @@ export function OpenFlintAtlasScene(props: {
             }
             selectedBuilding={selectedBuilding}
             onClearBuilding={handleClearBuilding}
-            layerControlsContent={layerControlsContent}
+            layerControlsContent={islandLayerControlsContent}
             scenarioControlsContent={scenarioControlsContent}
             trafficControlsContent={trafficControlsContent}
           />
+          {civicAtlasSidebar}
         </div>
       </AtlasShell>
     </div>

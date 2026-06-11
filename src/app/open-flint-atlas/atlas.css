@@ -1304,3 +1304,253 @@
     outline: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Civic Atlas sidebar (CivicAtlasSidebar.tsx).
+   Two-level left sidebar: a 56px icon rail plus a 320px detail panel,
+   adapted from the Theseus reference sidebar. The reference's dark
+   neutral-950 register inverts onto the Observable tokens: paper glass
+   surfaces, hairline rules, ink text, navy reserved for the active
+   rail item. State styles live here (not inline) because hover, focus
+   and the collapse animation need pseudo-classes and a shared curve:
+   the reference's soft spring, cubic-bezier(0.25, 1.1, 0.4, 1).
+
+   z-index 1405 sits above the scene chrome root (1400) so the
+   expanded panel reads as a drawer over the top strip; the strip
+   itself starts at left 72px (AtlasSceneChrome) so the rail never
+   covers the wordmark while collapsed. The dynamic island keeps its
+   own stacking context inside the chrome and is never blurred or
+   blocked by the sidebar. Display is owned by the JSX (hidden
+   md:flex): below 768px the island is the only control surface.      */
+
+.civic-atlas .atlas-sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1405;
+  align-items: stretch;
+}
+
+.civic-atlas .atlas-sidebar-rail {
+  display: flex;
+  width: 56px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-2);
+  background: color-mix(in srgb, var(--ctx-paper) 88%, transparent);
+  border-right: 1px solid rgba(28, 28, 28, 0.1);
+  backdrop-filter: blur(12px) saturate(112%);
+  -webkit-backdrop-filter: blur(12px) saturate(112%);
+}
+
+/* Collapsed brand mark; the full "Our Civic Atlas" kicker lives in
+   the panel header. */
+.civic-atlas .atlas-sidebar-rail-brand {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ctx-ink);
+  user-select: none;
+}
+
+.civic-atlas .atlas-sidebar-rail-btn {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  color: var(--ctx-ink-mute);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition:
+    background 500ms cubic-bezier(0.25, 1.1, 0.4, 1),
+    color 500ms cubic-bezier(0.25, 1.1, 0.4, 1),
+    border-color 500ms cubic-bezier(0.25, 1.1, 0.4, 1),
+    box-shadow 500ms cubic-bezier(0.25, 1.1, 0.4, 1);
+}
+
+.civic-atlas .atlas-sidebar-rail-btn:hover,
+.civic-atlas .atlas-sidebar-rail-btn:focus-visible {
+  color: var(--ctx-ink);
+  background: rgba(28, 28, 28, 0.06);
+  outline: none;
+}
+
+/* Active rail item: hairline border, navy left edge, navy glyph. A
+   quiet treatment by register rule; no filled pill. */
+.civic-atlas .atlas-sidebar-rail-btn[aria-current="true"] {
+  color: var(--ctx-accent);
+  background: var(--ctx-paper);
+  border-color: var(--ctx-rule);
+  box-shadow: inset 2px 0 0 var(--ctx-accent);
+}
+
+.civic-atlas .atlas-sidebar-panel {
+  width: 320px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ctx-paper) 82%, transparent);
+  border-right: 1px solid rgba(28, 28, 28, 0.1);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(12px) saturate(112%);
+  -webkit-backdrop-filter: blur(12px) saturate(112%);
+  transition:
+    width 500ms cubic-bezier(0.25, 1.1, 0.4, 1),
+    border-color 500ms cubic-bezier(0.25, 1.1, 0.4, 1);
+}
+
+.civic-atlas .atlas-sidebar[data-collapsed="true"] .atlas-sidebar-panel {
+  width: 0;
+  border-right-color: transparent;
+  box-shadow: none;
+}
+
+/* Fixed inner width so text does not reflow while the outer width
+   animates shut. */
+.civic-atlas .atlas-sidebar-panel-inner {
+  display: flex;
+  height: 100%;
+  width: 320px;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 500ms cubic-bezier(0.25, 1.1, 0.4, 1);
+}
+
+.civic-atlas .atlas-sidebar[data-collapsed="true"] .atlas-sidebar-panel-inner {
+  opacity: 0;
+}
+
+/* Detail rows share the atlas soft hover fill (the rgba ink wash used
+   across the scene chrome). Focus follows the atlas convention: fill
+   plus border shift, no default outline. */
+.civic-atlas .atlas-sidebar-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 6px var(--s-2);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ctx-ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.civic-atlas .atlas-sidebar-row:hover,
+.civic-atlas .atlas-sidebar-row:focus-visible {
+  background: rgba(28, 28, 28, 0.06);
+  outline: none;
+}
+
+.civic-atlas .atlas-sidebar-row:focus-visible {
+  border-color: rgba(28, 28, 28, 0.18);
+}
+
+/* Same 22px eye chip the ControlDossier rows draw, with the navy
+   accent soft fill instead of the retired warm rgba. */
+.civic-atlas .atlas-sidebar-eye {
+  display: flex;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ctx-rule-soft);
+  border-radius: 3px;
+  color: var(--ctx-ink-mute);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.civic-atlas .atlas-sidebar-eye[data-on="true"] {
+  border-color: var(--ctx-accent);
+  color: var(--ctx-accent);
+  background: color-mix(in srgb, var(--ctx-accent) 10%, transparent);
+}
+
+.civic-atlas .atlas-sidebar-chevron {
+  transition: transform 500ms cubic-bezier(0.25, 1.1, 0.4, 1);
+}
+
+.civic-atlas .atlas-sidebar-chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.civic-atlas .atlas-sidebar-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 var(--s-2) var(--s-3);
+  padding-left: var(--s-2);
+  border-left: 1px solid var(--ctx-rule-soft);
+}
+
+.civic-atlas .atlas-sidebar-search {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--ctx-rule);
+  border-radius: var(--r);
+  background: var(--ctx-paper);
+  color: var(--ctx-ink-mute);
+  transition:
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.civic-atlas .atlas-sidebar-search:focus-within {
+  border-color: var(--ctx-accent);
+  color: var(--ctx-ink);
+}
+
+.civic-atlas .atlas-sidebar-search input {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--ctx-ink);
+}
+
+.civic-atlas .atlas-sidebar-search input::placeholder {
+  color: var(--ctx-ink-faint);
+}
+
+/* The embedded ControlDossier keeps its logic but drops its floating
+   card chrome inside the panel, same neutralization the island's
+   Layers tab applies. */
+.civic-atlas .atlas-sidebar-layer-dossier .control-dossier-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civic-atlas .atlas-sidebar-panel,
+  .civic-atlas .atlas-sidebar-panel-inner,
+  .civic-atlas .atlas-sidebar-rail-btn,
+  .civic-atlas .atlas-sidebar-chevron {
+    transition: none !important;
+  }
+}
