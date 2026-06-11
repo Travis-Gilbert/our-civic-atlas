@@ -8,7 +8,7 @@
  * and dark-gray text, light-gray hairlines, navy-primary as the brand
  * and action color, code-surface-blue selection washes, and the
  * evidence-backed shadow depths. Body type rides the page font chain
- * (IBM Plex Sans Condensed) instead of the bundled Inter, per Path B.
+ * (IBM Plex Sans SemiCondensed) instead of the bundled Inter, per Path B.
  */
 
 :root {
@@ -56,4 +56,8 @@
   --affine-link-color: #005186;
   --affine-selected-color: rgba(0, 81, 134, 0.16);
   --affine-hover-color-secondary: rgba(0, 81, 134, 0.08);
+}
+
+affine-editor-container {
+  font-stretch: var(--font-plex-width, 87.5%);
 }

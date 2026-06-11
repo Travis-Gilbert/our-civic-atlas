@@ -34,7 +34,7 @@ const EVENT_SLUG = "porchfest-2026";
 
 type MountState =
   | { kind: "loading" }
-  | { kind: "ready"; objectCount: number; ingested: number | null }
+  | { kind: "ready" }
   | { kind: "error"; message: string };
 
 function WorkspaceInner() {
@@ -63,12 +63,7 @@ function WorkspaceInner() {
           return;
         }
         apiRef.current = mounted;
-        const refresh = () =>
-          setState((prev) => ({
-            kind: "ready",
-            objectCount: mounted.api.list().length,
-            ingested: prev.kind === "ready" ? prev.ingested : null,
-          }));
+        const refresh = () => setState({ kind: "ready" });
         offChange = mounted.api.onChange(refresh);
         refresh();
       })
@@ -106,26 +101,9 @@ function WorkspaceInner() {
         Array.from(new Set(dropped)),
       );
     }
-    const added = mounted.api.ingestLedgerRows(mapped.map((m) => m.fields));
-    setState({
-      kind: "ready",
-      objectCount: mounted.api.list().length,
-      ingested: added,
-    });
+    mounted.api.ingestLedgerRows(mapped.map((m) => m.fields));
+    setState({ kind: "ready" });
   }, [applicationsResult.data, state.kind]);
-
-  const statusChips: string[] = [];
-  if (state.kind === "ready") {
-    statusChips.push(
-      `${state.objectCount} civic object${state.objectCount === 1 ? "" : "s"}`,
-    );
-    if (state.ingested !== null && state.ingested > 0) {
-      statusChips.push(`${state.ingested} ingested from intake`);
-    }
-    if (applicationsResult.error) {
-      statusChips.push("intake ledger unreachable; local-first");
-    }
-  }
 
   return (
     <div className="civic-workspace-shell">
@@ -135,20 +113,13 @@ function WorkspaceInner() {
             PorchFest 2026 · Organizers
           </p>
           <h1>Planning workspace</h1>
-          <p className="civic-workspace-sub">
-            Applications as one shared civic-object database: table and kanban
-            views, edits sync live through the CRDT store.
-          </p>
-        </div>
-        <div className="civic-workspace-status" role="status">
-          {state.kind === "loading" && <span>Loading editor…</span>}
-          {state.kind === "ready" &&
-            statusChips.map((chip) => <span key={chip}>{chip}</span>)}
-          {state.kind === "error" && (
-            <span data-tone="error">{state.message}</span>
-          )}
         </div>
       </header>
+      {state.kind === "error" ? (
+        <p className="civic-workspace-error" role="alert">
+          {state.message}
+        </p>
+      ) : null}
       <div ref={containerRef} className="civic-workspace-editor" />
       <style>{`
         .civic-workspace-shell {
@@ -159,10 +130,6 @@ function WorkspaceInner() {
           color: #1c1c1c;
         }
         .civic-workspace-header {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 16px;
           padding: 24px 24px 16px;
           border-bottom: 1px solid #e2e2e2;
         }
@@ -181,34 +148,15 @@ function WorkspaceInner() {
           font-weight: 500;
           line-height: 32px;
         }
-        .civic-workspace-sub {
-          margin: 4px 0 0;
-          font-size: 13px;
-          color: #454545;
-          max-width: 64ch;
-        }
-        .civic-workspace-status {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-          gap: 8px;
+        .civic-workspace-error {
+          margin: 0;
+          padding: 8px 24px;
+          border-bottom: 1px solid #e2e2e2;
+          color: #1c1c1c;
           font-family: var(--font-mono, inherit);
           font-size: 11px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          font-variant-numeric: tabular-nums;
-          color: #454545;
-        }
-        .civic-workspace-status span {
-          padding: 6px 12px;
-          border: 1px solid #e2e2e2;
-          border-radius: 9999px;
-          background: #ffffff;
-          white-space: nowrap;
-        }
-        .civic-workspace-status span[data-tone="error"] {
-          border-left: 2px solid #bf5f52;
-          color: #1c1c1c;
         }
         .civic-workspace-editor {
           flex: 1;

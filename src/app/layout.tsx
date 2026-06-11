@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Condensed, Fraunces } from "next/font/google";
+import { IBM_Plex_Sans, Fraunces } from "next/font/google";
 import "antd/dist/reset.css";
 import "./globals.css";
 import "./open-flint-atlas/atlas.css";
 
-// Body / UI font. Plex Sans Condensed reads denser than the
-// non-condensed Plex Sans, which fits the editorial atlas chrome:
-// narrower x-height and tighter spacing fit more content per panel
-// without dropping size. It also serves as the mono surface (chips,
-// coords, IDs) via uppercase + tracking; --font-mono points at it.
-const ibmPlexSansCondensed = IBM_Plex_Sans_Condensed({
+// Body / UI font. Plex Sans variable carries the width axis, so the
+// system can render the requested SemiCondensed register from one family.
+// globals.css pins that width token; --font-mono points at the same face
+// for the atlas uppercase label surface.
+const ibmPlexSansSemiCondensed = IBM_Plex_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "variable",
+  axes: ["wdth"],
   variable: "--font-ibm-plex-sans",
   display: "swap",
 });
@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexSansCondensed.variable} ${fraunces.variable}`}
+      className={`${ibmPlexSansSemiCondensed.variable} ${fraunces.variable}`}
     >
       <body>{children}</body>
     </html>
