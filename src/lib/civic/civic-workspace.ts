@@ -297,16 +297,35 @@ export function ensureCivicDatabase(
     }
   }
 
-  // Resolve the key map, self-healing missing entries by column name so an
-  // older doc (or a UI-side column change) cannot strand a field key.
+  // Resolve the key map, self-healing in three steps so no schema field is
+  // ever stranded on a live doc:
+  //   1. A mapped column id that no longer exists on the block (stale map
+  //      after a UI-side column delete) is discarded, not trusted.
+  //   2. A missing entry heals by column name (older doc, renamed map key).
+  //   3. A schema column the doc has never seen is CREATED in place. This
+  //      is the backfill path for contract additions: the database is only
+  //      seeded when empty, so without it a column added to
+  //      CIVIC_OBJECT_COLUMNS after a doc's first load (figureKey was the
+  //      first) would never materialize on existing event docs.
   const columnIds = new Map<CivicFieldKey, string>();
   for (const spec of CIVIC_OBJECT_COLUMNS) {
     let columnId = idMap.get(spec.key);
+    if (columnId && !modelColumns(model).some((c) => c.id === columnId)) {
+      columnId = undefined;
+    }
     if (!columnId) {
       columnId = modelColumns(model).find((c) => c.name === spec.name)?.id;
-      if (columnId) idMap.set(spec.key, columnId);
     }
-    if (columnId) columnIds.set(spec.key, columnId);
+    if (!columnId) {
+      columnId = addCivicColumn(model, {
+        id: nanoid(),
+        type: PROPERTY_TYPE_BY_COLUMN[spec.type],
+        name: spec.name,
+        data: defaultColumnData(spec),
+      });
+    }
+    if (idMap.get(spec.key) !== columnId) idMap.set(spec.key, columnId);
+    columnIds.set(spec.key, columnId);
   }
 
   return { collection, store, model, columnIds };

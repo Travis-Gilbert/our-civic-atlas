@@ -217,6 +217,43 @@ async function main() {
     );
   }
 
+  console.log('5. column backfill: a contract column added after doc creation');
+  // Simulate a doc created before the `figureKey` column existed: remove
+  // the Figure column from the block. The key map keeps its (now stale)
+  // entry, which is the exact state a live doc presents after a schema
+  // addition plus a UI-side column delete. ensureCivicDatabase must discard
+  // the stale mapping, recreate the column, and leave the field writable.
+  const figureColumnId = handlesA.columnIds.get('figureKey');
+  check('figure column resolved on the fresh doc', Boolean(figureColumnId));
+  const columnsA = handlesA.model.props.columns as unknown as Array<{
+    id: string;
+  }>;
+  const figureIndex = columnsA.findIndex((c) => c.id === figureColumnId);
+  check('figure column present on the block before removal', figureIndex >= 0);
+  handlesA.model.store.transact(() => {
+    columnsA.splice(figureIndex, 1);
+  });
+  const healed = ensureCivicDatabase(a);
+  const healedId = healed.columnIds.get('figureKey');
+  check(
+    'backfill created a replacement column id',
+    Boolean(healedId) && healedId !== figureColumnId,
+    { before: figureColumnId, after: healedId },
+  );
+  check(
+    'backfilled column exists on the block',
+    columnsA.some((c) => c.id === healedId),
+  );
+  updateCivicObjectField(healed, musicianRowId, 'figureKey', 'musician-solo');
+  const healedRow = readCivicObjects(healed).find(
+    (r) => r.fields.email === musician.email,
+  );
+  check(
+    'figureKey writes and reads through the backfilled column',
+    healedRow?.fields.figureKey === 'musician-solo',
+    healedRow?.fields.figureKey,
+  );
+
   if (failures > 0) {
     console.error(`\nvalidate-civic-store: ${failures} failure(s)`);
     process.exit(1);

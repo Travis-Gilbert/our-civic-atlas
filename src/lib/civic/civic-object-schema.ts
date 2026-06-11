@@ -107,6 +107,33 @@ export const PLANNING_STATUSES = [
 export type PlanningStatus = (typeof PLANNING_STATUSES)[number];
 
 /**
+ * Figure-library keys: every renderable figure the planner map can show for
+ * a civic object. The list lives HERE (not beside the geometry) because it
+ * is contract: the `figureKey` planning column's select options, the
+ * resolver's output domain, and the atlas figure library all bind to it.
+ * Geometry stays in src/lib/atlas/porchfest-figure-library.ts so the civic
+ * editor bundle never imports luma.gl. Adding a figure = add the key here
+ * plus its geometry entry in the library (the library is typed exhaustive
+ * over these keys, so forgetting the entry fails the typecheck).
+ */
+export const CIVIC_FIGURE_KEYS = [
+  'musician-solo',
+  'musician-band',
+  'musician-dj',
+  'vendor-tent',
+  'vendor-table',
+  'vendor-cart',
+  'food-truck',
+  'food-cart',
+  'food-grill',
+  'entertainer-stage',
+  'entertainer-dance',
+  'entertainer-art',
+  'marker',
+] as const;
+export type CivicFigureKey = (typeof CIVIC_FIGURE_KEYS)[number];
+
+/**
  * Column value types, mapped 1:1 onto BlockSuite 0.22.4 property presets
  * (@blocksuite/data-view propertyPresets + database link/rich-text configs):
  *
@@ -207,6 +234,7 @@ export const CIVIC_OBJECT_COLUMNS: readonly CivicColumnSpec[] = [
   { key: 'location', name: 'Location', type: 'text', scope: 'planning', note: 'JSON {"lng":number,"lat":number}; first-class, consumed by the geospatial layer. Empty means unplaced, never hidden.' },
   { key: 'setTime', name: 'Set Time', type: 'text', scope: 'planning', note: 'Free text, e.g. "14:00-14:45".' },
   { key: 'billingRef', name: 'Billing Ref', type: 'text', scope: 'planning', note: 'Identifier of the billing record in the Postgres billing store (FR-014).' },
+  { key: 'figureKey', name: 'Figure', type: 'select', options: CIVIC_FIGURE_KEYS, scope: 'planning', note: 'Organizer override for the rendered map figure. Empty means auto: civic-figure-resolver.ts picks from category + discriminating fields.' },
 ] as const;
 
 export type CivicFieldKey = (typeof CIVIC_OBJECT_COLUMNS)[number]['key'];
@@ -260,6 +288,7 @@ export interface CivicObjectFields {
   location?: string;
   setTime?: string;
   billingRef?: string;
+  figureKey?: CivicFigureKey;
 }
 
 /** Geospatial location encoding helpers (planning `location` column). */
