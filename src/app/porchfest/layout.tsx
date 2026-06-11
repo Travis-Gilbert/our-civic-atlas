@@ -26,7 +26,7 @@ export const metadata: Metadata = {
  */
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#f2f1ec",
+  themeColor: "#ffffff",
 };
 
 export default function PorchfestLayout({

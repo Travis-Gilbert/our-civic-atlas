@@ -256,7 +256,7 @@ export const VISUAL_GRAMMAR_TOKENS = [
     id: "historical_event",
     label: "Event",
     detail: "time-stamped civic record",
-    color: "#c14a2c",
+    color: "#005186",
   },
   {
     id: "source_high_confidence",

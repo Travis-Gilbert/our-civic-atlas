@@ -289,7 +289,7 @@ async function renderVgplot(
   const markOptions: Record<string, unknown> = {
     x: spec.encoding.bin ? vg.bin(spec.encoding.x) : spec.encoding.x,
     y: spec.encoding.aggregate === "avg" ? vg.avg("numeric_value") : vg.count(),
-    fill: "var(--ctx-accent, #c14a2c)",
+    fill: "var(--ctx-accent, #005186)",
     fillOpacity: 0.78,
   };
   if (spec.encoding.colorField) {
@@ -364,7 +364,7 @@ async function renderObservablePlot(
       Plot.barX(rows, {
         x: "n",
         y: "label",
-        fill: "var(--ctx-accent, #c14a2c)",
+        fill: "var(--ctx-accent, #005186)",
         fillOpacity: 0.78,
       }),
     ],
@@ -419,7 +419,7 @@ function labelForField(field: string): string {
 
 function cardClassName(compact: boolean): string {
   return [
-    "min-w-0 overflow-hidden rounded-md border border-black/10 bg-[var(--ctx-paper,#f2f1ec)]/92 shadow-sm backdrop-blur",
+    "min-w-0 overflow-hidden rounded-md border border-black/10 bg-[var(--ctx-paper,#ffffff)]/92 shadow-sm backdrop-blur",
     compact ? "h-[132px]" : "h-[172px]",
   ].join(" ");
 }

@@ -52,9 +52,9 @@ const SVG_HEIGHT = 540;
 const CATEGORY_COLOR: Record<string, string> = {
   vendor: "rgb(99, 56, 142)",
   music: "rgb(217, 162, 59)",
-  parking: "rgb(193, 74, 44)",
+  parking: "rgb(0, 81, 134)",
   restroom: "rgb(56, 132, 95)",
-  kid_zone: "rgb(193, 74, 44)",
+  kid_zone: "rgb(0, 81, 134)",
   food_court: "rgb(50, 110, 158)",
   rest_area: "rgb(50, 110, 158)",
   after_party: "rgb(120, 30, 60)",

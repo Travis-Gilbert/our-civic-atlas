@@ -305,7 +305,7 @@ const PLACE_TYPE_LINE_DEFAULT: [number, number, number, number] = [
 ];
 
 /** Selected feature highlight. */
-const SELECTED_LINE: [number, number, number, number] = [193, 74, 44, 240];
+const SELECTED_LINE: [number, number, number, number] = [0, 81, 134, 240];
 
 /** RGBA tuples for event_type dot colors. */
 const EVENT_TYPE_COLOR: Record<string, [number, number, number]> = {
@@ -345,7 +345,7 @@ const TRAFFIC_MUTED_TARGET: [number, number, number] = [206, 199, 181];
 
 const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
   explore: [193, 132, 58, 34],
-  memory: [193, 74, 44, 44],
+  memory: [0, 81, 134, 44],
   safety: [56, 132, 128, 44],
   interventions: [82, 126, 82, 46],
   evidence: [95, 111, 163, 42],
@@ -354,7 +354,7 @@ const LENS_FILL_TINT: Record<AtlasLensId, [number, number, number, number]> = {
 const ENVELOPE_FILL: Record<ScenarioEnvelopeType, [number, number, number, number]> = {
   adaptive_reuse: [126, 93, 161, 152],
   as_of_right: [84, 112, 122, 118],
-  civic_anchor: [193, 74, 44, 164],
+  civic_anchor: [0, 81, 134, 164],
   missing_middle: [217, 162, 59, 158],
   mixed_use_infill: [45, 166, 153, 162],
 };
@@ -1951,7 +1951,7 @@ export function AtlasMap({
    * etc.) and falling back to the raw osmBuildings fixture. The
    * resulting FeatureCollection drives a stroke-only highlight layer
    * rendered above the building layers. Spec PR 1: terracotta outline
-   * at `--ctx-accent` (#c14a2c), 2px width.
+   * at `--ctx-accent` (#005186), 2px width.
    */
   const selectedBuildingFeatureCollection = useMemo<GeoJSON.FeatureCollection<
     GeoJSON.Geometry
@@ -2951,7 +2951,7 @@ export function AtlasMap({
             Math.max(12, feature.properties.heightDeltaM * 3.2),
           getFillColor: (feature) =>
             envelopeFillColor(feature.properties.envelopeType, true),
-          getLineColor: [193, 74, 44, 220],
+          getLineColor: [0, 81, 134, 220],
         }),
       );
     }
@@ -2979,7 +2979,7 @@ export function AtlasMap({
 
     /*
      * Selected building outline. Spec PR 1: 2px terracotta stroke
-     * (`--ctx-accent`, #c14a2c -> RGB 193, 74, 44) on the picked
+     * (`--ctx-accent`, #005186 -> RGB 0, 81, 134) on the picked
      * building's footprint. Renders above the building layers so the
      * highlight remains visible regardless of extrusion state.
      */
@@ -2994,7 +2994,7 @@ export function AtlasMap({
           extruded: false,
           lineWidthMinPixels: 2,
           getLineWidth: 2,
-          getLineColor: [193, 74, 44, 235],
+          getLineColor: [0, 81, 134, 235],
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,
@@ -3021,7 +3021,7 @@ export function AtlasMap({
           extruded: false,
           lineWidthMinPixels: 1,
           getLineWidth: 1,
-          getLineColor: [193, 74, 44, 140],
+          getLineColor: [0, 81, 134, 140],
           parameters: {
             depthCompare: "always",
             depthWriteEnabled: false,

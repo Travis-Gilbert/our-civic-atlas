@@ -74,9 +74,9 @@ export type AtlasEventPlannerCategory =
 export const CATEGORY_COLOR: Record<AtlasEventPlannerCategory, [number, number, number, number]> = {
   vendor: [99, 56, 142, 220],
   music: [217, 162, 59, 220],
-  parking: [193, 74, 44, 220],
+  parking: [0, 81, 134, 220],
   restroom: [56, 132, 95, 220],
-  kid_zone: [193, 74, 44, 220],
+  kid_zone: [0, 81, 134, 220],
   food_court: [50, 110, 158, 220],
   rest_area: [50, 110, 158, 200],
   after_party: [120, 30, 60, 220],

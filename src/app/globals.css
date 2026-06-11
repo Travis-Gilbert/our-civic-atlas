@@ -1,22 +1,39 @@
 @import "tailwindcss";
 
+@theme {
+  /* Observable palette */
+  --color-navy-primary: #005186;
+  --color-syntax-navy: #005f87;
+  --color-near-black: #1c1c1c;
+  --color-dark-gray: #454545;
+  --color-mid-gray: #c5c5c5;
+  --color-light-gray: #e2e2e2;
+  --color-near-white: #f5f5f5;
+  --color-pure-white: #ffffff;
+  --color-code-surface-blue: #f1f6fb;
+  --color-syntax-purple: #6636b4;
+  --color-syntax-teal: #20a5ba;
+
+  /* Depth, the evidence-backed shadows */
+  --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.12);
+  --shadow-popover: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
 :root {
   color-scheme: light;
   --font-sans:
     var(--font-ibm-plex-sans), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* Display chain: Block is a heavy condensed gothic-sans; if it
-     fails to load the fallbacks pick up the same weight + condensed
-     intent so the page never reflows into a tonally wrong typeface. */
+  /* Display chain: Fraunces, a high-contrast serif. Fallbacks stay in the
+     same high-contrast-serif register so a load failure does not reflow
+     into a tonally wrong typeface. */
   --font-display:
-    var(--font-block-berthold), Impact, "Haettenschweiler",
-    "Arial Narrow Bold", "Helvetica Neue Condensed Bold", sans-serif;
-  /* `--font-mono` now resolves to Plex Sans Condensed. Courier Prime was
-     removed from the bundle; the atlas's "mono surface" (chips, coords,
-     IDs, section labels) is rendered in the same condensed sans family
-     as body text, just via uppercase + tracking utilities. The variable
-     name is kept for compatibility with existing `font-mono` Tailwind
-     utilities and direct `var(--font-mono)` references. */
+    var(--font-display-face), "Playfair Display", Georgia, "Times New Roman",
+    serif;
+  /* --font-mono resolves to Plex Sans Condensed; the atlas "mono surface"
+     (chips, coords, IDs, section labels) renders in the body family via
+     uppercase + tracking. Kept for `font-mono` utilities and direct refs. */
   --font-mono:
     var(--font-ibm-plex-sans), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -25,11 +42,11 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  background: #f6f4ee;
+  background: #ffffff;
 }
 
 body {
-  color: #2a2419;
+  color: #1c1c1c;
   font-family: var(--font-sans);
 }
 
@@ -42,4 +59,8 @@ textarea {
 
 .font-display {
   font-family: var(--font-display);
+  /* Pin Fraunces to its large optical cut for refined, high-contrast
+     titles. Swap to `font-optical-sizing: auto` if you want the cut to
+     track font-size automatically instead. */
+  font-variation-settings: "opsz" 144;
 }

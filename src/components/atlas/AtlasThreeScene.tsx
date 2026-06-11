@@ -1136,7 +1136,7 @@ function HorizonPortals({ nodes }: { nodes: NodeHorizonEntry[] }) {
       {portals.map(({ node, x, z }) => {
         const accent =
           node.relation === "child"
-            ? "#c14a2c"
+            ? "#005186"
             : node.relation === "parent"
               ? "#5c6aa0"
               : "#7c7f8f";
@@ -1146,13 +1146,13 @@ function HorizonPortals({ nodes }: { nodes: NodeHorizonEntry[] }) {
           <group key={node.atlasId} position={[x, 0, z]} rotation={[0, yaw, 0]}>
             <mesh position={[0, 0.34, 0]}>
               <cylinderGeometry args={[0.035, 0.035, 0.7, 6]} />
-              <meshBasicMaterial color="#2a2419" transparent opacity={0.32} />
+              <meshBasicMaterial color="#1c1c1c" transparent opacity={0.32} />
             </mesh>
             <mesh rotation={[-Math.PI / 2.75, 0, 0]} position={[0, 1.18, 0]}>
               <planeGeometry args={[2.7, 1.84]} />
               <meshStandardMaterial
-                color="#f6f4ee"
-                emissive="#f6f4ee"
+                color="#f5f5f5"
+                emissive="#f5f5f5"
                 emissiveIntensity={0.08}
                 roughness={0.88}
                 metalness={0.02}
@@ -1192,7 +1192,7 @@ function HorizonPortals({ nodes }: { nodes: NodeHorizonEntry[] }) {
                 [-0.78, 0.95, 0.03],
                 [0.78, 0.95, 0.03],
               ]}
-              color="#2a2419"
+              color="#1c1c1c"
               lineWidth={0.6}
               transparent
               opacity={0.24}

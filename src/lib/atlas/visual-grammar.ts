@@ -107,8 +107,8 @@ const SIGNAL_KIND_VISUALS: Record<string, SignalKindVisual> = {
   },
   candidate: {
     label: "Candidate",
-    color_hex: "#c14a2c",
-    outline_hex: "#87331d",
+    color_hex: "#005186",
+    outline_hex: "#003a5e",
   },
 };
 
@@ -120,7 +120,7 @@ const DEFAULT_SIGNAL_VISUAL: SignalKindVisual = {
 
 const LENS_TINTS: Record<AtlasLensId, string> = {
   explore: "#c1843a",
-  memory: "#c14a2c",
+  memory: "#005186",
   safety: "#388480",
   interventions: "#527e52",
   evidence: "#5c6aa0",
@@ -237,8 +237,8 @@ export const ATLAS_SEMANTIC_STATES: Record<
   live_signal: {
     id: "live_signal",
     label: "Live signal",
-    color_hex: "#c14a2c",
-    outline_hex: "#87331d",
+    color_hex: "#005186",
+    outline_hex: "#003a5e",
     fill_alpha: 98,
     icon: "✦",
     pattern: "glow ring",

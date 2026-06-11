@@ -25,7 +25,7 @@ const PRIORITY_FILL: Record<PlannerTaskPriority, string> = {
 };
 
 const OWNER_FILL = "#6b2c33";
-const TASK_STROKE = "#2a2419";
+const TASK_STROKE = "#1c1c1c";
 
 const iconCache = new Map<string, { url: string; width: number; height: number; anchorY: number }>();
 
@@ -70,7 +70,7 @@ function buildTaskIcon(
   const title = truncateTitle(task.title, variant === "detail" ? 24 : 10);
   const ownerInitial = escapeXml((task.ownerDisplay ?? "P").slice(0, 1).toUpperCase());
   const background = selected ? "#fff8ef" : "#fbf7ee";
-  const stroke = selected ? "#c14a2c" : TASK_STROKE;
+  const stroke = selected ? "#005186" : TASK_STROKE;
   const progressFill = PRIORITY_FILL[task.priority];
   const chevron = task.childIds.length > 0 ? "▾" : "";
 
@@ -81,7 +81,7 @@ function buildTaskIcon(
         <circle cx="20" cy="18" r="11" fill="${OWNER_FILL}" />
         <text x="20" y="22" font-size="11" text-anchor="middle" fill="#f7efe3" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">${ownerInitial}</text>
         <circle cx="${width - 18}" cy="14" r="5" fill="${PRIORITY_FILL[task.priority]}" />
-        <text x="38" y="19" font-size="13" fill="#2a2419" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">${escapeXml(title)}</text>
+        <text x="38" y="19" font-size="13" fill="#1c1c1c" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">${escapeXml(title)}</text>
         <text x="${width - 28}" y="20" font-size="10" fill="#5a5246" font-family="ui-sans-serif, system-ui, sans-serif">${escapeXml(chevron)}</text>
         <rect x="8" y="${height - 10}" width="${width - 16}" height="4" rx="2" fill="#d8d1c2" />
         <rect x="8" y="${height - 10}" width="${progressWidth}" height="4" rx="2" fill="${progressFill}" />

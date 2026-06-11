@@ -12,7 +12,7 @@ export type AtlasThreeAreaStyle = {
 
 export const ATLAS_THREE_LENS_TINTS: Record<AtlasLensId, string> = {
   explore: "#c1843a",
-  memory: "#c14a2c",
+  memory: "#005186",
   safety: "#388480",
   interventions: "#527e52",
   evidence: "#5c6aa0",
@@ -24,7 +24,7 @@ export const ATLAS_THREE_MATERIALS = {
     paperDeep: "#ddd5c4",
     veil: "#d8d0bf",
     grid: "#d2c5af",
-    rule: "#2a2419",
+    rule: "#1c1c1c",
     water: "#6f9d9d",
     corridor: "#a97942",
     cityAnchor: "#5f6b7a",
@@ -33,7 +33,7 @@ export const ATLAS_THREE_MATERIALS = {
     ward: {
       fill: "#d3dcff",
       line: "#5876bf",
-      selected: "#c14a2c",
+      selected: "#005186",
     },
     park: {
       fill: "#78ad8d",
@@ -43,7 +43,7 @@ export const ATLAS_THREE_MATERIALS = {
     default: {
       fill: "#aeb4c0",
       line: "#667085",
-      selected: "#c14a2c",
+      selected: "#005186",
     },
   },
   markers: {
@@ -63,7 +63,7 @@ export const ATLAS_THREE_MATERIALS = {
     community: "#a064dc",
   },
   selected: {
-    glow: "#c14a2c",
+    glow: "#005186",
     sourceHalo: "#6b78b8",
   },
 } as const;
@@ -90,9 +90,9 @@ export const ATLAS_THREE_RENDER_MODE_STYLES = {
     halo: "#c5b3d0",
   },
   historical_event: {
-    color: "#c14a2c",
+    color: "#005186",
     opacity: 0.78,
-    halo: "#e07a55",
+    halo: "#005f87",
   },
   public_intervention: {
     color: "#527e52",

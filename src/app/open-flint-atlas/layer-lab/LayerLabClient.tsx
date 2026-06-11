@@ -197,7 +197,7 @@ export function LayerLabClient() {
 
       {/* Verification panel */}
       <div
-        className="absolute left-4 top-4 z-10 max-h-[calc(100%-2rem)] w-[340px] overflow-auto rounded-lg border border-black/10 bg-[var(--ctx-paper,#f2f1ec)]/95 p-4 text-[13px] shadow-lg backdrop-blur"
+        className="absolute left-4 top-4 z-10 max-h-[calc(100%-2rem)] w-[340px] overflow-auto rounded-lg border border-black/10 bg-[var(--ctx-paper,#ffffff)]/95 p-4 text-[13px] shadow-lg backdrop-blur"
         data-testid="layer-lab-panel"
       >
         <h1 className="text-sm font-semibold tracking-tight">

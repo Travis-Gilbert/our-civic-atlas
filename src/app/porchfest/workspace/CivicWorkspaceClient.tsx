@@ -212,7 +212,7 @@ function WorkspaceInner() {
           display: flex;
           flex-direction: column;
           min-height: 100vh;
-          background: var(--ctx-paper, #f2f1ec);
+          background: var(--ctx-paper, #ffffff);
         }
         .civic-workspace-header {
           display: flex;

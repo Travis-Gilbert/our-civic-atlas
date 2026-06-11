@@ -1,9 +1,11 @@
 /*
- * Open Flint Atlas · canvas-paper palette.
+ * Open Flint Atlas · Observable cool palette (Path B).
  *
- * The standalone route restores the Context canvas temperature:
- * paper-white floor, warm ink, and terracotta accent. Depth comes from
- * <AtlasCanvasBackdrop/>, a real viewport canvas mounted by layout.tsx.
+ * Edition redesign per docs/Design update/: pure-white surface,
+ * near-black ink, light-gray hairlines, navy-primary as the single
+ * most important action per screen, syntax-purple for civic write
+ * actions. Depth comes from <AtlasCanvasBackdrop/>, a real viewport
+ * canvas mounted by layout.tsx.
  *
  * Component code already reads var(--ctx-*) tokens, so swapping the
  * palette here cascades through the entire atlas without touching
@@ -43,48 +45,55 @@
   --r-lg:     14px;
   --r-pill:   999px;
 
-  /* CANVAS — cooler paper floor, three tonal steps for depth. */
-  --ctx-paper:        #f2f1ec;
-  --ctx-paper-soft:   #eae8e0;
-  --ctx-paper-deep:   #dcd9cf;
+  /* CANVAS — Observable cool surface, three tonal steps for depth
+     (pure-white surface, near-white secondary fill, light-gray as the
+     deepest quiet step). */
+  --ctx-paper:        #ffffff;
+  --ctx-paper-soft:   #f5f5f5;
+  --ctx-paper-deep:   #e2e2e2;
 
-  /* INK — warm dark brown. */
-  --ctx-ink:          #2a2419;
-  --ctx-ink-soft:     #4a4032;
-  --ctx-ink-mute:     #7a6e5b;
-  --ctx-ink-faint:    #a89c84;
+  /* INK — Observable neutral text scale. near-black body, dark-gray
+     secondary; mid-gray is reserved for placeholder/disabled tiers
+     (it fails AA for informative text on white). */
+  --ctx-ink:          #1c1c1c;
+  --ctx-ink-soft:     #454545;
+  --ctx-ink-mute:     #454545;
+  --ctx-ink-faint:    #c5c5c5;
 
-  /* RULES — paper borders. */
-  --ctx-rule:         #c4baa0;
-  --ctx-rule-soft:    #d2cab2;
+  /* RULES — light-gray hairlines (border-primary role). */
+  --ctx-rule:         #e2e2e2;
+  --ctx-rule-soft:    #e2e2e2;
 
-  /* ACCENT — terracotta, restored from the canvas system. */
-  --ctx-accent:       #c14a2c;
-  --ctx-accent-soft:  #e07a55;
-  --ctx-accent-glow:  rgba(193, 74, 44, 0.32);
+  /* ACCENT — navy-primary: the single most important action per
+     screen, per the Observable guardrail. */
+  --ctx-accent:       #005186;
+  --ctx-accent-soft:  #005f87;
+  --ctx-accent-glow:  rgba(0, 81, 134, 0.32);
 
-  /* COMMIT — civic write actions. */
-  --ctx-commit:       #6b2c33;
-  --ctx-commit-soft:  #a04652;
-  --ctx-commit-glow:  rgba(107, 44, 51, 0.30);
+  /* COMMIT — civic write actions in syntax-purple, so writes stay
+     visually distinct from navigation/action navy. */
+  --ctx-commit:       #6636b4;
+  --ctx-commit-soft:  rgba(102, 54, 180, 0.78);
+  --ctx-commit-glow:  rgba(102, 54, 180, 0.30);
 
   /* NAVY — deep slate for contrast panels (kept for AtlasShell dark zones). */
   --ctx-navy:         #1a1f26;
   --ctx-navy-2:       #252b34;
   --ctx-navy-3:       #353c47;
   --ctx-navy-rule:    #4a525e;
-  --ctx-navy-text:    #e8e3d6;
-  --ctx-navy-mute:    #a8a397;
-  --ctx-navy-faint:   #757269;
+  --ctx-navy-text:    #f5f5f5;
+  --ctx-navy-mute:    #c5c5c5;
+  --ctx-navy-faint:   rgba(245, 245, 245, 0.45);
 
-  /* Shadows — neutral, soft. */
+  /* Shadows — neutral black, tied to the evidence-backed Observable
+     depth set (card 0.12, popover 0.15, elevated 0.25). */
   --ctx-shadow-card:
     0 1px 0 rgba(255, 255, 255, 0.55) inset,
-    0 1px 3px rgba(60, 40, 12, 0.08),
-    0 4px 16px -8px rgba(60, 40, 12, 0.22);
-  --shadow-1: 0 2px 8px -4px rgba(42, 36, 25, 0.12);
-  --shadow-2: 0 8px 24px -12px rgba(42, 36, 25, 0.28);
-  --shadow-3: 0 18px 40px -20px rgba(42, 36, 25, 0.42);
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 4px 15px -8px rgba(0, 0, 0, 0.12);
+  --shadow-1: 0 2px 8px -4px rgba(0, 0, 0, 0.12);
+  --shadow-2: 0 8px 24px -12px rgba(0, 0, 0, 0.15);
+  --shadow-3: 0 18px 40px -20px rgba(0, 0, 0, 0.25);
 
   /* Shadcn bridge overrides (cascade from --ctx-*). */
   --background:           var(--ctx-paper);
@@ -117,13 +126,13 @@
   --atlas-state-comment:  #8a6f42;
   --atlas-state-poll:     #5c6aa0;
   --atlas-state-safety:   #bf5f52;
-  --atlas-state-live:     #c14a2c;
+  --atlas-state-live:     var(--ctx-accent);
   --typology-residential: #c19a6b;
   --typology-commercial:  #4a8a82;
   --typology-industrial:  #6b5d54;
   --typology-civic:       #722f37;
   --typology-mixed:       #b8893f;
-  --typology-unknown:     #a89c84;
+  --typology-unknown:     #c5c5c5;
 
   background: var(--ctx-paper);
   color: var(--ctx-ink);
@@ -148,7 +157,7 @@
   background: color-mix(in srgb, var(--ctx-paper) 72%, transparent);
   backdrop-filter: blur(8px) saturate(108%);
   -webkit-backdrop-filter: blur(8px) saturate(108%);
-  border: 1px solid rgba(42, 36, 25, 0.08);
+  border: 1px solid rgba(28, 28, 28, 0.08);
   border-radius: var(--r);
   box-shadow: var(--shadow-1);
 }
@@ -168,7 +177,7 @@
 }
 
 .civic-atlas .atlas-scene-map .maplibregl-canvas {
-  filter: saturate(0.96) contrast(1.02) sepia(0.04);
+  filter: saturate(0.98) contrast(1.02);
 }
 
 .civic-atlas .atlas-three-scene canvas {
@@ -177,7 +186,7 @@
   display: block;
   outline: none;
   touch-action: none;
-  filter: saturate(0.96) contrast(1.03) sepia(0.06);
+  filter: saturate(0.98) contrast(1.03);
 }
 
 .civic-atlas .atlas-three-scene {
@@ -201,12 +210,12 @@
   white-space: nowrap;
   border: 1px solid rgba(88, 118, 191, 0.42);
   border-radius: 4px;
-  background: rgba(248, 246, 241, 0.94);
-  color: rgba(42, 36, 25, 0.94);
+  background: rgba(255, 255, 255, 0.94);
+  color: rgba(28, 28, 28, 0.94);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.68) inset,
-    0 9px 22px -12px rgba(42, 36, 25, 0.62),
-    0 0 0 2px rgba(246, 244, 238, 0.32);
+    0 9px 22px -12px rgba(28, 28, 28, 0.62),
+    0 0 0 2px rgba(255, 255, 255, 0.32);
   padding: 5px 8px;
   font-size: 12px;
   font-weight: 700;
@@ -217,7 +226,7 @@
 }
 
 .civic-atlas .atlas-three-label.is-selected {
-  border-color: rgba(193, 74, 44, 0.46);
+  border-color: rgba(0, 81, 134, 0.46);
   color: var(--ctx-ink);
 }
 
@@ -225,8 +234,8 @@
   max-width: 128px;
   white-space: normal;
   border-color: rgba(169, 121, 66, 0.24);
-  background: rgba(246, 244, 238, 0.74);
-  color: rgba(74, 64, 50, 0.76);
+  background: rgba(255, 255, 255, 0.74);
+  color: rgba(69, 69, 69, 0.76);
   text-align: center;
   text-transform: none;
 }
@@ -238,13 +247,13 @@
 }
 
 .civic-atlas [data-scene-view="street"] .atlas-scene-map .maplibregl-canvas {
-  filter: saturate(0.98) contrast(1.04) sepia(0.04);
+  filter: saturate(0.98) contrast(1.04);
 }
 
 .civic-atlas .atlas-scene-glass,
 .civic-atlas .atlas-scene-search-results {
   background: color-mix(in srgb, var(--ctx-paper) 74%, transparent);
-  border: 1px solid rgba(42, 36, 25, 0.12);
+  border: 1px solid rgba(28, 28, 28, 0.12);
   border-radius: var(--r);
   box-shadow: var(--shadow-2);
   backdrop-filter: blur(12px) saturate(115%);
@@ -257,7 +266,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--s-4);
-  border: 1px solid rgba(42, 36, 25, 0.1);
+  border: 1px solid rgba(28, 28, 28, 0.1);
   border-radius: var(--r);
   background: color-mix(in srgb, var(--ctx-paper) 78%, transparent);
   box-shadow: var(--shadow-1);
@@ -297,15 +306,18 @@
 .civic-atlas .atlas-scene-top-actions a:focus-visible,
 .civic-atlas .atlas-scene-top-actions button:hover,
 .civic-atlas .atlas-scene-top-actions button:focus-visible {
-  border-color: rgba(42, 36, 25, 0.12);
+  border-color: rgba(28, 28, 28, 0.12);
   color: var(--ctx-ink);
   outline: none;
 }
 
+/* Masthead CTA: navigation to the contribute flow is the single most
+   important action on the screen, so it takes accent navy. The commit
+   purple is reserved for the in-flow write/submit moments themselves. */
 .civic-atlas .atlas-scene-top-actions a[data-commit="true"] {
-  background: var(--ctx-commit);
+  background: var(--ctx-accent);
   color: var(--ctx-paper);
-  box-shadow: 0 10px 22px -16px var(--ctx-commit-glow);
+  box-shadow: 0 10px 22px -16px var(--ctx-accent-glow);
 }
 
 .civic-atlas .atlas-island-layer-dossier .control-dossier-card {
@@ -322,12 +334,12 @@
   top: 154px;
   z-index: 1380;
   width: min(324px, calc(100vw - 28px));
-  border: 1px solid rgba(42, 36, 25, 0.12);
+  border: 1px solid rgba(28, 28, 28, 0.12);
   border-radius: 7px;
-  background: rgba(246, 244, 238, 0.78);
+  background: rgba(255, 255, 255, 0.78);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.45) inset,
-    0 8px 28px -18px rgba(42, 36, 25, 0.42);
+    0 8px 28px -18px rgba(28, 28, 28, 0.42);
   color: var(--ctx-ink);
   padding: 12px;
   backdrop-filter: blur(9px) saturate(108%);
@@ -432,7 +444,7 @@
   min-width: 0;
   align-items: center;
   gap: 5px;
-  border: 1px solid rgba(42, 36, 25, 0.1);
+  border: 1px solid rgba(28, 28, 28, 0.1);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.22);
   color: var(--ctx-ink-soft);
@@ -446,7 +458,7 @@
   height: 9px;
   border-radius: 2px;
   background: var(--atlas-envelope-swatch, var(--atlas-infrastructure));
-  box-shadow: 0 0 0 1px rgba(42, 36, 25, 0.12);
+  box-shadow: 0 0 0 1px rgba(28, 28, 28, 0.12);
 }
 
 .civic-atlas .atlas-scenario-envelope-types strong {
@@ -464,7 +476,7 @@
 }
 
 .civic-atlas [data-envelope-type="civic_anchor"] {
-  --atlas-envelope-swatch: #c14a2c;
+  --atlas-envelope-swatch: var(--ctx-accent);
 }
 
 .civic-atlas [data-envelope-type="missing_middle"] {
@@ -505,7 +517,7 @@
   grid-template-columns: 1fr auto auto;
   align-items: baseline;
   gap: 8px;
-  border-bottom: 1px solid rgba(42, 36, 25, 0.08);
+  border-bottom: 1px solid rgba(28, 28, 28, 0.08);
   padding: 6px 0;
 }
 
@@ -615,13 +627,13 @@
 }
 
 .civic-atlas .atlas-scenario-island__segments button:hover {
-  background: rgba(42, 36, 25, 0.05);
+  background: rgba(28, 28, 28, 0.05);
 }
 
 .civic-atlas .atlas-scenario-island__segments button[data-active="true"] {
   background: var(--ctx-ink);
   color: var(--ctx-paper);
-  box-shadow: 0 8px 16px -14px rgba(42, 36, 25, 0.55);
+  box-shadow: 0 8px 16px -14px rgba(28, 28, 28, 0.55);
 }
 
 .civic-atlas .atlas-scenario-island__compare {
@@ -629,7 +641,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  border-top: 1px solid rgba(42, 36, 25, 0.08);
+  border-top: 1px solid rgba(28, 28, 28, 0.08);
   padding-top: 9px;
 }
 
@@ -650,7 +662,7 @@
 .civic-atlas .atlas-scenario-island__compare select {
   min-width: 0;
   width: 100%;
-  border: 1px solid rgba(42, 36, 25, 0.12);
+  border: 1px solid rgba(28, 28, 28, 0.12);
   border-radius: 8px;
   background: transparent;
   color: var(--ctx-ink);
@@ -661,7 +673,7 @@
 
 .civic-atlas .atlas-scenario-island__slider,
 .civic-atlas .atlas-scenario-island__kpis {
-  border-top: 1px solid rgba(42, 36, 25, 0.08);
+  border-top: 1px solid rgba(28, 28, 28, 0.08);
   padding-top: 9px;
   margin-top: 9px;
 }
@@ -740,8 +752,8 @@
 
 .civic-atlas .atlas-scene-brand {
   background:
-    linear-gradient(135deg, rgba(246, 244, 238, 0.84), rgba(239, 236, 228, 0.68)),
-    rgba(246, 244, 238, 0.74);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(245, 245, 245, 0.68)),
+    rgba(255, 255, 255, 0.74);
 }
 
 .civic-atlas .atlas-scene-search-results {
@@ -755,7 +767,7 @@
 
 .civic-atlas .atlas-scene-search-results button:hover,
 .civic-atlas .atlas-scene-search-results button:focus-visible {
-  background: rgba(42, 36, 25, 0.06);
+  background: rgba(28, 28, 28, 0.06);
   outline: none;
 }
 
@@ -797,7 +809,7 @@
 .civic-atlas .atlas-scene-camera-button:hover,
 .civic-atlas .atlas-scene-camera-button:focus-visible {
   color: var(--ctx-ink);
-  background: rgba(42, 36, 25, 0.06);
+  background: rgba(28, 28, 28, 0.06);
   outline: none;
 }
 
@@ -805,8 +817,8 @@
 .civic-atlas .atlas-scene-camera-button.is-active {
   color: var(--ctx-paper);
   background: var(--ctx-ink);
-  border-color: rgba(42, 36, 25, 0.82);
-  box-shadow: 0 8px 18px -14px rgba(42, 36, 25, 0.72);
+  border-color: rgba(28, 28, 28, 0.82);
+  box-shadow: 0 8px 18px -14px rgba(28, 28, 28, 0.72);
 }
 
 .civic-atlas .atlas-scene-icon-button:active,
@@ -816,10 +828,10 @@
 
 .civic-atlas .atlas-scene-readout {
   color: var(--ctx-ink-soft);
-  background: rgba(246, 244, 238, 0.66);
-  border: 1px solid rgba(42, 36, 25, 0.1);
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(28, 28, 28, 0.1);
   border-radius: 6px;
-  box-shadow: 0 10px 28px -20px rgba(42, 36, 25, 0.4);
+  box-shadow: 0 10px 28px -20px rgba(28, 28, 28, 0.4);
   backdrop-filter: blur(10px) saturate(110%);
   -webkit-backdrop-filter: blur(10px) saturate(110%);
 }
@@ -829,7 +841,7 @@
 }
 
 .civic-atlas .atlas-horizon-chip {
-  border: 1px solid rgba(42, 36, 25, 0.08);
+  border: 1px solid rgba(28, 28, 28, 0.08);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.34);
   color: var(--ctx-ink-mute);
@@ -840,8 +852,8 @@
 
 .civic-atlas .atlas-horizon-shell {
   background:
-    linear-gradient(180deg, rgba(246, 244, 238, 0.82), rgba(239, 236, 228, 0.72)),
-    rgba(246, 244, 238, 0.72);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 245, 245, 0.72)),
+    rgba(255, 255, 255, 0.72);
 }
 
 .civic-atlas .atlas-horizon-toggle {
@@ -852,7 +864,7 @@
   align-self: flex-start;
   color: var(--ctx-ink-soft);
   background: rgba(255, 255, 255, 0.34);
-  border: 1px solid rgba(42, 36, 25, 0.1);
+  border: 1px solid rgba(28, 28, 28, 0.1);
   border-radius: 999px;
   cursor: pointer;
   font-size: 11px;
@@ -864,7 +876,7 @@
 .civic-atlas .atlas-horizon-toggle:hover,
 .civic-atlas .atlas-horizon-toggle:focus-visible {
   color: var(--ctx-ink);
-  border-color: rgba(42, 36, 25, 0.18);
+  border-color: rgba(28, 28, 28, 0.18);
   outline: none;
 }
 
@@ -872,11 +884,11 @@
   position: relative;
   aspect-ratio: 1;
   width: 100%;
-  border: 1px solid rgba(42, 36, 25, 0.08);
+  border: 1px solid rgba(28, 28, 28, 0.08);
   border-radius: 999px;
   background:
-    radial-gradient(circle at center, rgba(193, 74, 44, 0.08), transparent 28%),
-    radial-gradient(circle at center, rgba(42, 36, 25, 0.06) 0, rgba(42, 36, 25, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(0, 81, 134, 0.08), transparent 28%),
+    radial-gradient(circle at center, rgba(28, 28, 28, 0.06) 0, rgba(28, 28, 28, 0.06) 1px, transparent 1px),
     rgba(255, 255, 255, 0.34);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
 }
@@ -890,7 +902,7 @@
   content: "";
   position: absolute;
   inset: 50%;
-  background: rgba(42, 36, 25, 0.08);
+  background: rgba(28, 28, 28, 0.08);
   transform: translate(-50%, -50%);
 }
 
@@ -945,9 +957,9 @@
   width: 38px;
   height: 38px;
   place-items: center;
-  border: 1px solid rgba(42, 36, 25, 0.12);
+  border: 1px solid rgba(28, 28, 28, 0.12);
   border-radius: 999px;
-  background: rgba(246, 244, 238, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   color: var(--ctx-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 9px;
@@ -956,7 +968,7 @@
   transform: translate(-50%, -50%);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.52) inset,
-    0 8px 16px -14px rgba(42, 36, 25, 0.48);
+    0 8px 16px -14px rgba(28, 28, 28, 0.48);
 }
 
 .civic-atlas .atlas-horizon-point {
@@ -965,7 +977,7 @@
   width: 26px;
   height: 26px;
   place-items: center;
-  border: 1px solid rgba(42, 36, 25, 0.12);
+  border: 1px solid rgba(28, 28, 28, 0.12);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.84);
   color: var(--ctx-ink-soft);
@@ -981,7 +993,7 @@
     background 140ms ease,
     color 140ms ease,
     box-shadow 140ms ease;
-  box-shadow: 0 8px 18px -16px rgba(42, 36, 25, 0.6);
+  box-shadow: 0 8px 18px -16px rgba(28, 28, 28, 0.6);
 }
 
 .civic-atlas .atlas-horizon-point[data-relation="parent"] {
@@ -990,7 +1002,7 @@
 }
 
 .civic-atlas .atlas-horizon-point[data-relation="child"] {
-  background: rgba(193, 74, 44, 0.14);
+  background: rgba(0, 81, 134, 0.14);
   color: #8b412c;
 }
 
@@ -999,9 +1011,9 @@
 .civic-atlas .atlas-horizon-point:focus-visible {
   color: var(--ctx-paper);
   background: var(--ctx-ink);
-  border-color: rgba(42, 36, 25, 0.74);
+  border-color: rgba(28, 28, 28, 0.74);
   outline: none;
-  box-shadow: 0 12px 22px -16px rgba(42, 36, 25, 0.76);
+  box-shadow: 0 12px 22px -16px rgba(28, 28, 28, 0.76);
 }
 
 .civic-atlas .atlas-horizon-list-item {
@@ -1010,7 +1022,7 @@
   align-items: center;
   gap: 10px;
   text-align: left;
-  border: 1px solid rgba(42, 36, 25, 0.08);
+  border: 1px solid rgba(28, 28, 28, 0.08);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.26);
   padding: 9px 10px;
@@ -1018,12 +1030,12 @@
 
 .civic-atlas .atlas-horizon-list-item[data-active="true"] {
   border-color: color-mix(in srgb, var(--ctx-accent) 34%, transparent);
-  background: rgba(193, 74, 44, 0.08);
+  background: rgba(0, 81, 134, 0.08);
 }
 
 .civic-atlas .atlas-horizon-list-item:hover,
 .civic-atlas .atlas-horizon-list-item:focus-visible {
-  border-color: rgba(42, 36, 25, 0.16);
+  border-color: rgba(28, 28, 28, 0.16);
   outline: none;
 }
 
@@ -1034,7 +1046,7 @@
   flex-shrink: 0;
   place-items: center;
   border-radius: 999px;
-  background: rgba(42, 36, 25, 0.06);
+  background: rgba(28, 28, 28, 0.06);
   color: var(--ctx-ink-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 9px;
@@ -1055,7 +1067,7 @@
 .civic-atlas .atlas-horizon-action {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(42, 36, 25, 0.12);
+  border: 1px solid rgba(28, 28, 28, 0.12);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.38);
   color: var(--ctx-ink);
@@ -1092,7 +1104,7 @@
 .civic-atlas .atlas-dossier-close:hover,
 .civic-atlas .atlas-dossier-close:focus-visible {
   color: var(--ctx-ink);
-  background: rgba(42, 36, 25, 0.06);
+  background: rgba(28, 28, 28, 0.06);
   outline: none;
 }
 
@@ -1113,7 +1125,7 @@
   white-space: nowrap;
   color: var(--ctx-ink-mute);
   background: rgba(255, 255, 255, 0.28);
-  border: 1px solid rgba(42, 36, 25, 0.08);
+  border: 1px solid rgba(28, 28, 28, 0.08);
   border-radius: 999px;
   cursor: pointer;
   font-size: 11px;
@@ -1124,13 +1136,13 @@
 .civic-atlas .atlas-dossier-tab[data-active="true"] {
   color: var(--ctx-paper);
   background: var(--ctx-ink);
-  border-color: rgba(42, 36, 25, 0.78);
+  border-color: rgba(28, 28, 28, 0.78);
 }
 
 .civic-atlas .atlas-dossier-tab:hover,
 .civic-atlas .atlas-dossier-tab:focus-visible {
   color: var(--ctx-ink);
-  border-color: rgba(42, 36, 25, 0.18);
+  border-color: rgba(28, 28, 28, 0.18);
   outline: none;
 }
 
@@ -1238,12 +1250,12 @@
     max-height: calc(100vh - 86px);
     flex-direction: column;
     overflow: hidden;
-    background: rgba(246, 244, 238, 0.92);
-    border: 1px solid rgba(42, 36, 25, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(28, 28, 28, 0.12);
     border-radius: 8px 8px 6px 6px;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.55) inset,
-      0 18px 50px -28px rgba(42, 36, 25, 0.62);
+      0 18px 50px -28px rgba(28, 28, 28, 0.62);
     backdrop-filter: blur(14px) saturate(112%);
     -webkit-backdrop-filter: blur(14px) saturate(112%);
   }
@@ -1254,7 +1266,7 @@
     flex-shrink: 0;
     margin: 8px auto 0;
     border-radius: 999px;
-    background: rgba(42, 36, 25, 0.22);
+    background: rgba(28, 28, 28, 0.22);
   }
 
   .civic-atlas .atlas-mobile-dossier-snaps {
@@ -1280,7 +1292,7 @@
     width: 10px;
     height: 10px;
     border-radius: 999px;
-    background: rgba(42, 36, 25, 0.22);
+    background: rgba(28, 28, 28, 0.22);
   }
 
   .civic-atlas .atlas-mobile-dossier-snaps button[data-active="true"] span {
@@ -1288,7 +1300,7 @@
   }
 
   .civic-atlas .atlas-mobile-dossier-snaps button:focus-visible {
-    border-color: rgba(42, 36, 25, 0.24);
+    border-color: rgba(28, 28, 28, 0.24);
     outline: none;
   }
 }

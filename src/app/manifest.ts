@@ -16,8 +16,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/porchfest",
     display: "standalone",
     orientation: "any",
-    background_color: "#f2f1ec",
-    theme_color: "#f2f1ec",
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     icons: [
       {
         src: "/porchfest-icon.svg",

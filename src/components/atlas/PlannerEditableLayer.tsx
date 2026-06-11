@@ -161,7 +161,7 @@ export function buildPlannerEditableLayer({
           : [255, 255, 255, 90],
       getLineColor: (feature) =>
         feature.properties.placement_id === selectedPlacementId
-          ? [193, 74, 44, 255]
+          ? [0, 81, 134, 255]
           : [42, 28, 16, 210],
       lineWidthUnits: "pixels",
       getLineWidth: 2,
@@ -221,8 +221,8 @@ export function buildPlannerEditableLayer({
     pickable: true,
     pointRadiusMinPixels: 6,
     pointRadiusMaxPixels: 12,
-    getEditHandlePointColor: [193, 74, 44, 255],
-    getFillColor: [193, 74, 44, 220],
+    getEditHandlePointColor: [0, 81, 134, 255],
+    getFillColor: [0, 81, 134, 220],
     getLineColor: [42, 28, 16, 255],
     onEdit: (payload: EditCallbackPayload) => {
       if (payload.editType === "movePosition") {
