@@ -8,6 +8,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": false,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   }
 }

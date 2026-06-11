@@ -23,10 +23,18 @@
  * editable layer is the muscle.
  */
 
-import { SimpleMeshLayer } from "@deck.gl/mesh-layers";
+import { ScenegraphLayer, SimpleMeshLayer } from "@deck.gl/mesh-layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
+import { GLTFLoader } from "@loaders.gl/gltf";
 
 import { getPorchfestAffordanceGeometry } from "@/lib/atlas/procedural-porchfest-meshes";
+import {
+  FIGURE_LIBRARY,
+  getFigureGeometry,
+  type FigureLibraryEntry,
+} from "@/lib/atlas/porchfest-figure-library";
+import { isCivicFigureKey } from "@/lib/civic/civic-figure-resolver";
+import type { CivicFigureKey } from "@/lib/civic/civic-object-schema";
 import {
   CATEGORY_COLOR,
   type AtlasEventPlannerCategory,
@@ -129,9 +137,63 @@ export interface PorchfestAffordanceMeshLayerOptions {
   ) => void;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Bucket planning (pure, validator-testable).                        */
+/*                                                                     */
+/*  A bucket is one renderable group: all placements sharing a         */
+/*  category + figure-key combination. Placements without a valid      */
+/*  figureKey (every GraphQL placement today) fall into their plain    */
+/*  category bucket and render exactly as before. Placements carrying  */
+/*  a figureKey (civic objects, resolved override-first by             */
+/*  civic-map-binding) get a per-figure bucket whose geometry and size */
+/*  come from the figure library: SimpleMeshLayer for procedural       */
+/*  entries, ScenegraphLayer for GLB entries. Color stays per category */
+/*  in both paths (the spec keeps category color as the figure's hue). */
+/* ------------------------------------------------------------------ */
+
+export interface AffordanceBucket {
+  /** Stable layer id suffix: `cat:<category>` or `fig:<category>:<key>`. */
+  readonly id: string;
+  readonly category: AtlasEventPlannerCategory | string;
+  readonly figureKey: CivicFigureKey | null;
+  /** Library entry for figure buckets; null for plain category buckets. */
+  readonly entry: FigureLibraryEntry | null;
+  readonly placements: AtlasEventPlannerPlacement[];
+}
+
+export function planAffordanceBuckets(
+  placements: readonly AtlasEventPlannerPlacement[],
+  library: Record<CivicFigureKey, FigureLibraryEntry> = FIGURE_LIBRARY,
+): AffordanceBucket[] {
+  const buckets = new Map<string, AffordanceBucket>();
+  for (const placement of placements) {
+    if (!readPointPosition(placement)) continue;
+    const figureKey = isCivicFigureKey(placement.figureKey)
+      ? placement.figureKey
+      : null;
+    const id = figureKey
+      ? `fig:${placement.category}:${figureKey}`
+      : `cat:${placement.category}`;
+    const existing = buckets.get(id);
+    if (existing) {
+      existing.placements.push(placement);
+      continue;
+    }
+    buckets.set(id, {
+      id,
+      category: placement.category,
+      figureKey,
+      entry: figureKey ? library[figureKey] : null,
+      placements: [placement],
+    });
+  }
+  // Stable, sorted layer ids so they don't shuffle between renders.
+  return [...buckets.values()].sort((a, b) => a.id.localeCompare(b.id));
+}
+
 /**
- * Group placements by category and emit one SimpleMeshLayer per
- * category. Returns an empty array when there are no Point placements.
+ * Plan buckets and emit one mesh layer per bucket. Returns an empty
+ * array when there are no Point placements.
  */
 export function buildPorchfestAffordanceMeshLayers({
   placements,
@@ -143,54 +205,42 @@ export function buildPorchfestAffordanceMeshLayers({
 }: PorchfestAffordanceMeshLayerOptions): Layer[] {
   if (placements.length === 0) return [];
 
-  const byCategory = new Map<string, AtlasEventPlannerPlacement[]>();
-  for (const placement of placements) {
-    if (!readPointPosition(placement)) continue;
-    const bucket = byCategory.get(placement.category);
-    if (bucket) {
-      bucket.push(placement);
-    } else {
-      byCategory.set(placement.category, [placement]);
-    }
-  }
-
-  // Stable, alphabetical layer ids so they don't shuffle between renders.
-  const categories = [...byCategory.keys()].sort();
-
-  return categories.map((category) => {
-    const bucket = byCategory.get(category) ?? [];
-    const cat = category as AtlasEventPlannerCategory;
-    const size = AFFORDANCE_SIZE_M[cat] ?? FALLBACK_SIZE_M;
+  const layers: Layer[] = [];
+  for (const bucket of planAffordanceBuckets(placements)) {
+    const cat = bucket.category as AtlasEventPlannerCategory;
+    const size: readonly [number, number, number] =
+      bucket.entry?.sizeM ?? AFFORDANCE_SIZE_M[cat] ?? FALLBACK_SIZE_M;
     const baseColor = CATEGORY_COLOR[cat] ?? FALLBACK_COLOR;
     const visible = visibility?.[cat] ?? true;
     const heightM = size[2];
 
-    return new SimpleMeshLayer<AtlasEventPlannerPlacement>({
-      id: `${layerIdPrefix}-${category}`,
-      data: bucket,
-      mesh: getPorchfestAffordanceGeometry(cat),
+    // Shared accessors: both layer kinds keep the picking payload, the
+    // selected lift + brighten, the compass-bearing yaw, and the
+    // base-on-ground translation identical, so a figure behaves exactly
+    // like its category sibling (acceptance 4).
+    const shared = {
+      data: bucket.placements,
       visible,
       pickable: true,
-      sizeScale: 1,
-      getPosition: (placement) => readPointPosition(placement) ?? [0, 0],
-      getScale: () => size,
+      getPosition: (placement: AtlasEventPlannerPlacement) =>
+        readPointPosition(placement) ?? ([0, 0] as [number, number]),
       // The unit form has its base at z = -0.5; after scaling by heightM
       // the base sits at z = -heightM/2. Translate up by heightM/2 so the
       // base rests on the ground (z = 0). Selected placements lift a
       // little so the chosen form pops above its neighbors.
-      getTranslation: (placement) => {
+      getTranslation: (placement: AtlasEventPlannerPlacement) => {
         const lift = placement.id === selectedPlacementId ? heightM * 0.25 : 0;
         return [0, 0, heightM * 0.5 + lift] as [number, number, number];
       },
       // Compass bearing converts to deck yaw via yaw = 90 - bearing.
       // Default orientation turns the form slightly off-axis so it reads
       // as three-dimensional in the oblique view rather than face-on.
-      getOrientation: (placement) => {
+      getOrientation: (placement: AtlasEventPlannerPlacement) => {
         const bearing = getBearingDeg?.(placement);
         const yaw = bearing == null ? -30 : 90 - bearing;
         return [0, yaw, 0] as [number, number, number];
       },
-      getColor: (placement) =>
+      getColor: (placement: AtlasEventPlannerPlacement) =>
         placement.id === selectedPlacementId
           ? brighten(baseColor)
           : ([baseColor[0], baseColor[1], baseColor[2], baseColor[3]] as [
@@ -199,12 +249,11 @@ export function buildPorchfestAffordanceMeshLayers({
               number,
               number,
             ]),
-      material: DEFAULT_MATERIAL,
       parameters: {
-        depthCompare: "less-equal",
+        depthCompare: "less-equal" as const,
         depthWriteEnabled: true,
       },
-      onClick: (info) => {
+      onClick: (info: PickingInfo) => {
         if (!onClickPlacement) return false;
         const placement = info.object as AtlasEventPlannerPlacement | undefined;
         if (!placement) return false;
@@ -215,6 +264,39 @@ export function buildPorchfestAffordanceMeshLayers({
         getColor: selectedPlacementId,
         getTranslation: selectedPlacementId,
       },
-    });
-  });
+    };
+
+    if (bucket.entry?.kind === "glb") {
+      // GLB authoring convention: a unit-scale asset (~1m extents around
+      // the origin, base at the origin's z=-0.5 plane like the procedural
+      // forms) so sizeM scales it the same way.
+      layers.push(
+        new ScenegraphLayer<AtlasEventPlannerPlacement>({
+          id: `${layerIdPrefix}-${bucket.id}`,
+          scenegraph: bucket.entry.url,
+          loaders: [GLTFLoader],
+          sizeScale: 1,
+          getScale: () => size as [number, number, number],
+          _lighting: "pbr",
+          ...shared,
+        }),
+      );
+      continue;
+    }
+
+    const mesh = bucket.figureKey
+      ? getFigureGeometry(bucket.figureKey)
+      : getPorchfestAffordanceGeometry(cat);
+    layers.push(
+      new SimpleMeshLayer<AtlasEventPlannerPlacement>({
+        id: `${layerIdPrefix}-${bucket.id}`,
+        mesh: mesh ?? getPorchfestAffordanceGeometry(cat),
+        sizeScale: 1,
+        getScale: () => size as [number, number, number],
+        material: DEFAULT_MATERIAL,
+        ...shared,
+      }),
+    );
+  }
+  return layers;
 }

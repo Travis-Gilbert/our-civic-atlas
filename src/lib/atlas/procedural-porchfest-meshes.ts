@@ -448,6 +448,208 @@ export function createAmenityMarkerGeometry(): Geometry {
   return buildGeometry(m.positions, m.normals, m.indices);
 }
 
+/* ================================================================== */
+/*  Figure-library variants (porchfest-two-feature-specs.md Feature 1) */
+/*                                                                     */
+/*  Submission-specific figures resolved per civic object by           */
+/*  src/lib/civic/civic-figure-resolver.ts and registered in           */
+/*  src/lib/atlas/porchfest-figure-library.ts. Same discipline as the  */
+/*  category forms above: simple massing, identifying detail only      */
+/*  where it disambiguates one figure from its siblings.               */
+/* ================================================================== */
+
+/** Slim torso + head, the shared person primitive for the variants. */
+function pushFigure(
+  m: MeshArrays,
+  x: number,
+  y: number,
+  halfW: number,
+  torsoTop: number,
+  baseZ = -0.5,
+): void {
+  pushBox(
+    m.positions, m.normals, m.indices,
+    [x - halfW, y - halfW, baseZ],
+    [x + halfW, y + halfW, torsoTop],
+  );
+  const hw = halfW * 0.8;
+  pushBox(
+    m.positions, m.normals, m.indices,
+    [x - hw, y - hw, torsoTop],
+    [x + hw, y + hw, torsoTop + 0.16],
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  musician-solo: one performer with a guitar and a small amp.        */
+/*  The single figure (vs the band cluster) is the discriminator.      */
+/* ------------------------------------------------------------------ */
+
+export function createMusicianSoloGeometry(): Geometry {
+  const m = emptyArrays();
+  pushFigure(m, 0, 0, 0.09, 0.12);
+  // Guitar across the front (-y): body slab + neck.
+  pushBox(m.positions, m.normals, m.indices, [-0.02, -0.16, -0.16], [0.12, -0.06, -0.02]);
+  pushBox(m.positions, m.normals, m.indices, [0.1, -0.14, -0.06], [0.26, -0.08, 0.0]);
+  // Practice amp beside the performer.
+  pushBox(m.positions, m.normals, m.indices, [-0.34, -0.1, -0.5], [-0.16, 0.08, -0.28]);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  musician-dj: a deck table with a console wedge, performer behind.  */
+/* ------------------------------------------------------------------ */
+
+export function createMusicianDjGeometry(): Geometry {
+  const m = emptyArrays();
+  // Deck table top + legs.
+  pushBox(m.positions, m.normals, m.indices, [-0.34, -0.3, -0.16], [0.34, -0.02, -0.08]);
+  pushBox(m.positions, m.normals, m.indices, [-0.32, -0.28, -0.5], [-0.26, -0.06, -0.16]);
+  pushBox(m.positions, m.normals, m.indices, [0.26, -0.28, -0.5], [0.32, -0.06, -0.16]);
+  // Console wedge on the table.
+  pushBox(m.positions, m.normals, m.indices, [-0.14, -0.22, -0.08], [0.1, -0.08, -0.02]);
+  // DJ behind the table (+y side).
+  pushFigure(m, 0, 0.16, 0.08, 0.14);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  vendor-table: a flat market table with goods, seller behind.       */
+/*  Distinct from the roofed stall: no roof, no counter overhang.      */
+/* ------------------------------------------------------------------ */
+
+export function createVendorTableGeometry(): Geometry {
+  const m = emptyArrays();
+  // Tabletop + side panels.
+  pushBox(m.positions, m.normals, m.indices, [-0.4, -0.3, -0.2], [0.4, 0.0, -0.12]);
+  pushBox(m.positions, m.normals, m.indices, [-0.4, -0.28, -0.5], [-0.34, -0.02, -0.2]);
+  pushBox(m.positions, m.normals, m.indices, [0.34, -0.28, -0.5], [0.4, -0.02, -0.2]);
+  // Goods on the table.
+  pushBox(m.positions, m.normals, m.indices, [-0.28, -0.26, -0.12], [-0.08, -0.1, 0.0]);
+  pushBox(m.positions, m.normals, m.indices, [0.04, -0.24, -0.12], [0.24, -0.12, -0.04]);
+  // Seller behind the table.
+  pushFigure(m, 0, 0.18, 0.07, 0.1);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  vendor-cart: a hand cart, wheels at one end and a push handle at   */
+/*  the other. Smaller and barer than the food cart (no umbrella).     */
+/* ------------------------------------------------------------------ */
+
+export function createVendorCartGeometry(): Geometry {
+  const m = emptyArrays();
+  // Cart bed.
+  pushBox(m.positions, m.normals, m.indices, [-0.3, -0.22, -0.3], [0.26, 0.22, 0.06]);
+  // Wheels at the -x end.
+  pushBox(m.positions, m.normals, m.indices, [-0.24, -0.3, -0.5], [-0.08, -0.22, -0.3]);
+  pushBox(m.positions, m.normals, m.indices, [-0.24, 0.22, -0.5], [-0.08, 0.3, -0.3]);
+  // Rest legs at the +x end.
+  pushBox(m.positions, m.normals, m.indices, [0.18, -0.2, -0.5], [0.24, -0.14, -0.3]);
+  pushBox(m.positions, m.normals, m.indices, [0.18, 0.14, -0.5], [0.24, 0.2, -0.3]);
+  // Push handle: two rails + crossbar.
+  pushBox(m.positions, m.normals, m.indices, [0.26, -0.16, -0.02], [0.44, -0.1, 0.04]);
+  pushBox(m.positions, m.normals, m.indices, [0.26, 0.1, -0.02], [0.44, 0.16, 0.04]);
+  pushBox(m.positions, m.normals, m.indices, [0.44, -0.16, -0.02], [0.5, 0.16, 0.06]);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  food-cart: a serving cart under a flat parasol. The umbrella is    */
+/*  the identifying silhouette.                                        */
+/* ------------------------------------------------------------------ */
+
+export function createFoodCartGeometry(): Geometry {
+  const m = emptyArrays();
+  // Cart body + front counter lip.
+  pushBox(m.positions, m.normals, m.indices, [-0.28, -0.2, -0.34], [0.24, 0.2, 0.0]);
+  pushBox(m.positions, m.normals, m.indices, [-0.28, -0.26, -0.06], [0.24, -0.2, 0.0]);
+  // Wheels.
+  pushBox(m.positions, m.normals, m.indices, [-0.24, -0.26, -0.5], [-0.06, -0.18, -0.34]);
+  pushBox(m.positions, m.normals, m.indices, [-0.24, 0.18, -0.5], [-0.06, 0.26, -0.34]);
+  // Parasol pole + flat canopy.
+  pushBox(m.positions, m.normals, m.indices, [-0.03, -0.03, 0.0], [0.03, 0.03, 0.34]);
+  pushBox(m.positions, m.normals, m.indices, [-0.3, -0.3, 0.34], [0.3, 0.3, 0.42]);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  food-grill: a barrel grill with hood, chimney, side shelf, and a   */
+/*  cook beside it.                                                    */
+/* ------------------------------------------------------------------ */
+
+export function createFoodGrillGeometry(): Geometry {
+  const m = emptyArrays();
+  // Grill body + hood.
+  pushBox(m.positions, m.normals, m.indices, [-0.3, -0.16, -0.28], [0.14, 0.16, -0.04]);
+  pushBox(m.positions, m.normals, m.indices, [-0.28, -0.14, -0.04], [0.12, 0.14, 0.1]);
+  // Chimney.
+  pushBox(m.positions, m.normals, m.indices, [0.0, -0.04, 0.1], [0.08, 0.04, 0.24]);
+  // Legs.
+  pushBox(m.positions, m.normals, m.indices, [-0.28, -0.14, -0.5], [-0.22, -0.08, -0.28]);
+  pushBox(m.positions, m.normals, m.indices, [-0.28, 0.08, -0.5], [-0.22, 0.14, -0.28]);
+  pushBox(m.positions, m.normals, m.indices, [0.06, -0.14, -0.5], [0.12, -0.08, -0.28]);
+  pushBox(m.positions, m.normals, m.indices, [0.06, 0.08, -0.5], [0.12, 0.14, -0.28]);
+  // Side shelf.
+  pushBox(m.positions, m.normals, m.indices, [0.14, -0.12, -0.12], [0.3, 0.12, -0.06]);
+  // The cook.
+  pushFigure(m, -0.4, 0, 0.07, 0.1);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  entertainer-stage: a performer on a low platform with a mic stand. */
+/* ------------------------------------------------------------------ */
+
+export function createEntertainerStageGeometry(): Geometry {
+  const m = emptyArrays();
+  // Platform.
+  pushBox(m.positions, m.normals, m.indices, [-0.4, -0.3, -0.5], [0.4, 0.3, -0.36]);
+  // Performer on the platform.
+  pushFigure(m, 0, 0.02, 0.08, 0.2, -0.36);
+  // Mic stand: pole + mic.
+  pushBox(m.positions, m.normals, m.indices, [0.16, -0.18, -0.36], [0.2, -0.14, 0.16]);
+  pushBox(m.positions, m.normals, m.indices, [0.15, -0.19, 0.16], [0.21, -0.13, 0.22]);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  entertainer-dance: two figures mid-move, arms out. The paired      */
+/*  arms-out silhouette is the discriminator.                          */
+/* ------------------------------------------------------------------ */
+
+export function createEntertainerDanceGeometry(): Geometry {
+  const m = emptyArrays();
+  pushFigure(m, -0.18, -0.02, 0.08, 0.1);
+  pushBox(m.positions, m.normals, m.indices, [-0.34, -0.06, 0.0], [-0.02, 0.02, 0.08]);
+  pushFigure(m, 0.18, 0.06, 0.08, 0.16);
+  pushBox(m.positions, m.normals, m.indices, [0.02, 0.02, 0.06], [0.34, 0.1, 0.14]);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
+/* ------------------------------------------------------------------ */
+/*  entertainer-art: an easel with a tilted canvas and the artist      */
+/*  beside it.                                                         */
+/* ------------------------------------------------------------------ */
+
+export function createEntertainerArtGeometry(): Geometry {
+  const m = emptyArrays();
+  // Easel posts + crossbar.
+  pushBox(m.positions, m.normals, m.indices, [-0.3, -0.06, -0.5], [-0.24, 0.0, 0.3]);
+  pushBox(m.positions, m.normals, m.indices, [-0.06, -0.06, -0.5], [0.0, 0.0, 0.3]);
+  pushBox(m.positions, m.normals, m.indices, [-0.32, -0.04, 0.0], [0.02, 0.02, 0.06]);
+  // Tilted canvas: double-sided quad leaning back toward the posts.
+  const c0: Vec3 = [-0.34, -0.12, -0.14];
+  const c1: Vec3 = [0.04, -0.12, -0.14];
+  const c2: Vec3 = [0.04, -0.02, 0.3];
+  const c3: Vec3 = [-0.34, -0.02, 0.3];
+  pushQuad(m.positions, m.normals, m.indices, c0, c1, c2, c3, triNormal(c0, c1, c2));
+  pushQuad(m.positions, m.normals, m.indices, c3, c2, c1, c0, triNormal(c3, c2, c1));
+  // The artist.
+  pushFigure(m, 0.24, 0, 0.08, 0.12);
+  return buildGeometry(m.positions, m.normals, m.indices);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Dispatcher with module-scoped cache.                               */
 /*                                                                     */

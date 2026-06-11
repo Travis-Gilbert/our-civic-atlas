@@ -12,9 +12,11 @@ import {
   parseCivicLocation,
   serializeCivicLocation,
   type CivicCategory,
+  type CivicFigureKey,
   type CivicLocation,
   type CivicObjectFields,
 } from './civic-object-schema';
+import { effectiveCivicFigureKey } from './civic-figure-resolver';
 
 export type CivicMapCategory =
   | 'vendor'
@@ -44,6 +46,8 @@ export interface CivicMapPlacement {
   readonly notes: string | null;
   readonly civicRowId: string;
   readonly sourceId: string | null;
+  /** Override-first figure key; the mesh layer picks geometry from it. */
+  readonly figureKey: CivicFigureKey;
 }
 
 export interface CivicMapBindingResult {
@@ -129,6 +133,7 @@ export function civicRowToMapPlacement(
     notes: notesFor(row.fields),
     civicRowId: row.rowId,
     sourceId: row.fields.sourceId ?? null,
+    figureKey: effectiveCivicFigureKey(row.fields),
   };
 }
 

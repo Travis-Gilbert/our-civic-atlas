@@ -36,6 +36,7 @@
     "validate:civic-map-binding": "esbuild scripts/validate-civic-map-binding.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-civic-map-binding.mjs --log-level=warning && node node_modules/.cache/validate-civic-map-binding.mjs",
     "validate:formspree-import": "esbuild scripts/validate-formspree-import.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-formspree-import.mjs --log-level=warning && node node_modules/.cache/validate-formspree-import.mjs",
     "validate:figure-resolver": "esbuild scripts/validate-figure-resolver.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-figure-resolver.mjs --log-level=warning && node node_modules/.cache/validate-figure-resolver.mjs",
+    "validate:figure-library": "esbuild scripts/validate-figure-library.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-figure-library.mjs --log-level=warning && node node_modules/.cache/validate-figure-library.mjs",
     "porchfest:import-formspree": "tsx scripts/import-formspree-applications.ts",
     "build:civic-editor": "node scripts/build-civic-editor.mjs",
     "validate:yjs-sync": "node scripts/validate-yjs-sync.mjs"

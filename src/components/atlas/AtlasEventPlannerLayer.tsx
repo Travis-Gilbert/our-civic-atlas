@@ -53,6 +53,13 @@ export interface AtlasEventPlannerPlacement {
    * the backend adds one.
    */
   readonly address?: string | null;
+  /**
+   * Figure-library key for submission-specific 3D forms. Carried by
+   * civic-object placements (resolved override-first by
+   * civic-map-binding); GraphQL placements omit it and render their
+   * category's default form.
+   */
+  readonly figureKey?: string | null;
 }
 
 export type AtlasEventPlannerCategory =
