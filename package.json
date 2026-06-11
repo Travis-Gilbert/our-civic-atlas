@@ -21,6 +21,7 @@
     "validate:dossier:live": "node scripts/validate-dossier-payload.mjs --fail-on-warning --base-url http://localhost:3000",
     "validate:traffic": "node scripts/validate-traffic-realtime.mjs --fail-on-warning",
     "validate:traffic:live": "node scripts/validate-traffic-realtime.mjs --fail-on-warning --base-url http://localhost:3000",
+    "validate:analytical-workbench": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-analytical-workbench.mjs",
     "validate:layer-contract": "node scripts/validate-layer-contract.mjs",
     "validate:routes:live": "node scripts/smoke-open-flint-routes.mjs",
     "validate:time-travel": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-atlas-time-travel.mjs",
@@ -28,9 +29,12 @@
     "atlas:starter": "node scripts/generate-atlas-starter.mjs",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
-    "porchfest:import-kml": "node scripts/kml-to-event-layer.mjs"
+    "porchfest:import-kml": "node scripts/kml-to-event-layer.mjs",
+    "validate:civic-store": "esbuild scripts/validate-civic-store.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-civic-store.mjs --log-level=warning && node node_modules/.cache/validate-civic-store.mjs"
   },
   "dependencies": {
+    "@blocksuite/affine": "^0.22.4",
+    "@blocksuite/data-view": "^0.22.4",
     "@cosmos.gl/graph": "^2.6.4",
     "@deck.gl-community/editable-layers": "^9.2.1",
     "@deck.gl/core": "^9.3.2",
@@ -79,7 +83,8 @@
     "tailwind-merge": "^3.5.0",
     "three": "^0.184.0",
     "urql": "^5.0.2",
-    "web-ifc": "^0.0.77"
+    "web-ifc": "^0.0.77",
+    "yjs": "^13.6.31"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^7.0.0",
@@ -97,6 +102,7 @@
     "eslint": "^9.39.3",
     "eslint-config-next": "^16.1.6",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.22.4",
     "typescript": "^5.7.3",
     "xml2js": "^0.6.2"
   }
