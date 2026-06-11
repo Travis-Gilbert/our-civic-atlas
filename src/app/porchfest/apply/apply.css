@@ -1,0 +1,645 @@
+/*
+ * PorchFest application form · Observable register.
+ *
+ * Component vocabulary for the public intake surface, mapped to the
+ * Observable Notebooks 2.0 tokens (docs/Design update/observable-DESIGN.md):
+ * pure-white surface, near-black/dark-gray text scale, light-gray
+ * hairlines, navy-primary as the single most important action per
+ * screen, code-surface-blue as the selected-state wash, 8px base grid,
+ * evidence-backed shadows, 3px navy focus outline (interaction
+ * evidence). Per Path B, the "mono register" renders in the body
+ * family (IBM Plex Sans Condensed) via uppercase + tracking.
+ *
+ * Errors: the Observable palette carries no alarm hue, so error
+ * MESSAGES stay near-black (AA at any size) and the retained
+ * atlas safety red (#bf5f52, a data-semantic color kept through the
+ * Path B migration) marks borders and icons only, where the 3:1
+ * non-text contrast bar applies.
+ */
+
+.civic-apply {
+  --apply-surface: #ffffff;
+  --apply-surface-soft: #f5f5f5;
+  --apply-selected-wash: #f1f6fb;
+  --apply-ink: #1c1c1c;
+  --apply-ink-soft: #454545;
+  --apply-placeholder: #c5c5c5;
+  --apply-rule: #e2e2e2;
+  --apply-action: #005186;
+  --apply-action-soft: #005f87;
+  --apply-error-mark: #bf5f52;
+  --apply-shadow-card: 0 4px 15px rgba(0, 0, 0, 0.12);
+
+  min-height: 100vh;
+  background: var(--apply-surface);
+  color: var(--apply-ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.civic-apply *:focus-visible {
+  outline: 3px solid var(--apply-action);
+  outline-offset: 0;
+}
+
+/* --- page column ---------------------------------------------------- */
+
+.civic-apply-column {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 640px;
+  padding: 48px 24px 96px;
+}
+
+@media (max-width: 640px) {
+  .civic-apply-column {
+    padding: 32px 16px 80px;
+  }
+}
+
+/* --- masthead -------------------------------------------------------- */
+
+.civic-apply-overline {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-display {
+  margin: 8px 0 0;
+  font-family: var(--font-mono, inherit);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--apply-ink);
+}
+
+.civic-apply-lede {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--apply-ink-soft);
+  max-width: 52ch;
+}
+
+/* --- step rail -------------------------------------------------------- */
+
+.civic-apply-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 32px 0 0;
+  font-family: var(--font-mono, inherit);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.civic-apply-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--apply-placeholder);
+  white-space: nowrap;
+}
+
+.civic-apply-step[data-state="current"] {
+  color: var(--apply-action);
+}
+
+.civic-apply-step[data-state="done"] {
+  color: var(--apply-ink);
+}
+
+.civic-apply-step-rule {
+  width: 24px;
+  height: 1px;
+  background: var(--apply-rule);
+}
+
+/* --- stage transitions ------------------------------------------------ */
+
+.civic-apply-stage {
+  margin-top: 40px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .civic-apply-stage {
+    animation: civic-apply-enter 200ms ease-out;
+  }
+
+  @keyframes civic-apply-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* --- category cards ---------------------------------------------------- */
+
+.civic-apply-category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+@media (max-width: 560px) {
+  .civic-apply-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.civic-apply-category-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  background: var(--apply-surface);
+  border: 1px solid var(--apply-rule);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--apply-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .civic-apply-category-card {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+}
+
+.civic-apply-category-card:hover {
+  border-color: var(--apply-ink-soft);
+}
+
+.civic-apply-category-card[aria-pressed="true"] {
+  background: var(--apply-selected-wash);
+  border-color: var(--apply-action);
+  box-shadow: inset 0 0 0 1px var(--apply-action);
+}
+
+.civic-apply-category-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.civic-apply-category-card[aria-pressed="true"] .civic-apply-category-name {
+  color: var(--apply-action);
+}
+
+.civic-apply-category-desc {
+  font-size: 12px;
+  color: var(--apply-ink-soft);
+}
+
+/* --- sections ----------------------------------------------------------- */
+
+.civic-apply-section {
+  padding-top: 32px;
+}
+
+.civic-apply-section + .civic-apply-section {
+  margin-top: 32px;
+  border-top: 1px solid var(--apply-rule);
+}
+
+.civic-apply-section-h {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--apply-ink);
+}
+
+.civic-apply-section-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--apply-ink-soft);
+}
+
+/* --- fields -------------------------------------------------------------- */
+
+.civic-apply-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+@media (max-width: 560px) {
+  .civic-apply-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.civic-apply-field {
+  margin-top: 24px;
+}
+
+.civic-apply-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--apply-ink);
+}
+
+.civic-apply-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-error {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--apply-error-mark);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apply-ink);
+}
+
+.civic-apply-input,
+.civic-apply-textarea,
+.civic-apply-select {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 16px; /* >=16px keeps iOS from zooming the viewport on focus */
+  line-height: 1.4;
+  color: var(--apply-ink);
+  background: var(--apply-surface);
+  border: 1px solid var(--apply-rule);
+  border-radius: 4px;
+}
+
+.civic-apply-input::placeholder,
+.civic-apply-textarea::placeholder {
+  color: var(--apply-placeholder);
+}
+
+.civic-apply-input[data-invalid="true"],
+.civic-apply-textarea[data-invalid="true"] {
+  border-color: var(--apply-error-mark);
+}
+
+.civic-apply-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23454545' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* --- chips (multi-select) -------------------------------------------------- */
+
+.civic-apply-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.civic-apply-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--apply-ink);
+  background: var(--apply-surface);
+  border: 1px solid var(--apply-rule);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .civic-apply-chip {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+}
+
+.civic-apply-chip:hover {
+  background: var(--apply-surface-soft);
+}
+
+.civic-apply-chip[aria-pressed="true"] {
+  background: var(--apply-selected-wash);
+  border-color: var(--apply-action);
+  color: var(--apply-action);
+  font-weight: 600;
+}
+
+/* --- radio cards ----------------------------------------------------------- */
+
+.civic-apply-radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.civic-apply-radio-row[data-stack="true"] {
+  flex-direction: column;
+}
+
+.civic-apply-radio-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--apply-ink);
+  background: var(--apply-surface);
+  border: 1px solid var(--apply-rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .civic-apply-radio-card {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+}
+
+.civic-apply-radio-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+.civic-apply-radio-dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--apply-placeholder);
+  border-radius: 100%;
+}
+
+.civic-apply-radio-card[data-checked="true"] {
+  background: var(--apply-selected-wash);
+  border-color: var(--apply-action);
+}
+
+.civic-apply-radio-card[data-checked="true"] .civic-apply-radio-dot {
+  border-color: var(--apply-action);
+  background: radial-gradient(
+    circle at center,
+    var(--apply-action) 0 4px,
+    transparent 4.5px
+  );
+}
+
+.civic-apply-radio-card:has(input:focus-visible) {
+  outline: 3px solid var(--apply-action);
+  outline-offset: 0;
+}
+
+/* --- buttons ----------------------------------------------------------------- */
+
+.civic-apply-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 48px;
+}
+
+.civic-apply-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.civic-apply-btn--primary {
+  flex: 1;
+  background: var(--apply-action);
+  border: 1px solid var(--apply-action);
+  color: var(--apply-surface);
+}
+
+.civic-apply-btn--primary:hover {
+  background: var(--apply-action-soft);
+  border-color: var(--apply-action-soft);
+}
+
+.civic-apply-btn--primary:focus-visible {
+  outline-color: var(--apply-ink);
+  outline-offset: 2px;
+}
+
+.civic-apply-btn--primary[disabled] {
+  background: var(--apply-surface-soft);
+  border-color: var(--apply-rule);
+  color: var(--apply-placeholder);
+  cursor: not-allowed;
+}
+
+.civic-apply-btn--ghost {
+  background: var(--apply-surface);
+  border: 1px solid var(--apply-rule);
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-btn--ghost:hover {
+  border-color: var(--apply-ink-soft);
+  color: var(--apply-ink);
+}
+
+.civic-apply-link-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--apply-ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.civic-apply-link-btn:hover {
+  color: var(--apply-ink);
+}
+
+/* --- review ------------------------------------------------------------------- */
+
+.civic-apply-review {
+  margin-top: 24px;
+  border: 1px solid var(--apply-rule);
+  border-radius: 8px;
+  background: var(--apply-surface);
+  box-shadow: var(--apply-shadow-card);
+}
+
+.civic-apply-review-section {
+  padding: 16px 24px 24px;
+}
+
+.civic-apply-review-section + .civic-apply-review-section {
+  border-top: 1px solid var(--apply-rule);
+}
+
+.civic-apply-review-h {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+  margin: 16px 0 0;
+}
+
+@media (max-width: 560px) {
+  .civic-apply-review-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.civic-apply-review-item dt {
+  font-size: 12px;
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-review-item dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--apply-ink);
+  overflow-wrap: anywhere;
+}
+
+/* --- agreement + callouts --------------------------------------------------------- */
+
+.civic-apply-agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 32px;
+  padding: 16px;
+  border: 1px solid var(--apply-rule);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--apply-ink);
+  cursor: pointer;
+}
+
+.civic-apply-agree input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: var(--apply-action);
+}
+
+.civic-apply-agree[data-invalid="true"] {
+  border-color: var(--apply-error-mark);
+}
+
+.civic-apply-callout {
+  margin-top: 24px;
+  padding: 12px 16px;
+  border-left: 2px solid var(--apply-action);
+  background: var(--apply-selected-wash);
+  font-size: 14px;
+  color: var(--apply-ink);
+}
+
+.civic-apply-callout[data-tone="error"] {
+  border-left-color: var(--apply-error-mark);
+  background: var(--apply-surface-soft);
+}
+
+/* --- success -------------------------------------------------------------------------- */
+
+.civic-apply-success {
+  margin-top: 64px;
+  text-align: center;
+}
+
+.civic-apply-success-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 100%;
+  border: 1px solid var(--apply-action);
+  background: var(--apply-selected-wash);
+  color: var(--apply-action);
+}
+
+.civic-apply-success h2 {
+  margin: 24px 0 0;
+  font-family: var(--font-mono, inherit);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 32px;
+}
+
+.civic-apply-success p {
+  margin: 8px auto 0;
+  max-width: 44ch;
+  font-size: 14px;
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-receipt {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  font-family: var(--font-mono, inherit);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--apply-ink-soft);
+}
+
+.civic-apply-receipt span {
+  padding: 6px 12px;
+  border: 1px solid var(--apply-rule);
+  border-radius: 9999px;
+  background: var(--apply-surface);
+}

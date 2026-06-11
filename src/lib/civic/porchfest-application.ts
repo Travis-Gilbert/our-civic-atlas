@@ -35,9 +35,14 @@ export interface PorchfestApplicationFormState {
   readonly bandSize: "" | BandSize;
   readonly genre: string;
   readonly setLength: string;
-  readonly canDoThirty: boolean;
+  /**
+   * Tri-state rather than boolean: the live form requires an explicit
+   * answer for canDoThirty (CTHNA parity), and a boolean cannot represent
+   * "not yet answered" without silently defaulting to No.
+   */
+  readonly canDoThirty: "" | "yes" | "no";
   readonly equipment: string;
-  readonly ownPA: boolean;
+  readonly ownPA: "" | "yes" | "no";
   readonly musicLink: string;
   readonly musicLink2: string;
   readonly porchfestHistory: "" | "first" | "returning";
@@ -87,9 +92,9 @@ export const INITIAL_PORCHFEST_APPLICATION_STATE: PorchfestApplicationFormState 
     bandSize: "",
     genre: "",
     setLength: "",
-    canDoThirty: false,
+    canDoThirty: "",
     equipment: "",
-    ownPA: false,
+    ownPA: "",
     musicLink: "",
     musicLink2: "",
     porchfestHistory: "",
@@ -161,9 +166,9 @@ export function porchfestApplicationCategoryPayload(
       bandSize: cleanOptional(state.bandSize),
       genre: state.genre.trim(),
       setLength: cleanOptional(state.setLength),
-      canDoThirty: state.canDoThirty ? "yes" : "no",
+      canDoThirty: cleanSelect(state.canDoThirty),
       equipment: splitList(state.equipment),
-      ownPA: state.ownPA ? "yes" : "no",
+      ownPA: cleanSelect(state.ownPA),
       musicLink: state.musicLink.trim(),
       musicLink2: cleanOptional(state.musicLink2),
       porchfestHistory: cleanOptional(state.porchfestHistory),
@@ -228,9 +233,9 @@ export function porchfestApplicationToCivicObject(
       musicLink2: cleanOptional(state.musicLink2),
       bandSize: cleanSelect(state.bandSize),
       porchfestHistory: cleanSelect(state.porchfestHistory),
-      canDoThirty: state.canDoThirty ? "yes" : "no",
+      canDoThirty: cleanSelect(state.canDoThirty),
       equipment: splitList(state.equipment),
-      ownPA: state.ownPA ? "yes" : "no",
+      ownPA: cleanSelect(state.ownPA),
       setLength: cleanOptional(state.setLength),
     };
   }

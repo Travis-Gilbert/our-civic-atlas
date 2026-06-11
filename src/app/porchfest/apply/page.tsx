@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { PlannerClientProvider } from "@/lib/api/graphql/PlannerClientProvider";
 
 import { PorchfestApplicationForm } from "./PorchfestApplicationForm";
+import "./apply.css";
 
 export const metadata: Metadata = {
   title: "Apply for PorchFest 2026 | Our Civic Atlas",
