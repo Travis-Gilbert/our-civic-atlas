@@ -33,44 +33,89 @@ The spec was written against a monorepo layout. This repo
 - **Geotemporal scrubber (spec section 8):** deferred **by the spec itself**
   ("later, once the core loop works"). Not a self-imposed cut.
 
+## Status checkpoint: 2026-06-11
+
+The original planner wiring checklist below is now complete in this frontend
+repo and has been extended by the Civic Atlas event-planning plan from
+`docs/Planning the planner /` in the backend repo.
+
+Current receipts:
+
+- Frontend planner wiring is on `main` through `d32ad32`
+  (`feat(civic): civic objects on the planner map with two-way location
+  binding`).
+- The public PorchFest form, Formspree import tooling, embedded BlockSuite
+  workspace, ledger-to-workspace ingestion, and civic-object map binding are
+  present.
+- The live production backend ledger contains 75 unique imported application
+  rows from the private Formspree CSV. The importer parsed 76 rows, detected 1
+  duplicate source key, and recorded 76 backup receipts. One imported row is
+  missing `canDoThirty` and should be organizer-reviewed in the workspace.
+- Validation run without Playwright/Chrome by user direction:
+  `npm run validate:civic-map-binding`,
+  `npm run validate:civic-ledger-ingest`, `npm run validate:civic-store`,
+  `npm run typecheck`, `npm run lint`, `npm run build`, a `curl -I` smoke for
+  `http://127.0.0.1:3000/porchfest/workspace`, and a production GraphQL
+  `eventApplications` count query.
+
+Remaining gates for the approved end-to-end plan:
+
+- [ ] **RG-1 RustyRed/YCRDT sync backend:** replace the current
+  IndexedDB-only BlockSuite doc source with a shared RustyRed/YCRDT doc source
+  and prove two BlockSuite clients converge with no lost write.
+- [ ] **RG-2 Multi-organizer proof:** after RG-1, verify two organizers can
+  edit planning fields in table/kanban and move map anchors while both clients
+  see the same civic object state.
+- [ ] **RG-3 Square billing:** add the post-acceptance Square payment request
+  flow, keep billing in a small relational store, and write the resulting
+  billing reference/status back onto the civic object.
+- [ ] **RG-4 Deployment:** ship the event-planning surface on
+  `porchfestflint.com` with the production GraphQL URL, sync URL, and billing
+  env configured. Local note: the Vercel CLI is not installed on this machine.
+- [ ] **RG-5 Backend realtime stream decision:** either finish the planner SSE
+  stream for GraphQL placements/tasks or explicitly retire it once YCRDT owns
+  the shared planning state.
+
 ## Buildable checklist (this repo)
 
 Each item backrefs the spec section it implements.
 
-- [ ] **PP-1 (spec 2):** Align `PlannerClientProvider` endpoint to Axum `:4001`
+- [x] **PP-1 (spec 2):** Align `PlannerClientProvider` endpoint to Axum `:4001`
   + shared `NEXT_PUBLIC_CIVIC_ATLAS_GRAPHQL_URL`; drop stale `:4010` sidecar /
   cookie framing. Partial gating fix (FE half of G1).
-- [ ] **PP-2 (spec 2, 3):** Client-side data ownership. Add `version` to the
+- [x] **PP-2 (spec 2, 3):** Client-side data ownership. Add `version` to the
   placement shape consumed by the planner; have the client run
   `EventPlacements` via urql (seeded by SSR `initialPlacements`) so mutations +
   SSE update a live cache and drag has `expectedVersion`.
-- [ ] **PP-3 (spec 4.1):** New `src/lib/atlas/procedural-porchfest-meshes.ts`.
+- [x] **PP-3 (spec 4.1):** New `src/lib/atlas/procedural-porchfest-meshes.ts`.
   Mirror archetype catalog: `pushQuad`/`pushTri`/`triNormal`, `[-0.5,+0.5]^3`,
   `getPorchfestAffordanceGeometry(category)` + `Map` cache. 9 forms: music
   (figure+instrument), vendor (canopy), food_court/food (truck), kid_zone
   (play cluster), parking (car), restroom (portable), rest_area (bench+shade),
   after_party (stage+marquee), amenity (fallback post).
-- [ ] **PP-4 (spec 4.2):** New `src/components/atlas/PorchfestAffordanceMeshLayer.ts`.
+- [x] **PP-4 (spec 4.2):** New `src/components/atlas/PorchfestAffordanceMeshLayer.ts`.
   Mirror `AtlasArchetypeMeshLayer`: one `SimpleMeshLayer` per category, per-cat
   geometry, per-cat scale (meters), bearing override via metadata, color from
   `CATEGORY_COLOR`, pickable `onClick` -> selection payload.
-- [ ] **PP-5 (spec 3, 4.3):** Wire `buildPlannerEditableLayer` into the planner
+- [x] **PP-5 (spec 3, 4.3):** Wire `buildPlannerEditableLayer` into the planner
   client. `onTranslate` -> `UpdatePlacement` (staleWrite -> refetch + toast),
   `onDraw` -> `CreatePlacement` (category from palette). Mesh layer renders;
   editable layer handles drag; both keyed on same placements via `extraDeckLayers`.
-- [ ] **PP-6 (spec 6):** Wire `PlannerPalette` (PaletteMode -> editable mode +
+  Civic-object rows from the BlockSuite workspace now also render through this
+  path, and map drags write their `location` field back to the civic store.
+- [x] **PP-6 (spec 6):** Wire `PlannerPalette` (PaletteMode -> editable mode +
   delete), `PlannerLayerControls` (visibility), `PlannerTaskRail` +
   `PlannerTaskLayer` (eventTasks query + task mutations + GraphQL-task ->
   `PlannerTaskNode` adapter), `PlannerBookmarks` (self-contained urql).
-- [ ] **PP-7 (spec 5):** Reframe view: Carriage Town boundary polygon layer,
+- [x] **PP-7 (spec 5):** Reframe view: Carriage Town boundary polygon layer,
   street-level default zoom, perspective/pitched camera default.
-- [ ] **PP-8 (spec 7):** `EventSource` SSE consumer in the planner client;
+- [x] **PP-8 (spec 7):** `EventSource` SSE consumer in the planner client;
   apply `planner_change` events to the urql cache (refetch on event). Degrades
   silently when the stream endpoint is absent (FE half of G2).
-- [ ] **PP-9:** `npm run typecheck` + `npm run lint` clean; browser-verify the
-  planner renders, palette arms draw, layer toggles work, affordances render as
-  3D forms, drag fires the mutation (against backend if reachable, honest empty
-  / error state otherwise).
+- [x] **PP-9:** `npm run typecheck` + `npm run lint` clean. Browser/Playwright
+  verification was skipped by explicit user direction because Chrome is not
+  usable on this machine; current proof is the no-Chrome validation set in the
+  status checkpoint above.
 
 ## Compose architecture (the seam)
 
