@@ -49,6 +49,7 @@ import { RustyRedDocSource } from './rustyred-doc-source';
 editorEffects();
 
 const SYNC_DB_NAME = 'civic-atlas-event-planning';
+const SYNC_BOOT_TIMEOUT_MS = 4_000;
 
 export interface CivicWorkspaceApi {
   /** Insert one civic object (used by ingestion and local testing). */
@@ -197,6 +198,18 @@ function openCivicCore(): Promise<CivicCore> {
     // Boot-race guard: let IndexedDB hydrate the collection meta and the
     // event doc BEFORE deciding whether to seed, so a persisted database is
     // adopted rather than double-seeded (CRDT merge would keep both).
+    //
+    // The waits are BOUNDED: waitForSynced resolves only when every doc
+    // source reports synced, and an unreachable RustyRed shadow never does
+    // (its pulls return null and the engine retries forever). Unbounded,
+    // that hung openStore/mount for the whole session whenever
+    // NEXT_PUBLIC_RUSTYRED_SYNC_URL pointed at a down server, taking the
+    // planner binding and the workspace with it. Local-first means
+    // IndexedDB truth is enough to operate; after the bound we continue and
+    // the shadow keeps retrying in the background, merging when the server
+    // returns. The bound stays generous so a healthy shadow's first pull
+    // (the fresh-browser case where the shared doc arrives over the wire)
+    // still lands before the seed decision.
     const docSync = (
       collection as unknown as {
         docSync?: {
@@ -205,10 +218,25 @@ function openCivicCore(): Promise<CivicCore> {
         };
       }
     ).docSync;
-    await docSync?.waitForLoadedRootDoc();
+    const boundedSyncWait = (label: string, wait?: Promise<void>) => {
+      if (!wait) return Promise.resolve();
+      return Promise.race([
+        wait,
+        new Promise<void>((resolve) => {
+          setTimeout(() => {
+            console.warn(
+              `civic sync: ${label} still pending after ${SYNC_BOOT_TIMEOUT_MS}ms; ` +
+                'continuing local-first (server sync keeps retrying in the background)',
+            );
+            resolve();
+          }, SYNC_BOOT_TIMEOUT_MS);
+        }),
+      ]);
+    };
+    await boundedSyncWait('waitForLoadedRootDoc', docSync?.waitForLoadedRootDoc());
     const existing = collection.getDoc(CIVIC_EVENT_DOC_ID);
     if (existing && !existing.loaded) existing.load();
-    await docSync?.waitForSynced();
+    await boundedSyncWait('waitForSynced', docSync?.waitForSynced());
 
     const handles = ensureCivicDatabase(collection);
     if (!collection.meta.getDocMeta(CIVIC_EVENT_DOC_ID)?.title) {
