@@ -1960,13 +1960,7 @@ function PorchfestPlannerWorkspace({
             The weather overlay is a desktop view; the forecast card covers
             phones.
           </p>
-        ) : !weather.available ? (
-          <p className="planner-note px-2 py-1 leading-4">
-            Weather visualization needs a WeatherLayers Cloud data token. Set
-            NEXT_PUBLIC_WEATHERLAYERS_TOKEN to enable wind and precipitation
-            frames.
-          </p>
-        ) : mapZoom < WEATHER_MIN_ZOOM ? (
+        ) : !weather.available ? null : mapZoom < WEATHER_MIN_ZOOM ? (
           <p className="planner-note px-2 py-1 leading-4">
             Zoom in to load the forecast frames.
           </p>
