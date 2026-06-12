@@ -49,6 +49,10 @@
     "scripts/validate-civic-apply-bridge.ts",
     "scripts/validate-civic-ledger-ingest.ts",
     "scripts/validate-civic-map-binding.ts",
-    "scripts/validate-planner-import.ts"
+    "scripts/validate-planner-import.ts",
+    // The PorchFest board dashboard is a separate Observable Framework build
+    // target with its own deps and build (dashboard/, npm run build:dashboard).
+    // Keep it out of the Next typecheck, like the civic-editor bundle above.
+    "dashboard"
   ]
 }

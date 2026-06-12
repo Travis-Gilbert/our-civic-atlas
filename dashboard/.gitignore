@@ -1,0 +1,6 @@
+dist/
+node_modules/
+# Framework's build cache lives under the source root (src/.observablehq/cache);
+# ignore the internal dir at any depth.
+.observablehq/
+yarn-error.log

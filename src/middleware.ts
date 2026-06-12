@@ -25,6 +25,11 @@ const PORCHFEST_FLINT_PATHS: ReadonlyMap<string, string> = new Map([
   ["/board", "/porchfest-public/board"],
   ["/planning", "/porchfest"],
   ["/workspace", "/porchfest/workspace"],
+  // Board-facing Observable Framework dashboard. The route renders an iframe
+  // to /porchfest-dashboard/index.html (a static asset under public/), and
+  // those asset requests fall through the FLINT_PATHS lookup to NextResponse
+  // .next() below, so they serve normally on this host.
+  ["/dashboard", "/porchfest/dashboard"],
 ]);
 
 function canonicalPorchfestPath(pathname: string): string {

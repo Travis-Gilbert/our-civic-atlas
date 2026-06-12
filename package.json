@@ -5,7 +5,8 @@
   "description": "Open, source-backed civic atlas infrastructure with Flint as the first city node.",
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:civic-editor && next build",
+    "build": "npm run build:civic-editor && npm run build:dashboard && next build",
+    "build:dashboard": "node scripts/build-dashboard.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

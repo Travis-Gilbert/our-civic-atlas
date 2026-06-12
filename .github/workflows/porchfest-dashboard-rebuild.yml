@@ -1,0 +1,53 @@
+# Scheduled rebuild of the PorchFest board dashboard.
+#
+# The dashboard is a static Observable Framework site whose figures are baked at
+# build time (see dashboard/ and scripts/build-dashboard.mjs). It does not update
+# live; this cron keeps it "recent" by triggering a production redeploy, which
+# re-runs `npm run build` -> `build:dashboard` and refreshes every snapshot.
+#
+# It also rebuilds on every normal deploy (the build step is chained into the
+# Next build), so this workflow only covers the BETWEEN-deploys freshness.
+#
+# Mechanism: POST a Vercel Deploy Hook. Create one in the Vercel project
+# (Settings -> Git -> Deploy Hooks, branch `main`) and store the URL as the repo
+# secret VERCEL_DEPLOY_HOOK_PORCHFEST_DASHBOARD. No code or Vercel token needed.
+
+name: porchfest-dashboard-rebuild
+
+on:
+  # Nightly at 08:00 UTC so the board sees fresh figures each morning. For a
+  # busier planning stretch, change to a more frequent cron, e.g. "0 */6 * * *"
+  # (every 6 hours) or "0 * * * *" (hourly).
+  schedule:
+    - cron: "0 8 * * *"
+  # Manual trigger from the Actions tab for an on-demand refresh.
+  workflow_dispatch:
+
+# Never run two rebuilds at once.
+concurrency:
+  group: porchfest-dashboard-rebuild
+  cancel-in-progress: false
+
+jobs:
+  trigger-redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel redeploy via deploy hook
+        env:
+          DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_PORCHFEST_DASHBOARD }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::VERCEL_DEPLOY_HOOK_PORCHFEST_DASHBOARD is not set; nothing to trigger."
+            echo "Add the deploy hook URL as a repo secret to enable scheduled rebuilds."
+            exit 0
+          fi
+          echo "Triggering Vercel redeploy..."
+          status=$(curl -sS -o /tmp/hook.out -w "%{http_code}" -X POST "$DEPLOY_HOOK")
+          echo "Deploy hook responded HTTP $status"
+          cat /tmp/hook.out || true
+          # Vercel deploy hooks return 201 Created on success.
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Deploy hook failed with HTTP $status"
+            exit 1
+          fi
+          echo "Redeploy triggered; the dashboard will refresh when the build completes."
