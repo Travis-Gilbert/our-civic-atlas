@@ -1040,13 +1040,10 @@ function WorkspaceInner() {
           font-weight: 600;
           line-height: 18px;
         }
-        /* Event-day weather card (Lane 4 Tier 1): a compact panel above the
-           billing band, capped so it does not stretch across the strip. */
+        /* Event-day weather (Lane 4 Tier 1): a quiet metadata line under the
+           tab strip, never a centerpiece card. */
         .civic-weather-band {
-          padding: 10px 24px 2px;
-        }
-        .civic-weather-band > * {
-          max-width: 360px;
+          padding: 4px 24px 8px;
         }
         .civic-billing-band {
           display: grid;

@@ -1,78 +1,39 @@
 "use client";
 
 /**
- * Event-day forecast card (Lane 4, Tier 1). Mounts in the planner sidebar,
- * the mobile island info tab, and the workspace. Open-Meteo point forecast
- * for the festival site; no API key. Pins to the event day once it enters the
- * 16-day window, otherwise shows the live outlook with an honest note.
+ * Event-day forecast as compact metadata (Lane 4, Tier 1). Weather is a quiet
+ * secondary detail, never a centerpiece: a single muted line that sits under
+ * the main content of whatever surface mounts it (planner sidebar, mobile
+ * island, workspace). Open-Meteo point forecast for the festival site, no key.
+ * Shows the event day once it enters the 16-day window, otherwise the live
+ * "now" outlook.
  */
 
+import type { ReactNode } from "react";
 import {
   PORCHFEST_EVENT_DATE,
-  PORCHFEST_EVENT_DATE_LABEL,
-  PORCHFEST_EVENT_SITE,
   PORCHFEST_EVENT_TZ,
+  PORCHFEST_EVENT_SITE,
 } from "@/lib/porchfest/porchfest-event";
 import {
   describeWeatherCode,
   usePorchfestForecast,
-  type ForecastDay,
 } from "@/lib/porchfest/use-porchfest-forecast";
 
 const round = (value: number): string =>
   Number.isFinite(value) ? `${Math.round(value)}` : "--";
 
-function EventDayHero({ day }: { day: ForecastDay }) {
-  const { label, glyph } = describeWeatherCode(day.weatherCode);
-  return (
-    <div className="mt-1.5">
-      <div className="flex items-center gap-2.5">
-        <span className="text-[26px] leading-none" aria-hidden>
-          {glyph}
-        </span>
-        <div className="min-w-0">
-          <p className="planner-ink text-[15px] font-semibold leading-none">
-            {round(day.tempMaxF)}&deg; <span className="planner-muted">/ {round(day.tempMinF)}&deg;</span>
-          </p>
-          <p className="planner-ink-soft mt-0.5 truncate text-[12px] leading-4">
-            {label}
-          </p>
-        </div>
-      </div>
-      <div className="planner-muted mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] leading-4">
-        <span>{round(day.precipProbMaxPct)}% rain</span>
-        <span>{round(day.windMaxMph)} mph wind</span>
-      </div>
-    </div>
-  );
-}
-
-function CurrentOutlook({
-  tempF,
-  windMph,
-  weatherCode,
-}: {
-  tempF: number;
-  windMph: number;
-  weatherCode: number;
-}) {
-  const { label, glyph } = describeWeatherCode(weatherCode);
-  return (
-    <div className="mt-1.5 flex items-center gap-2.5">
-      <span className="text-[24px] leading-none" aria-hidden>
-        {glyph}
-      </span>
-      <div className="min-w-0">
-        <p className="planner-ink text-[15px] font-semibold leading-none">
-          {round(tempF)}&deg; <span className="planner-muted text-[12px]">now</span>
-        </p>
-        <p className="planner-ink-soft mt-0.5 truncate text-[12px] leading-4">
-          {label} &middot; {round(windMph)} mph
-        </p>
-      </div>
-    </div>
-  );
-}
+const eventDayLabel = (iso: string): string => {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: PORCHFEST_EVENT_TZ,
+      month: "short",
+      day: "numeric",
+    }).format(new Date(`${iso}T12:00:00`));
+  } catch {
+    return iso;
+  }
+};
 
 export function PorchfestForecastCard() {
   const { now, days, loading, error } = usePorchfestForecast(
@@ -82,40 +43,46 @@ export function PorchfestForecastCard() {
   );
   const eventDay = days.find((day) => day.date === PORCHFEST_EVENT_DATE) ?? null;
 
-  return (
-    <div className="planner-panel px-3 py-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="planner-kicker">Weather</p>
-        <span className="planner-muted font-mono text-[10px] uppercase tracking-[0.1em]">
-          {PORCHFEST_EVENT_DATE_LABEL}
+  let detail: ReactNode = null;
+  if (loading) {
+    detail = <span className="planner-muted">Loading&hellip;</span>;
+  } else if (error) {
+    detail = <span className="planner-muted">Unavailable</span>;
+  } else if (eventDay) {
+    const { label, glyph } = describeWeatherCode(eventDay.weatherCode);
+    detail = (
+      <>
+        <span aria-hidden>{glyph}</span>
+        <span className="planner-ink font-medium">
+          {round(eventDay.tempMaxF)}&deg;/{round(eventDay.tempMinF)}&deg;
         </span>
-      </div>
+        <span className="planner-muted truncate">
+          {label} &middot; {round(eventDay.precipProbMaxPct)}% rain &middot;{" "}
+          {eventDayLabel(eventDay.date)}
+        </span>
+      </>
+    );
+  } else if (now) {
+    const { label, glyph } = describeWeatherCode(now.weatherCode);
+    detail = (
+      <>
+        <span aria-hidden>{glyph}</span>
+        <span className="planner-ink font-medium">{round(now.tempF)}&deg;</span>
+        <span className="planner-muted truncate">
+          now &middot; {label} &middot; {round(now.windMph)} mph
+        </span>
+      </>
+    );
+  } else {
+    return null;
+  }
 
-      {loading ? (
-        <p className="planner-muted mt-1.5 text-[12px] leading-4">
-          Loading forecast&hellip;
-        </p>
-      ) : error ? (
-        <p className="planner-note mt-1.5 px-2 py-1 leading-4">
-          Forecast unavailable right now. It refreshes automatically.
-        </p>
-      ) : eventDay ? (
-        <EventDayHero day={eventDay} />
-      ) : (
-        <>
-          {now ? (
-            <CurrentOutlook
-              tempF={now.tempF}
-              windMph={now.windMph}
-              weatherCode={now.weatherCode}
-            />
-          ) : null}
-          <p className="planner-muted mt-2 text-[11px] leading-4">
-            Event-day forecast for {PORCHFEST_EVENT_DATE_LABEL} opens as the date
-            enters the 16-day window.
-          </p>
-        </>
-      )}
+  return (
+    <div className="flex items-center gap-1.5 text-[12px] leading-4">
+      <span className="planner-muted font-mono text-[10px] uppercase tracking-[0.12em]">
+        Weather
+      </span>
+      <span className="flex min-w-0 items-center gap-1.5">{detail}</span>
     </div>
   );
 }
