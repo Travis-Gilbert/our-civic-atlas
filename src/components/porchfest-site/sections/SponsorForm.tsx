@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ScrollReveal from '../components/ScrollReveal';
 import { SPONSOR_TIERS, SPONSOR_CATEGORIES } from '../porchfest-data';
+import { resolveBrowserGraphqlEndpoint } from '@/lib/api/graphql/endpoints';
 import {
   C,
   serif,
@@ -12,8 +13,22 @@ import {
   cardBorder,
 } from '../tokens';
 
-const FORMSPREE_SPONSOR =
-  process.env.NEXT_PUBLIC_PORCHFEST_SPONSOR_FORMSPREE_URL ?? '';
+// Sponsor interest is captured the same way every other application is: a
+// submitEventApplication GraphQL mutation that writes to the Postgres
+// event_applications ledger plus the backup-receipt outbox. No Formspree, no
+// service credential in the browser - the public GraphQL endpoint is the only
+// boundary. Sponsor-specific fields ride in categoryPayload.
+const PORCHFEST_EVENT_SLUG = 'porchfest-2026';
+const SUBMIT_SPONSOR_MUTATION = `
+  mutation SubmitSponsorApplication($input: EventApplicationSubmitInput!) {
+    submitEventApplication(input: $input) {
+      application { id }
+      created
+      duplicate
+      backupRecorded
+    }
+  }
+`;
 
 const labelStyle = {
   ...mono,
@@ -258,7 +273,6 @@ export default function SponsorForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [networkError, setNetworkError] = useState(false);
-  const [configError, setConfigError] = useState(false);
   const formRef = useRef(null);
 
   useEffect(() => {
@@ -280,7 +294,6 @@ export default function SponsorForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setNetworkError(false);
-    setConfigError(false);
     const errs = validate();
     setErrors(errs);
     if (Object.keys(errs).length > 0) {
@@ -290,35 +303,49 @@ export default function SponsorForm() {
       }, 50);
       return;
     }
-    if (!FORMSPREE_SPONSOR) {
-      setConfigError(true);
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const payload = {
-        firstName,
-        lastName,
-        email,
-        phone,
-        sponsoringAs: sponsoringAs || 'Not specified',
-        tier,
-        tierPrice: SPONSOR_TIERS.find((t) => t.id === tier)?.price,
-        message: message || '',
-        submittedAt: new Date().toISOString(),
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      const normalizedEmail = email.trim().toLowerCase();
+      const selectedTier = SPONSOR_TIERS.find((t) => t.id === tier);
+      const input = {
+        eventSlug: PORCHFEST_EVENT_SLUG,
+        category: 'sponsor',
+        displayName: fullName || normalizedEmail,
+        contactName: fullName || null,
+        contactEmail: normalizedEmail,
+        contactPhone: phone.trim() || null,
+        bio: message.trim() || null,
+        flintBased: false,
+        categoryPayload: {
+          // Human-readable level + amount so the workspace shows "Gold / $500".
+          tier: selectedTier?.name ?? tier,
+          tierPrice: selectedTier?.price ?? null,
+          sponsoringAs: sponsoringAs || null,
+          message: message.trim() || null,
+        },
+        // One sponsor email is one intake row: a double submit updates rather
+        // than duplicates, matching the apply form's sourceKey convention.
+        sourceKey: `public:sponsor:${normalizedEmail}`,
       };
 
-      const res = await fetch(FORMSPREE_SPONSOR, {
+      const res = await fetch(resolveBrowserGraphqlEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          query: SUBMIT_SPONSOR_MUTATION,
+          variables: { input },
+        }),
       });
 
-      if (!res.ok) throw new Error(`Formspree returned ${res.status}`);
+      if (!res.ok) throw new Error(`GraphQL returned ${res.status}`);
+      const json = await res.json();
+      if (json.errors?.length) {
+        throw new Error(json.errors[0].message ?? 'GraphQL error');
+      }
       setSubmitted(true);
     } catch {
       setNetworkError(true);
@@ -578,21 +605,6 @@ export default function SponsorForm() {
               }}
             >
               Something went wrong. Please try again.
-            </p>
-          )}
-          {configError && (
-            <p
-              role="alert"
-              aria-live="polite"
-              style={{
-                ...sans,
-                fontSize: 13,
-                color: C.error,
-                marginTop: 16,
-                textAlign: 'center',
-              }}
-            >
-              Sponsor interest is not connected yet. Please check back soon.
             </p>
           )}
         </form>

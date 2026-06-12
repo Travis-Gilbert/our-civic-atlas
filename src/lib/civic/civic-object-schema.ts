@@ -30,6 +30,12 @@ export const CIVIC_CATEGORIES = [
   // contact intake plus a "tell us what you do" pitch. It reuses the
   // other-scope columns (orgName, proposal), so no new schema columns.
   'something_else',
+  // Sponsor interest (2026-06-12): the brand-site sponsor form submits the
+  // same submitEventApplication mutation as every other intake, with category
+  // 'sponsor'. Sponsor-specific fields (tier, sponsoringAs) ride in
+  // categoryPayload; this value just lets the workspace surface them as
+  // sponsors instead of folding them into the 'other' catch-all.
+  'sponsor',
 ] as const;
 export type CivicCategory = (typeof CIVIC_CATEGORIES)[number];
 
@@ -230,6 +236,11 @@ export const CIVIC_OBJECT_COLUMNS: readonly CivicColumnSpec[] = [
   { key: 'proposal', name: 'Proposal', type: 'text', scope: 'other', requiredFor: ['other'] },
   { key: 'otherLinks', name: 'Links', type: 'link', scope: 'other' },
 
+  // Sponsor (brand-site sponsor form: which level, and who they sponsor as)
+  { key: 'tier', name: 'Sponsorship Level', type: 'text', scope: 'sponsor' },
+  { key: 'tierPrice', name: 'Sponsorship Amount', type: 'text', scope: 'sponsor' },
+  { key: 'sponsoringAs', name: 'Sponsoring As', type: 'text', scope: 'sponsor' },
+
   // Planning (every record, organizer-editable, FR-008)
   { key: 'status', name: 'Status', type: 'select', options: PLANNING_STATUSES, scope: 'planning', note: 'Kanban grouping column. Intake sets submitted.' },
   { key: 'accepted', name: 'Accepted', type: 'checkbox', scope: 'planning' },
@@ -286,6 +297,9 @@ export interface CivicObjectFields {
   orgName?: string;
   proposal?: string;
   otherLinks?: string;
+  tier?: string;
+  tierPrice?: string;
+  sponsoringAs?: string;
   status?: PlanningStatus;
   accepted?: boolean;
   contacted?: boolean;

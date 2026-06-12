@@ -49,6 +49,9 @@ const CATEGORY_TITLE_KEY: Record<CivicCategory, CivicFieldKey> = {
   entertainer: 'actName',
   other: 'orgName',
   something_else: 'orgName',
+  // Sponsors carry their name in displayName/contactName; orgName is the
+  // generic title field, so it receives the display name like other/else.
+  sponsor: 'orgName',
 };
 
 function isCivicCategory(value: string): value is CivicCategory {
@@ -150,6 +153,7 @@ export function mapEventApplicationToCivicFields(
         'businessName', 'foodDescription', 'foodType', 'vendorLink',
         'footprint', 'vendorNeeds', 'vendedBefore', 'actName', 'actType',
         'actDescription', 'workLink', 'orgName', 'proposal', 'otherLinks',
+        'tier', 'tierPrice', 'sponsoringAs',
         'phone', 'city', 'bio', 'accessNeeds', 'name', 'email',
       ].includes(key);
     if (!isKnown) {

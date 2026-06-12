@@ -69,6 +69,9 @@ const DEFAULT_CATEGORY_MAP: Record<CivicCategory, CivicMapCategory> = {
   entertainer: 'amenity',
   other: 'amenity',
   something_else: 'amenity',
+  // Sponsors are rarely map-placed; if one is, it renders as a generic
+  // amenity pin like the other catch-all categories.
+  sponsor: 'amenity',
 };
 
 export interface CivicMapBindingOptions {
