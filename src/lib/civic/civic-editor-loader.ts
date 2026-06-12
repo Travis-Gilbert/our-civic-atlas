@@ -98,10 +98,15 @@ export function loadCivicBridge(): Promise<CivicBridge> {
       link.href = EDITOR_CSS;
       document.head.append(link);
     }
-    const existingScript = document.querySelector(
+    const existingScript = document.querySelector<HTMLScriptElement>(
       `script[src="${EDITOR_SRC}"]`,
     );
-    const script = existingScript ?? document.createElement("script");
+    // Fast Refresh can preserve the script tag after this module's singleton
+    // promise is reset. If the window bridge is still absent, its load event
+    // has already passed or failed, so reusing that tag would leave callers
+    // waiting forever.
+    existingScript?.remove();
+    const script = document.createElement("script");
     const onReady = () => {
       const bridge = bridgeWindow().__civicWorkspace;
       if (bridge) {
@@ -121,13 +126,9 @@ export function loadCivicBridge(): Promise<CivicBridge> {
         ),
       { once: true },
     );
-    if (!existingScript) {
-      (script as HTMLScriptElement).type = "module";
-      (script as HTMLScriptElement).src = EDITOR_SRC;
-      document.head.append(script);
-    } else if (bridgeWindow().__civicWorkspace) {
-      onReady();
-    }
+    script.type = "module";
+    script.src = EDITOR_SRC;
+    document.head.append(script);
   });
   // A rejected load should not poison later retries (e.g. after a rebuild).
   bridgePromise.catch(() => {

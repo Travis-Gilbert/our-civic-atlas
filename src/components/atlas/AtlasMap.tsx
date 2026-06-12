@@ -1291,6 +1291,13 @@ export type AtlasMapProps = {
   >;
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
+  /**
+   * Force the raw OSM building layer to extrude even when the camera mode is
+   * `atlas`. Event-planner mobile surfaces use this to keep the lightweight
+   * OSM/address layer three-dimensional without opting into the heavier urban
+   * design massing stack.
+   */
+  forceOsmBuildingExtrusion?: boolean;
   mapDragPanEnabled?: boolean;
   dragPanBlockLayerIds?: readonly string[];
   deckLayerPointerDragHandler?: DeckLayerPointerDragHandler | null;
@@ -1355,6 +1362,7 @@ export function AtlasMap({
   scenarioDeltaFeatures,
   scenarioCompareEnabled = false,
   urbanDesignMaterialMode = "typology",
+  forceOsmBuildingExtrusion = false,
   mapDragPanEnabled = true,
   dragPanBlockLayerIds = EMPTY_DRAG_PAN_BLOCK_LAYER_IDS,
   deckLayerPointerDragHandler = null,
@@ -2655,39 +2663,46 @@ export function AtlasMap({
     const placesAsCivicContext =
       urbanDesignModelVisible && viewMode !== "atlas";
 
-    /* OSM building footprints — extruded in non-atlas (3D) view modes.
-     * Renders 6671 Flint buildings from Carriage Town + downtown as warm
-     * stone volumes. Heights come from OSM `height` or `building:levels * 3`,
-     * capped at 80 m. */
-    if (
-      viewMode !== "atlas" &&
+    const osmBuildingsVisible =
       layerVisibility.osmBuildings !== false &&
-      layerVisibility.buildings !== false
-    ) {
-      // Drop shadow first: rendered beneath the buildings so the
-      // 3m southeast offset reads as a soft cast. Spec PR 5 (cheap
-      // path): offset SolidPolygonLayer, not GPU shadow-mapping.
-      // Filled at #3a3328 alpha 56 (~0.22), no stroke, no extrusion.
-      result.push(
-        new SolidPolygonLayer<GeoJSON.Feature<GeoJSON.Polygon>>({
-          id: "atlas-building-drop-shadow",
-          data: buildingShadowFeatures.features,
-          pickable: false,
-          filled: true,
-          extruded: false,
-          // Polygon coordinates are Position[][] (rings) — a valid
-          // PolygonGeometry at runtime, but deck.gl's accessor return
-          // type is the narrower `number[]`. Cast through unknown to
-          // satisfy the type checker; runtime behavior is correct.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          getPolygon: (feature) => feature.geometry.coordinates as any,
-          getFillColor: [58, 51, 40, 56],
-          parameters: {
-            depthCompare: "always",
-            depthWriteEnabled: false,
-          },
-        }),
-      );
+      layerVisibility.buildings !== false;
+    const osmBuildingsExtruded =
+      viewMode !== "atlas" || forceOsmBuildingExtrusion;
+    const osmBuildingElevationViewMode =
+      viewMode === "atlas" && forceOsmBuildingExtrusion ? "oblique" : viewMode;
+
+    /* OSM building footprints — normally flat in atlas mode, but opt-in
+     * extrudable for mobile event-planner surfaces that need tappable address
+     * buildings without the heavier urban design massing stack. Renders Flint
+     * buildings from Carriage Town + downtown as warm stone forms. Heights come
+     * from OSM `height` or `building:levels * 3`, capped at 80 m. */
+    if (osmBuildingsVisible) {
+      if (osmBuildingsExtruded) {
+        // Drop shadow first: rendered beneath the buildings so the
+        // 3m southeast offset reads as a soft cast. Spec PR 5 (cheap
+        // path): offset SolidPolygonLayer, not GPU shadow-mapping.
+        // Filled at #3a3328 alpha 56 (~0.22), no stroke, no extrusion.
+        result.push(
+          new SolidPolygonLayer<GeoJSON.Feature<GeoJSON.Polygon>>({
+            id: "atlas-building-drop-shadow",
+            data: buildingShadowFeatures.features,
+            pickable: false,
+            filled: true,
+            extruded: false,
+            // Polygon coordinates are Position[][] (rings) — a valid
+            // PolygonGeometry at runtime, but deck.gl's accessor return
+            // type is the narrower `number[]`. Cast through unknown to
+            // satisfy the type checker; runtime behavior is correct.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            getPolygon: (feature) => feature.geometry.coordinates as any,
+            getFillColor: [58, 51, 40, 56],
+            parameters: {
+              depthCompare: "always",
+              depthWriteEnabled: false,
+            },
+          }),
+        );
+      }
       result.push(
         new GeoJsonLayer({
           id: ATLAS_DECK_LAYER_IDS.osmBuildings,
@@ -2702,16 +2717,23 @@ export function AtlasMap({
           // single largest perceptual change in the PR.
           stroked: true,
           filled: true,
-          extruded: true,
-          opacity: atlasYear === null ? 1 : 0.42,
+          extruded: osmBuildingsExtruded,
+          opacity: osmBuildingsExtruded
+            ? atlasYear === null
+              ? 1
+              : 0.42
+            : 0.72,
           wireframe: false,
           lineWidthMinPixels: 2,
           getLineWidth: 2,
           getElevation: (f) =>
-            osmBuildingElevation(
-              (f as GeoJSON.Feature).properties as OsmFootprintProperties,
-              viewMode,
-            ),
+            osmBuildingsExtruded
+              ? osmBuildingElevation(
+                  (f as GeoJSON.Feature)
+                    .properties as OsmFootprintProperties,
+                  osmBuildingElevationViewMode,
+                )
+              : 0,
           // In time-travel mode the OSM buildings represent "what
           // still existed in this year." We dim the saturation
           // slightly (lower alpha) so the ghost layer reads as the
@@ -2730,7 +2752,7 @@ export function AtlasMap({
             specularColor: [232, 215, 188],
           },
           updateTriggers: {
-            getElevation: [viewMode],
+            getElevation: [osmBuildingsExtruded, osmBuildingElevationViewMode],
             getFillColor: [atlasYear === null],
           },
         }),
@@ -3241,6 +3263,7 @@ export function AtlasMap({
     handleBuildingHover,
     onPlaceSelect,
     viewMode,
+    forceOsmBuildingExtrusion,
     activeLens,
     atlasYear,
     historicalReconstructions,

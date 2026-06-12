@@ -43,6 +43,7 @@
     "validate:figure-library": "esbuild scripts/validate-figure-library.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-figure-library.mjs --log-level=warning && node node_modules/.cache/validate-figure-library.mjs",
     "validate:planner-import": "esbuild scripts/validate-planner-import.ts --bundle --platform=node --format=esm --tsconfig=scripts/tsconfig.civic-validate.json --outfile=node_modules/.cache/validate-planner-import.mjs --log-level=warning && node node_modules/.cache/validate-planner-import.mjs",
     "validate:porchfest-domain-routing": "node scripts/validate-porchfest-domain-routing.mjs",
+    "validate:porchfest-mobile-map": "node scripts/validate-porchfest-mobile-map.mjs",
     "porchfest:import-formspree": "tsx scripts/import-formspree-applications.ts",
     "build:civic-editor": "node scripts/build-civic-editor.mjs",
     "validate:yjs-sync": "node scripts/validate-yjs-sync.mjs"

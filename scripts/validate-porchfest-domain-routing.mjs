@@ -46,6 +46,12 @@ check('www.porchfestflint.com host enabled', middleware.includes('"www.porchfest
 for (const [sourcePath, targetPath] of HOST_REWRITE_EXPECTATIONS) {
   check(`${sourcePath} rewrites to ${targetPath}`, middleware.includes(`[${sourcePath}, ${targetPath}]`));
 }
+check(
+  'legacy /porchfest/workspace redirects to /workspace',
+  middleware.includes('req.nextUrl.pathname === "/porchfest/workspace"') &&
+    middleware.includes('target.pathname = "/workspace"') &&
+    middleware.includes('NextResponse.redirect(target, 308)'),
+);
 
 console.log('3. retired legacy dependencies stay out of the public-site island');
 const publicSiteFiles = [
@@ -64,8 +70,9 @@ for (const [relativePath, content] of publicSiteFiles) {
 }
 
 const sponsorForm = read('src/components/porchfest-site/sections/SponsorForm.tsx');
-check('sponsor form endpoint is env-driven', sponsorForm.includes('NEXT_PUBLIC_PORCHFEST_SPONSOR_FORMSPREE_URL'));
-check('sponsor form placeholder endpoint removed', !sponsorForm.includes('REPLACE_WITH_ACTUAL_ID'));
+check('sponsor form submits through Civic Atlas GraphQL', sponsorForm.includes('submitEventApplication(input: $input)'));
+check('sponsor form posts to the shared GraphQL endpoint', sponsorForm.includes('resolveBrowserGraphqlEndpoint'));
+check('sponsor form has no Formspree endpoint', !/FORMSPREE|formspree\.io/.test(sponsorForm));
 
 const videoBackground = read('src/components/porchfest-site/components/VideoBackground.tsx');
 check('missing webm source is not requested', !videoBackground.includes('porchfest-highlights.webm'));

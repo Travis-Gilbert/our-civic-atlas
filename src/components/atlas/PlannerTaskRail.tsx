@@ -37,12 +37,17 @@ import {
   CreatePlacementNoteDocument,
   DeletePlacementNoteDocument,
   PlacementNotesDocument,
-  type EventPlacementsQuery,
   type EventTasksListQuery,
 } from "@/lib/api/graphql/generated/graphql";
 
-type Placement = EventPlacementsQuery["placements"][number];
+type Placement = {
+  readonly id: string;
+  readonly label: string;
+};
 type Task = EventTasksListQuery["eventTasks"][number];
+type TaskLocationDetail = {
+  readonly label: string;
+};
 
 const STATUS_OPTIONS = ["all", "open", "in_progress", "done"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
@@ -71,6 +76,8 @@ export interface PlannerTaskRailProps {
   readonly onCreateTask: (input: NewTaskInput) => void;
   readonly onUpdateTask: (taskId: string, version: number, patch: TaskPatch) => void;
   readonly onDeleteTask: (taskId: string, version: number) => void;
+  readonly taskLocationDetails?: ReadonlyMap<string, TaskLocationDetail>;
+  readonly onFlyToTask?: (taskId: string) => void;
   readonly onCollapse?: () => void;
   /**
    * Render without the docked rail shell (no aside chrome, no fixed width,
@@ -103,6 +110,8 @@ export function PlannerTaskRail({
   onCreateTask,
   onUpdateTask,
   onDeleteTask,
+  taskLocationDetails = new Map(),
+  onFlyToTask,
   onCollapse,
   embedded = false,
 }: PlannerTaskRailProps) {
@@ -278,6 +287,7 @@ export function PlannerTaskRail({
             const placement = task.placementId
               ? placementsById.get(task.placementId)
               : null;
+            const taskLocation = taskLocationDetails.get(task.id) ?? null;
             const tone =
               task.status === "done"
                 ? "is-done"
@@ -326,6 +336,15 @@ export function PlannerTaskRail({
                     className="planner-accent mt-1 inline-flex items-center gap-1 text-[12px] underline underline-offset-2"
                   >
                     <span aria-hidden="true">→</span> {placement.label}
+                  </button>
+                ) : taskLocation ? (
+                  <button
+                    type="button"
+                    onClick={() => onFlyToTask?.(task.id)}
+                    className="planner-accent mt-1 inline-flex items-center gap-1 text-[12px] underline underline-offset-2"
+                    data-geo-task-anchor="true"
+                  >
+                    <span aria-hidden="true">→</span> {taskLocation.label}
                   </button>
                 ) : null}
                 {canEdit ? (

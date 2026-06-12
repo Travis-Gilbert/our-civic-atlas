@@ -39,6 +39,12 @@ function canonicalPorchfestPath(pathname: string): string {
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host")?.toLowerCase() ?? "";
   if (PORCHFEST_FLINT_HOSTS.has(host)) {
+    if (req.nextUrl.pathname === "/porchfest/workspace") {
+      const target = req.nextUrl.clone();
+      target.pathname = "/workspace";
+      return NextResponse.redirect(target, 308);
+    }
+
     const targetPath = PORCHFEST_FLINT_PATHS.get(req.nextUrl.pathname);
     if (!targetPath) {
       return NextResponse.next();

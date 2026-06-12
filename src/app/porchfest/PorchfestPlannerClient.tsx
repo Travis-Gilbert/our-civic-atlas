@@ -48,8 +48,12 @@ import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
 import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
-import { BuildingAddressEditor } from "@/components/atlas/BuildingAddressEditor";
+import {
+  BuildingAddressEditor,
+  useAddressOverride,
+} from "@/components/atlas/BuildingAddressEditor";
 import type { SelectedBuilding } from "@/lib/atlas/selected-building";
+import { buildingDisplayTitle } from "@/lib/atlas/selected-building";
 import {
   type AtlasEventPlannerCategory,
   type AtlasEventPlannerPlacement,
@@ -144,6 +148,11 @@ import {
 } from "@/lib/civic/civic-object-schema";
 import { reconcileAddressLocation } from "@/lib/civic/civic-address-sync";
 import {
+  addressSourceLabel,
+  resolveBuildingAddress,
+  resolveBuildingAddressDetailed,
+} from "@/lib/atlas/flint-building-addresses";
+import {
   isCivicFigureKey,
   resolveCivicFigureKey,
 } from "@/lib/civic/civic-figure-resolver";
@@ -192,6 +201,8 @@ const DEFAULT_BASEMAP_LAYERS: Record<string, boolean> = {
 const MOBILE_BASEMAP_LAYERS: Record<string, boolean> = {
   ...DEFAULT_BASEMAP_LAYERS,
   places: false,
+  osmBuildings: true,
+  urbanDesignModel: false,
   wards: false,
   infrastructure: false,
   buildingFabric: false,
@@ -275,6 +286,10 @@ function readPlannerCategoryDropPayload(
 type SelectedIslandRow = {
   readonly label: string;
   readonly value: string;
+};
+
+type TaskLocationDetail = {
+  readonly label: string;
 };
 
 const USD_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -623,6 +638,70 @@ function buildBoundaryLayer(): Layer {
   });
 }
 
+function MobileBuildingAddressCard({
+  building,
+  onClear,
+}: {
+  readonly building: SelectedBuilding;
+  readonly onClear: () => void;
+}) {
+  useAddressOverride(building.osm_id);
+  const [editingAddress, setEditingAddress] = useState(false);
+  const resolved = resolveBuildingAddressDetailed(
+    building.osm_id,
+    building.address,
+  );
+  const title = buildingDisplayTitle(building);
+
+  return (
+    <section
+      className="planner-panel pointer-events-auto flex flex-col gap-3 p-3"
+      aria-label="Selected building address"
+      data-mobile-building-address-card="true"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="planner-kicker">Building address</p>
+          <h2 className="mt-1 truncate text-[15px] font-semibold leading-tight text-[color:var(--ctx-ink)]">
+            {title}
+          </h2>
+          <p className="mt-1 text-[12px] leading-4 text-[color:var(--ctx-ink-soft)]">
+            {resolved ? resolved.text : "No address on record"}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="planner-control shrink-0 px-2 py-1 text-[11px] font-medium"
+          onClick={onClear}
+        >
+          Clear
+        </button>
+      </div>
+
+      {editingAddress ? (
+        <BuildingAddressEditor
+          osmId={building.osm_id}
+          osmAddress={building.address}
+          onClose={() => setEditingAddress(false)}
+        />
+      ) : (
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
+            {resolved ? addressSourceLabel(resolved.source) : `OSM #${building.osm_id}`}
+          </span>
+          <button
+            type="button"
+            className="planner-control shrink-0 px-2 py-1 text-[11px] font-medium"
+            onClick={() => setEditingAddress(true)}
+          >
+            {resolved ? "Edit" : "Add"}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function PorchfestPlannerClient(props: {
   readonly eventTitle: string;
   readonly initialPlacements: readonly InitialPorchfestPlacement[];
@@ -681,6 +760,13 @@ function PorchfestPlannerWorkspace({
   const [buildingForEdit, setBuildingForEdit] = useState<SelectedBuilding | null>(
     null,
   );
+  const handleBuildingSelect = useCallback((building: SelectedBuilding | null) => {
+    setBuildingForEdit(building);
+    if (building) {
+      setSelectedPlacementId(null);
+      setSelectedTaskId(null);
+    }
+  }, []);
   // On phones the whole chrome folds into the bottom island.
   const isMobile = useIsMobile();
   const networkOnline = useNetworkStatus();
@@ -1794,6 +1880,7 @@ function PorchfestPlannerWorkspace({
         handleDeletePlacement(placement);
         return;
       }
+      setBuildingForEdit(null);
       setSelectedPlacementId(placement.id);
     },
     [paletteMode.kind, handleDeletePlacement],
@@ -1809,6 +1896,7 @@ function PorchfestPlannerWorkspace({
       const [lng, lat] = geom.coordinates ?? [];
       if (typeof lng !== "number" || typeof lat !== "number") return;
       mapRef.easeTo({ center: [lng, lat], zoom: 18.5, duration: 700 });
+      setBuildingForEdit(null);
       setSelectedPlacementId(placementId);
     },
     [mapRef, placementsById],
@@ -1835,6 +1923,41 @@ function PorchfestPlannerWorkspace({
   const taskNodes = useMemo(
     () => tasksToNodes(liveTasks, placementsById, geoTaskAnchors),
     [liveTasks, placementsById, geoTaskAnchors],
+  );
+  const taskLocationDetails = useMemo<ReadonlyMap<string, TaskLocationDetail>>(() => {
+    const details = new Map<string, TaskLocationDetail>();
+    for (const task of taskNodes) {
+      if (!task.effectiveGeometry) continue;
+      if (task.geoAnchorKind === "building") {
+        const anchor = geoTaskAnchors.get(task.id);
+        const address =
+          anchor?.kind === "building"
+            ? resolveBuildingAddress(anchor.osmId, null)
+            : null;
+        details.set(task.id, {
+          label: address ? `Building - ${address}` : "Building anchor",
+        });
+      } else if (task.geoAnchorKind === "point") {
+        details.set(task.id, { label: "Map point" });
+      }
+    }
+    return details;
+  }, [taskNodes, geoTaskAnchors]);
+  const handleFlyToTask = useCallback(
+    (taskId: string) => {
+      const task = taskNodes.find((candidate) => candidate.id === taskId);
+      const coords = task?.effectiveGeometry?.coordinates;
+      if (!coords || !mapRef) return;
+      mapRef.easeTo({
+        center: [coords[0], coords[1]],
+        zoom: 18.5,
+        duration: 700,
+      });
+      setBuildingForEdit(null);
+      setSelectedPlacementId(null);
+      setSelectedTaskId(taskId);
+    },
+    [mapRef, taskNodes],
   );
 
   // Selected-task note panel inputs (spec: note shown when the task is
@@ -1960,6 +2083,8 @@ function PorchfestPlannerWorkspace({
           setSelectedTaskId(task.id);
           if (task.effectivePlacementId) {
             handleFlyToPlacement(task.effectivePlacementId);
+          } else {
+            handleFlyToTask(task.id);
           }
         },
       }),
@@ -1999,16 +2124,14 @@ function PorchfestPlannerWorkspace({
     mapZoom,
     selectedTaskId,
     handleFlyToPlacement,
+    handleFlyToTask,
     civicRows,
     weatherVisible,
     weather.layers,
   ]);
 
   const liveTasksForRail = liveTasks;
-  const livePlacementsForRail = useMemo(
-    () => liveRows ?? [],
-    [liveRows],
-  );
+  const livePlacementsForRail = renderPlacements;
   const baseLayerVisibility = isMobile
     ? MOBILE_BASEMAP_LAYERS
     : DEFAULT_BASEMAP_LAYERS;
@@ -2026,6 +2149,8 @@ function PorchfestPlannerWorkspace({
       onCreateTask={handleCreateTask}
       onUpdateTask={handleUpdateTask}
       onDeleteTask={handleDeleteTask}
+      taskLocationDetails={taskLocationDetails}
+      onFlyToTask={handleFlyToTask}
     />
   );
   const editDisabledMessage = placementsLoaded
@@ -2338,6 +2463,7 @@ function PorchfestPlannerWorkspace({
           viewMode={isMobile ? "atlas" : "oblique"}
           activeLens="explore"
           urbanDesignMaterialMode="sketch_model"
+          forceOsmBuildingExtrusion={isMobile}
           extraDeckLayers={extraDeckLayers}
           mapDragPanEnabled={
             !editModeEnabled && !placementDragActive && !htmlPlannerDragActive
@@ -2346,7 +2472,10 @@ function PorchfestPlannerWorkspace({
           deckLayerPointerDragHandler={plannerPointerDragHandler}
           className="h-full w-full"
           onMapReady={setMapRef}
-          onBuildingSelect={addressEditMode ? setBuildingForEdit : undefined}
+          selectedBuilding={buildingForEdit}
+          onBuildingSelect={
+            isMobile || addressEditMode ? handleBuildingSelect : undefined
+          }
           onPlannerDropPickerReady={(picker) => {
             dropPickerRef.current = picker;
           }}
@@ -2363,7 +2492,7 @@ function PorchfestPlannerWorkspace({
             type="button"
             onClick={() => {
               setAddressEditMode((on) => !on);
-              setBuildingForEdit(null);
+              handleBuildingSelect(null);
             }}
             aria-pressed={addressEditMode}
             className="planner-panel pointer-events-auto px-3 py-1.5 text-[12px] font-medium text-[color:var(--ctx-ink)]"
@@ -2380,11 +2509,26 @@ function PorchfestPlannerWorkspace({
               <BuildingAddressEditor
                 osmId={buildingForEdit.osm_id}
                 osmAddress={buildingForEdit.address}
-                onClose={() => setBuildingForEdit(null)}
+                onClose={() => handleBuildingSelect(null)}
               />
             </div>
           ) : null}
         </div>
+        ) : null}
+
+        {isMobile && buildingForEdit ? (
+          <div
+            className="absolute left-3 right-3 z-30"
+            style={{
+              bottom:
+                "calc(max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) + 132px)",
+            }}
+          >
+            <MobileBuildingAddressCard
+              building={buildingForEdit}
+              onClear={() => handleBuildingSelect(null)}
+            />
+          </div>
         ) : null}
 
         {/* Left sidebar (desktop only; on mobile every control folds into
@@ -2520,6 +2664,8 @@ function PorchfestPlannerWorkspace({
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleDeleteTask}
+          taskLocationDetails={taskLocationDetails}
+          onFlyToTask={handleFlyToTask}
           onCollapse={() => setTaskRailOpen(false)}
         />
       ) : null}

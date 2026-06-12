@@ -45,7 +45,9 @@ import {
   type EventApplicationLedgerRow,
 } from "@/lib/civic/civic-ledger-ingest";
 import {
+  CIVIC_OBJECT_COLUMNS,
   PLANNING_STATUSES,
+  type CivicColumnSpec,
   type CivicObjectFields,
   type PlanningStatus,
 } from "@/lib/civic/civic-object-schema";
@@ -68,6 +70,18 @@ type MobileColumnKey =
 interface MobileColumnDef {
   readonly key: MobileColumnKey;
   readonly label: string;
+}
+
+interface MobileDetailField {
+  readonly key: string;
+  readonly label: string;
+  readonly value: string;
+  readonly href?: string;
+}
+
+interface MobileDetailSection {
+  readonly title: string;
+  readonly fields: readonly MobileDetailField[];
 }
 
 const MOBILE_COLUMN_DEFS: readonly MobileColumnDef[] = [
@@ -115,6 +129,13 @@ function parseAmountCents(value: string): number | null {
 
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+}
+
+function formatDollarAmount(amount: number): string {
+  return amount.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
   });
@@ -170,15 +191,110 @@ function fieldValue(row: CivicWorkspaceRow, key: MobileColumnKey): string {
   return typeof value === "string" && value.trim() !== "" ? value : "—";
 }
 
+function detailSectionTitle(column: CivicColumnSpec): string {
+  switch (column.scope) {
+    case "shared":
+      return "Application";
+    case "planning":
+      return "Planning";
+    case "musician":
+      return "Music";
+    case "vendor":
+      return "Vendor";
+    case "entertainer":
+      return "Entertainment";
+    case "sponsor":
+      return "Sponsorship";
+    default:
+      return "Proposal";
+  }
+}
+
+function columnAppliesToRow(
+  column: CivicColumnSpec,
+  row: CivicWorkspaceRow,
+): boolean {
+  if (column.scope === "shared" || column.scope === "planning") return true;
+  if (row.fields.category === column.scope) return true;
+  return row.fields.category === "something_else" && column.scope === "other";
+}
+
+function externalLinkHref(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function detailValue(
+  row: CivicWorkspaceRow,
+  column: CivicColumnSpec,
+): string | null {
+  const key = column.key as keyof CivicObjectFields;
+  const value = row.fields[key];
+  if (column.key === "location") {
+    return value ? "Placed on map" : null;
+  }
+  if (value === undefined || value === null) return null;
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value.join(", ") : null;
+  }
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") {
+    return column.key === "feePaid" || column.key === "paymentToBand"
+      ? formatDollarAmount(value)
+      : String(value);
+  }
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (column.type === "date") {
+    const date = new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? trimmed : date.toLocaleString();
+  }
+  return trimmed;
+}
+
+function mobileDetailSections(row: CivicWorkspaceRow): MobileDetailSection[] {
+  const sections = new Map<string, MobileDetailField[]>();
+  for (const column of CIVIC_OBJECT_COLUMNS) {
+    if (!columnAppliesToRow(column, row)) continue;
+    const value = detailValue(row, column);
+    if (!value) continue;
+    const title = detailSectionTitle(column);
+    const fields = sections.get(title) ?? [];
+    fields.push({
+      key: column.key,
+      label: column.name,
+      value,
+      href: column.type === "link" ? externalLinkHref(value) : undefined,
+    });
+    sections.set(title, fields);
+  }
+  return Array.from(sections, ([title, fields]) => ({ title, fields }));
+}
+
 function MobileWorkspaceSurface({
   rows,
   online,
   view,
   activeLane,
   visibleColumns,
+  selectedRow,
   onViewChange,
   onLaneChange,
   onToggleColumn,
+  onOpenRow,
+  onCloseRow,
   onStatusChange,
 }: {
   readonly rows: readonly CivicWorkspaceRow[];
@@ -186,9 +302,12 @@ function MobileWorkspaceSurface({
   readonly view: MobileWorkspaceView;
   readonly activeLane: PlanningStatus;
   readonly visibleColumns: ReadonlySet<MobileColumnKey>;
+  readonly selectedRow: CivicWorkspaceRow | null;
   readonly onViewChange: (view: MobileWorkspaceView) => void;
   readonly onLaneChange: (status: PlanningStatus) => void;
   readonly onToggleColumn: (key: MobileColumnKey) => void;
+  readonly onOpenRow: (rowId: string) => void;
+  readonly onCloseRow: () => void;
   readonly onStatusChange: (rowId: string, status: PlanningStatus) => void;
 }) {
   const visibleDefs = MOBILE_COLUMN_DEFS.filter((column) =>
@@ -241,6 +360,7 @@ function MobileWorkspaceSurface({
         <MobileApplicationsTable
           rows={rows}
           visibleColumns={visibleDefs}
+          onOpenRow={onOpenRow}
           onStatusChange={onStatusChange}
         />
       ) : (
@@ -248,9 +368,17 @@ function MobileWorkspaceSurface({
           rows={rows}
           activeLane={activeLane}
           onLaneChange={onLaneChange}
+          onOpenRow={onOpenRow}
           onStatusChange={onStatusChange}
         />
       )}
+      {selectedRow ? (
+        <MobileApplicationDetailSheet
+          row={selectedRow}
+          onClose={onCloseRow}
+          onStatusChange={onStatusChange}
+        />
+      ) : null}
     </section>
   );
 }
@@ -258,10 +386,12 @@ function MobileWorkspaceSurface({
 function MobileApplicationsTable({
   rows,
   visibleColumns,
+  onOpenRow,
   onStatusChange,
 }: {
   readonly rows: readonly CivicWorkspaceRow[];
   readonly visibleColumns: readonly MobileColumnDef[];
+  readonly onOpenRow: (rowId: string) => void;
   readonly onStatusChange: (rowId: string, status: PlanningStatus) => void;
 }) {
   if (rows.length === 0) {
@@ -285,7 +415,16 @@ function MobileApplicationsTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.rowId}>
-              <th scope="row">{row.title}</th>
+              <th scope="row">
+                <button
+                  type="button"
+                  className="civic-mobile-title-button"
+                  onClick={() => onOpenRow(row.rowId)}
+                  aria-label={`Open application for ${row.title}`}
+                >
+                  {row.title}
+                </button>
+              </th>
               <td>
                 <select
                   value={rowStatus(row)}
@@ -319,11 +458,13 @@ function MobileStatusLanes({
   rows,
   activeLane,
   onLaneChange,
+  onOpenRow,
   onStatusChange,
 }: {
   readonly rows: readonly CivicWorkspaceRow[];
   readonly activeLane: PlanningStatus;
   readonly onLaneChange: (status: PlanningStatus) => void;
+  readonly onOpenRow: (rowId: string) => void;
   readonly onStatusChange: (rowId: string, status: PlanningStatus) => void;
 }) {
   const touchStartX = useRef<number | null>(null);
@@ -382,6 +523,14 @@ function MobileStatusLanes({
               <div>
                 <h2>{row.title}</h2>
                 <p>{fieldValue(row, "category")} · {fieldValue(row, "city")}</p>
+                <button
+                  type="button"
+                  className="civic-mobile-open-button"
+                  onClick={() => onOpenRow(row.rowId)}
+                  aria-label={`Open application for ${row.title}`}
+                >
+                  Open
+                </button>
               </div>
               <select
                 value={rowStatus(row)}
@@ -406,6 +555,85 @@ function MobileStatusLanes({
   );
 }
 
+function MobileApplicationDetailSheet({
+  row,
+  onClose,
+  onStatusChange,
+}: {
+  readonly row: CivicWorkspaceRow;
+  readonly onClose: () => void;
+  readonly onStatusChange: (rowId: string, status: PlanningStatus) => void;
+}) {
+  const sections = mobileDetailSections(row);
+  return (
+    <div className="civic-mobile-detail-backdrop" onClick={onClose}>
+      <section
+        className="civic-mobile-detail-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Application details for ${row.title}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="civic-mobile-detail-header">
+          <div>
+            <p>{statusLabel(rowStatus(row))}</p>
+            <h2>{row.title}</h2>
+          </div>
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        </header>
+        <label className="civic-mobile-detail-status">
+          <span>Status</span>
+          <select
+            value={rowStatus(row)}
+            onChange={(event) =>
+              onStatusChange(row.rowId, event.target.value as PlanningStatus)
+            }
+          >
+            {PLANNING_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {statusLabel(status)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="civic-mobile-detail-scroll">
+          {sections.length > 0 ? (
+            sections.map((section) => (
+              <section key={section.title} className="civic-mobile-detail-group">
+                <h3>{section.title}</h3>
+                <dl>
+                  {section.fields.map((field) => (
+                    <div key={field.key}>
+                      <dt>{field.label}</dt>
+                      <dd>
+                        {field.href ? (
+                          <a
+                            href={field.href}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {field.value}
+                          </a>
+                        ) : (
+                          field.value
+                        )}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))
+          ) : (
+            <p className="civic-mobile-empty">No application details recorded.</p>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function WorkspaceInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MountState>({ kind: "loading" });
@@ -420,6 +648,9 @@ function WorkspaceInner() {
   const [dbView, setDbView] = useState<MobileWorkspaceView>("table");
   const [activeMobileLane, setActiveMobileLane] =
     useState<PlanningStatus>("submitted");
+  const [selectedMobileRowId, setSelectedMobileRowId] = useState<string | null>(
+    null,
+  );
   const [visibleMobileColumns, setVisibleMobileColumns] = useState<
     ReadonlySet<MobileColumnKey>
   >(() => new Set(DEFAULT_MOBILE_COLUMNS));
@@ -457,6 +688,10 @@ function WorkspaceInner() {
   const selectedBilling = selectedApplication
     ? billingSnapshot(selectedApplication.planningPayload)
     : null;
+  const selectedMobileRow = useMemo(
+    () => mobileRows.find((row) => row.rowId === selectedMobileRowId) ?? null,
+    [mobileRows, selectedMobileRowId],
+  );
   const amountCents = parseAmountCents(billingAmount);
   const currentDoc = useMemo(
     () => docs.find((doc) => doc.id === currentDocId) ?? null,
@@ -484,6 +719,12 @@ function WorkspaceInner() {
     mounted.api.update(rowId, "status", status);
     setMobileRows(mounted.api.list());
   };
+
+  useEffect(() => {
+    if (!selectedMobileRowId) return;
+    if (mobileRows.some((row) => row.rowId === selectedMobileRowId)) return;
+    setSelectedMobileRowId(null);
+  }, [mobileRows, selectedMobileRowId]);
 
   async function handleBillingRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -847,9 +1088,12 @@ function WorkspaceInner() {
           view={mobileView}
           activeLane={activeMobileLane}
           visibleColumns={visibleMobileColumns}
+          selectedRow={selectedMobileRow}
           onViewChange={setMobileView}
           onLaneChange={setActiveMobileLane}
           onToggleColumn={toggleMobileColumn}
+          onOpenRow={setSelectedMobileRowId}
+          onCloseRow={() => setSelectedMobileRowId(null)}
           onStatusChange={handleMobileStatusChange}
         />
       ) : null}
@@ -1344,8 +1588,22 @@ function WorkspaceInner() {
             color: #1c1c1c;
             font-weight: 600;
           }
+          .civic-mobile-title-button {
+            max-width: 100%;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #005186;
+            font: inherit;
+            font-weight: 650;
+            text-align: left;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            cursor: pointer;
+          }
           .civic-mobile-table select,
-          .civic-mobile-card select {
+          .civic-mobile-card select,
+          .civic-mobile-detail-status select {
             min-height: 36px;
             border: 1px solid #cfcfcf;
             border-radius: 4px;
@@ -1422,6 +1680,141 @@ function WorkspaceInner() {
           .civic-mobile-card select {
             width: 100%;
             padding: 0 8px;
+          }
+          .civic-mobile-open-button {
+            margin-top: 8px;
+            min-height: 30px;
+            padding: 0 10px;
+            border: 1px solid #005186;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #005186;
+            font-family: var(--font-mono, inherit);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .civic-mobile-detail-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: flex-end;
+            background: rgba(28, 28, 28, 0.28);
+          }
+          .civic-mobile-detail-sheet {
+            display: flex;
+            width: 100%;
+            max-height: calc(100dvh - 32px);
+            min-height: min(70dvh, 620px);
+            flex-direction: column;
+            border: 1px solid #d8d8d8;
+            border-radius: 12px 12px 0 0;
+            background: #ffffff;
+            box-shadow: 0 -16px 40px -28px rgba(0, 0, 0, 0.5);
+          }
+          .civic-mobile-detail-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 14px 10px;
+            border-bottom: 1px solid #e2e2e2;
+          }
+          .civic-mobile-detail-header p {
+            margin: 0 0 4px;
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #454545;
+          }
+          .civic-mobile-detail-header h2 {
+            margin: 0;
+            color: #1c1c1c;
+            font-size: 18px;
+            line-height: 1.2;
+          }
+          .civic-mobile-detail-header button {
+            min-height: 32px;
+            padding: 0 10px;
+            border: 1px solid #cfcfcf;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #1c1c1c;
+            font-size: 13px;
+            font-weight: 650;
+          }
+          .civic-mobile-detail-status {
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e2e2e2;
+          }
+          .civic-mobile-detail-status span {
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #454545;
+          }
+          .civic-mobile-detail-status select {
+            width: 100%;
+            padding: 0 8px;
+          }
+          .civic-mobile-detail-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0));
+          }
+          .civic-mobile-detail-group {
+            margin-bottom: 16px;
+          }
+          .civic-mobile-detail-group h3 {
+            margin: 0 0 8px;
+            font-family: var(--font-mono, inherit);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #005186;
+          }
+          .civic-mobile-detail-group dl {
+            display: grid;
+            gap: 8px;
+            margin: 0;
+          }
+          .civic-mobile-detail-group dl > div {
+            display: grid;
+            gap: 3px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eeeeee;
+          }
+          .civic-mobile-detail-group dt {
+            color: #6f6f6f;
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+          }
+          .civic-mobile-detail-group dd {
+            margin: 0;
+            color: #1c1c1c;
+            font-size: 14px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+          }
+          .civic-mobile-detail-group a {
+            color: #005186;
+            font-weight: 650;
+            text-decoration: underline;
+            text-underline-offset: 3px;
           }
           .civic-mobile-empty {
             margin: 0;

@@ -100,6 +100,7 @@ export type ResponsiveAtlasMapProps = {
   >;
   scenarioCompareEnabled?: boolean;
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
+  forceOsmBuildingExtrusion?: boolean;
   extraDeckLayers?: Layer[];
   mapDragPanEnabled?: boolean;
   dragPanBlockLayerIds?: readonly string[];
