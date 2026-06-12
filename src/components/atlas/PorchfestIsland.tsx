@@ -26,7 +26,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ListChecks, MapPin, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { CATEGORY_COLOR } from "@/components/atlas/PlannerPalette";
 import type {
@@ -123,6 +123,7 @@ export function PorchfestIsland({
   // Mobile bottom-sheet height, derived from the viewport so it never
   // exceeds the screen on small phones.
   const [sheetHeight, setSheetHeight] = useState(480);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
 
   const query = search.trim().toLowerCase();
 
@@ -168,6 +169,12 @@ export function PorchfestIsland({
       setActiveTab("tasks");
     }
   }, [mobile, activeTab, editContent, importContent]);
+
+  useEffect(() => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [activeTab, isExpanded]);
 
   const matchedPlaces = useMemo(() => {
     if (!query) return placements;
@@ -444,7 +451,7 @@ export function PorchfestIsland({
             </div>
 
             <div className="px-4 pb-3">
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="porchfest-island-tabs-scroll flex gap-2 overflow-x-auto pb-1">
                 {tabs.map((tab) => (
                   <button
                     key={tab}
@@ -485,7 +492,10 @@ export function PorchfestIsland({
               </div>
             ) : null}
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+            <div
+              ref={contentScrollRef}
+              className="porchfest-island-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-3"
+            >
               {activeTab === "edit" ? editContent : null}
 
               {activeTab === "tasks" ? (

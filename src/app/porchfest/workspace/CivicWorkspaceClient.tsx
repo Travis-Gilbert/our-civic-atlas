@@ -666,7 +666,7 @@ function WorkspaceInner() {
         </div>
         <nav className="civic-workspace-nav" aria-label="Planner surfaces">
           <a href="/porchfest">Map</a>
-          <a href="/porchfest/apply">Apply form</a>
+          <a href="/porchfest/apply">Applications</a>
         </nav>
       </header>
       <div className="civic-workspace-docbar" role="tablist" aria-label="Workspace docs">
@@ -1090,49 +1090,42 @@ function WorkspaceInner() {
               env(safe-area-inset-left, 0);
           }
           .civic-workspace-header {
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px 12px 8px;
+            flex-wrap: nowrap;
+            gap: 8px;
+            padding: 8px 10px 6px;
           }
           .civic-workspace-header > div {
             min-width: 0;
           }
           .civic-workspace-nav {
-            width: 100%;
-            justify-content: space-between;
+            flex: 0 0 auto;
+            justify-content: flex-end;
+            padding: 3px;
           }
           .civic-workspace-nav a {
-            flex: 1;
+            padding: 5px 8px;
+            font-size: 10px;
             text-align: center;
           }
           .civic-workspace-docbar {
-            padding: 6px 12px;
+            padding: 4px 10px;
+          }
+          .civic-workspace-doctab-open,
+          .civic-workspace-doctab--new {
+            padding-top: 5px;
+            padding-bottom: 5px;
+            font-size: 12px;
           }
           .civic-billing-band {
-            grid-template-columns: 1fr 96px;
-            gap: 8px;
-            padding: 10px 12px;
-          }
-          .civic-billing-field--application,
-          .civic-billing-status {
-            grid-column: 1 / -1;
-          }
-          .civic-billing-field select,
-          .civic-billing-field input {
-            height: 38px;
-            font-size: 16px;
-          }
-          .civic-billing-button {
-            width: 100%;
-            height: 38px;
+            display: none;
           }
           .civic-mobile-workspace {
             display: flex;
             flex: 1;
             min-height: 0;
             flex-direction: column;
-            gap: 10px;
-            padding: 10px 12px 12px;
+            gap: 6px;
+            padding: 6px 10px 10px;
             background: #ffffff;
           }
           .civic-workspace-editor[data-mobile-replaced="true"] {
@@ -1142,7 +1135,7 @@ function WorkspaceInner() {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 8px;
           }
           .civic-mobile-segment {
             display: inline-flex;
@@ -1161,8 +1154,8 @@ function WorkspaceInner() {
             cursor: pointer;
           }
           .civic-mobile-segment button {
-            min-height: 34px;
-            padding: 0 12px;
+            min-height: 30px;
+            padding: 0 10px;
             border-radius: 999px;
             font-size: 13px;
             font-weight: 600;
@@ -1176,8 +1169,8 @@ function WorkspaceInner() {
           .civic-mobile-sync {
             display: inline-flex;
             align-items: center;
-            min-height: 28px;
-            padding: 0 9px;
+            min-height: 26px;
+            padding: 0 8px;
             border: 1px solid #cfcfcf;
             border-radius: 999px;
             color: #454545;
@@ -1194,10 +1187,10 @@ function WorkspaceInner() {
             background: #fbfbfb;
           }
           .civic-mobile-columns summary {
-            min-height: 36px;
-            padding: 8px 10px;
+            min-height: 30px;
+            padding: 6px 9px;
             color: #1c1c1c;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
           }
@@ -1234,7 +1227,7 @@ function WorkspaceInner() {
           }
           .civic-mobile-table th,
           .civic-mobile-table td {
-            padding: 9px 10px;
+            padding: 8px 9px;
             border-bottom: 1px solid #e2e2e2;
             text-align: left;
             vertical-align: middle;

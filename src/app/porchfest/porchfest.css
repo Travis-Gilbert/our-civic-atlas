@@ -321,6 +321,26 @@
     border-radius: var(--r-lg);
   }
 
+  .civic-atlas .porchfest-island-scroll,
+  .civic-atlas .civic-apply,
+  .civic-atlas .civic-mobile-lane-stack {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .civic-atlas .civic-mobile-table-frame {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .civic-atlas .porchfest-island-tabs-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
+
   .civic-atlas .planner-input,
   .civic-atlas input[type="search"],
   .civic-atlas select.planner-input {
