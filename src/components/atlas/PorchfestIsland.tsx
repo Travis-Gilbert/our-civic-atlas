@@ -16,6 +16,7 @@
  * on top: a bottom search (over placements AND tasks), mobile edit chrome,
  * and a compressed, read + search view of the same data:
  *   - collapsed: a search pill, tap the label to expand
+ *   - Selected tab: selection metadata and organizer details
  *   - Tasks tab: status-filtered, searchable task list, click to fly
  *   - Places tab: searchable placement list (with addresses), click to fly
  *
@@ -47,7 +48,14 @@ const EXPANDED_WIDTH = 392;
 const COLLAPSED_HEIGHT = 58;
 const EXPANDED_HEIGHT = 452;
 
-type IslandTab = "edit" | "tasks" | "places" | "key" | "import" | "info";
+type IslandTab =
+  | "selected"
+  | "edit"
+  | "tasks"
+  | "places"
+  | "key"
+  | "import"
+  | "info";
 
 const STATUS_OPTIONS = ["all", "open", "in_progress", "done"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
@@ -65,7 +73,13 @@ const STATUS_LABEL: Record<string, string> = {
 const statusLabel = (value: string): string =>
   STATUS_LABEL[value] ?? value.replace(/_/g, " ");
 
+const humanizeLabel = (value: string): string =>
+  value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 const TAB_LABEL: Record<IslandTab, string> = {
+  selected: "Selected",
   edit: "Edit",
   tasks: "Tasks",
   places: "Places",
@@ -91,6 +105,8 @@ export function PorchfestIsland({
   onSelectPlacement,
   mobile = false,
   selectedPlacement = null,
+  selectedCategoryLabel,
+  selectedDetailsContent,
   tasksContent,
   editContent,
   mapKeyContent,
@@ -109,6 +125,8 @@ export function PorchfestIsland({
    */
   readonly mobile?: boolean;
   readonly selectedPlacement?: AtlasEventPlannerPlacement | null;
+  readonly selectedCategoryLabel?: string;
+  readonly selectedDetailsContent?: ReactNode;
   readonly tasksContent?: ReactNode;
   readonly editContent?: ReactNode;
   readonly mapKeyContent?: ReactNode;
@@ -126,6 +144,16 @@ export function PorchfestIsland({
   const contentScrollRef = useRef<HTMLDivElement>(null);
 
   const query = search.trim().toLowerCase();
+  const selectedPlacementId = selectedPlacement?.id ?? null;
+  const selectedLabel = selectedPlacement?.label.trim() || "Selected";
+  const selectedCategory =
+    selectedCategoryLabel ??
+    (selectedPlacement ? humanizeLabel(selectedPlacement.category) : null);
+  const selectedAddress = selectedPlacement?.address?.trim() || null;
+  const collapsedTitle = selectedPlacement ? selectedLabel : "PorchFest";
+  const collapsedSubtitle = selectedPlacement
+    ? selectedAddress ?? "Address pending"
+    : modeLabel;
 
   // Close on Escape, matching the atlas island's backdrop dismiss.
   useEffect(() => {
@@ -157,6 +185,10 @@ export function PorchfestIsland({
   // The extra tabs are mobile-only; if the viewport grows back to desktop
   // while on one of them, fall back to Tasks.
   useEffect(() => {
+    if (activeTab === "selected" && !selectedPlacement) {
+      setActiveTab("tasks");
+      return;
+    }
     if (
       (!mobile &&
         (activeTab === "edit" ||
@@ -168,7 +200,13 @@ export function PorchfestIsland({
     ) {
       setActiveTab("tasks");
     }
-  }, [mobile, activeTab, editContent, importContent]);
+  }, [mobile, activeTab, editContent, importContent, selectedPlacement]);
+
+  useEffect(() => {
+    if (selectedPlacementId) {
+      setActiveTab("selected");
+    }
+  }, [selectedPlacementId]);
 
   useEffect(() => {
     if (contentScrollRef.current) {
@@ -210,15 +248,16 @@ export function PorchfestIsland({
   }, [matchedPlaces, tasks, query]);
 
   const showCollapsedResults = !mobile && !isExpanded && query.length > 0;
+  const selectedTabs: IslandTab[] = selectedPlacement ? ["selected"] : [];
   const tabs: IslandTab[] = mobile
     ? editContent
       ? importContent
-        ? ["edit", "tasks", "places", "key", "import", "info"]
-        : ["edit", "tasks", "places", "key", "info"]
+        ? [...selectedTabs, "edit", "tasks", "places", "key", "import", "info"]
+        : [...selectedTabs, "edit", "tasks", "places", "key", "info"]
       : importContent
-        ? ["tasks", "places", "key", "import", "info"]
-        : ["tasks", "places", "key", "info"]
-    : ["tasks", "places"];
+        ? [...selectedTabs, "tasks", "places", "key", "import", "info"]
+        : [...selectedTabs, "tasks", "places", "key", "info"]
+    : [...selectedTabs, "tasks", "places"];
   const usesTasksContent = mobile && tasksContent != null;
   const showSharedSearch =
     activeTab === "places" || (activeTab === "tasks" && !usesTasksContent);
@@ -331,11 +370,9 @@ export function PorchfestIsland({
                 <span className="block truncate text-[13px] text-[color:var(--ctx-ink)]">
                   {selectedPlacement.label}
                 </span>
-                {selectedPlacement.address ? (
-                  <span className="block truncate text-[11px] text-[color:var(--ctx-ink-mute)]">
-                    {selectedPlacement.address}
-                  </span>
-                ) : null}
+                <span className="block truncate text-[11px] text-[color:var(--ctx-ink-mute)]">
+                  {selectedAddress ?? "Address pending"}
+                </span>
               </span>
             </div>
           </div>
@@ -371,7 +408,9 @@ export function PorchfestIsland({
               <button
                 type="button"
                 className="flex h-full w-full items-center justify-center rounded-full text-[color:var(--ctx-ink)]"
-                onClick={() => openIsland("tasks")}
+                onClick={() =>
+                  openIsland(selectedPlacement ? "selected" : "tasks")
+                }
                 aria-label="Open PorchFest controls"
               >
                 <ListChecks className="h-5 w-5" />
@@ -384,15 +423,17 @@ export function PorchfestIsland({
                 <button
                   type="button"
                   className="absolute inset-0 flex flex-col items-center justify-center px-[120px] text-center"
-                  onClick={() => openIsland("tasks")}
+                  onClick={() =>
+                    openIsland(selectedPlacement ? "selected" : "tasks")
+                  }
                   aria-label="Open PorchFest island"
                 >
                   <span className="truncate text-[15px] font-medium leading-none text-[color:var(--ctx-ink)]">
-                    PorchFest
+                    {collapsedTitle}
                   </span>
-                  {modeLabel ? (
+                  {collapsedSubtitle ? (
                     <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-                      {modeLabel}
+                      {collapsedSubtitle}
                     </span>
                   ) : null}
                 </button>
@@ -434,11 +475,16 @@ export function PorchfestIsland({
             <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4">
               <div className="min-w-0">
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--ctx-ink-mute)]">
-                  Carriage Town
+                  {selectedCategory ?? "Carriage Town"}
                 </p>
                 <h2 className="truncate text-[20px] font-semibold leading-[1.05] text-[color:var(--ctx-ink)]">
-                  PorchFest
+                  {selectedPlacement ? selectedLabel : "PorchFest"}
                 </h2>
+                {selectedPlacement ? (
+                  <p className="mt-1 truncate text-[12px] leading-4 text-[color:var(--ctx-ink-mute)]">
+                    {selectedAddress ?? "Address pending"}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -496,6 +542,48 @@ export function PorchfestIsland({
               ref={contentScrollRef}
               className="porchfest-island-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-3"
             >
+              {activeTab === "selected" ? (
+                selectedDetailsContent ?? (
+                  <section className="space-y-3">
+                    {selectedPlacement ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="planner-swatch"
+                            style={{
+                              backgroundColor: swatchColor(
+                                selectedPlacement.category,
+                              ),
+                            }}
+                          />
+                          <p className="planner-kicker">
+                            {selectedCategory ?? "Selected"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[15px] font-semibold leading-tight text-[color:var(--ctx-ink)]">
+                            {selectedLabel}
+                          </p>
+                          <p className="mt-1 text-[12px] leading-4 text-[color:var(--ctx-ink-mute)]">
+                            {selectedAddress ?? "Address pending"}
+                          </p>
+                        </div>
+                        {selectedPlacement.notes ? (
+                          <p className="text-[12px] leading-5 text-[color:var(--ctx-ink-soft)]">
+                            {selectedPlacement.notes}
+                          </p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="px-1 text-[12px] leading-[1.5] text-[color:var(--ctx-ink-soft)]">
+                        Select a map item to see its details here.
+                      </p>
+                    )}
+                  </section>
+                )
+              ) : null}
+
               {activeTab === "edit" ? editContent : null}
 
               {activeTab === "tasks" ? (

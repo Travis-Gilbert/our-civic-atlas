@@ -117,7 +117,10 @@ import {
   pointGeometryToCivicLocation,
   type CivicMapRow,
 } from "@/lib/civic/civic-map-binding";
-import { CIVIC_FIGURE_KEYS } from "@/lib/civic/civic-object-schema";
+import {
+  CIVIC_FIGURE_KEYS,
+  type CivicObjectFields,
+} from "@/lib/civic/civic-object-schema";
 import {
   isCivicFigureKey,
   resolveCivicFigureKey,
@@ -196,6 +199,12 @@ function isPlannerCategory(value: string): value is AtlasEventPlannerCategory {
   return value in CATEGORY_HUMAN_LABEL;
 }
 
+function plannerCategoryLabel(category: string): string {
+  return isPlannerCategory(category)
+    ? CATEGORY_HUMAN_LABEL[category]
+    : category.replace(/_/g, " ");
+}
+
 function civicCategoryToPlannerCategory(
   category: CivicMapRow["fields"]["category"],
 ): AtlasEventPlannerCategory {
@@ -239,6 +248,77 @@ function readPlannerCategoryDropPayload(
   }
   if (!isPlannerCategory(raw)) return null;
   return { category: raw, label: CATEGORY_HUMAN_LABEL[raw] };
+}
+
+type SelectedIslandRow = {
+  readonly label: string;
+  readonly value: string;
+};
+
+const USD_FORMATTER = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+function textValue(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed === "" ? null : trimmed;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (Array.isArray(value)) {
+    const values = value
+      .map((item) => textValue(item))
+      .filter((item): item is string => item !== null);
+    return values.length > 0 ? values.join(", ") : null;
+  }
+  return null;
+}
+
+function firstTextValue(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = textValue(value);
+    if (text) return text;
+  }
+  return null;
+}
+
+function joinedTextValues(...values: unknown[]): string | null {
+  const parts = values
+    .map((value) => textValue(value))
+    .filter((value): value is string => value !== null);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function moneyValue(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return USD_FORMATTER.format(value);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed === "") return null;
+    const parsed = Number(trimmed.replace(/[$,]/g, ""));
+    return Number.isFinite(parsed) ? USD_FORMATTER.format(parsed) : trimmed;
+  }
+  return null;
+}
+
+function formatTaskDueAt(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 type PlannerPlacementRow = {
@@ -810,6 +890,159 @@ function PorchfestPlannerWorkspace({
     },
     [selectedCivicRowId],
   );
+
+  const selectedCategoryLabel = selectedPlacement
+    ? plannerCategoryLabel(selectedPlacement.category)
+    : undefined;
+  const selectedPlacementTasks = useMemo(
+    () =>
+      selectedPlacementId
+        ? liveTasks.filter((task) => task.placementId === selectedPlacementId)
+        : [],
+    [liveTasks, selectedPlacementId],
+  );
+  const selectedFieldRows = useMemo<SelectedIslandRow[]>(() => {
+    if (!selectedPlacement) return [];
+    const fields: Partial<CivicObjectFields> | null = selectedCivicFields;
+    const publicName = fields
+      ? firstTextValue(
+          fields.artistName,
+          fields.businessName,
+          fields.actName,
+          fields.orgName,
+          fields.name,
+        )
+      : null;
+    const contact = fields
+      ? joinedTextValues(fields.name, fields.email, fields.phone)
+      : null;
+    const status = firstTextValue(fields?.status, selectedPlacement.status);
+    const rows: SelectedIslandRow[] = [
+      { label: "Category", value: plannerCategoryLabel(selectedPlacement.category) },
+    ];
+    if (publicName) rows.push({ label: "Name / business", value: publicName });
+    if (fields?.setTime) rows.push({ label: "Time", value: fields.setTime });
+    const feePaid = moneyValue(fields?.feePaid);
+    if (feePaid) rows.push({ label: "Fee paid", value: feePaid });
+    const paymentToBand = moneyValue(fields?.paymentToBand);
+    if (paymentToBand) {
+      rows.push({ label: "Payment", value: paymentToBand });
+    }
+    if (contact) rows.push({ label: "Contact", value: contact });
+    if (status) {
+      rows.push({ label: "Status", value: status.replace(/[-_]/g, " ") });
+    }
+    const notes = textValue(selectedPlacement.notes);
+    if (notes) rows.push({ label: "Notes", value: notes });
+    return rows;
+  }, [selectedPlacement, selectedCivicFields]);
+
+  const selectedIslandDetailsContent = selectedPlacement ? (
+    <section className="space-y-3" aria-label="Selected placement details">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="planner-swatch"
+            style={{
+              backgroundColor:
+                CATEGORY_COLOR[
+                  selectedPlacement.category as AtlasEventPlannerCategory
+                ] ?? CATEGORY_COLOR.amenity,
+            }}
+          />
+          <p className="planner-kicker truncate">
+            {selectedCategoryLabel ?? "Selected"}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="planner-control shrink-0 px-2 py-1 text-[11px] font-medium"
+          onClick={() => setSelectedPlacementId(null)}
+        >
+          Clear
+        </button>
+      </div>
+
+      {selectedFieldRows.length > 0 ? (
+        <dl className="divide-y divide-[rgba(42,36,25,0.08)]">
+          {selectedFieldRows.map((row) => (
+            <div
+              key={row.label}
+              className="grid grid-cols-[88px_minmax(0,1fr)] gap-2 py-2 first:pt-0"
+            >
+              <dt className="font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
+                {row.label}
+              </dt>
+              <dd className="min-w-0 text-[12px] leading-4 text-[color:var(--ctx-ink)]">
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      {selectedCivicRowId ? (
+        <div className="space-y-1.5 border-t border-[rgba(42,36,25,0.08)] pt-3">
+          <label
+            htmlFor="planner-island-figure-override"
+            className="planner-kicker block"
+          >
+            Figure
+          </label>
+          <select
+            id="planner-island-figure-override"
+            className="planner-tile w-full px-2 py-1.5 text-[12px] planner-ink"
+            value={selectedCivicFigureOverride ?? ""}
+            onChange={(event) =>
+              handleFigureOverrideChange(event.target.value)
+            }
+          >
+            <option value="">
+              {selectedCivicAutoKey
+                ? `Auto (${selectedCivicAutoKey})`
+                : "Auto"}
+            </option>
+            {CIVIC_FIGURE_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {key}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {selectedPlacementTasks.length > 0 ? (
+        <div className="space-y-1.5 border-t border-[rgba(42,36,25,0.08)] pt-3">
+          <p className="planner-kicker">Linked tasks</p>
+          <ul className="space-y-1.5">
+            {selectedPlacementTasks.map((task) => {
+              const dueAt = formatTaskDueAt(task.dueAt);
+              return (
+                <li key={task.id} className="planner-tile px-2.5 py-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-[12px] font-medium leading-4 text-[color:var(--ctx-ink)]">
+                      {task.title}
+                    </p>
+                    <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.1em] text-[color:var(--ctx-ink-mute)]">
+                      {task.status.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  {task.ownerDisplay || dueAt ? (
+                    <p className="mt-1 text-[11px] leading-4 text-[color:var(--ctx-ink-mute)]">
+                      {[task.ownerDisplay, dueAt ? `Due ${dueAt}` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  ) : null;
 
   const placementCountByCategory = useMemo<[string, number][]>(() => {
     const counts = new Map<string, number>();
@@ -1816,85 +2049,6 @@ function PorchfestPlannerWorkspace({
     );
   };
 
-  // Pinned selection card: the same Selected panel body the old column
-  // rendered (clear button, swatch, address, figure override select),
-  // pinned under the sidebar's section body so the selection stays
-  // visible across section switches.
-  const sidebarSelectionContent = selectedPlacement ? (
-    <section aria-label="Selected placement">
-      <div className="flex items-start justify-between gap-2">
-        <p className="planner-kicker">Selected</p>
-        <button
-          type="button"
-          onClick={() => setSelectedPlacementId(null)}
-          className="planner-iconbtn flex h-6 w-6 items-center justify-center text-[12px]"
-          aria-label="Clear selection"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="planner-swatch"
-          style={{
-            backgroundColor:
-              CATEGORY_COLOR[
-                selectedPlacement.category as AtlasEventPlannerCategory
-              ] ?? CATEGORY_COLOR.amenity,
-          }}
-        />
-        <p className="planner-ink text-[16px] font-medium leading-tight">
-          {selectedPlacement.label}
-        </p>
-      </div>
-      <p className="planner-muted mt-1 text-[12px]">
-        {CATEGORY_HUMAN_LABEL[
-          selectedPlacement.category as AtlasEventPlannerCategory
-        ] ?? selectedPlacement.category}
-      </p>
-      {selectedPlacement.address ? (
-        <p className="planner-ink-soft mt-2 text-[13px] leading-snug">
-          {selectedPlacement.address}
-        </p>
-      ) : (
-        <p className="planner-faint mt-2 text-[12px]">Address pending</p>
-      )}
-      {/* Figure override (Feature 1): civic-backed selections only.
-          Auto shows what the resolver picked; choosing a key writes
-          the override to the CRDT store and the map swaps live. */}
-      {selectedCivicRowId ? (
-        <div className="mt-3">
-          <label
-            htmlFor="planner-figure-override"
-            className="planner-kicker block"
-          >
-            Figure
-          </label>
-          <select
-            id="planner-figure-override"
-            className="planner-tile mt-1 w-full px-2 py-1.5 text-[12px] planner-ink"
-            value={selectedCivicFigureOverride ?? ""}
-            onChange={(event) =>
-              handleFigureOverrideChange(event.target.value)
-            }
-          >
-            <option value="">
-              {selectedCivicAutoKey
-                ? `Auto (${selectedCivicAutoKey})`
-                : "Auto"}
-            </option>
-            {CIVIC_FIGURE_KEYS.map((key) => (
-              <option key={key} value={key}>
-                {key}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
-    </section>
-  ) : null;
-
   return (
     <main className="planner-shell relative flex overflow-hidden">
       {/* The map wrapper doubles as the Feature 2 drop target: dropping a
@@ -1982,21 +2136,21 @@ function PorchfestPlannerWorkspace({
             applicationsContent={renderSidebarApplications}
             importContent={sidebarImportContent}
             importSignal={droppedFile}
-            selectionContent={sidebarSelectionContent}
-            selectionId={selectedPlacement?.id ?? null}
           />
         ) : null}
 
         {/* Bottom-center PorchFest Dynamic Island: mirrors the site island
-            (collapsed pill -> expanded tabbed glass panel). Shared search
-            over placements + tasks, a Tasks view, and a Places view. The
-            left panels and the sidebar task rail stay; this is additive. */}
+            (collapsed pill -> expanded tabbed glass panel). It now owns the
+            selected-placement metadata readout, while shared search and
+            task/place tabs remain additive to the sidebar and right rail. */}
         <PorchfestIsland
           placements={renderPlacements}
           tasks={liveTasks}
           onSelectPlacement={handleFlyToPlacement}
           mobile={isMobile}
-          selectedPlacement={isMobile ? selectedPlacement : null}
+          selectedPlacement={selectedPlacement}
+          selectedCategoryLabel={selectedCategoryLabel}
+          selectedDetailsContent={selectedIslandDetailsContent}
           tasksContent={isMobile ? islandTasksContent : undefined}
           editContent={isMobile ? islandEditContent : undefined}
           mapKeyContent={isMobile ? islandMapKeyContent : undefined}
