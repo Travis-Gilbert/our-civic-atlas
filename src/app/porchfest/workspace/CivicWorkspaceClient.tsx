@@ -182,6 +182,10 @@ function rowStatus(row: CivicWorkspaceRow): PlanningStatus {
     : "submitted";
 }
 
+function mobileRowTitle(row: CivicWorkspaceRow): string {
+  return row.title.trim() || "Untitled application";
+}
+
 function fieldValue(row: CivicWorkspaceRow, key: MobileColumnKey): string {
   if (key === "location") return row.fields.location ? "Placed" : "Unplaced";
   const value = row.fields[key as keyof CivicObjectFields];
@@ -413,41 +417,44 @@ function MobileApplicationsTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.rowId}>
-              <th scope="row">
-                <button
-                  type="button"
-                  className="civic-mobile-title-button"
-                  onClick={() => onOpenRow(row.rowId)}
-                  aria-label={`Open application for ${row.title}`}
-                >
-                  {row.title}
-                </button>
-              </th>
-              <td>
-                <select
-                  value={rowStatus(row)}
-                  aria-label={`Status for ${row.title}`}
-                  onChange={(event) =>
-                    onStatusChange(
-                      row.rowId,
-                      event.target.value as PlanningStatus,
-                    )
-                  }
-                >
-                  {PLANNING_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {statusLabel(status)}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              {visibleColumns.map((column) => (
-                <td key={column.key}>{fieldValue(row, column.key)}</td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const title = mobileRowTitle(row);
+            return (
+              <tr key={row.rowId}>
+                <th scope="row">
+                  <button
+                    type="button"
+                    className="civic-mobile-title-button"
+                    onClick={() => onOpenRow(row.rowId)}
+                    aria-label={`Open application for ${title}`}
+                  >
+                    {title}
+                  </button>
+                </th>
+                <td>
+                  <select
+                    value={rowStatus(row)}
+                    aria-label={`Status for ${title}`}
+                    onChange={(event) =>
+                      onStatusChange(
+                        row.rowId,
+                        event.target.value as PlanningStatus,
+                      )
+                    }
+                  >
+                    {PLANNING_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {statusLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                {visibleColumns.map((column) => (
+                  <td key={column.key}>{fieldValue(row, column.key)}</td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -518,35 +525,38 @@ function MobileStatusLanes({
       </div>
       <div className="civic-mobile-lane-stack">
         {laneRows.length > 0 ? (
-          laneRows.map((row) => (
-            <article key={row.rowId} className="civic-mobile-card">
-              <div>
-                <h2>{row.title}</h2>
-                <p>{fieldValue(row, "category")} · {fieldValue(row, "city")}</p>
-                <button
-                  type="button"
-                  className="civic-mobile-open-button"
-                  onClick={() => onOpenRow(row.rowId)}
-                  aria-label={`Open application for ${row.title}`}
+          laneRows.map((row) => {
+            const title = mobileRowTitle(row);
+            return (
+              <article key={row.rowId} className="civic-mobile-card">
+                <div>
+                  <h2>{title}</h2>
+                  <p>{fieldValue(row, "category")} · {fieldValue(row, "city")}</p>
+                  <button
+                    type="button"
+                    className="civic-mobile-open-button"
+                    onClick={() => onOpenRow(row.rowId)}
+                    aria-label={`Open application for ${title}`}
+                  >
+                    Open
+                  </button>
+                </div>
+                <select
+                  value={rowStatus(row)}
+                  aria-label={`Status for ${title}`}
+                  onChange={(event) =>
+                    onStatusChange(row.rowId, event.target.value as PlanningStatus)
+                  }
                 >
-                  Open
-                </button>
-              </div>
-              <select
-                value={rowStatus(row)}
-                aria-label={`Status for ${row.title}`}
-                onChange={(event) =>
-                  onStatusChange(row.rowId, event.target.value as PlanningStatus)
-                }
-              >
-                {PLANNING_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {statusLabel(status)}
-                  </option>
-                ))}
-              </select>
-            </article>
-          ))
+                  {PLANNING_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {statusLabel(status)}
+                    </option>
+                  ))}
+                </select>
+              </article>
+            );
+          })
         ) : (
           <p className="civic-mobile-empty">No applications in this status.</p>
         )}
@@ -565,19 +575,20 @@ function MobileApplicationDetailSheet({
   readonly onStatusChange: (rowId: string, status: PlanningStatus) => void;
 }) {
   const sections = mobileDetailSections(row);
+  const title = mobileRowTitle(row);
   return (
     <div className="civic-mobile-detail-backdrop" onClick={onClose}>
       <section
         className="civic-mobile-detail-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={`Application details for ${row.title}`}
+        aria-label={`Application details for ${title}`}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="civic-mobile-detail-header">
           <div>
             <p>{statusLabel(rowStatus(row))}</p>
-            <h2>{row.title}</h2>
+            <h2>{title}</h2>
           </div>
           <button type="button" onClick={onClose}>
             Close
