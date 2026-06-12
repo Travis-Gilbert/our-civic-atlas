@@ -415,6 +415,11 @@ export function createLostFlintDeckLayers({
         data: items,
         scenegraph: url,
         sizeScale: 1,
+        // PBR lighting so glTF material baseColorFactor renders. The
+        // default flat mode washed Scene Foundry massing GLBs (factor-only
+        // PBR materials, no textures) to white; first observed when the
+        // first real renderer-produced asset came through this path.
+        _lighting: "pbr",
         _animations: { "*": { speed: 0 } },
         pickable: true,
         getPosition: (r) => [r.position[0], r.position[1]],
