@@ -237,6 +237,7 @@ export const CIVIC_OBJECT_COLUMNS: readonly CivicColumnSpec[] = [
   { key: 'feePaid', name: 'Fee Paid ($)', type: 'number', scope: 'planning', note: 'Amount recorded from Square outcome; never gates intake or acceptance (FR-012/013).' },
   { key: 'paymentToBand', name: 'Payment To Band ($)', type: 'number', scope: 'planning' },
   { key: 'location', name: 'Location', type: 'text', scope: 'planning', note: 'JSON {"lng":number,"lat":number}; first-class, consumed by the geospatial layer. Empty means unplaced, never hidden.' },
+  { key: 'address', name: 'Address', type: 'text', scope: 'planning', note: 'Mirrored nearest Carriage Town building address (City of Flint parcel GIS), a plain string, NOT a Postgres relation. Placing or dragging the object refills it; editing it moves the object to that address.' },
   { key: 'setTime', name: 'Set Time', type: 'text', scope: 'planning', note: 'Free text, e.g. "14:00-14:45".' },
   { key: 'billingRef', name: 'Billing Ref', type: 'text', scope: 'planning', note: 'Identifier of the billing record in the Postgres billing store (FR-014).' },
   { key: 'figureKey', name: 'Figure', type: 'select', options: CIVIC_FIGURE_KEYS, scope: 'planning', note: 'Organizer override for the rendered map figure. Empty means auto: civic-figure-resolver.ts picks from category + discriminating fields.' },
@@ -291,6 +292,7 @@ export interface CivicObjectFields {
   feePaid?: number;
   paymentToBand?: number;
   location?: string;
+  address?: string;
   setTime?: string;
   billingRef?: string;
   figureKey?: CivicFigureKey;

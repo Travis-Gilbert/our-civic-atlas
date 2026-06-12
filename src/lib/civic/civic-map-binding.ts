@@ -44,6 +44,8 @@ export interface CivicMapPlacement {
   readonly geometry: { type: 'Point'; coordinates: [number, number] };
   readonly status: string;
   readonly notes: string | null;
+  /** Mirrored nearest-building address (planning field), or null if unset. */
+  readonly address: string | null;
   readonly civicRowId: string;
   readonly sourceId: string | null;
   /** Override-first figure key; the mesh layer picks geometry from it. */
@@ -171,6 +173,7 @@ export function civicRowToMapPlacement(
     geometry: civicLocationToPointGeometry(location),
     status: row.fields.status ?? 'submitted',
     notes: notesFor(row.fields),
+    address: row.fields.address?.trim() || null,
     civicRowId: row.rowId,
     sourceId: row.fields.sourceId ?? null,
     figureKey: effectiveCivicFigureKey(row.fields),

@@ -127,6 +127,7 @@ import {
   CIVIC_FIGURE_KEYS,
   type CivicObjectFields,
 } from "@/lib/civic/civic-object-schema";
+import { reconcileAddressLocation } from "@/lib/civic/civic-address-sync";
 import {
   isCivicFigureKey,
   resolveCivicFigureKey,
@@ -714,6 +715,45 @@ function PorchfestPlannerWorkspace({
       ),
     [civicBinding.placed],
   );
+
+  // Address mirroring (organizer request). A placed object's `address` field
+  // mirrors the nearest Carriage Town building (reverse), and editing the
+  // address in the workspace moves the object to that building (forward). Both
+  // are plain CRDT writes, never a Postgres relation. addressSeen tracks the
+  // prior (address, location) per row so the two directions never loop: a
+  // location change is a place/drag (refill the address), an address change is
+  // an edit (move the object), and a value we just wrote is recorded so it is
+  // not re-read as a fresh edit. Cold load only fills blank addresses; it never
+  // reconciles an existing mismatch, since a drag and an edit are
+  // indistinguishable without change history.
+  const addressSeenRef = useRef<
+    Map<string, { address: string; location: string }>
+  >(new Map());
+  useEffect(() => {
+    const api = civicApiRef.current;
+    if (!api) return;
+    const seen = addressSeenRef.current;
+    const live = new Set<string>();
+    for (const row of civicRows) {
+      live.add(row.rowId);
+      const cur = {
+        address: (row.fields.address ?? "").trim(),
+        location: (row.fields.location ?? "").trim(),
+      };
+      const { writes, next } = reconcileAddressLocation(
+        seen.get(row.rowId) ?? null,
+        cur,
+      );
+      for (const write of writes) {
+        api.update(row.rowId, write.field, write.value);
+      }
+      seen.set(row.rowId, next);
+    }
+    // Forget deleted rows so the tracking map does not grow without bound.
+    for (const id of seen.keys()) {
+      if (!live.has(id)) seen.delete(id);
+    }
+  }, [civicRows]);
 
   /* --- click-to-place for unplaced applications -------------------- */
 

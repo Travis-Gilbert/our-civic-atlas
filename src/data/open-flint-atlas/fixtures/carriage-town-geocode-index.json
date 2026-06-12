@@ -1,0 +1,5260 @@
+{
+  "meta": {
+    "source": "Join of flint-building-addresses.json (City of Flint GIS) and osm-buildings.json centroids",
+    "generatedBy": "scripts/build-geocode-index.mjs",
+    "count": 750,
+    "missingCentroid": 0
+  },
+  "entries": [
+    {
+      "osmId": "76327332",
+      "address": "102 E FOURTH AVE",
+      "fullAddress": "102 E FOURTH AVE, FLINT, MI 48502",
+      "lng": -83.695531,
+      "lat": 43.022328
+    },
+    {
+      "osmId": "281165023",
+      "address": "400 N SAGINAW ST",
+      "fullAddress": "400 N SAGINAW ST, FLINT, MI 48502",
+      "lng": -83.692912,
+      "lat": 43.019814
+    },
+    {
+      "osmId": "444343398",
+      "address": "316 W WATER ST",
+      "fullAddress": "316 W WATER ST, FLINT, MI 48502",
+      "lng": -83.69598,
+      "lat": 43.017313
+    },
+    {
+      "osmId": "626830437",
+      "address": "725 GARLAND ST",
+      "fullAddress": "725 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.697935,
+      "lat": 43.022036
+    },
+    {
+      "osmId": "632430387",
+      "address": "310 N GRAND TRAVERSE",
+      "fullAddress": "310 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.697505,
+      "lat": 43.017009
+    },
+    {
+      "osmId": "632430390",
+      "address": "422 W WATER ST",
+      "fullAddress": "422 W WATER ST, FLINT, MI 48502",
+      "lng": -83.697235,
+      "lat": 43.017095
+    },
+    {
+      "osmId": "670840677",
+      "address": "402 W WATER ST",
+      "fullAddress": "402 W WATER ST, FLINT, MI 48503",
+      "lng": -83.696541,
+      "lat": 43.017072
+    },
+    {
+      "osmId": "675924445",
+      "address": "119 N GRAND TRAVERSE",
+      "fullAddress": "119 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.697055,
+      "lat": 43.015404
+    },
+    {
+      "osmId": "676457257",
+      "address": "605 N SAGINAW ST 1A",
+      "fullAddress": "605 N SAGINAW ST 1A, FLINT, MI 48502",
+      "lng": -83.694205,
+      "lat": 43.021639
+    },
+    {
+      "osmId": "676457259",
+      "address": "711 N SAGINAW ST",
+      "fullAddress": "711 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.694008,
+      "lat": 43.022805
+    },
+    {
+      "osmId": "683004265",
+      "address": "211 W KEARSLEY ST",
+      "fullAddress": "211 W KEARSLEY ST, FLINT, MI 48502",
+      "lng": -83.693087,
+      "lat": 43.015678
+    },
+    {
+      "osmId": "683004267",
+      "address": "444 CHURCH ST",
+      "fullAddress": "444 CHURCH ST, FLINT, MI 48503",
+      "lng": -83.693687,
+      "lat": 43.01479
+    },
+    {
+      "osmId": "683004268",
+      "address": "336 W FIRST ST",
+      "fullAddress": "336 W FIRST ST, FLINT, MI 48503",
+      "lng": -83.694215,
+      "lat": 43.014734
+    },
+    {
+      "osmId": "683004271",
+      "address": "101 S GRAND TRAVERSE",
+      "fullAddress": "101 S GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.69653,
+      "lat": 43.014769
+    },
+    {
+      "osmId": "718040001",
+      "address": "214 W SECOND AVE",
+      "fullAddress": "214 W SECOND AVE, FLINT, MI 48503",
+      "lng": -83.696061,
+      "lat": 43.019685
+    },
+    {
+      "osmId": "874024490",
+      "address": "527 N GRAND TRAVERSE",
+      "fullAddress": "527 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.699897,
+      "lat": 43.018631
+    },
+    {
+      "osmId": "874024491",
+      "address": "527 N GRAND TRAVERSE",
+      "fullAddress": "527 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.69978,
+      "lat": 43.018734
+    },
+    {
+      "osmId": "910395447",
+      "address": "1417 N STEVENSON ST",
+      "fullAddress": "1417 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.712269,
+      "lat": 43.021806
+    },
+    {
+      "osmId": "990285391",
+      "address": "610 GARLAND ST",
+      "fullAddress": "610 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.696209,
+      "lat": 43.021006
+    },
+    {
+      "osmId": "990285392",
+      "address": "628 GARLAND ST",
+      "fullAddress": "628 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.696606,
+      "lat": 43.021458
+    },
+    {
+      "osmId": "990285393",
+      "address": "605 GARLAND ST",
+      "fullAddress": "605 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.69674,
+      "lat": 43.020708
+    },
+    {
+      "osmId": "1166154619",
+      "address": "1013 ROOT ST",
+      "fullAddress": "1013 ROOT ST, FLINT, MI 48503",
+      "lng": -83.69633,
+      "lat": 43.025104
+    },
+    {
+      "osmId": "1166154620",
+      "address": "1010 ROOT ST",
+      "fullAddress": "1010 ROOT ST, FLINT, MI 48503",
+      "lng": -83.695776,
+      "lat": 43.025043
+    },
+    {
+      "osmId": "1166154621",
+      "address": "1013 CHIPPEWA ST",
+      "fullAddress": "1013 CHIPPEWA ST, FLINT, MI 48503",
+      "lng": -83.695118,
+      "lat": 43.025083
+    },
+    {
+      "osmId": "1166154622",
+      "address": "1025 CHIPPEWA ST",
+      "fullAddress": "1025 CHIPPEWA ST, FLINT, MI 48503",
+      "lng": -83.695123,
+      "lat": 43.025533
+    },
+    {
+      "osmId": "1166154623",
+      "address": "615 LOUISA ST",
+      "fullAddress": "615 LOUISA ST, FLINT, MI 48503",
+      "lng": -83.694284,
+      "lat": 43.02471
+    },
+    {
+      "osmId": "1166154624",
+      "address": "901 N SAGINAW ST",
+      "fullAddress": "901 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.693989,
+      "lat": 43.024778
+    },
+    {
+      "osmId": "1166154625",
+      "address": "1001 N SAGINAW ST",
+      "fullAddress": "1001 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.693938,
+      "lat": 43.025244
+    },
+    {
+      "osmId": "1166154626",
+      "address": "1021 N SAGINAW ST",
+      "fullAddress": "1021 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.69397,
+      "lat": 43.025781
+    },
+    {
+      "osmId": "1166154627",
+      "address": "1021 N SAGINAW ST",
+      "fullAddress": "1021 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.694543,
+      "lat": 43.025607
+    },
+    {
+      "osmId": "1166154628",
+      "address": "1021 N SAGINAW ST",
+      "fullAddress": "1021 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.6945,
+      "lat": 43.025765
+    },
+    {
+      "osmId": "1184120819",
+      "address": "421 GARLAND ST",
+      "fullAddress": "421 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.695587,
+      "lat": 43.01938
+    },
+    {
+      "osmId": "1184120820",
+      "address": "421 GARLAND ST",
+      "fullAddress": "421 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.695437,
+      "lat": 43.019239
+    },
+    {
+      "osmId": "1184120822",
+      "address": "421 GARLAND ST",
+      "fullAddress": "421 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.695518,
+      "lat": 43.019434
+    },
+    {
+      "osmId": "1210189577",
+      "address": "1000 GLADWYN ST",
+      "fullAddress": "1000 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712344,
+      "lat": 43.016539
+    },
+    {
+      "osmId": "1210189581",
+      "address": "1000 GLADWYN ST",
+      "fullAddress": "1000 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711443,
+      "lat": 43.017509
+    },
+    {
+      "osmId": "1210189649",
+      "address": "1000 GLADWYN ST",
+      "fullAddress": "1000 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711973,
+      "lat": 43.016428
+    },
+    {
+      "osmId": "1210189650",
+      "address": "1000 GLADWYN ST",
+      "fullAddress": "1000 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711969,
+      "lat": 43.016296
+    },
+    {
+      "osmId": "1210189658",
+      "address": "1000 GLADWYN ST",
+      "fullAddress": "1000 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711961,
+      "lat": 43.015931
+    },
+    {
+      "osmId": "1210189662",
+      "address": "1000 GLADWYN ST",
+      "fullAddress": "1000 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.71242,
+      "lat": 43.017063
+    },
+    {
+      "osmId": "1210443106",
+      "address": "1518 W UNIVERSITY AVE",
+      "fullAddress": "1518 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.71041,
+      "lat": 43.016174
+    },
+    {
+      "osmId": "1210443170",
+      "address": "1420 W UNIVERSITY AVE",
+      "fullAddress": "1420 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.709306,
+      "lat": 43.015328
+    },
+    {
+      "osmId": "1213199577",
+      "address": "709 N STEVENSON ST",
+      "fullAddress": "709 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707087,
+      "lat": 43.017427
+    },
+    {
+      "osmId": "1213199595",
+      "address": "1014 TUURI PL",
+      "fullAddress": "1014 TUURI PL, FLINT, MI 48504",
+      "lng": -83.707841,
+      "lat": 43.019498
+    },
+    {
+      "osmId": "1213199607",
+      "address": "1230 DUPONT ST",
+      "fullAddress": "1230 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.712244,
+      "lat": 43.021237
+    },
+    {
+      "osmId": "1213199608",
+      "address": "1210 DUPONT ST",
+      "fullAddress": "1210 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.712337,
+      "lat": 43.02094
+    },
+    {
+      "osmId": "1213199609",
+      "address": "1210 DUPONT ST",
+      "fullAddress": "1210 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.71224,
+      "lat": 43.02073
+    },
+    {
+      "osmId": "1213199610",
+      "address": "1210 DUPONT ST",
+      "fullAddress": "1210 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.712344,
+      "lat": 43.020448
+    },
+    {
+      "osmId": "1213199611",
+      "address": "1160 DUPONT ST",
+      "fullAddress": "1160 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.712214,
+      "lat": 43.020166
+    },
+    {
+      "osmId": "1213199615",
+      "address": "1230 DUPONT ST",
+      "fullAddress": "1230 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.712138,
+      "lat": 43.021408
+    },
+    {
+      "osmId": "1213199633",
+      "address": "1702 FLUSHING RD",
+      "fullAddress": "1702 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.712139,
+      "lat": 43.019693
+    },
+    {
+      "osmId": "1213199639",
+      "address": "1702 FLUSHING RD",
+      "fullAddress": "1702 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.71191,
+      "lat": 43.019899
+    },
+    {
+      "osmId": "1213199642",
+      "address": "1302 DUPONT ST",
+      "fullAddress": "1302 DUPONT ST, FLINT, MI 48504",
+      "lng": -83.712529,
+      "lat": 43.022698
+    },
+    {
+      "osmId": "1213207003",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705751,
+      "lat": 43.024204
+    },
+    {
+      "osmId": "1213207004",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705231,
+      "lat": 43.024147
+    },
+    {
+      "osmId": "1213207005",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705434,
+      "lat": 43.02452
+    },
+    {
+      "osmId": "1213207006",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705408,
+      "lat": 43.023554
+    },
+    {
+      "osmId": "1213207030",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705091,
+      "lat": 43.023395
+    },
+    {
+      "osmId": "1213207041",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705887,
+      "lat": 43.023308
+    },
+    {
+      "osmId": "1213207042",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705859,
+      "lat": 43.02328
+    },
+    {
+      "osmId": "1213207043",
+      "address": "1201 N GRAND TRAVERSE",
+      "fullAddress": "1201 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.706306,
+      "lat": 43.023141
+    },
+    {
+      "osmId": "1213207067",
+      "address": "1220 VINCENT CT",
+      "fullAddress": "1220 VINCENT CT, FLINT, MI 48503",
+      "lng": -83.707571,
+      "lat": 43.023477
+    },
+    {
+      "osmId": "1213207068",
+      "address": "1220 VINCENT CT",
+      "fullAddress": "1220 VINCENT CT, FLINT, MI 48503",
+      "lng": -83.707385,
+      "lat": 43.023783
+    },
+    {
+      "osmId": "1213207069",
+      "address": "1220 VINCENT CT",
+      "fullAddress": "1220 VINCENT CT, FLINT, MI 48503",
+      "lng": -83.70697,
+      "lat": 43.023885
+    },
+    {
+      "osmId": "1213207070",
+      "address": "1220 VINCENT CT",
+      "fullAddress": "1220 VINCENT CT, FLINT, MI 48503",
+      "lng": -83.70706,
+      "lat": 43.023566
+    },
+    {
+      "osmId": "1213741261",
+      "address": "801 TUURI PL",
+      "fullAddress": "801 TUURI PL, FLINT, MI 48503",
+      "lng": -83.705409,
+      "lat": 43.019901
+    },
+    {
+      "osmId": "1213741305",
+      "address": "1033 PATRICK ST",
+      "fullAddress": "1033 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.706006,
+      "lat": 43.020988
+    },
+    {
+      "osmId": "1213741306",
+      "address": "1033 PATRICK ST",
+      "fullAddress": "1033 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.70623,
+      "lat": 43.020725
+    },
+    {
+      "osmId": "1213974812",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705386,
+      "lat": 43.022332
+    },
+    {
+      "osmId": "1213974813",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704571,
+      "lat": 43.021522
+    },
+    {
+      "osmId": "1213974814",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704227,
+      "lat": 43.021456
+    },
+    {
+      "osmId": "1213974815",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.703925,
+      "lat": 43.021465
+    },
+    {
+      "osmId": "1213974816",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704132,
+      "lat": 43.021273
+    },
+    {
+      "osmId": "1213974817",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704618,
+      "lat": 43.020736
+    },
+    {
+      "osmId": "1213974818",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705234,
+      "lat": 43.021029
+    },
+    {
+      "osmId": "1213974819",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705435,
+      "lat": 43.021407
+    },
+    {
+      "osmId": "1213974820",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705241,
+      "lat": 43.021357
+    },
+    {
+      "osmId": "1213974821",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705511,
+      "lat": 43.021593
+    },
+    {
+      "osmId": "1213974822",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705001,
+      "lat": 43.021398
+    },
+    {
+      "osmId": "1213974823",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705067,
+      "lat": 43.021855
+    },
+    {
+      "osmId": "1213974824",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704315,
+      "lat": 43.022019
+    },
+    {
+      "osmId": "1213974825",
+      "address": "2 HURLEY PLAZA",
+      "fullAddress": "2 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704063,
+      "lat": 43.022947
+    },
+    {
+      "osmId": "1213974826",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704085,
+      "lat": 43.022191
+    },
+    {
+      "osmId": "1213974827",
+      "address": "2 HURLEY PLAZA",
+      "fullAddress": "2 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.704327,
+      "lat": 43.022534
+    },
+    {
+      "osmId": "1213974828",
+      "address": "1 HURLEY PLAZA",
+      "fullAddress": "1 HURLEY PLAZA, FLINT, MI 48503",
+      "lng": -83.705861,
+      "lat": 43.022235
+    },
+    {
+      "osmId": "1214693552",
+      "address": "1421 W UNIVERSITY AVE",
+      "fullAddress": "1421 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.709196,
+      "lat": 43.014632
+    },
+    {
+      "osmId": "1216140584",
+      "address": "422 W UNIVERSITY AVE",
+      "fullAddress": "422 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.699734,
+      "lat": 43.019399
+    },
+    {
+      "osmId": "1216140585",
+      "address": "422 W UNIVERSITY AVE",
+      "fullAddress": "422 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.69944,
+      "lat": 43.019413
+    },
+    {
+      "osmId": "1216140586",
+      "address": "422 W UNIVERSITY AVE",
+      "fullAddress": "422 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.699206,
+      "lat": 43.019511
+    },
+    {
+      "osmId": "1216140587",
+      "address": "422 W UNIVERSITY AVE",
+      "fullAddress": "422 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.698974,
+      "lat": 43.019609
+    },
+    {
+      "osmId": "1216462916",
+      "address": "1222 W UNIVERSITY AVE",
+      "fullAddress": "1222 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.70736,
+      "lat": 43.015946
+    },
+    {
+      "osmId": "1216462923",
+      "address": "1208 W UNIVERSITY AVE",
+      "fullAddress": "1208 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.707144,
+      "lat": 43.015972
+    },
+    {
+      "osmId": "1216462924",
+      "address": "1204 W UNIVERSITY AVE",
+      "fullAddress": "1204 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.707008,
+      "lat": 43.016052
+    },
+    {
+      "osmId": "1216462925",
+      "address": "1202 W UNIVERSITY AVE",
+      "fullAddress": "1202 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.706864,
+      "lat": 43.016113
+    },
+    {
+      "osmId": "1216462931",
+      "address": "1113 W UNIVERSITY AVE",
+      "fullAddress": "1113 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.706313,
+      "lat": 43.015917
+    },
+    {
+      "osmId": "1216462936",
+      "address": "1114 W UNIVERSITY AVE",
+      "fullAddress": "1114 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.706315,
+      "lat": 43.016529
+    },
+    {
+      "osmId": "1216462940",
+      "address": "1114 W UNIVERSITY AVE",
+      "fullAddress": "1114 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.706715,
+      "lat": 43.016453
+    },
+    {
+      "osmId": "1216462944",
+      "address": "1005 W UNIVERSITY AVE",
+      "fullAddress": "1005 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.70485,
+      "lat": 43.016535
+    },
+    {
+      "osmId": "1216462960",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703546,
+      "lat": 43.016698
+    },
+    {
+      "osmId": "1216462961",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703587,
+      "lat": 43.01665
+    },
+    {
+      "osmId": "1216462962",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703479,
+      "lat": 43.016712
+    },
+    {
+      "osmId": "1216462963",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703625,
+      "lat": 43.01688
+    },
+    {
+      "osmId": "1216462965",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703679,
+      "lat": 43.016557
+    },
+    {
+      "osmId": "1216462966",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703895,
+      "lat": 43.016423
+    },
+    {
+      "osmId": "1216462967",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703842,
+      "lat": 43.016516
+    },
+    {
+      "osmId": "1216462968",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703816,
+      "lat": 43.016547
+    },
+    {
+      "osmId": "1216462969",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703758,
+      "lat": 43.016557
+    },
+    {
+      "osmId": "1216462970",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.704112,
+      "lat": 43.016683
+    },
+    {
+      "osmId": "1216462971",
+      "address": "921 W UNIVERSITY AVE",
+      "fullAddress": "921 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.703464,
+      "lat": 43.016575
+    },
+    {
+      "osmId": "1216462974",
+      "address": "606 WOLCOTT ST",
+      "fullAddress": "606 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.704818,
+      "lat": 43.017136
+    },
+    {
+      "osmId": "1216462977",
+      "address": "1105 W UNIVERSITY AVE",
+      "fullAddress": "1105 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.706053,
+      "lat": 43.016091
+    },
+    {
+      "osmId": "1216462978",
+      "address": "1105 W UNIVERSITY AVE",
+      "fullAddress": "1105 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.705938,
+      "lat": 43.01602
+    },
+    {
+      "osmId": "1217221285",
+      "address": "701 W UNIVERSITY AVE",
+      "fullAddress": "701 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.702487,
+      "lat": 43.017388
+    },
+    {
+      "osmId": "1217221286",
+      "address": "701 W UNIVERSITY AVE",
+      "fullAddress": "701 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.702658,
+      "lat": 43.017629
+    },
+    {
+      "osmId": "1217221287",
+      "address": "701 W UNIVERSITY AVE",
+      "fullAddress": "701 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.701916,
+      "lat": 43.017861
+    },
+    {
+      "osmId": "1217221288",
+      "address": "701 W UNIVERSITY AVE",
+      "fullAddress": "701 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.703371,
+      "lat": 43.017234
+    },
+    {
+      "osmId": "1217221292",
+      "address": "701 W UNIVERSITY AVE",
+      "fullAddress": "701 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.701685,
+      "lat": 43.016941
+    },
+    {
+      "osmId": "1217236391",
+      "address": "1021 FLUSHING RD",
+      "fullAddress": "1021 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.70783,
+      "lat": 43.019049
+    },
+    {
+      "osmId": "1217236392",
+      "address": "818 N STEVENSON ST",
+      "fullAddress": "818 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707557,
+      "lat": 43.01883
+    },
+    {
+      "osmId": "1217236393",
+      "address": "818 N STEVENSON ST",
+      "fullAddress": "818 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707345,
+      "lat": 43.018878
+    },
+    {
+      "osmId": "1217236394",
+      "address": "816 N STEVENSON ST",
+      "fullAddress": "816 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707503,
+      "lat": 43.018714
+    },
+    {
+      "osmId": "1217236395",
+      "address": "810 N STEVENSON ST",
+      "fullAddress": "810 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707414,
+      "lat": 43.018607
+    },
+    {
+      "osmId": "1217236396",
+      "address": "810 N STEVENSON ST",
+      "fullAddress": "810 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707172,
+      "lat": 43.01869
+    },
+    {
+      "osmId": "1217236397",
+      "address": "805 WOLCOTT ST",
+      "fullAddress": "805 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.70687,
+      "lat": 43.018685
+    },
+    {
+      "osmId": "1217236398",
+      "address": "801 WOLCOTT ST",
+      "fullAddress": "801 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.706693,
+      "lat": 43.018636
+    },
+    {
+      "osmId": "1217236399",
+      "address": "805 WOLCOTT ST",
+      "fullAddress": "805 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.706755,
+      "lat": 43.018761
+    },
+    {
+      "osmId": "1217236400",
+      "address": "712 PROSPECT ST",
+      "fullAddress": "712 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.70501,
+      "lat": 43.018884
+    },
+    {
+      "osmId": "1217236401",
+      "address": "712 PROSPECT ST",
+      "fullAddress": "712 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704571,
+      "lat": 43.018641
+    },
+    {
+      "osmId": "1217236402",
+      "address": "707 PATRICK ST",
+      "fullAddress": "707 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.704367,
+      "lat": 43.018692
+    },
+    {
+      "osmId": "1217236403",
+      "address": "707 PATRICK ST",
+      "fullAddress": "707 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.70433,
+      "lat": 43.018706
+    },
+    {
+      "osmId": "1217236404",
+      "address": "707 PATRICK ST",
+      "fullAddress": "707 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.704289,
+      "lat": 43.01873
+    },
+    {
+      "osmId": "1217236405",
+      "address": "707 PATRICK ST",
+      "fullAddress": "707 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.704091,
+      "lat": 43.018759
+    },
+    {
+      "osmId": "1217236406",
+      "address": "705 PATRICK ST",
+      "fullAddress": "705 PATRICK ST, FLINT, MI 48503",
+      "lng": -83.704011,
+      "lat": 43.018664
+    },
+    {
+      "osmId": "1217236407",
+      "address": "706 PROSPECT ST",
+      "fullAddress": "706 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704573,
+      "lat": 43.018495
+    },
+    {
+      "osmId": "1217236408",
+      "address": "702 PROSPECT ST",
+      "fullAddress": "702 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704278,
+      "lat": 43.018465
+    },
+    {
+      "osmId": "1217236409",
+      "address": "630 PROSPECT ST",
+      "fullAddress": "630 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704185,
+      "lat": 43.018247
+    },
+    {
+      "osmId": "1217236410",
+      "address": "634 PROSPECT ST",
+      "fullAddress": "634 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704166,
+      "lat": 43.018326
+    },
+    {
+      "osmId": "1217236411",
+      "address": "634 PROSPECT ST",
+      "fullAddress": "634 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704402,
+      "lat": 43.018259
+    },
+    {
+      "osmId": "1217236412",
+      "address": "702 PROSPECT ST",
+      "fullAddress": "702 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.704489,
+      "lat": 43.018355
+    },
+    {
+      "osmId": "1217236413",
+      "address": "719 PROSPECT ST",
+      "fullAddress": "719 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.705242,
+      "lat": 43.018503
+    },
+    {
+      "osmId": "1217236414",
+      "address": "723 PROSPECT ST",
+      "fullAddress": "723 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.705399,
+      "lat": 43.018487
+    },
+    {
+      "osmId": "1217236415",
+      "address": "729 PROSPECT ST",
+      "fullAddress": "729 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.705388,
+      "lat": 43.018773
+    },
+    {
+      "osmId": "1217236416",
+      "address": "729 PROSPECT ST",
+      "fullAddress": "729 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.70551,
+      "lat": 43.018657
+    },
+    {
+      "osmId": "1217236417",
+      "address": "722 WOLCOTT ST",
+      "fullAddress": "722 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705801,
+      "lat": 43.018323
+    },
+    {
+      "osmId": "1217236418",
+      "address": "718 WOLCOTT ST",
+      "fullAddress": "718 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705749,
+      "lat": 43.018228
+    },
+    {
+      "osmId": "1217236419",
+      "address": "714 WOLCOTT ST",
+      "fullAddress": "714 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705648,
+      "lat": 43.018122
+    },
+    {
+      "osmId": "1217236420",
+      "address": "718 WOLCOTT ST",
+      "fullAddress": "718 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705445,
+      "lat": 43.018274
+    },
+    {
+      "osmId": "1217236421",
+      "address": "626 WOLCOTT ST",
+      "fullAddress": "626 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705158,
+      "lat": 43.017607
+    },
+    {
+      "osmId": "1217236422",
+      "address": "626 WOLCOTT ST",
+      "fullAddress": "626 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.704947,
+      "lat": 43.017672
+    },
+    {
+      "osmId": "1217236423",
+      "address": "914 W UNIVERSITY AVE",
+      "fullAddress": "914 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.704524,
+      "lat": 43.017168
+    },
+    {
+      "osmId": "1217236424",
+      "address": "912 W UNIVERSITY AVE",
+      "fullAddress": "912 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.704388,
+      "lat": 43.017229
+    },
+    {
+      "osmId": "1217236425",
+      "address": "912 W UNIVERSITY AVE",
+      "fullAddress": "912 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.704589,
+      "lat": 43.017373
+    },
+    {
+      "osmId": "1217236426",
+      "address": "914 W UNIVERSITY AVE",
+      "fullAddress": "914 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.704676,
+      "lat": 43.017325
+    },
+    {
+      "osmId": "1217236427",
+      "address": "615 WOLCOTT ST",
+      "fullAddress": "615 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705381,
+      "lat": 43.017119
+    },
+    {
+      "osmId": "1217236428",
+      "address": "612 N STEVENSON ST",
+      "fullAddress": "612 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.705753,
+      "lat": 43.016807
+    },
+    {
+      "osmId": "1217236429",
+      "address": "616 N STEVENSON ST",
+      "fullAddress": "616 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.70591,
+      "lat": 43.016765
+    },
+    {
+      "osmId": "1217236430",
+      "address": "624 N STEVENSON ST",
+      "fullAddress": "624 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.706119,
+      "lat": 43.01707
+    },
+    {
+      "osmId": "1217236431",
+      "address": "624 N STEVENSON ST",
+      "fullAddress": "624 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.70585,
+      "lat": 43.017133
+    },
+    {
+      "osmId": "1217236432",
+      "address": "718 N STEVENSON ST",
+      "fullAddress": "718 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.706766,
+      "lat": 43.017804
+    },
+    {
+      "osmId": "1217236433",
+      "address": "726 N STEVENSON ST",
+      "fullAddress": "726 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.706889,
+      "lat": 43.017995
+    },
+    {
+      "osmId": "1217236434",
+      "address": "733 WOLCOTT ST",
+      "fullAddress": "733 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.7065,
+      "lat": 43.018408
+    },
+    {
+      "osmId": "1217236435",
+      "address": "705 WOLCOTT ST",
+      "fullAddress": "705 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.705943,
+      "lat": 43.017777
+    },
+    {
+      "osmId": "1217236436",
+      "address": "820 FROST ST",
+      "fullAddress": "820 FROST ST, FLINT, MI 48504",
+      "lng": -83.708968,
+      "lat": 43.01855
+    },
+    {
+      "osmId": "1217236437",
+      "address": "820 FROST ST",
+      "fullAddress": "820 FROST ST, FLINT, MI 48504",
+      "lng": -83.709446,
+      "lat": 43.018565
+    },
+    {
+      "osmId": "1217236438",
+      "address": "820 FROST ST",
+      "fullAddress": "820 FROST ST, FLINT, MI 48504",
+      "lng": -83.709184,
+      "lat": 43.018225
+    },
+    {
+      "osmId": "1217236439",
+      "address": "847 N STEVENSON ST",
+      "fullAddress": "847 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.708625,
+      "lat": 43.019166
+    },
+    {
+      "osmId": "1217236440",
+      "address": "1201 FLUSHING RD",
+      "fullAddress": "1201 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.709426,
+      "lat": 43.018984
+    },
+    {
+      "osmId": "1217236441",
+      "address": "833 N STEVENSON ST",
+      "fullAddress": "833 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.708222,
+      "lat": 43.018807
+    },
+    {
+      "osmId": "1217236442",
+      "address": "823 N STEVENSON ST",
+      "fullAddress": "823 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.708149,
+      "lat": 43.018567
+    },
+    {
+      "osmId": "1217236443",
+      "address": "823 N STEVENSON ST",
+      "fullAddress": "823 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.708004,
+      "lat": 43.018574
+    },
+    {
+      "osmId": "1217236444",
+      "address": "1113 W FIFTH AVE",
+      "fullAddress": "1113 W FIFTH AVE, FLINT, MI 48504",
+      "lng": -83.707633,
+      "lat": 43.017552
+    },
+    {
+      "osmId": "1217236445",
+      "address": "1113 W FIFTH AVE",
+      "fullAddress": "1113 W FIFTH AVE, FLINT, MI 48504",
+      "lng": -83.707498,
+      "lat": 43.017476
+    },
+    {
+      "osmId": "1217236446",
+      "address": "625 N STEVENSON ST",
+      "fullAddress": "625 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.707074,
+      "lat": 43.01684
+    },
+    {
+      "osmId": "1217236447",
+      "address": "702 BIECK ST",
+      "fullAddress": "702 BIECK ST, FLINT, MI 48504",
+      "lng": -83.707135,
+      "lat": 43.017061
+    },
+    {
+      "osmId": "1217236448",
+      "address": "625 N STEVENSON ST",
+      "fullAddress": "625 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.70675,
+      "lat": 43.016929
+    },
+    {
+      "osmId": "1217236449",
+      "address": "625 N STEVENSON ST",
+      "fullAddress": "625 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.706712,
+      "lat": 43.017
+    },
+    {
+      "osmId": "1217236450",
+      "address": "613 N STEVENSON ST",
+      "fullAddress": "613 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.7064,
+      "lat": 43.016699
+    },
+    {
+      "osmId": "1217236451",
+      "address": "613 N STEVENSON ST",
+      "fullAddress": "613 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.706709,
+      "lat": 43.01657
+    },
+    {
+      "osmId": "1217236452",
+      "address": "628 FROST ST",
+      "fullAddress": "628 FROST ST, FLINT, MI 48504",
+      "lng": -83.707919,
+      "lat": 43.016474
+    },
+    {
+      "osmId": "1217236453",
+      "address": "628 FROST ST",
+      "fullAddress": "628 FROST ST, FLINT, MI 48504",
+      "lng": -83.708102,
+      "lat": 43.016458
+    },
+    {
+      "osmId": "1217236454",
+      "address": "1206 W FIFTH AVE",
+      "fullAddress": "1206 W FIFTH AVE, FLINT, MI 48504",
+      "lng": -83.708448,
+      "lat": 43.017708
+    },
+    {
+      "osmId": "1217236455",
+      "address": "1216 W FOURTH AVE",
+      "fullAddress": "1216 W FOURTH AVE, FLINT, MI 48504",
+      "lng": -83.707947,
+      "lat": 43.016893
+    },
+    {
+      "osmId": "1217236456",
+      "address": "1208 W FOURTH AVE",
+      "fullAddress": "1208 W FOURTH AVE, FLINT, MI 48504",
+      "lng": -83.707705,
+      "lat": 43.017051
+    },
+    {
+      "osmId": "1217236457",
+      "address": "1201 W FIFTH AVE",
+      "fullAddress": "1201 W FIFTH AVE, FLINT, MI 48504",
+      "lng": -83.707877,
+      "lat": 43.01727
+    },
+    {
+      "osmId": "1217236458",
+      "address": "1201 W FIFTH AVE",
+      "fullAddress": "1201 W FIFTH AVE, FLINT, MI 48504",
+      "lng": -83.707997,
+      "lat": 43.017434
+    },
+    {
+      "osmId": "1217236459",
+      "address": "1217 FLUSHING RD",
+      "fullAddress": "1217 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.710393,
+      "lat": 43.019088
+    },
+    {
+      "osmId": "1217236460",
+      "address": "912 FROST ST",
+      "fullAddress": "912 FROST ST, FLINT, MI 48504",
+      "lng": -83.709893,
+      "lat": 43.018928
+    },
+    {
+      "osmId": "1217236461",
+      "address": "912 FROST ST",
+      "fullAddress": "912 FROST ST, FLINT, MI 48504",
+      "lng": -83.710025,
+      "lat": 43.018834
+    },
+    {
+      "osmId": "1217236462",
+      "address": "910 FROST ST",
+      "fullAddress": "910 FROST ST, FLINT, MI 48504",
+      "lng": -83.70981,
+      "lat": 43.018812
+    },
+    {
+      "osmId": "1217236463",
+      "address": "910 FROST ST",
+      "fullAddress": "910 FROST ST, FLINT, MI 48504",
+      "lng": -83.70997,
+      "lat": 43.018705
+    },
+    {
+      "osmId": "1217236464",
+      "address": "906 FROST ST",
+      "fullAddress": "906 FROST ST, FLINT, MI 48504",
+      "lng": -83.709865,
+      "lat": 43.018618
+    },
+    {
+      "osmId": "1217236465",
+      "address": "922 COTTAGE GROVE AVE",
+      "fullAddress": "922 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.711058,
+      "lat": 43.018761
+    },
+    {
+      "osmId": "1217236466",
+      "address": "918 COTTAGE GROVE AVE",
+      "fullAddress": "918 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710919,
+      "lat": 43.018654
+    },
+    {
+      "osmId": "1217236467",
+      "address": "922 COTTAGE GROVE AVE",
+      "fullAddress": "922 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710921,
+      "lat": 43.018829
+    },
+    {
+      "osmId": "1217236468",
+      "address": "922 COTTAGE GROVE AVE",
+      "fullAddress": "922 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710908,
+      "lat": 43.018783
+    },
+    {
+      "osmId": "1217236469",
+      "address": "922 COTTAGE GROVE AVE",
+      "fullAddress": "922 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.71084,
+      "lat": 43.018741
+    },
+    {
+      "osmId": "1217236470",
+      "address": "1301 FLUSHING RD",
+      "fullAddress": "1301 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.710743,
+      "lat": 43.018792
+    },
+    {
+      "osmId": "1217236471",
+      "address": "917 FROST ST",
+      "fullAddress": "917 FROST ST, FLINT, MI 48504",
+      "lng": -83.710562,
+      "lat": 43.018821
+    },
+    {
+      "osmId": "1217236472",
+      "address": "915 FROST ST",
+      "fullAddress": "915 FROST ST, FLINT, MI 48504",
+      "lng": -83.710609,
+      "lat": 43.01861
+    },
+    {
+      "osmId": "1217236473",
+      "address": "915 FROST ST",
+      "fullAddress": "915 FROST ST, FLINT, MI 48504",
+      "lng": -83.710507,
+      "lat": 43.018692
+    },
+    {
+      "osmId": "1217236474",
+      "address": "1302 SIXTH AVE",
+      "fullAddress": "1302 SIXTH AVE, FLINT, MI 48504",
+      "lng": -83.710222,
+      "lat": 43.01838
+    },
+    {
+      "osmId": "1217236475",
+      "address": "1306 SIXTH AVE",
+      "fullAddress": "1306 SIXTH AVE, FLINT, MI 48504",
+      "lng": -83.710316,
+      "lat": 43.018301
+    },
+    {
+      "osmId": "1217236476",
+      "address": "827 FROST ST",
+      "fullAddress": "827 FROST ST, FLINT, MI 48504",
+      "lng": -83.710004,
+      "lat": 43.018051
+    },
+    {
+      "osmId": "1217236477",
+      "address": "820 COTTAGE GROVE AVE",
+      "fullAddress": "820 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.71017,
+      "lat": 43.017696
+    },
+    {
+      "osmId": "1217236478",
+      "address": "820 COTTAGE GROVE AVE",
+      "fullAddress": "820 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710139,
+      "lat": 43.017874
+    },
+    {
+      "osmId": "1217236479",
+      "address": "725 FROST ST",
+      "fullAddress": "725 FROST ST, FLINT, MI 48504",
+      "lng": -83.709077,
+      "lat": 43.016996
+    },
+    {
+      "osmId": "1217236480",
+      "address": "721 FROST ST",
+      "fullAddress": "721 FROST ST, FLINT, MI 48504",
+      "lng": -83.708958,
+      "lat": 43.016891
+    },
+    {
+      "osmId": "1217236481",
+      "address": "709 FROST ST",
+      "fullAddress": "709 FROST ST, FLINT, MI 48504",
+      "lng": -83.70891,
+      "lat": 43.016543
+    },
+    {
+      "osmId": "1217236482",
+      "address": "709 FROST ST",
+      "fullAddress": "709 FROST ST, FLINT, MI 48504",
+      "lng": -83.708736,
+      "lat": 43.016558
+    },
+    {
+      "osmId": "1217236483",
+      "address": "622 COTTAGE GROVE AVE",
+      "fullAddress": "622 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.708585,
+      "lat": 43.015985
+    },
+    {
+      "osmId": "1217236484",
+      "address": "626 COTTAGE GROVE AVE",
+      "fullAddress": "626 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.708653,
+      "lat": 43.015863
+    },
+    {
+      "osmId": "1217236485",
+      "address": "609 FROST ST",
+      "fullAddress": "609 FROST ST, FLINT, MI 48504",
+      "lng": -83.708069,
+      "lat": 43.0158
+    },
+    {
+      "osmId": "1217236486",
+      "address": "609 FROST ST",
+      "fullAddress": "609 FROST ST, FLINT, MI 48504",
+      "lng": -83.708276,
+      "lat": 43.015758
+    },
+    {
+      "osmId": "1217236487",
+      "address": "1312 W UNIVERSITY AVE",
+      "fullAddress": "1312 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.708329,
+      "lat": 43.01561
+    },
+    {
+      "osmId": "1217236488",
+      "address": "1312 W UNIVERSITY AVE",
+      "fullAddress": "1312 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.7082,
+      "lat": 43.01553
+    },
+    {
+      "osmId": "1217236489",
+      "address": "418 FROST ST",
+      "fullAddress": "418 FROST ST, FLINT, MI 48504",
+      "lng": -83.706447,
+      "lat": 43.014587
+    },
+    {
+      "osmId": "1217236490",
+      "address": "418 FROST ST",
+      "fullAddress": "418 FROST ST, FLINT, MI 48504",
+      "lng": -83.706233,
+      "lat": 43.01461
+    },
+    {
+      "osmId": "1217236491",
+      "address": "513 BANGS ST",
+      "fullAddress": "513 BANGS ST, FLINT, MI 48504",
+      "lng": -83.706563,
+      "lat": 43.015452
+    },
+    {
+      "osmId": "1217236492",
+      "address": "509 BANGS ST",
+      "fullAddress": "509 BANGS ST, FLINT, MI 48504",
+      "lng": -83.706456,
+      "lat": 43.015391
+    },
+    {
+      "osmId": "1217236493",
+      "address": "509 BANGS ST",
+      "fullAddress": "509 BANGS ST, FLINT, MI 48504",
+      "lng": -83.70657,
+      "lat": 43.015302
+    },
+    {
+      "osmId": "1217236494",
+      "address": "508 FROST ST",
+      "fullAddress": "508 FROST ST, FLINT, MI 48504",
+      "lng": -83.706848,
+      "lat": 43.015037
+    },
+    {
+      "osmId": "1217236495",
+      "address": "504 FROST ST",
+      "fullAddress": "504 FROST ST, FLINT, MI 48504",
+      "lng": -83.706727,
+      "lat": 43.014918
+    },
+    {
+      "osmId": "1217236496",
+      "address": "508 FROST ST",
+      "fullAddress": "508 FROST ST, FLINT, MI 48504",
+      "lng": -83.706561,
+      "lat": 43.015063
+    },
+    {
+      "osmId": "1217236497",
+      "address": "504 FROST ST",
+      "fullAddress": "504 FROST ST, FLINT, MI 48504",
+      "lng": -83.706615,
+      "lat": 43.015029
+    },
+    {
+      "osmId": "1217236498",
+      "address": "1219 W UNIVERSITY AVE",
+      "fullAddress": "1219 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.707318,
+      "lat": 43.015514
+    },
+    {
+      "osmId": "1217236499",
+      "address": "518 FROST ST",
+      "fullAddress": "518 FROST ST, FLINT, MI 48504",
+      "lng": -83.706956,
+      "lat": 43.0154
+    },
+    {
+      "osmId": "1217236500",
+      "address": "1215 W UNIVERSITY AVE",
+      "fullAddress": "1215 W UNIVERSITY AVE, FLINT, MI 48504",
+      "lng": -83.707057,
+      "lat": 43.015487
+    },
+    {
+      "osmId": "1217236501",
+      "address": "518 FROST ST",
+      "fullAddress": "518 FROST ST, FLINT, MI 48504",
+      "lng": -83.707153,
+      "lat": 43.015332
+    },
+    {
+      "osmId": "1217236502",
+      "address": "519 FROST ST",
+      "fullAddress": "519 FROST ST, FLINT, MI 48504",
+      "lng": -83.707709,
+      "lat": 43.015082
+    },
+    {
+      "osmId": "1217236503",
+      "address": "519 FROST ST",
+      "fullAddress": "519 FROST ST, FLINT, MI 48504",
+      "lng": -83.707527,
+      "lat": 43.015204
+    },
+    {
+      "osmId": "1217236506",
+      "address": "512 COTTAGE GROVE AVE",
+      "fullAddress": "512 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.707649,
+      "lat": 43.014546
+    },
+    {
+      "osmId": "1217236507",
+      "address": "512 COTTAGE GROVE AVE",
+      "fullAddress": "512 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.707471,
+      "lat": 43.014625
+    },
+    {
+      "osmId": "1217236508",
+      "address": "522 COTTAGE GROVE AVE",
+      "fullAddress": "522 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.70764,
+      "lat": 43.014894
+    },
+    {
+      "osmId": "1217236509",
+      "address": "526 COTTAGE GROVE AVE",
+      "fullAddress": "526 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.707699,
+      "lat": 43.01494
+    },
+    {
+      "osmId": "1217236510",
+      "address": "520 COTTAGE GROVE AVE",
+      "fullAddress": "520 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.707597,
+      "lat": 43.014835
+    },
+    {
+      "osmId": "1217236511",
+      "address": "520 COTTAGE GROVE AVE",
+      "fullAddress": "520 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.707706,
+      "lat": 43.014767
+    },
+    {
+      "osmId": "1217236512",
+      "address": "526 COTTAGE GROVE AVE",
+      "fullAddress": "526 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.707886,
+      "lat": 43.014907
+    },
+    {
+      "osmId": "1217236513",
+      "address": "531 COTTAGE GROVE AVE",
+      "fullAddress": "531 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.708436,
+      "lat": 43.014735
+    },
+    {
+      "osmId": "1217236514",
+      "address": "531 COTTAGE GROVE AVE",
+      "fullAddress": "531 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.708255,
+      "lat": 43.01476
+    },
+    {
+      "osmId": "1217236550",
+      "address": "613 COTTAGE GROVE AVE",
+      "fullAddress": "613 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.708905,
+      "lat": 43.015566
+    },
+    {
+      "osmId": "1217236551",
+      "address": "617 COTTAGE GROVE AVE",
+      "fullAddress": "617 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.709019,
+      "lat": 43.015652
+    },
+    {
+      "osmId": "1217236552",
+      "address": "617 COTTAGE GROVE AVE",
+      "fullAddress": "617 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.70922,
+      "lat": 43.015644
+    },
+    {
+      "osmId": "1217236553",
+      "address": "621 COTTAGE GROVE AVE",
+      "fullAddress": "621 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.709127,
+      "lat": 43.015768
+    },
+    {
+      "osmId": "1217236554",
+      "address": "625 COTTAGE GROVE AVE",
+      "fullAddress": "625 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.709162,
+      "lat": 43.01588
+    },
+    {
+      "osmId": "1217236555",
+      "address": "629 COTTAGE GROVE AVE",
+      "fullAddress": "629 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.709284,
+      "lat": 43.015931
+    },
+    {
+      "osmId": "1217236556",
+      "address": "705 COTTAGE GROVE AVE",
+      "fullAddress": "705 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.709395,
+      "lat": 43.016134
+    },
+    {
+      "osmId": "1217236557",
+      "address": "903 COTTAGE GROVE AVE",
+      "fullAddress": "903 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710999,
+      "lat": 43.017809
+    },
+    {
+      "osmId": "1217236558",
+      "address": "901 COTTAGE GROVE AVE",
+      "fullAddress": "901 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710836,
+      "lat": 43.017838
+    },
+    {
+      "osmId": "1217236559",
+      "address": "903 COTTAGE GROVE AVE",
+      "fullAddress": "903 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710906,
+      "lat": 43.017911
+    },
+    {
+      "osmId": "1217236560",
+      "address": "903 COTTAGE GROVE AVE",
+      "fullAddress": "903 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.711009,
+      "lat": 43.017844
+    },
+    {
+      "osmId": "1217236561",
+      "address": "905 COTTAGE GROVE AVE",
+      "fullAddress": "905 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.711087,
+      "lat": 43.017915
+    },
+    {
+      "osmId": "1217236562",
+      "address": "905 COTTAGE GROVE AVE",
+      "fullAddress": "905 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.710968,
+      "lat": 43.017993
+    },
+    {
+      "osmId": "1217236563",
+      "address": "925 COTTAGE GROVE AVE",
+      "fullAddress": "925 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.711402,
+      "lat": 43.018554
+    },
+    {
+      "osmId": "1217236564",
+      "address": "929 COTTAGE GROVE AVE",
+      "fullAddress": "929 COTTAGE GROVE AVE, FLINT, MI 48504",
+      "lng": -83.711616,
+      "lat": 43.018515
+    },
+    {
+      "osmId": "1217236591",
+      "address": "1601 FLUSHING RD",
+      "fullAddress": "1601 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.71204,
+      "lat": 43.019106
+    },
+    {
+      "osmId": "1217236592",
+      "address": "1501 FLUSHING RD",
+      "fullAddress": "1501 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.711613,
+      "lat": 43.019098
+    },
+    {
+      "osmId": "1217236593",
+      "address": "1501 FLUSHING RD",
+      "fullAddress": "1501 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.711738,
+      "lat": 43.018982
+    },
+    {
+      "osmId": "1217236594",
+      "address": "1041 GLADWYN ST",
+      "fullAddress": "1041 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711768,
+      "lat": 43.018875
+    },
+    {
+      "osmId": "1217236595",
+      "address": "1037 GLADWYN ST",
+      "fullAddress": "1037 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711871,
+      "lat": 43.018757
+    },
+    {
+      "osmId": "1217236597",
+      "address": "1025 GLADWYN ST",
+      "fullAddress": "1025 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712326,
+      "lat": 43.018596
+    },
+    {
+      "osmId": "1217236598",
+      "address": "1029 GLADWYN ST",
+      "fullAddress": "1029 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712282,
+      "lat": 43.018654
+    },
+    {
+      "osmId": "1217236599",
+      "address": "1033 GLADWYN ST",
+      "fullAddress": "1033 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.711965,
+      "lat": 43.018665
+    },
+    {
+      "osmId": "1217236600",
+      "address": "1029 GLADWYN ST",
+      "fullAddress": "1029 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712054,
+      "lat": 43.018586
+    },
+    {
+      "osmId": "1217236601",
+      "address": "1025 GLADWYN ST",
+      "fullAddress": "1025 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712137,
+      "lat": 43.018483
+    },
+    {
+      "osmId": "1217236602",
+      "address": "1021 GLADWYN ST",
+      "fullAddress": "1021 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712248,
+      "lat": 43.018398
+    },
+    {
+      "osmId": "1217236603",
+      "address": "1021 GLADWYN ST",
+      "fullAddress": "1021 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.71244,
+      "lat": 43.018461
+    },
+    {
+      "osmId": "1217236604",
+      "address": "1017 GLADWYN ST",
+      "fullAddress": "1017 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712267,
+      "lat": 43.018277
+    },
+    {
+      "osmId": "1217236605",
+      "address": "1013 GLADWYN ST",
+      "fullAddress": "1013 GLADWYN ST, FLINT, MI 48504",
+      "lng": -83.712342,
+      "lat": 43.018179
+    },
+    {
+      "osmId": "1217236629",
+      "address": "635 CADILLAC ST",
+      "fullAddress": "635 CADILLAC ST, FLINT, MI 48504",
+      "lng": -83.712413,
+      "lat": 43.014894
+    },
+    {
+      "osmId": "1217236630",
+      "address": "639 CADILLAC ST",
+      "fullAddress": "639 CADILLAC ST, FLINT, MI 48504",
+      "lng": -83.71249,
+      "lat": 43.015025
+    },
+    {
+      "osmId": "1217459339",
+      "address": "405 W WATER ST",
+      "fullAddress": "405 W WATER ST, FLINT, MI 48503",
+      "lng": -83.696498,
+      "lat": 43.016487
+    },
+    {
+      "osmId": "1217459340",
+      "address": "405 W WATER ST",
+      "fullAddress": "405 W WATER ST, FLINT, MI 48503",
+      "lng": -83.69606,
+      "lat": 43.01677
+    },
+    {
+      "osmId": "1217459341",
+      "address": "405 W WATER ST",
+      "fullAddress": "405 W WATER ST, FLINT, MI 48503",
+      "lng": -83.697046,
+      "lat": 43.01634
+    },
+    {
+      "osmId": "1217459358",
+      "address": "405 W WATER ST",
+      "fullAddress": "405 W WATER ST, FLINT, MI 48503",
+      "lng": -83.696204,
+      "lat": 43.016506
+    },
+    {
+      "osmId": "1217459361",
+      "address": "434 W WATER ST",
+      "fullAddress": "434 W WATER ST, FLINT, MI 48502",
+      "lng": -83.697396,
+      "lat": 43.01673
+    },
+    {
+      "osmId": "1217459374",
+      "address": "307 MASON ST",
+      "fullAddress": "307 MASON ST, FLINT, MI 48503",
+      "lng": -83.696566,
+      "lat": 43.017286
+    },
+    {
+      "osmId": "1217459375",
+      "address": "415 FIRST AVE",
+      "fullAddress": "415 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.697214,
+      "lat": 43.017442
+    },
+    {
+      "osmId": "1217459383",
+      "address": "411 FIRST AVE",
+      "fullAddress": "411 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.697243,
+      "lat": 43.017682
+    },
+    {
+      "osmId": "1217459384",
+      "address": "425 FIRST AVE",
+      "fullAddress": "425 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.697728,
+      "lat": 43.017373
+    },
+    {
+      "osmId": "1217459386",
+      "address": "435 FIRST AVE",
+      "fullAddress": "435 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.698033,
+      "lat": 43.017283
+    },
+    {
+      "osmId": "1217459395",
+      "address": "319 FIRST AVE",
+      "fullAddress": "319 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.696368,
+      "lat": 43.018005
+    },
+    {
+      "osmId": "1217459396",
+      "address": "311 FIRST AVE",
+      "fullAddress": "311 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.696275,
+      "lat": 43.018091
+    },
+    {
+      "osmId": "1217459397",
+      "address": "307 FIRST AVE",
+      "fullAddress": "307 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.696116,
+      "lat": 43.018136
+    },
+    {
+      "osmId": "1217459398",
+      "address": "317 N GRAND TRAVERSE",
+      "fullAddress": "317 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.698357,
+      "lat": 43.016701
+    },
+    {
+      "osmId": "1217459399",
+      "address": "303 W WATER ST",
+      "fullAddress": "303 W WATER ST, FLINT, MI 48503",
+      "lng": -83.69522,
+      "lat": 43.017269
+    },
+    {
+      "osmId": "1217459416",
+      "address": "213 FIRST AVE",
+      "fullAddress": "213 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.695176,
+      "lat": 43.01844
+    },
+    {
+      "osmId": "1217459417",
+      "address": "221 FIRST AVE",
+      "fullAddress": "221 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.695511,
+      "lat": 43.018379
+    },
+    {
+      "osmId": "1217459418",
+      "address": "326 LYON ST",
+      "fullAddress": "326 LYON ST, FLINT, MI 48503",
+      "lng": -83.695401,
+      "lat": 43.018264
+    },
+    {
+      "osmId": "1217459422",
+      "address": "316 LYON ST",
+      "fullAddress": "316 LYON ST, FLINT, MI 48503",
+      "lng": -83.695201,
+      "lat": 43.018059
+    },
+    {
+      "osmId": "1217459423",
+      "address": "312 LYON ST",
+      "fullAddress": "312 LYON ST, FLINT, MI 48503",
+      "lng": -83.695111,
+      "lat": 43.017937
+    },
+    {
+      "osmId": "1217461879",
+      "address": "129 N GRAND TRAVERSE",
+      "fullAddress": "129 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.697862,
+      "lat": 43.016016
+    },
+    {
+      "osmId": "1217461884",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.696457,
+      "lat": 43.015604
+    },
+    {
+      "osmId": "1217461885",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.696635,
+      "lat": 43.015787
+    },
+    {
+      "osmId": "1217461886",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.696281,
+      "lat": 43.015394
+    },
+    {
+      "osmId": "1217461887",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.695982,
+      "lat": 43.015574
+    },
+    {
+      "osmId": "1217461888",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.695766,
+      "lat": 43.015742
+    },
+    {
+      "osmId": "1217461889",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.69559,
+      "lat": 43.015951
+    },
+    {
+      "osmId": "1217461890",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.695401,
+      "lat": 43.01619
+    },
+    {
+      "osmId": "1217461891",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.695525,
+      "lat": 43.01651
+    },
+    {
+      "osmId": "1217461892",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.695826,
+      "lat": 43.016372
+    },
+    {
+      "osmId": "1217461893",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.696088,
+      "lat": 43.016258
+    },
+    {
+      "osmId": "1217461894",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.696362,
+      "lat": 43.016131
+    },
+    {
+      "osmId": "1217461895",
+      "address": "130 RIVERBANK DR",
+      "fullAddress": "130 RIVERBANK DR, FLINT, MI 48502",
+      "lng": -83.696161,
+      "lat": 43.015823
+    },
+    {
+      "osmId": "1217461903",
+      "address": "101 S GRAND TRAVERSE",
+      "fullAddress": "101 S GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.696776,
+      "lat": 43.014731
+    },
+    {
+      "osmId": "1217921575",
+      "address": "601 N GRAND TRAVERSE",
+      "fullAddress": "601 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.700403,
+      "lat": 43.019169
+    },
+    {
+      "osmId": "1219664092",
+      "address": "1117 FROST ST",
+      "fullAddress": "1117 FROST ST, FLINT, MI 48504",
+      "lng": -83.711085,
+      "lat": 43.021
+    },
+    {
+      "osmId": "1219664093",
+      "address": "1109 FROST ST",
+      "fullAddress": "1109 FROST ST, FLINT, MI 48504",
+      "lng": -83.71119,
+      "lat": 43.020699
+    },
+    {
+      "osmId": "1219664094",
+      "address": "1109 FROST ST",
+      "fullAddress": "1109 FROST ST, FLINT, MI 48504",
+      "lng": -83.711108,
+      "lat": 43.020782
+    },
+    {
+      "osmId": "1219664095",
+      "address": "1302 FLUSHING RD",
+      "fullAddress": "1302 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.711041,
+      "lat": 43.019508
+    },
+    {
+      "osmId": "1219664096",
+      "address": "1013 FROST ST",
+      "fullAddress": "1013 FROST ST, FLINT, MI 48504",
+      "lng": -83.711057,
+      "lat": 43.019695
+    },
+    {
+      "osmId": "1219664097",
+      "address": "1025 FROST ST",
+      "fullAddress": "1025 FROST ST, FLINT, MI 48504",
+      "lng": -83.711342,
+      "lat": 43.020114
+    },
+    {
+      "osmId": "1219664098",
+      "address": "1025 FROST ST",
+      "fullAddress": "1025 FROST ST, FLINT, MI 48504",
+      "lng": -83.711105,
+      "lat": 43.020113
+    },
+    {
+      "osmId": "1219664099",
+      "address": "1033 FROST ST",
+      "fullAddress": "1033 FROST ST, FLINT, MI 48504",
+      "lng": -83.711081,
+      "lat": 43.020299
+    },
+    {
+      "osmId": "1219664100",
+      "address": "1033 FROST ST",
+      "fullAddress": "1033 FROST ST, FLINT, MI 48504",
+      "lng": -83.71126,
+      "lat": 43.020338
+    },
+    {
+      "osmId": "1219664101",
+      "address": "1033 FROST ST",
+      "fullAddress": "1033 FROST ST, FLINT, MI 48504",
+      "lng": -83.711344,
+      "lat": 43.020339
+    },
+    {
+      "osmId": "1219664102",
+      "address": "1037 FROST ST",
+      "fullAddress": "1037 FROST ST, FLINT, MI 48504",
+      "lng": -83.71106,
+      "lat": 43.020423
+    },
+    {
+      "osmId": "1219664103",
+      "address": "1103 FROST ST",
+      "fullAddress": "1103 FROST ST, FLINT, MI 48504",
+      "lng": -83.711319,
+      "lat": 43.020504
+    },
+    {
+      "osmId": "1219664104",
+      "address": "1105 FROST ST",
+      "fullAddress": "1105 FROST ST, FLINT, MI 48504",
+      "lng": -83.711324,
+      "lat": 43.020611
+    },
+    {
+      "osmId": "1219664105",
+      "address": "1105 FROST ST",
+      "fullAddress": "1105 FROST ST, FLINT, MI 48504",
+      "lng": -83.711098,
+      "lat": 43.020632
+    },
+    {
+      "osmId": "1219664106",
+      "address": "1103 FROST ST",
+      "fullAddress": "1103 FROST ST, FLINT, MI 48504",
+      "lng": -83.711098,
+      "lat": 43.020528
+    },
+    {
+      "osmId": "1219664107",
+      "address": "1024 FROST ST",
+      "fullAddress": "1024 FROST ST, FLINT, MI 48504",
+      "lng": -83.710061,
+      "lat": 43.020038
+    },
+    {
+      "osmId": "1219664108",
+      "address": "1024 FROST ST",
+      "fullAddress": "1024 FROST ST, FLINT, MI 48504",
+      "lng": -83.710576,
+      "lat": 43.020012
+    },
+    {
+      "osmId": "1219664109",
+      "address": "1026 FROST ST",
+      "fullAddress": "1026 FROST ST, FLINT, MI 48504",
+      "lng": -83.710599,
+      "lat": 43.020132
+    },
+    {
+      "osmId": "1219664110",
+      "address": "1214 FLUSHING RD",
+      "fullAddress": "1214 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.710311,
+      "lat": 43.019505
+    },
+    {
+      "osmId": "1219664111",
+      "address": "1210 FLUSHING RD",
+      "fullAddress": "1210 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.710193,
+      "lat": 43.019458
+    },
+    {
+      "osmId": "1219664112",
+      "address": "1210 FLUSHING RD",
+      "fullAddress": "1210 FLUSHING RD, FLINT, MI 48504",
+      "lng": -83.710127,
+      "lat": 43.019551
+    },
+    {
+      "osmId": "1219664114",
+      "address": "1027 N STEVENSON ST",
+      "fullAddress": "1027 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.709541,
+      "lat": 43.020435
+    },
+    {
+      "osmId": "1219664115",
+      "address": "1031 N STEVENSON ST",
+      "fullAddress": "1031 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.709661,
+      "lat": 43.020501
+    },
+    {
+      "osmId": "1219664116",
+      "address": "1039 N STEVENSON ST",
+      "fullAddress": "1039 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.709852,
+      "lat": 43.020686
+    },
+    {
+      "osmId": "1219664117",
+      "address": "1113 EIGHTH AVE",
+      "fullAddress": "1113 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710093,
+      "lat": 43.020515
+    },
+    {
+      "osmId": "1219664118",
+      "address": "1125 EIGHTH AVE",
+      "fullAddress": "1125 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710344,
+      "lat": 43.02039
+    },
+    {
+      "osmId": "1219664119",
+      "address": "1127 EIGHTH AVE",
+      "fullAddress": "1127 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710499,
+      "lat": 43.020406
+    },
+    {
+      "osmId": "1219664120",
+      "address": "1034 FROST ST",
+      "fullAddress": "1034 FROST ST, FLINT, MI 48504",
+      "lng": -83.710627,
+      "lat": 43.020316
+    },
+    {
+      "osmId": "1219664121",
+      "address": "1034 FROST ST",
+      "fullAddress": "1034 FROST ST, FLINT, MI 48504",
+      "lng": -83.710516,
+      "lat": 43.020236
+    },
+    {
+      "osmId": "1219664122",
+      "address": "1101 N STEVENSON ST",
+      "fullAddress": "1101 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710063,
+      "lat": 43.020988
+    },
+    {
+      "osmId": "1219664123",
+      "address": "1101 N STEVENSON ST",
+      "fullAddress": "1101 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710062,
+      "lat": 43.021084
+    },
+    {
+      "osmId": "1219664124",
+      "address": "1122 EIGHTH AVE",
+      "fullAddress": "1122 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710684,
+      "lat": 43.020826
+    },
+    {
+      "osmId": "1219664125",
+      "address": "1128 EIGHTH AVE",
+      "fullAddress": "1128 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710678,
+      "lat": 43.02067
+    },
+    {
+      "osmId": "1219664126",
+      "address": "1122 EIGHTH AVE",
+      "fullAddress": "1122 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710536,
+      "lat": 43.020715
+    },
+    {
+      "osmId": "1219664127",
+      "address": "1116 EIGHTH AVE",
+      "fullAddress": "1116 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710264,
+      "lat": 43.020826
+    },
+    {
+      "osmId": "1219664128",
+      "address": "1116 EIGHTH AVE",
+      "fullAddress": "1116 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.710419,
+      "lat": 43.020934
+    },
+    {
+      "osmId": "1219664129",
+      "address": "1118 FROST ST",
+      "fullAddress": "1118 FROST ST, FLINT, MI 48504",
+      "lng": -83.710594,
+      "lat": 43.021034
+    },
+    {
+      "osmId": "1219664130",
+      "address": "1209 N STEVENSON ST",
+      "fullAddress": "1209 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710515,
+      "lat": 43.021141
+    },
+    {
+      "osmId": "1219664131",
+      "address": "1213 N STEVENSON ST",
+      "fullAddress": "1213 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710662,
+      "lat": 43.021186
+    },
+    {
+      "osmId": "1219664132",
+      "address": "1209 N STEVENSON ST",
+      "fullAddress": "1209 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710497,
+      "lat": 43.021249
+    },
+    {
+      "osmId": "1219664133",
+      "address": "1213 N STEVENSON ST",
+      "fullAddress": "1213 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710593,
+      "lat": 43.021335
+    },
+    {
+      "osmId": "1219664134",
+      "address": "1135 MACKIN RD",
+      "fullAddress": "1135 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.707856,
+      "lat": 43.022621
+    },
+    {
+      "osmId": "1219664135",
+      "address": "1133 MACKIN RD",
+      "fullAddress": "1133 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.707663,
+      "lat": 43.022628
+    },
+    {
+      "osmId": "1219664136",
+      "address": "1133 MACKIN RD",
+      "fullAddress": "1133 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.707635,
+      "lat": 43.022738
+    },
+    {
+      "osmId": "1219664137",
+      "address": "1135 MACKIN RD",
+      "fullAddress": "1135 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.707788,
+      "lat": 43.022763
+    },
+    {
+      "osmId": "1219664138",
+      "address": "1141 MACKIN RD",
+      "fullAddress": "1141 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.707889,
+      "lat": 43.022841
+    },
+    {
+      "osmId": "1219664139",
+      "address": "1141 MACKIN RD",
+      "fullAddress": "1141 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.70803,
+      "lat": 43.022794
+    },
+    {
+      "osmId": "1219664140",
+      "address": "1201 MACKIN RD",
+      "fullAddress": "1201 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.708114,
+      "lat": 43.022899
+    },
+    {
+      "osmId": "1219664141",
+      "address": "1202 PROSPECT ST",
+      "fullAddress": "1202 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.708484,
+      "lat": 43.022744
+    },
+    {
+      "osmId": "1219664142",
+      "address": "1202 PROSPECT ST",
+      "fullAddress": "1202 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.708364,
+      "lat": 43.022685
+    },
+    {
+      "osmId": "1219664143",
+      "address": "920 EIGHTH AVE",
+      "fullAddress": "920 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.708515,
+      "lat": 43.0217
+    },
+    {
+      "osmId": "1219664144",
+      "address": "920 EIGHTH AVE",
+      "fullAddress": "920 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.708446,
+      "lat": 43.021581
+    },
+    {
+      "osmId": "1219664145",
+      "address": "1006 EIGHTH AVE",
+      "fullAddress": "1006 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.70913,
+      "lat": 43.021503
+    },
+    {
+      "osmId": "1219664146",
+      "address": "1006 EIGHTH AVE",
+      "fullAddress": "1006 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.709044,
+      "lat": 43.021333
+    },
+    {
+      "osmId": "1219664147",
+      "address": "1006 EIGHTH AVE",
+      "fullAddress": "1006 EIGHTH AVE, FLINT, MI 48504",
+      "lng": -83.709245,
+      "lat": 43.021292
+    },
+    {
+      "osmId": "1219664148",
+      "address": "902 VINCENT AVE",
+      "fullAddress": "902 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.709589,
+      "lat": 43.021316
+    },
+    {
+      "osmId": "1219664149",
+      "address": "1309 N STEVENSON ST",
+      "fullAddress": "1309 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.711229,
+      "lat": 43.021495
+    },
+    {
+      "osmId": "1219664150",
+      "address": "1321 N STEVENSON ST",
+      "fullAddress": "1321 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.711686,
+      "lat": 43.021493
+    },
+    {
+      "osmId": "1219664151",
+      "address": "1321 N STEVENSON ST",
+      "fullAddress": "1321 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.711646,
+      "lat": 43.021652
+    },
+    {
+      "osmId": "1219664152",
+      "address": "1303 WOLCOTT ST",
+      "fullAddress": "1303 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.709713,
+      "lat": 43.021815
+    },
+    {
+      "osmId": "1219664153",
+      "address": "1303 WOLCOTT ST",
+      "fullAddress": "1303 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.709823,
+      "lat": 43.021691
+    },
+    {
+      "osmId": "1219664154",
+      "address": "1206 N STEVENSON ST",
+      "fullAddress": "1206 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710158,
+      "lat": 43.021526
+    },
+    {
+      "osmId": "1219664155",
+      "address": "1208 N STEVENSON ST",
+      "fullAddress": "1208 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710266,
+      "lat": 43.021597
+    },
+    {
+      "osmId": "1219664156",
+      "address": "1208 N STEVENSON ST",
+      "fullAddress": "1208 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710244,
+      "lat": 43.021735
+    },
+    {
+      "osmId": "1219664157",
+      "address": "1439 WOLCOTT ST",
+      "fullAddress": "1439 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.71182,
+      "lat": 43.022424
+    },
+    {
+      "osmId": "1219664158",
+      "address": "1418 N STEVENSON ST",
+      "fullAddress": "1418 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.712103,
+      "lat": 43.022121
+    },
+    {
+      "osmId": "1219664159",
+      "address": "1401 WOLCOTT ST",
+      "fullAddress": "1401 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.710504,
+      "lat": 43.022083
+    },
+    {
+      "osmId": "1219664160",
+      "address": "1308 N STEVENSON ST",
+      "fullAddress": "1308 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710863,
+      "lat": 43.021933
+    },
+    {
+      "osmId": "1219664161",
+      "address": "1308 N STEVENSON ST",
+      "fullAddress": "1308 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.710982,
+      "lat": 43.021845
+    },
+    {
+      "osmId": "1219664162",
+      "address": "1314 N STEVENSON ST",
+      "fullAddress": "1314 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.711119,
+      "lat": 43.021864
+    },
+    {
+      "osmId": "1219664163",
+      "address": "1318 N STEVENSON ST",
+      "fullAddress": "1318 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.711258,
+      "lat": 43.021907
+    },
+    {
+      "osmId": "1219664164",
+      "address": "1318 N STEVENSON ST",
+      "fullAddress": "1318 N STEVENSON ST, FLINT, MI 48504",
+      "lng": -83.711146,
+      "lat": 43.022017
+    },
+    {
+      "osmId": "1219664165",
+      "address": "1413 WOLCOTT ST",
+      "fullAddress": "1413 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.711024,
+      "lat": 43.022058
+    },
+    {
+      "osmId": "1219664166",
+      "address": "1413 WOLCOTT ST",
+      "fullAddress": "1413 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.710913,
+      "lat": 43.022179
+    },
+    {
+      "osmId": "1219664167",
+      "address": "1309 PROSPECT ST",
+      "fullAddress": "1309 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.709454,
+      "lat": 43.022501
+    },
+    {
+      "osmId": "1219664168",
+      "address": "1309 PROSPECT ST",
+      "fullAddress": "1309 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.709482,
+      "lat": 43.022359
+    },
+    {
+      "osmId": "1219664169",
+      "address": "1301 PROSPECT ST",
+      "fullAddress": "1301 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.709247,
+      "lat": 43.022424
+    },
+    {
+      "osmId": "1219664170",
+      "address": "1401 PROSPECT ST",
+      "fullAddress": "1401 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.71031,
+      "lat": 43.022721
+    },
+    {
+      "osmId": "1219664171",
+      "address": "1401 PROSPECT ST",
+      "fullAddress": "1401 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710149,
+      "lat": 43.022724
+    },
+    {
+      "osmId": "1219664172",
+      "address": "1409 PROSPECT ST",
+      "fullAddress": "1409 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710408,
+      "lat": 43.022815
+    },
+    {
+      "osmId": "1219664173",
+      "address": "1413 PROSPECT ST",
+      "fullAddress": "1413 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710551,
+      "lat": 43.022837
+    },
+    {
+      "osmId": "1219664174",
+      "address": "1310 WOLCOTT ST",
+      "fullAddress": "1310 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.709677,
+      "lat": 43.022331
+    },
+    {
+      "osmId": "1219664175",
+      "address": "1310 WOLCOTT ST",
+      "fullAddress": "1310 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.709794,
+      "lat": 43.022195
+    },
+    {
+      "osmId": "1219664176",
+      "address": "1316 WOLCOTT ST",
+      "fullAddress": "1316 WOLCOTT ST, FLINT, MI 48503",
+      "lng": -83.709896,
+      "lat": 43.022261
+    },
+    {
+      "osmId": "1219664177",
+      "address": "1322 WOLCOTT ST",
+      "fullAddress": "1322 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.71019,
+      "lat": 43.022354
+    },
+    {
+      "osmId": "1219664178",
+      "address": "1316 WOLCOTT ST",
+      "fullAddress": "1316 WOLCOTT ST, FLINT, MI 48503",
+      "lng": -83.710009,
+      "lat": 43.022451
+    },
+    {
+      "osmId": "1219664179",
+      "address": "1401 PROSPECT ST",
+      "fullAddress": "1401 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.71014,
+      "lat": 43.022555
+    },
+    {
+      "osmId": "1219664180",
+      "address": "1401 PROSPECT ST",
+      "fullAddress": "1401 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710298,
+      "lat": 43.022591
+    },
+    {
+      "osmId": "1219664181",
+      "address": "1401 PROSPECT ST",
+      "fullAddress": "1401 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710401,
+      "lat": 43.02263
+    },
+    {
+      "osmId": "1219664182",
+      "address": "1409 PROSPECT ST",
+      "fullAddress": "1409 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710468,
+      "lat": 43.022662
+    },
+    {
+      "osmId": "1219664183",
+      "address": "1413 PROSPECT ST",
+      "fullAddress": "1413 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.710652,
+      "lat": 43.022728
+    },
+    {
+      "osmId": "1219664184",
+      "address": "1412 WOLCOTT ST",
+      "fullAddress": "1412 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.710701,
+      "lat": 43.022654
+    },
+    {
+      "osmId": "1219664185",
+      "address": "1412 WOLCOTT ST",
+      "fullAddress": "1412 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.71075,
+      "lat": 43.022484
+    },
+    {
+      "osmId": "1219664186",
+      "address": "1420 WOLCOTT ST",
+      "fullAddress": "1420 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.71102,
+      "lat": 43.022616
+    },
+    {
+      "osmId": "1219664187",
+      "address": "1420 WOLCOTT ST",
+      "fullAddress": "1420 WOLCOTT ST, FLINT, MI 48504",
+      "lng": -83.710872,
+      "lat": 43.022703
+    },
+    {
+      "osmId": "1219664188",
+      "address": "1427 PROSPECT ST",
+      "fullAddress": "1427 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.710976,
+      "lat": 43.022961
+    },
+    {
+      "osmId": "1219664189",
+      "address": "1427 PROSPECT ST",
+      "fullAddress": "1427 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711037,
+      "lat": 43.022822
+    },
+    {
+      "osmId": "1219664190",
+      "address": "1427 PROSPECT ST",
+      "fullAddress": "1427 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711095,
+      "lat": 43.022859
+    },
+    {
+      "osmId": "1219664191",
+      "address": "1435 PROSPECT ST",
+      "fullAddress": "1435 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711298,
+      "lat": 43.023062
+    },
+    {
+      "osmId": "1219664192",
+      "address": "1431 PROSPECT ST",
+      "fullAddress": "1431 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711153,
+      "lat": 43.022999
+    },
+    {
+      "osmId": "1219664193",
+      "address": "1431 PROSPECT ST",
+      "fullAddress": "1431 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711268,
+      "lat": 43.022908
+    },
+    {
+      "osmId": "1219664194",
+      "address": "1435 PROSPECT ST",
+      "fullAddress": "1435 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711378,
+      "lat": 43.022942
+    },
+    {
+      "osmId": "1219664197",
+      "address": "1525 PROSPECT ST",
+      "fullAddress": "1525 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.712502,
+      "lat": 43.023445
+    },
+    {
+      "osmId": "1219664198",
+      "address": "1521 PROSPECT ST",
+      "fullAddress": "1521 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.71237,
+      "lat": 43.023427
+    },
+    {
+      "osmId": "1219664199",
+      "address": "1521 PROSPECT ST",
+      "fullAddress": "1521 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.712263,
+      "lat": 43.023357
+    },
+    {
+      "osmId": "1219664200",
+      "address": "1505 PROSPECT ST",
+      "fullAddress": "1505 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711839,
+      "lat": 43.023243
+    },
+    {
+      "osmId": "1219664201",
+      "address": "1517 PROSPECT ST",
+      "fullAddress": "1517 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.712124,
+      "lat": 43.023318
+    },
+    {
+      "osmId": "1219664202",
+      "address": "1517 PROSPECT ST",
+      "fullAddress": "1517 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.712283,
+      "lat": 43.02322
+    },
+    {
+      "osmId": "1219664203",
+      "address": "1513 PROSPECT ST",
+      "fullAddress": "1513 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.712124,
+      "lat": 43.023206
+    },
+    {
+      "osmId": "1219664204",
+      "address": "1509 PROSPECT ST",
+      "fullAddress": "1509 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711974,
+      "lat": 43.02329
+    },
+    {
+      "osmId": "1219664205",
+      "address": "1401 MACKIN RD",
+      "fullAddress": "1401 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.709747,
+      "lat": 43.023396
+    },
+    {
+      "osmId": "1219664206",
+      "address": "1301 MACKIN RD",
+      "fullAddress": "1301 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.708639,
+      "lat": 43.023079
+    },
+    {
+      "osmId": "1219664207",
+      "address": "1301 MACKIN RD",
+      "fullAddress": "1301 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.708775,
+      "lat": 43.022926
+    },
+    {
+      "osmId": "1219664208",
+      "address": "1321 MACKIN RD",
+      "fullAddress": "1321 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.709355,
+      "lat": 43.023272
+    },
+    {
+      "osmId": "1219664209",
+      "address": "1317 MACKIN RD",
+      "fullAddress": "1317 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.709223,
+      "lat": 43.023219
+    },
+    {
+      "osmId": "1219664210",
+      "address": "1317 MACKIN RD",
+      "fullAddress": "1317 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.709257,
+      "lat": 43.023062
+    },
+    {
+      "osmId": "1219664211",
+      "address": "1326 PROSPECT ST",
+      "fullAddress": "1326 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.709826,
+      "lat": 43.022982
+    },
+    {
+      "osmId": "1219664212",
+      "address": "1322 PROSPECT ST",
+      "fullAddress": "1322 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.709687,
+      "lat": 43.022987
+    },
+    {
+      "osmId": "1219664213",
+      "address": "1318 PROSPECT ST",
+      "fullAddress": "1318 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.70954,
+      "lat": 43.022933
+    },
+    {
+      "osmId": "1219664214",
+      "address": "1321 MACKIN RD",
+      "fullAddress": "1321 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.709393,
+      "lat": 43.023108
+    },
+    {
+      "osmId": "1219664215",
+      "address": "1318 PROSPECT ST",
+      "fullAddress": "1318 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.709513,
+      "lat": 43.023059
+    },
+    {
+      "osmId": "1219664216",
+      "address": "1318 PROSPECT ST",
+      "fullAddress": "1318 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.709446,
+      "lat": 43.02302
+    },
+    {
+      "osmId": "1219664217",
+      "address": "1322 PROSPECT ST",
+      "fullAddress": "1322 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.709572,
+      "lat": 43.023072
+    },
+    {
+      "osmId": "1219664218",
+      "address": "1326 PROSPECT ST",
+      "fullAddress": "1326 PROSPECT ST, FLINT, MI 48503",
+      "lng": -83.709789,
+      "lat": 43.023143
+    },
+    {
+      "osmId": "1219664219",
+      "address": "1412 PROSPECT ST",
+      "fullAddress": "1412 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.710376,
+      "lat": 43.023151
+    },
+    {
+      "osmId": "1219664220",
+      "address": "1421 MACKIN RD",
+      "fullAddress": "1421 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.710467,
+      "lat": 43.023597
+    },
+    {
+      "osmId": "1219664221",
+      "address": "1101 CALDWELL AVE",
+      "fullAddress": "1101 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.711437,
+      "lat": 43.023543
+    },
+    {
+      "osmId": "1219664222",
+      "address": "1510 PROSPECT ST",
+      "fullAddress": "1510 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711729,
+      "lat": 43.023611
+    },
+    {
+      "osmId": "1219664223",
+      "address": "1510 PROSPECT ST",
+      "fullAddress": "1510 PROSPECT ST, FLINT, MI 48504",
+      "lng": -83.711581,
+      "lat": 43.023693
+    },
+    {
+      "osmId": "1219664224",
+      "address": "1525 MACKIN RD",
+      "fullAddress": "1525 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.711921,
+      "lat": 43.024056
+    },
+    {
+      "osmId": "1219664225",
+      "address": "1517 MACKIN RD",
+      "fullAddress": "1517 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.711632,
+      "lat": 43.023962
+    },
+    {
+      "osmId": "1219664226",
+      "address": "1517 MACKIN RD",
+      "fullAddress": "1517 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.711674,
+      "lat": 43.02384
+    },
+    {
+      "osmId": "1219664248",
+      "address": "1244 NIAGARA AVE",
+      "fullAddress": "1244 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708607,
+      "lat": 43.024268
+    },
+    {
+      "osmId": "1219664249",
+      "address": "1252 NIAGARA AVE",
+      "fullAddress": "1252 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708242,
+      "lat": 43.024316
+    },
+    {
+      "osmId": "1219664250",
+      "address": "1248 NIAGARA AVE",
+      "fullAddress": "1248 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708529,
+      "lat": 43.024359
+    },
+    {
+      "osmId": "1219664251",
+      "address": "1252 NIAGARA AVE",
+      "fullAddress": "1252 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708447,
+      "lat": 43.02445
+    },
+    {
+      "osmId": "1219664252",
+      "address": "1260 NIAGARA AVE",
+      "fullAddress": "1260 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708275,
+      "lat": 43.024625
+    },
+    {
+      "osmId": "1219664253",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.707938,
+      "lat": 43.024707
+    },
+    {
+      "osmId": "1219664254",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.707777,
+      "lat": 43.02496
+    },
+    {
+      "osmId": "1219664255",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.707939,
+      "lat": 43.025008
+    },
+    {
+      "osmId": "1219664256",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.70782,
+      "lat": 43.024895
+    },
+    {
+      "osmId": "1219664257",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.707704,
+      "lat": 43.024846
+    },
+    {
+      "osmId": "1219664258",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.70774,
+      "lat": 43.024785
+    },
+    {
+      "osmId": "1219664259",
+      "address": "1314 NIAGARA AVE",
+      "fullAddress": "1314 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.707837,
+      "lat": 43.024687
+    },
+    {
+      "osmId": "1219664260",
+      "address": "1311 BEGOLE ST",
+      "fullAddress": "1311 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.707664,
+      "lat": 43.024693
+    },
+    {
+      "osmId": "1219664261",
+      "address": "1311 BEGOLE ST",
+      "fullAddress": "1311 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.707701,
+      "lat": 43.024572
+    },
+    {
+      "osmId": "1219664262",
+      "address": "1260 NIAGARA AVE",
+      "fullAddress": "1260 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708002,
+      "lat": 43.024471
+    },
+    {
+      "osmId": "1219664263",
+      "address": "1241 VINCENT AVE",
+      "fullAddress": "1241 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.707904,
+      "lat": 43.024391
+    },
+    {
+      "osmId": "1219664264",
+      "address": "1241 VINCENT AVE",
+      "fullAddress": "1241 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.707674,
+      "lat": 43.024331
+    },
+    {
+      "osmId": "1219664265",
+      "address": "1229 VINCENT AVE",
+      "fullAddress": "1229 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.707907,
+      "lat": 43.024046
+    },
+    {
+      "osmId": "1219664266",
+      "address": "1225 VINCENT AVE",
+      "fullAddress": "1225 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.707995,
+      "lat": 43.023954
+    },
+    {
+      "osmId": "1219664267",
+      "address": "1221 VINCENT AVE",
+      "fullAddress": "1221 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.708084,
+      "lat": 43.023871
+    },
+    {
+      "osmId": "1219664268",
+      "address": "1201 VINCENT AVE",
+      "fullAddress": "1201 VINCENT AVE, FLINT, MI 48503",
+      "lng": -83.708396,
+      "lat": 43.023418
+    },
+    {
+      "osmId": "1219664269",
+      "address": "1312 MACKIN RD",
+      "fullAddress": "1312 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.708522,
+      "lat": 43.023593
+    },
+    {
+      "osmId": "1219664270",
+      "address": "1326 MACKIN RD",
+      "fullAddress": "1326 MACKIN RD, FLINT, MI 48503",
+      "lng": -83.709162,
+      "lat": 43.023592
+    },
+    {
+      "osmId": "1219664271",
+      "address": "1222 NIAGARA AVE",
+      "fullAddress": "1222 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708999,
+      "lat": 43.023797
+    },
+    {
+      "osmId": "1219664273",
+      "address": "1201 NIAGARA AVE",
+      "fullAddress": "1201 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709609,
+      "lat": 43.023673
+    },
+    {
+      "osmId": "1219664274",
+      "address": "1201 NIAGARA AVE",
+      "fullAddress": "1201 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709752,
+      "lat": 43.023749
+    },
+    {
+      "osmId": "1219664275",
+      "address": "1205 NIAGARA AVE",
+      "fullAddress": "1205 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709718,
+      "lat": 43.023804
+    },
+    {
+      "osmId": "1219664276",
+      "address": "1205 NIAGARA AVE",
+      "fullAddress": "1205 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709562,
+      "lat": 43.023796
+    },
+    {
+      "osmId": "1219664277",
+      "address": "1213 NIAGARA AVE",
+      "fullAddress": "1213 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709441,
+      "lat": 43.023986
+    },
+    {
+      "osmId": "1219664278",
+      "address": "1225 NIAGARA AVE",
+      "fullAddress": "1225 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709532,
+      "lat": 43.024369
+    },
+    {
+      "osmId": "1219664279",
+      "address": "1225 NIAGARA AVE",
+      "fullAddress": "1225 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709189,
+      "lat": 43.024248
+    },
+    {
+      "osmId": "1219664280",
+      "address": "1230 CALDWELL AVE",
+      "fullAddress": "1230 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.709897,
+      "lat": 43.024495
+    },
+    {
+      "osmId": "1219664281",
+      "address": "1238 CALDWELL AVE",
+      "fullAddress": "1238 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.709625,
+      "lat": 43.024668
+    },
+    {
+      "osmId": "1219664282",
+      "address": "1238 CALDWELL AVE",
+      "fullAddress": "1238 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.709423,
+      "lat": 43.024644
+    },
+    {
+      "osmId": "1219664283",
+      "address": "1243 NIAGARA AVE",
+      "fullAddress": "1243 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708954,
+      "lat": 43.024527
+    },
+    {
+      "osmId": "1219664284",
+      "address": "1251 NIAGARA AVE",
+      "fullAddress": "1251 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708875,
+      "lat": 43.024619
+    },
+    {
+      "osmId": "1219664285",
+      "address": "1305 NIAGARA AVE",
+      "fullAddress": "1305 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708878,
+      "lat": 43.025142
+    },
+    {
+      "osmId": "1219664286",
+      "address": "1305 NIAGARA AVE",
+      "fullAddress": "1305 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708888,
+      "lat": 43.025107
+    },
+    {
+      "osmId": "1219664287",
+      "address": "1314 CALDWELL AVE",
+      "fullAddress": "1314 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.709471,
+      "lat": 43.025139
+    },
+    {
+      "osmId": "1219664288",
+      "address": "1259 NIAGARA AVE",
+      "fullAddress": "1259 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709217,
+      "lat": 43.024956
+    },
+    {
+      "osmId": "1219664289",
+      "address": "1259 NIAGARA AVE",
+      "fullAddress": "1259 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709194,
+      "lat": 43.024847
+    },
+    {
+      "osmId": "1219664290",
+      "address": "1259 NIAGARA AVE",
+      "fullAddress": "1259 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708967,
+      "lat": 43.024792
+    },
+    {
+      "osmId": "1219664291",
+      "address": "1259 NIAGARA AVE",
+      "fullAddress": "1259 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.709025,
+      "lat": 43.024946
+    },
+    {
+      "osmId": "1219664292",
+      "address": "1259 NIAGARA AVE",
+      "fullAddress": "1259 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708855,
+      "lat": 43.024846
+    },
+    {
+      "osmId": "1219664293",
+      "address": "1259 NIAGARA AVE",
+      "fullAddress": "1259 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708701,
+      "lat": 43.024796
+    },
+    {
+      "osmId": "1219664294",
+      "address": "1301 NIAGARA AVE",
+      "fullAddress": "1301 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708635,
+      "lat": 43.024894
+    },
+    {
+      "osmId": "1219664295",
+      "address": "1301 NIAGARA AVE",
+      "fullAddress": "1301 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708794,
+      "lat": 43.024994
+    },
+    {
+      "osmId": "1219664296",
+      "address": "1309 NIAGARA AVE",
+      "fullAddress": "1309 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708439,
+      "lat": 43.025088
+    },
+    {
+      "osmId": "1219664297",
+      "address": "1305 NIAGARA AVE",
+      "fullAddress": "1305 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708567,
+      "lat": 43.024991
+    },
+    {
+      "osmId": "1219664298",
+      "address": "1305 NIAGARA AVE",
+      "fullAddress": "1305 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708716,
+      "lat": 43.02509
+    },
+    {
+      "osmId": "1219664299",
+      "address": "1309 NIAGARA AVE",
+      "fullAddress": "1309 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708647,
+      "lat": 43.025128
+    },
+    {
+      "osmId": "1219664300",
+      "address": "1317 NIAGARA AVE",
+      "fullAddress": "1317 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708305,
+      "lat": 43.025264
+    },
+    {
+      "osmId": "1219664301",
+      "address": "1317 NIAGARA AVE",
+      "fullAddress": "1317 NIAGARA AVE, FLINT, MI 48503",
+      "lng": -83.708494,
+      "lat": 43.025382
+    },
+    {
+      "osmId": "1219664302",
+      "address": "1409 BEGOLE ST",
+      "fullAddress": "1409 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.708539,
+      "lat": 43.025472
+    },
+    {
+      "osmId": "1219664303",
+      "address": "1409 BEGOLE ST",
+      "fullAddress": "1409 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.708369,
+      "lat": 43.025529
+    },
+    {
+      "osmId": "1219664304",
+      "address": "1413 BEGOLE ST",
+      "fullAddress": "1413 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.708461,
+      "lat": 43.025614
+    },
+    {
+      "osmId": "1219664305",
+      "address": "1417 BEGOLE ST",
+      "fullAddress": "1417 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.708612,
+      "lat": 43.025649
+    },
+    {
+      "osmId": "1219664306",
+      "address": "1417 BEGOLE ST",
+      "fullAddress": "1417 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.708518,
+      "lat": 43.025747
+    },
+    {
+      "osmId": "1219664307",
+      "address": "1410 CALDWELL AVE",
+      "fullAddress": "1410 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.708718,
+      "lat": 43.025973
+    },
+    {
+      "osmId": "1219664308",
+      "address": "1207 CALDWELL AVE",
+      "fullAddress": "1207 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.710878,
+      "lat": 43.024207
+    },
+    {
+      "osmId": "1219664309",
+      "address": "1215 CALDWELL AVE",
+      "fullAddress": "1215 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.710632,
+      "lat": 43.024412
+    },
+    {
+      "osmId": "1219664310",
+      "address": "1230 MC INTOSH DR",
+      "fullAddress": "1230 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.71072,
+      "lat": 43.024822
+    },
+    {
+      "osmId": "1219664311",
+      "address": "1234 MC INTOSH DR",
+      "fullAddress": "1234 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710659,
+      "lat": 43.024944
+    },
+    {
+      "osmId": "1219664312",
+      "address": "1302 MC INTOSH DR",
+      "fullAddress": "1302 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710487,
+      "lat": 43.025099
+    },
+    {
+      "osmId": "1219664313",
+      "address": "1302 MC INTOSH DR",
+      "fullAddress": "1302 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710348,
+      "lat": 43.025107
+    },
+    {
+      "osmId": "1219664314",
+      "address": "1308 MC INTOSH DR",
+      "fullAddress": "1308 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.71041,
+      "lat": 43.025222
+    },
+    {
+      "osmId": "1219664315",
+      "address": "1310 MC INTOSH DR",
+      "fullAddress": "1310 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710349,
+      "lat": 43.0253
+    },
+    {
+      "osmId": "1219664317",
+      "address": "1334 MC INTOSH DR",
+      "fullAddress": "1334 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.709914,
+      "lat": 43.025833
+    },
+    {
+      "osmId": "1219664318",
+      "address": "1326 MC INTOSH DR",
+      "fullAddress": "1326 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.709922,
+      "lat": 43.025636
+    },
+    {
+      "osmId": "1219664319",
+      "address": "1326 MC INTOSH DR",
+      "fullAddress": "1326 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710032,
+      "lat": 43.02571
+    },
+    {
+      "osmId": "1219664320",
+      "address": "1313 MC INTOSH DR",
+      "fullAddress": "1313 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710616,
+      "lat": 43.025617
+    },
+    {
+      "osmId": "1219664321",
+      "address": "1309 MC INTOSH DR",
+      "fullAddress": "1309 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710742,
+      "lat": 43.025466
+    },
+    {
+      "osmId": "1219664322",
+      "address": "1301 MC INTOSH DR",
+      "fullAddress": "1301 MC INTOSH DR, FLINT, MI 48503",
+      "lng": -83.710824,
+      "lat": 43.025325
+    },
+    {
+      "osmId": "1219664323",
+      "address": "1552 PETRIE ST",
+      "fullAddress": "1552 PETRIE ST, FLINT, MI 48503",
+      "lng": -83.711106,
+      "lat": 43.025366
+    },
+    {
+      "osmId": "1219664324",
+      "address": "1314 KIRK AVE",
+      "fullAddress": "1314 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.710952,
+      "lat": 43.025647
+    },
+    {
+      "osmId": "1219664325",
+      "address": "1301 KIRK AVE",
+      "fullAddress": "1301 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711791,
+      "lat": 43.025614
+    },
+    {
+      "osmId": "1219664326",
+      "address": "1301 KIRK AVE",
+      "fullAddress": "1301 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711609,
+      "lat": 43.025548
+    },
+    {
+      "osmId": "1219664327",
+      "address": "1307 KIRK AVE",
+      "fullAddress": "1307 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711691,
+      "lat": 43.025689
+    },
+    {
+      "osmId": "1219664328",
+      "address": "1307 KIRK AVE",
+      "fullAddress": "1307 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711501,
+      "lat": 43.025686
+    },
+    {
+      "osmId": "1219664329",
+      "address": "1313 KIRK AVE",
+      "fullAddress": "1313 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711428,
+      "lat": 43.025835
+    },
+    {
+      "osmId": "1219664330",
+      "address": "1325 KIRK AVE",
+      "fullAddress": "1325 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711283,
+      "lat": 43.026009
+    },
+    {
+      "osmId": "1219664331",
+      "address": "1605 CONCORD ST",
+      "fullAddress": "1605 CONCORD ST, FLINT, MI 48503",
+      "lng": -83.711286,
+      "lat": 43.026116
+    },
+    {
+      "osmId": "1219664332",
+      "address": "1605 CONCORD ST",
+      "fullAddress": "1605 CONCORD ST, FLINT, MI 48503",
+      "lng": -83.711139,
+      "lat": 43.026244
+    },
+    {
+      "osmId": "1219664333",
+      "address": "1325 KIRK AVE",
+      "fullAddress": "1325 KIRK AVE, FLINT, MI 48503",
+      "lng": -83.711514,
+      "lat": 43.02599
+    },
+    {
+      "osmId": "1219664334",
+      "address": "1322 JEAN AVE",
+      "fullAddress": "1322 JEAN AVE, FLINT, MI 48503",
+      "lng": -83.711777,
+      "lat": 43.026118
+    },
+    {
+      "osmId": "1219664337",
+      "address": "1311 JEAN AVE",
+      "fullAddress": "1311 JEAN AVE, FLINT, MI 48503",
+      "lng": -83.712452,
+      "lat": 43.026051
+    },
+    {
+      "osmId": "1219664338",
+      "address": "1325 JEAN AVE",
+      "fullAddress": "1325 JEAN AVE, FLINT, MI 48503",
+      "lng": -83.712205,
+      "lat": 43.026301
+    },
+    {
+      "osmId": "1219664342",
+      "address": "1409 CALDWELL AVE",
+      "fullAddress": "1409 CALDWELL AVE, FLINT, MI 48503",
+      "lng": -83.709055,
+      "lat": 43.026209
+    },
+    {
+      "osmId": "1219664343",
+      "address": "1509 BEGOLE ST",
+      "fullAddress": "1509 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.709255,
+      "lat": 43.026336
+    },
+    {
+      "osmId": "1219664344",
+      "address": "1509 BEGOLE ST",
+      "fullAddress": "1509 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.709213,
+      "lat": 43.026463
+    },
+    {
+      "osmId": "1219664611",
+      "address": "616 TENTH AVE",
+      "fullAddress": "616 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.706906,
+      "lat": 43.024851
+    },
+    {
+      "osmId": "1219664612",
+      "address": "1314 BEGOLE ST",
+      "fullAddress": "1314 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.707366,
+      "lat": 43.025012
+    },
+    {
+      "osmId": "1219664613",
+      "address": "1321 STONE ST",
+      "fullAddress": "1321 STONE ST, FLINT, MI 48503",
+      "lng": -83.706939,
+      "lat": 43.02549
+    },
+    {
+      "osmId": "1219664614",
+      "address": "1410 BEGOLE ST",
+      "fullAddress": "1410 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.708102,
+      "lat": 43.025833
+    },
+    {
+      "osmId": "1219664615",
+      "address": "1402 BEGOLE ST",
+      "fullAddress": "1402 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.707891,
+      "lat": 43.025674
+    },
+    {
+      "osmId": "1219664616",
+      "address": "1402 BEGOLE ST",
+      "fullAddress": "1402 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.707716,
+      "lat": 43.02575
+    },
+    {
+      "osmId": "1219664617",
+      "address": "1410 BEGOLE ST",
+      "fullAddress": "1410 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.707715,
+      "lat": 43.026027
+    },
+    {
+      "osmId": "1219664618",
+      "address": "1417 STONE ST",
+      "fullAddress": "1417 STONE ST, FLINT, MI 48503",
+      "lng": -83.707536,
+      "lat": 43.026311
+    },
+    {
+      "osmId": "1219664619",
+      "address": "1413 STONE ST",
+      "fullAddress": "1413 STONE ST, FLINT, MI 48503",
+      "lng": -83.707451,
+      "lat": 43.026216
+    },
+    {
+      "osmId": "1219664620",
+      "address": "1413 STONE ST",
+      "fullAddress": "1413 STONE ST, FLINT, MI 48503",
+      "lng": -83.707667,
+      "lat": 43.02617
+    },
+    {
+      "osmId": "1219664621",
+      "address": "1417 STONE ST",
+      "fullAddress": "1417 STONE ST, FLINT, MI 48503",
+      "lng": -83.70774,
+      "lat": 43.026259
+    },
+    {
+      "osmId": "1219664622",
+      "address": "613 W WOOD ST",
+      "fullAddress": "613 W WOOD ST, FLINT, MI 48503",
+      "lng": -83.708201,
+      "lat": 43.026412
+    },
+    {
+      "osmId": "1219664623",
+      "address": "1310 STONE ST",
+      "fullAddress": "1310 STONE ST, FLINT, MI 48503",
+      "lng": -83.705989,
+      "lat": 43.025441
+    },
+    {
+      "osmId": "1219664625",
+      "address": "1321 N GRAND TRAVERSE",
+      "fullAddress": "1321 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705856,
+      "lat": 43.025921
+    },
+    {
+      "osmId": "1219664626",
+      "address": "1317 N GRAND TRAVERSE",
+      "fullAddress": "1317 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705797,
+      "lat": 43.025833
+    },
+    {
+      "osmId": "1219664627",
+      "address": "1305 N GRAND TRAVERSE",
+      "fullAddress": "1305 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705573,
+      "lat": 43.025549
+    },
+    {
+      "osmId": "1219664628",
+      "address": "1309 N GRAND TRAVERSE",
+      "fullAddress": "1309 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.70563,
+      "lat": 43.025642
+    },
+    {
+      "osmId": "1219664629",
+      "address": "524 TENTH AVE",
+      "fullAddress": "524 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.706059,
+      "lat": 43.025235
+    },
+    {
+      "osmId": "1219664630",
+      "address": "524 TENTH AVE",
+      "fullAddress": "524 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.706126,
+      "lat": 43.025323
+    },
+    {
+      "osmId": "1219664631",
+      "address": "1310 STONE ST",
+      "fullAddress": "1310 STONE ST, FLINT, MI 48503",
+      "lng": -83.706196,
+      "lat": 43.025389
+    },
+    {
+      "osmId": "1219664632",
+      "address": "1321 N GRAND TRAVERSE",
+      "fullAddress": "1321 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.705967,
+      "lat": 43.025829
+    },
+    {
+      "osmId": "1219664633",
+      "address": "1322 STONE ST",
+      "fullAddress": "1322 STONE ST, FLINT, MI 48503",
+      "lng": -83.706167,
+      "lat": 43.025746
+    },
+    {
+      "osmId": "1219664634",
+      "address": "1322 STONE ST",
+      "fullAddress": "1322 STONE ST, FLINT, MI 48503",
+      "lng": -83.706483,
+      "lat": 43.025656
+    },
+    {
+      "osmId": "1219664635",
+      "address": "1330 STONE ST",
+      "fullAddress": "1330 STONE ST, FLINT, MI 48503",
+      "lng": -83.706577,
+      "lat": 43.02587
+    },
+    {
+      "osmId": "1219664636",
+      "address": "1330 STONE ST",
+      "fullAddress": "1330 STONE ST, FLINT, MI 48503",
+      "lng": -83.706435,
+      "lat": 43.02596
+    },
+    {
+      "osmId": "1219664637",
+      "address": "1406 STONE ST",
+      "fullAddress": "1406 STONE ST, FLINT, MI 48503",
+      "lng": -83.706654,
+      "lat": 43.026174
+    },
+    {
+      "osmId": "1219664638",
+      "address": "1406 STONE ST",
+      "fullAddress": "1406 STONE ST, FLINT, MI 48503",
+      "lng": -83.706836,
+      "lat": 43.02617
+    },
+    {
+      "osmId": "1219664639",
+      "address": "1414 STONE ST",
+      "fullAddress": "1414 STONE ST, FLINT, MI 48503",
+      "lng": -83.706983,
+      "lat": 43.026339
+    },
+    {
+      "osmId": "1219664646",
+      "address": "905 MASON ST",
+      "fullAddress": "905 MASON ST, FLINT, MI 48503",
+      "lng": -83.70114,
+      "lat": 43.022483
+    },
+    {
+      "osmId": "1219664647",
+      "address": "905 MASON ST",
+      "fullAddress": "905 MASON ST, FLINT, MI 48503",
+      "lng": -83.701031,
+      "lat": 43.022531
+    },
+    {
+      "osmId": "1219664648",
+      "address": "422 SIXTH AVE",
+      "fullAddress": "422 SIXTH AVE, FLINT, MI 48503",
+      "lng": -83.701617,
+      "lat": 43.022231
+    },
+    {
+      "osmId": "1219664649",
+      "address": "425 SEVENTH AVE",
+      "fullAddress": "425 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.702286,
+      "lat": 43.022748
+    },
+    {
+      "osmId": "1219664650",
+      "address": "928 N GRAND TRAVERSE",
+      "fullAddress": "928 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.702504,
+      "lat": 43.022642
+    },
+    {
+      "osmId": "1219664651",
+      "address": "1107 MASON ST",
+      "fullAddress": "1107 MASON ST, FLINT, MI 48503",
+      "lng": -83.702711,
+      "lat": 43.024254
+    },
+    {
+      "osmId": "1219664652",
+      "address": "1107 MASON ST",
+      "fullAddress": "1107 MASON ST, FLINT, MI 48503",
+      "lng": -83.702583,
+      "lat": 43.024367
+    },
+    {
+      "osmId": "1219664653",
+      "address": "1115 MASON ST",
+      "fullAddress": "1115 MASON ST, FLINT, MI 48503",
+      "lng": -83.70292,
+      "lat": 43.024457
+    },
+    {
+      "osmId": "1219664654",
+      "address": "1119 MASON ST",
+      "fullAddress": "1119 MASON ST, FLINT, MI 48503",
+      "lng": -83.703078,
+      "lat": 43.024591
+    },
+    {
+      "osmId": "1219664655",
+      "address": "1115 MASON ST",
+      "fullAddress": "1115 MASON ST, FLINT, MI 48503",
+      "lng": -83.702744,
+      "lat": 43.024582
+    },
+    {
+      "osmId": "1219664656",
+      "address": "1119 MASON ST",
+      "fullAddress": "1119 MASON ST, FLINT, MI 48503",
+      "lng": -83.702861,
+      "lat": 43.024686
+    },
+    {
+      "osmId": "1219664657",
+      "address": "412 NINTH AVE",
+      "fullAddress": "412 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.703535,
+      "lat": 43.025093
+    },
+    {
+      "osmId": "1219664658",
+      "address": "406 NINTH AVE",
+      "fullAddress": "406 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.703558,
+      "lat": 43.025241
+    },
+    {
+      "osmId": "1219664659",
+      "address": "420 NINTH AVE",
+      "fullAddress": "420 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.703941,
+      "lat": 43.02496
+    },
+    {
+      "osmId": "1219664660",
+      "address": "420 NINTH AVE",
+      "fullAddress": "420 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.703956,
+      "lat": 43.025111
+    },
+    {
+      "osmId": "1219664661",
+      "address": "420 NINTH AVE",
+      "fullAddress": "420 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.704084,
+      "lat": 43.025052
+    },
+    {
+      "osmId": "1219664662",
+      "address": "434 NINTH AVE",
+      "fullAddress": "434 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.704328,
+      "lat": 43.024744
+    },
+    {
+      "osmId": "1219664663",
+      "address": "434 NINTH AVE",
+      "fullAddress": "434 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.704426,
+      "lat": 43.024893
+    },
+    {
+      "osmId": "1219664664",
+      "address": "1224 N GRAND TRAVERSE",
+      "fullAddress": "1224 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.704774,
+      "lat": 43.025234
+    },
+    {
+      "osmId": "1219664665",
+      "address": "419 TENTH AVE",
+      "fullAddress": "419 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704243,
+      "lat": 43.02543
+    },
+    {
+      "osmId": "1219664666",
+      "address": "419 TENTH AVE",
+      "fullAddress": "419 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704164,
+      "lat": 43.025454
+    },
+    {
+      "osmId": "1219664667",
+      "address": "411 TENTH AVE",
+      "fullAddress": "411 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704061,
+      "lat": 43.025553
+    },
+    {
+      "osmId": "1219664668",
+      "address": "411 TENTH AVE",
+      "fullAddress": "411 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704178,
+      "lat": 43.025642
+    },
+    {
+      "osmId": "1219664669",
+      "address": "419 TENTH AVE",
+      "fullAddress": "419 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704329,
+      "lat": 43.025593
+    },
+    {
+      "osmId": "1219664670",
+      "address": "423 TENTH AVE",
+      "fullAddress": "423 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704457,
+      "lat": 43.025517
+    },
+    {
+      "osmId": "1219664672",
+      "address": "430 TENTH AVE",
+      "fullAddress": "430 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704892,
+      "lat": 43.025755
+    },
+    {
+      "osmId": "1219664673",
+      "address": "414 TENTH AVE",
+      "fullAddress": "414 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704456,
+      "lat": 43.025942
+    },
+    {
+      "osmId": "1219664674",
+      "address": "418 TENTH AVE",
+      "fullAddress": "418 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704599,
+      "lat": 43.02588
+    },
+    {
+      "osmId": "1219664675",
+      "address": "418 TENTH AVE",
+      "fullAddress": "418 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704802,
+      "lat": 43.025948
+    },
+    {
+      "osmId": "1219664676",
+      "address": "418 TENTH AVE",
+      "fullAddress": "418 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.7049,
+      "lat": 43.026074
+    },
+    {
+      "osmId": "1219664677",
+      "address": "414 TENTH AVE",
+      "fullAddress": "414 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.704663,
+      "lat": 43.026197
+    },
+    {
+      "osmId": "1219664703",
+      "address": "316 SIXTH AVE",
+      "fullAddress": "316 SIXTH AVE, FLINT, MI 48503",
+      "lng": -83.700452,
+      "lat": 43.022987
+    },
+    {
+      "osmId": "1219664704",
+      "address": "316 SIXTH AVE",
+      "fullAddress": "316 SIXTH AVE, FLINT, MI 48503",
+      "lng": -83.700368,
+      "lat": 43.02278
+    },
+    {
+      "osmId": "1219664705",
+      "address": "909 LYON ST",
+      "fullAddress": "909 LYON ST, FLINT, MI 48503",
+      "lng": -83.700147,
+      "lat": 43.022903
+    },
+    {
+      "osmId": "1219664706",
+      "address": "310 SIXTH AVE",
+      "fullAddress": "310 SIXTH AVE, FLINT, MI 48503",
+      "lng": -83.700085,
+      "lat": 43.022815
+    },
+    {
+      "osmId": "1219664707",
+      "address": "909 LYON ST",
+      "fullAddress": "909 LYON ST, FLINT, MI 48503",
+      "lng": -83.700044,
+      "lat": 43.02304
+    },
+    {
+      "osmId": "1219664708",
+      "address": "302 SIXTH AVE",
+      "fullAddress": "302 SIXTH AVE, FLINT, MI 48503",
+      "lng": -83.699902,
+      "lat": 43.022906
+    },
+    {
+      "osmId": "1219664709",
+      "address": "929 LYON ST",
+      "fullAddress": "929 LYON ST, FLINT, MI 48503",
+      "lng": -83.700474,
+      "lat": 43.023561
+    },
+    {
+      "osmId": "1219664710",
+      "address": "311 SEVENTH AVE",
+      "fullAddress": "311 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.70056,
+      "lat": 43.023408
+    },
+    {
+      "osmId": "1219664711",
+      "address": "311 SEVENTH AVE",
+      "fullAddress": "311 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.700713,
+      "lat": 43.023404
+    },
+    {
+      "osmId": "1219664712",
+      "address": "1028 MASON ST",
+      "fullAddress": "1028 MASON ST, FLINT, MI 48503",
+      "lng": -83.70183,
+      "lat": 43.024215
+    },
+    {
+      "osmId": "1219664713",
+      "address": "320 SEVENTH AVE",
+      "fullAddress": "320 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.701336,
+      "lat": 43.023792
+    },
+    {
+      "osmId": "1219664714",
+      "address": "320 SEVENTH AVE",
+      "fullAddress": "320 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.701239,
+      "lat": 43.023605
+    },
+    {
+      "osmId": "1219664715",
+      "address": "308 SEVENTH AVE",
+      "fullAddress": "308 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.700812,
+      "lat": 43.023758
+    },
+    {
+      "osmId": "1219664716",
+      "address": "1023 LYON ST",
+      "fullAddress": "1023 LYON ST, FLINT, MI 48503",
+      "lng": -83.701182,
+      "lat": 43.024098
+    },
+    {
+      "osmId": "1219664717",
+      "address": "1023 LYON ST",
+      "fullAddress": "1023 LYON ST, FLINT, MI 48503",
+      "lng": -83.701111,
+      "lat": 43.024194
+    },
+    {
+      "osmId": "1219664718",
+      "address": "309 EIGHTH AVE",
+      "fullAddress": "309 EIGHTH AVE, FLINT, MI 48503",
+      "lng": -83.701284,
+      "lat": 43.024285
+    },
+    {
+      "osmId": "1219664719",
+      "address": "1027 LYON ST",
+      "fullAddress": "1027 LYON ST, FLINT, MI 48503",
+      "lng": -83.701249,
+      "lat": 43.024304
+    },
+    {
+      "osmId": "1219664720",
+      "address": "1023 LYON ST",
+      "fullAddress": "1023 LYON ST, FLINT, MI 48503",
+      "lng": -83.701088,
+      "lat": 43.024326
+    },
+    {
+      "osmId": "1219664721",
+      "address": "310 EIGHTH AVE",
+      "fullAddress": "310 EIGHTH AVE, FLINT, MI 48503",
+      "lng": -83.701691,
+      "lat": 43.02462
+    },
+    {
+      "osmId": "1219664722",
+      "address": "306 EIGHTH AVE",
+      "fullAddress": "306 EIGHTH AVE, FLINT, MI 48503",
+      "lng": -83.701551,
+      "lat": 43.02466
+    },
+    {
+      "osmId": "1219664723",
+      "address": "1103 LYON ST",
+      "fullAddress": "1103 LYON ST, FLINT, MI 48503",
+      "lng": -83.701538,
+      "lat": 43.024732
+    },
+    {
+      "osmId": "1219664724",
+      "address": "1103 LYON ST",
+      "fullAddress": "1103 LYON ST, FLINT, MI 48503",
+      "lng": -83.701454,
+      "lat": 43.024735
+    },
+    {
+      "osmId": "1219664725",
+      "address": "1107 LYON ST",
+      "fullAddress": "1107 LYON ST, FLINT, MI 48503",
+      "lng": -83.701515,
+      "lat": 43.024841
+    },
+    {
+      "osmId": "1219664726",
+      "address": "1115 LYON ST",
+      "fullAddress": "1115 LYON ST, FLINT, MI 48503",
+      "lng": -83.701734,
+      "lat": 43.02506
+    },
+    {
+      "osmId": "1219664727",
+      "address": "1127 LYON ST",
+      "fullAddress": "1127 LYON ST, FLINT, MI 48503",
+      "lng": -83.701957,
+      "lat": 43.025357
+    },
+    {
+      "osmId": "1219664728",
+      "address": "1203 LYON ST",
+      "fullAddress": "1203 LYON ST, FLINT, MI 48503",
+      "lng": -83.702209,
+      "lat": 43.025666
+    },
+    {
+      "osmId": "1219664729",
+      "address": "308 NINTH AVE",
+      "fullAddress": "308 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.702367,
+      "lat": 43.025569
+    },
+    {
+      "osmId": "1219664730",
+      "address": "312 NINTH AVE",
+      "fullAddress": "312 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.702476,
+      "lat": 43.025513
+    },
+    {
+      "osmId": "1219664731",
+      "address": "318 NINTH AVE",
+      "fullAddress": "318 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.702719,
+      "lat": 43.02548
+    },
+    {
+      "osmId": "1219664732",
+      "address": "1206 MASON ST",
+      "fullAddress": "1206 MASON ST, FLINT, MI 48503",
+      "lng": -83.70294,
+      "lat": 43.025442
+    },
+    {
+      "osmId": "1219664733",
+      "address": "1214 MASON ST",
+      "fullAddress": "1214 MASON ST, FLINT, MI 48503",
+      "lng": -83.703089,
+      "lat": 43.025664
+    },
+    {
+      "osmId": "1219664734",
+      "address": "318 NINTH AVE",
+      "fullAddress": "318 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.702869,
+      "lat": 43.025646
+    },
+    {
+      "osmId": "1219664735",
+      "address": "307 TENTH AVE",
+      "fullAddress": "307 TENTH AVE, FLINT, MI 48503",
+      "lng": -83.70302,
+      "lat": 43.026178
+    },
+    {
+      "osmId": "1219664736",
+      "address": "1229 LYON ST",
+      "fullAddress": "1229 LYON ST, FLINT, MI 48503",
+      "lng": -83.702829,
+      "lat": 43.026292
+    },
+    {
+      "osmId": "1219664739",
+      "address": "1310 MASON ST",
+      "fullAddress": "1310 MASON ST, FLINT, MI 48503",
+      "lng": -83.703706,
+      "lat": 43.026466
+    },
+    {
+      "osmId": "1219664740",
+      "address": "1310 MASON ST",
+      "fullAddress": "1310 MASON ST, FLINT, MI 48503",
+      "lng": -83.70358,
+      "lat": 43.026492
+    },
+    {
+      "osmId": "1219664746",
+      "address": "1143 M L KING AVE",
+      "fullAddress": "1143 M L KING AVE, FLINT, MI 48503",
+      "lng": -83.699938,
+      "lat": 43.026309
+    },
+    {
+      "osmId": "1219664747",
+      "address": "1118 GARLAND ST",
+      "fullAddress": "1118 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.700318,
+      "lat": 43.025808
+    },
+    {
+      "osmId": "1219664748",
+      "address": "1118 GARLAND ST",
+      "fullAddress": "1118 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.700009,
+      "lat": 43.02589
+    },
+    {
+      "osmId": "1219664749",
+      "address": "1125 M L KING AVE",
+      "fullAddress": "1125 M L KING AVE, FLINT, MI 48503",
+      "lng": -83.699555,
+      "lat": 43.025906
+    },
+    {
+      "osmId": "1219664750",
+      "address": "1121 M L KING AVE",
+      "fullAddress": "1121 M L KING AVE, FLINT, MI 48503",
+      "lng": -83.699453,
+      "lat": 43.025817
+    },
+    {
+      "osmId": "1219664751",
+      "address": "1019 M L KING AVE",
+      "fullAddress": "1019 M L KING AVE, FLINT, MI 48503",
+      "lng": -83.699057,
+      "lat": 43.025313
+    },
+    {
+      "osmId": "1219664752",
+      "address": "1024 GARLAND ST",
+      "fullAddress": "1024 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.699739,
+      "lat": 43.025138
+    },
+    {
+      "osmId": "1219664753",
+      "address": "1008 GARLAND ST",
+      "fullAddress": "1008 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.699386,
+      "lat": 43.024733
+    },
+    {
+      "osmId": "1219664754",
+      "address": "1012 GARLAND ST",
+      "fullAddress": "1012 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.69942,
+      "lat": 43.024922
+    },
+    {
+      "osmId": "1219664755",
+      "address": "1016 GARLAND ST",
+      "fullAddress": "1016 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.699358,
+      "lat": 43.025062
+    },
+    {
+      "osmId": "1219664756",
+      "address": "1016 GARLAND ST",
+      "fullAddress": "1016 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.699603,
+      "lat": 43.025015
+    },
+    {
+      "osmId": "1219664757",
+      "address": "210 SEVENTH AVE",
+      "fullAddress": "210 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.699884,
+      "lat": 43.024287
+    },
+    {
+      "osmId": "1219664758",
+      "address": "210 SEVENTH AVE",
+      "fullAddress": "210 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.700056,
+      "lat": 43.024383
+    },
+    {
+      "osmId": "1219664759",
+      "address": "214 SEVENTH AVE",
+      "fullAddress": "214 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.700223,
+      "lat": 43.024324
+    },
+    {
+      "osmId": "1219664760",
+      "address": "214 SEVENTH AVE",
+      "fullAddress": "214 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.700068,
+      "lat": 43.02424
+    },
+    {
+      "osmId": "1219664761",
+      "address": "218 SEVENTH AVE",
+      "fullAddress": "218 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.700192,
+      "lat": 43.024167
+    },
+    {
+      "osmId": "1219664762",
+      "address": "1008 LYON ST",
+      "fullAddress": "1008 LYON ST, FLINT, MI 48503",
+      "lng": -83.700498,
+      "lat": 43.024264
+    },
+    {
+      "osmId": "1219664763",
+      "address": "1112 LYON ST",
+      "fullAddress": "1112 LYON ST, FLINT, MI 48503",
+      "lng": -83.701175,
+      "lat": 43.025096
+    },
+    {
+      "osmId": "1219664764",
+      "address": "1116 LYON ST",
+      "fullAddress": "1116 LYON ST, FLINT, MI 48503",
+      "lng": -83.701306,
+      "lat": 43.025162
+    },
+    {
+      "osmId": "1219664765",
+      "address": "1124 LYON ST",
+      "fullAddress": "1124 LYON ST, FLINT, MI 48503",
+      "lng": -83.701314,
+      "lat": 43.025479
+    },
+    {
+      "osmId": "1219664766",
+      "address": "1115 GARLAND ST",
+      "fullAddress": "1115 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.700678,
+      "lat": 43.025492
+    },
+    {
+      "osmId": "1219664767",
+      "address": "1218 LYON ST",
+      "fullAddress": "1218 LYON ST, FLINT, MI 48503",
+      "lng": -83.701832,
+      "lat": 43.026307
+    },
+    {
+      "osmId": "1219664768",
+      "address": "1218 LYON ST",
+      "fullAddress": "1218 LYON ST, FLINT, MI 48503",
+      "lng": -83.702103,
+      "lat": 43.026201
+    },
+    {
+      "osmId": "1219664769",
+      "address": "224 NINTH AVE",
+      "fullAddress": "224 NINTH AVE, FLINT, MI 48503",
+      "lng": -83.701825,
+      "lat": 43.025811
+    },
+    {
+      "osmId": "1219664770",
+      "address": "1203 GARLAND ST",
+      "fullAddress": "1203 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.701185,
+      "lat": 43.026118
+    },
+    {
+      "osmId": "1219664771",
+      "address": "1205 GARLAND ST",
+      "fullAddress": "1205 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.701277,
+      "lat": 43.026247
+    },
+    {
+      "osmId": "1227235253",
+      "address": "855 E FIFTH AVE",
+      "fullAddress": "855 E FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.693062,
+      "lat": 43.023982
+    },
+    {
+      "osmId": "1227235259",
+      "address": "855 E FIFTH AVE",
+      "fullAddress": "855 E FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.69318,
+      "lat": 43.02376
+    },
+    {
+      "osmId": "1227235260",
+      "address": "855 E FIFTH AVE",
+      "fullAddress": "855 E FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.693131,
+      "lat": 43.023742
+    },
+    {
+      "osmId": "1227235261",
+      "address": "855 E FIFTH AVE",
+      "fullAddress": "855 E FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.693227,
+      "lat": 43.023741
+    },
+    {
+      "osmId": "1227401460",
+      "address": "302 BEACH ST",
+      "fullAddress": "302 BEACH ST, FLINT, MI 48502",
+      "lng": -83.693263,
+      "lat": 43.016827
+    },
+    {
+      "osmId": "1227401461",
+      "address": "1 W RIVERFRONT CENTER",
+      "fullAddress": "1 W RIVERFRONT CENTER, FLINT, MI 48502",
+      "lng": -83.693353,
+      "lat": 43.017685
+    },
+    {
+      "osmId": "1227401462",
+      "address": "325 BEACH ST",
+      "fullAddress": "325 BEACH ST, FLINT, MI 48502",
+      "lng": -83.692787,
+      "lat": 43.016836
+    },
+    {
+      "osmId": "1227401472",
+      "address": "411 GARLAND ST",
+      "fullAddress": "411 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.69557,
+      "lat": 43.018771
+    },
+    {
+      "osmId": "1227401473",
+      "address": "401 GARLAND ST",
+      "fullAddress": "401 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.695092,
+      "lat": 43.018992
+    },
+    {
+      "osmId": "1227401478",
+      "address": "401 M L KING AVE",
+      "fullAddress": "401 M L KING AVE, FLINT, MI 48502",
+      "lng": -83.694261,
+      "lat": 43.019481
+    },
+    {
+      "osmId": "1227401479",
+      "address": "116 FIRST AVE",
+      "fullAddress": "116 FIRST AVE, FLINT, MI 48502",
+      "lng": -83.694524,
+      "lat": 43.019239
+    },
+    {
+      "osmId": "1227401484",
+      "address": "607 E SECOND AVE",
+      "fullAddress": "607 E SECOND AVE, FLINT, MI 48502",
+      "lng": -83.694132,
+      "lat": 43.020513
+    },
+    {
+      "osmId": "1227401485",
+      "address": "607 E SECOND AVE",
+      "fullAddress": "607 E SECOND AVE, FLINT, MI 48502",
+      "lng": -83.694043,
+      "lat": 43.020457
+    },
+    {
+      "osmId": "1227401490",
+      "address": "500 N SAGINAW ST",
+      "fullAddress": "500 N SAGINAW ST, FLINT, MI 48502",
+      "lng": -83.693092,
+      "lat": 43.020621
+    },
+    {
+      "osmId": "1227401496",
+      "address": "610 M L KING AVE",
+      "fullAddress": "610 M L KING AVE, FLINT, MI 48502",
+      "lng": -83.695158,
+      "lat": 43.021543
+    },
+    {
+      "osmId": "1383576110",
+      "address": "609 E FIFTH AVE",
+      "fullAddress": "609 E FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.694283,
+      "lat": 43.023749
+    },
+    {
+      "osmId": "1383576112",
+      "address": "1050 N SAGINAW ST",
+      "fullAddress": "1050 N SAGINAW ST, FLINT, MI 48503",
+      "lng": -83.692841,
+      "lat": 43.026094
+    },
+    {
+      "osmId": "1383576113",
+      "address": "422 FIRST AVE",
+      "fullAddress": "422 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.697856,
+      "lat": 43.017829
+    },
+    {
+      "osmId": "1383576114",
+      "address": "418 FIRST AVE",
+      "fullAddress": "418 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.697662,
+      "lat": 43.017863
+    },
+    {
+      "osmId": "1383576115",
+      "address": "434 FIRST AVE",
+      "fullAddress": "434 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.698278,
+      "lat": 43.017597
+    },
+    {
+      "osmId": "1383576116",
+      "address": "426 FIRST AVE",
+      "fullAddress": "426 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.698054,
+      "lat": 43.017684
+    },
+    {
+      "osmId": "1383576117",
+      "address": "409 N GRAND TRAVERSE",
+      "fullAddress": "409 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.698983,
+      "lat": 43.017554
+    },
+    {
+      "osmId": "1383576118",
+      "address": "406 N GRAND TRAVERSE",
+      "fullAddress": "406 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.69836,
+      "lat": 43.017705
+    },
+    {
+      "osmId": "1383576120",
+      "address": "411 GARLAND ST",
+      "fullAddress": "411 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.695461,
+      "lat": 43.019075
+    },
+    {
+      "osmId": "1383576121",
+      "address": "225 W UNIVERSITY AVE",
+      "fullAddress": "225 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.696867,
+      "lat": 43.020058
+    },
+    {
+      "osmId": "1383576122",
+      "address": "529 M L KING AVE",
+      "fullAddress": "529 M L KING AVE, FLINT, MI 48502",
+      "lng": -83.695287,
+      "lat": 43.020623
+    },
+    {
+      "osmId": "1383576123",
+      "address": "613 M L KING AVE",
+      "fullAddress": "613 M L KING AVE, FLINT, MI 48502",
+      "lng": -83.695751,
+      "lat": 43.021397
+    },
+    {
+      "osmId": "1383576124",
+      "address": "601 M L KING AVE",
+      "fullAddress": "601 M L KING AVE, FLINT, MI 48502",
+      "lng": -83.695546,
+      "lat": 43.021137
+    },
+    {
+      "osmId": "1383576125",
+      "address": "627 M L KING AVE",
+      "fullAddress": "627 M L KING AVE, FLINT, MI 48502",
+      "lng": -83.696031,
+      "lat": 43.021622
+    },
+    {
+      "osmId": "1383576126",
+      "address": "715 M L KING AVE",
+      "fullAddress": "715 M L KING AVE, FLINT, MI 48503",
+      "lng": -83.696615,
+      "lat": 43.022284
+    },
+    {
+      "osmId": "1383576127",
+      "address": "701 M L KING AVE",
+      "fullAddress": "701 M L KING AVE, FLINT, MI 48503",
+      "lng": -83.696413,
+      "lat": 43.022027
+    },
+    {
+      "osmId": "1383576128",
+      "address": "604 GARLAND ST",
+      "fullAddress": "604 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.695995,
+      "lat": 43.02095
+    },
+    {
+      "osmId": "1383576129",
+      "address": "618 GARLAND ST",
+      "fullAddress": "618 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.696376,
+      "lat": 43.021225
+    },
+    {
+      "osmId": "1383576130",
+      "address": "704 GARLAND ST",
+      "fullAddress": "704 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.696849,
+      "lat": 43.021733
+    },
+    {
+      "osmId": "1383576131",
+      "address": "708 GARLAND ST",
+      "fullAddress": "708 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.696954,
+      "lat": 43.021837
+    },
+    {
+      "osmId": "1383576132",
+      "address": "115 W FIFTH AVE",
+      "fullAddress": "115 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.697143,
+      "lat": 43.022474
+    },
+    {
+      "osmId": "1383576133",
+      "address": "728 GARLAND ST",
+      "fullAddress": "728 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.697394,
+      "lat": 43.022359
+    },
+    {
+      "osmId": "1481011008",
+      "address": "625 MASON ST",
+      "fullAddress": "625 MASON ST, FLINT, MI 48503",
+      "lng": -83.699168,
+      "lat": 43.020346
+    },
+    {
+      "osmId": "1481011009",
+      "address": "621 MASON ST",
+      "fullAddress": "621 MASON ST, FLINT, MI 48503",
+      "lng": -83.699085,
+      "lat": 43.020196
+    },
+    {
+      "osmId": "1481011010",
+      "address": "427 W FOURTH AVE",
+      "fullAddress": "427 W FOURTH AVE, FLINT, MI 48503",
+      "lng": -83.699917,
+      "lat": 43.020007
+    },
+    {
+      "osmId": "1481011011",
+      "address": "433 W FOURTH AVE",
+      "fullAddress": "433 W FOURTH AVE, FLINT, MI 48503",
+      "lng": -83.700183,
+      "lat": 43.019902
+    },
+    {
+      "osmId": "1481011012",
+      "address": "622 N GRAND TRAVERSE",
+      "fullAddress": "622 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.70004,
+      "lat": 43.019749
+    },
+    {
+      "osmId": "1481011013",
+      "address": "621 STONE ST",
+      "fullAddress": "621 STONE ST, FLINT, MI 48503",
+      "lng": -83.701575,
+      "lat": 43.019104
+    },
+    {
+      "osmId": "1481011014",
+      "address": "626 BEGOLE ST",
+      "fullAddress": "626 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.702248,
+      "lat": 43.018992
+    },
+    {
+      "osmId": "1481011015",
+      "address": "616 BEGOLE ST",
+      "fullAddress": "616 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.701992,
+      "lat": 43.018704
+    },
+    {
+      "osmId": "1481011016",
+      "address": "616 BEGOLE ST",
+      "fullAddress": "616 BEGOLE ST, FLINT, MI 48503",
+      "lng": -83.701705,
+      "lat": 43.018775
+    },
+    {
+      "osmId": "1481011017",
+      "address": "624 W UNIVERSITY AVE",
+      "fullAddress": "624 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.701795,
+      "lat": 43.018364
+    },
+    {
+      "osmId": "1481011018",
+      "address": "616 W UNIVERSITY AVE",
+      "fullAddress": "616 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.701564,
+      "lat": 43.018473
+    },
+    {
+      "osmId": "1481011019",
+      "address": "612 W UNIVERSITY AVE",
+      "fullAddress": "612 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.701383,
+      "lat": 43.018532
+    },
+    {
+      "osmId": "1481011020",
+      "address": "608 W UNIVERSITY AVE",
+      "fullAddress": "608 W UNIVERSITY AVE, FLINT, MI 48503",
+      "lng": -83.701275,
+      "lat": 43.018584
+    },
+    {
+      "osmId": "1481011021",
+      "address": "605 STONE ST",
+      "fullAddress": "605 STONE ST, FLINT, MI 48503",
+      "lng": -83.701133,
+      "lat": 43.018661
+    },
+    {
+      "osmId": "1481011022",
+      "address": "615 STONE ST",
+      "fullAddress": "615 STONE ST, FLINT, MI 48503",
+      "lng": -83.701348,
+      "lat": 43.018949
+    },
+    {
+      "osmId": "1481011023",
+      "address": "727 N GRAND TRAVERSE",
+      "fullAddress": "727 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.701356,
+      "lat": 43.020603
+    },
+    {
+      "osmId": "1481011024",
+      "address": "718 STONE ST",
+      "fullAddress": "718 STONE ST, FLINT, MI 48503",
+      "lng": -83.701706,
+      "lat": 43.020084
+    },
+    {
+      "osmId": "1481011025",
+      "address": "713 N GRAND TRAVERSE",
+      "fullAddress": "713 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.701396,
+      "lat": 43.020235
+    },
+    {
+      "osmId": "1481011026",
+      "address": "713 N GRAND TRAVERSE",
+      "fullAddress": "713 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.70108,
+      "lat": 43.020224
+    },
+    {
+      "osmId": "1481011027",
+      "address": "712 N GRAND TRAVERSE",
+      "fullAddress": "712 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.700587,
+      "lat": 43.020401
+    },
+    {
+      "osmId": "1481011028",
+      "address": "722 N GRAND TRAVERSE",
+      "fullAddress": "722 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.700823,
+      "lat": 43.020664
+    },
+    {
+      "osmId": "1481011029",
+      "address": "728 N GRAND TRAVERSE",
+      "fullAddress": "728 N GRAND TRAVERSE, FLINT, MI 48503",
+      "lng": -83.700927,
+      "lat": 43.020812
+    },
+    {
+      "osmId": "1481011030",
+      "address": "425 W FIFTH AVE",
+      "fullAddress": "425 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.700683,
+      "lat": 43.020884
+    },
+    {
+      "osmId": "1481011031",
+      "address": "421 W FIFTH AVE",
+      "fullAddress": "421 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.700287,
+      "lat": 43.020976
+    },
+    {
+      "osmId": "1481011032",
+      "address": "725 MASON ST",
+      "fullAddress": "725 MASON ST, FLINT, MI 48503",
+      "lng": -83.70003,
+      "lat": 43.021111
+    },
+    {
+      "osmId": "1481011033",
+      "address": "422 W FOURTH AVE",
+      "fullAddress": "422 W FOURTH AVE, FLINT, MI 48503",
+      "lng": -83.700137,
+      "lat": 43.020482
+    },
+    {
+      "osmId": "1481011034",
+      "address": "703 MASON ST",
+      "fullAddress": "703 MASON ST, FLINT, MI 48503",
+      "lng": -83.699657,
+      "lat": 43.020655
+    },
+    {
+      "osmId": "1481011035",
+      "address": "703 MASON ST",
+      "fullAddress": "703 MASON ST, FLINT, MI 48503",
+      "lng": -83.699449,
+      "lat": 43.020647
+    },
+    {
+      "osmId": "1481011036",
+      "address": "702 MASON ST",
+      "fullAddress": "702 MASON ST, FLINT, MI 48503",
+      "lng": -83.699023,
+      "lat": 43.020833
+    },
+    {
+      "osmId": "1481011037",
+      "address": "314 W FOURTH AVE",
+      "fullAddress": "314 W FOURTH AVE, FLINT, MI 48503",
+      "lng": -83.698786,
+      "lat": 43.020959
+    },
+    {
+      "osmId": "1481011038",
+      "address": "224 W FOURTH AVE",
+      "fullAddress": "224 W FOURTH AVE, FLINT, MI 48503",
+      "lng": -83.698161,
+      "lat": 43.021248
+    },
+    {
+      "osmId": "1481011039",
+      "address": "306 W FOURTH AVE",
+      "fullAddress": "306 W FOURTH AVE, FLINT, MI 48503",
+      "lng": -83.698417,
+      "lat": 43.02112
+    },
+    {
+      "osmId": "1481011040",
+      "address": "705 GARLAND ST",
+      "fullAddress": "705 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.698012,
+      "lat": 43.021492
+    },
+    {
+      "osmId": "1481011041",
+      "address": "720 MASON ST",
+      "fullAddress": "720 MASON ST, FLINT, MI 48503",
+      "lng": -83.699374,
+      "lat": 43.021247
+    },
+    {
+      "osmId": "1481011042",
+      "address": "223 W FIFTH AVE",
+      "fullAddress": "223 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.698575,
+      "lat": 43.021794
+    },
+    {
+      "osmId": "1481011043",
+      "address": "311 W FIFTH AVE",
+      "fullAddress": "311 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.698767,
+      "lat": 43.021713
+    },
+    {
+      "osmId": "1481011044",
+      "address": "323 W FIFTH AVE",
+      "fullAddress": "323 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.699134,
+      "lat": 43.021552
+    },
+    {
+      "osmId": "1481011045",
+      "address": "211 W FIFTH AVE",
+      "fullAddress": "211 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.698426,
+      "lat": 43.02189
+    },
+    {
+      "osmId": "1481011046",
+      "address": "335 W FIFTH AVE",
+      "fullAddress": "335 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.699325,
+      "lat": 43.021475
+    },
+    {
+      "osmId": "1481011047",
+      "address": "347 W FIFTH AVE",
+      "fullAddress": "347 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.699508,
+      "lat": 43.021415
+    },
+    {
+      "osmId": "1481011048",
+      "address": "214 W FIFTH AVE",
+      "fullAddress": "214 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.698742,
+      "lat": 43.022221
+    },
+    {
+      "osmId": "1481011049",
+      "address": "214 W FIFTH AVE",
+      "fullAddress": "214 W FIFTH AVE, FLINT, MI 48503",
+      "lng": -83.698673,
+      "lat": 43.0225
+    },
+    {
+      "osmId": "1481011050",
+      "address": "814 LYON ST",
+      "fullAddress": "814 LYON ST, FLINT, MI 48503",
+      "lng": -83.698907,
+      "lat": 43.022433
+    },
+    {
+      "osmId": "1481011051",
+      "address": "818 LYON ST",
+      "fullAddress": "818 LYON ST, FLINT, MI 48503",
+      "lng": -83.699015,
+      "lat": 43.022547
+    },
+    {
+      "osmId": "1481011052",
+      "address": "822 LYON ST",
+      "fullAddress": "822 LYON ST, FLINT, MI 48503",
+      "lng": -83.699101,
+      "lat": 43.022657
+    },
+    {
+      "osmId": "1481011053",
+      "address": "901 GARLAND ST",
+      "fullAddress": "901 GARLAND ST, FLINT, MI 48503",
+      "lng": -83.698942,
+      "lat": 43.023194
+    },
+    {
+      "osmId": "1481011054",
+      "address": "211 SEVENTH AVE",
+      "fullAddress": "211 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.699756,
+      "lat": 43.023989
+    },
+    {
+      "osmId": "1481011055",
+      "address": "217 SEVENTH AVE",
+      "fullAddress": "217 SEVENTH AVE, FLINT, MI 48503",
+      "lng": -83.699926,
+      "lat": 43.023943
+    },
+    {
+      "osmId": "1481011056",
+      "address": "932 LYON ST",
+      "fullAddress": "932 LYON ST, FLINT, MI 48503",
+      "lng": -83.700063,
+      "lat": 43.023792
+    },
+    {
+      "osmId": "1481011643",
+      "address": "412 FIRST AVE",
+      "fullAddress": "412 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.697451,
+      "lat": 43.017977
+    },
+    {
+      "osmId": "1481011644",
+      "address": "419 W SECOND AVE",
+      "fullAddress": "419 W SECOND AVE, FLINT, MI 48503",
+      "lng": -83.698234,
+      "lat": 43.018265
+    },
+    {
+      "osmId": "1481011645",
+      "address": "427 W SECOND AVE",
+      "fullAddress": "427 W SECOND AVE, FLINT, MI 48503",
+      "lng": -83.698371,
+      "lat": 43.018177
+    },
+    {
+      "osmId": "1481011646",
+      "address": "417 W SECOND AVE",
+      "fullAddress": "417 W SECOND AVE, FLINT, MI 48503",
+      "lng": -83.698049,
+      "lat": 43.018309
+    },
+    {
+      "osmId": "1481011647",
+      "address": "417 MASON ST",
+      "fullAddress": "417 MASON ST, FLINT, MI 48503",
+      "lng": -83.697438,
+      "lat": 43.018363
+    },
+    {
+      "osmId": "1481011648",
+      "address": "417 LYON ST",
+      "fullAddress": "417 LYON ST, FLINT, MI 48503",
+      "lng": -83.696528,
+      "lat": 43.018776
+    },
+    {
+      "osmId": "1481011649",
+      "address": "315 W SECOND AVE",
+      "fullAddress": "315 W SECOND AVE, FLINT, MI 48503",
+      "lng": -83.696943,
+      "lat": 43.018802
+    },
+    {
+      "osmId": "1481011650",
+      "address": "311 W SECOND AVE",
+      "fullAddress": "311 W SECOND AVE, FLINT, MI 48503",
+      "lng": -83.696799,
+      "lat": 43.018862
+    },
+    {
+      "osmId": "1481011651",
+      "address": "421 LYON ST",
+      "fullAddress": "421 LYON ST, FLINT, MI 48503",
+      "lng": -83.696539,
+      "lat": 43.019018
+    },
+    {
+      "osmId": "1481011652",
+      "address": "413 LYON ST",
+      "fullAddress": "413 LYON ST, FLINT, MI 48503",
+      "lng": -83.696344,
+      "lat": 43.018785
+    },
+    {
+      "osmId": "1481011653",
+      "address": "417 LYON ST",
+      "fullAddress": "417 LYON ST, FLINT, MI 48503",
+      "lng": -83.696432,
+      "lat": 43.018894
+    },
+    {
+      "osmId": "1481011654",
+      "address": "414 MASON ST",
+      "fullAddress": "414 MASON ST, FLINT, MI 48503",
+      "lng": -83.697019,
+      "lat": 43.018471
+    },
+    {
+      "osmId": "1481011655",
+      "address": "410 MASON ST",
+      "fullAddress": "410 MASON ST, FLINT, MI 48503",
+      "lng": -83.696941,
+      "lat": 43.018384
+    },
+    {
+      "osmId": "1481011656",
+      "address": "322 FIRST AVE",
+      "fullAddress": "322 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.69679,
+      "lat": 43.0182
+    },
+    {
+      "osmId": "1481011657",
+      "address": "316 FIRST AVE",
+      "fullAddress": "316 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.696683,
+      "lat": 43.018258
+    },
+    {
+      "osmId": "1481011658",
+      "address": "314 FIRST AVE",
+      "fullAddress": "314 FIRST AVE, FLINT, MI 48503",
+      "lng": -83.696544,
+      "lat": 43.01832
+    }
+  ]
+}
