@@ -289,6 +289,41 @@ export function PorchfestIsland({
         ) : null}
       </AnimatePresence>
 
+      {/* Selected-object metadata: the tab that appears on tapping a placement
+          or building. Rendered OUTSIDE the island's transformed container
+          below, so `position: absolute; left: 50%` centers it on the planner
+          viewport instead of resolving against the right-pinned task-tab pill
+          (a CSS transform on an ancestor re-parents fixed/abs positioning). It
+          sits centered on screen and just below the task tab in the right
+          thumb zone. */}
+      {mobile && selectedPlacement && !isExpanded && !showCollapsedResults ? (
+        <div
+          className="atlas-scene-glass pointer-events-auto absolute left-1/2 z-[1415] w-[min(calc(100vw-20px),320px)] -translate-x-1/2 rounded-[14px] p-3"
+          style={{
+            bottom:
+              "calc(max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) + 12px)",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="planner-swatch"
+              style={{
+                backgroundColor: swatchColor(selectedPlacement.category),
+              }}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] text-[color:var(--ctx-ink)]">
+                {selectedPlacement.label}
+              </span>
+              <span className="block truncate text-[11px] text-[color:var(--ctx-ink-mute)]">
+                {selectedAddress ?? "Address pending"}
+              </span>
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       <div
         className="pointer-events-none absolute z-[1420]"
         style={{
@@ -353,28 +388,6 @@ export function PorchfestIsland({
             ) : (
               <p className="px-3 py-2 text-[13px] text-[color:var(--ctx-ink-mute)]">No matches.</p>
             )}
-          </div>
-        ) : null}
-
-        {mobile && selectedPlacement && !isExpanded && !showCollapsedResults ? (
-          <div className="atlas-scene-glass pointer-events-auto fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom,0.75rem))+74px)] left-1/2 w-[min(calc(100vw-20px),320px)] -translate-x-1/2 rounded-[14px] p-3">
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className="planner-swatch"
-                style={{
-                  backgroundColor: swatchColor(selectedPlacement.category),
-                }}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] text-[color:var(--ctx-ink)]">
-                  {selectedPlacement.label}
-                </span>
-                <span className="block truncate text-[11px] text-[color:var(--ctx-ink-mute)]">
-                  {selectedAddress ?? "Address pending"}
-                </span>
-              </span>
-            </div>
           </div>
         ) : null}
 
