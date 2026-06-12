@@ -32,6 +32,7 @@ import {
   type EventApplicationsQuery,
 } from "@/lib/api/graphql/generated/graphql";
 import { PlannerClientProvider } from "@/lib/api/graphql/PlannerClientProvider";
+import { PorchfestForecastCard } from "@/components/atlas/PorchfestForecastCard";
 import {
   loadCivicBridge,
   type CivicStoreApi,
@@ -758,6 +759,9 @@ function WorkspaceInner() {
           </div>
         ) : null}
       </div>
+      <div className="civic-weather-band">
+        <PorchfestForecastCard />
+      </div>
       <form className="civic-billing-band" onSubmit={handleBillingRequest}>
         <div className="civic-billing-field civic-billing-field--application">
           <label htmlFor="civic-billing-application">Application</label>
@@ -1035,6 +1039,14 @@ function WorkspaceInner() {
           font-size: 13px;
           font-weight: 600;
           line-height: 18px;
+        }
+        /* Event-day weather card (Lane 4 Tier 1): a compact panel above the
+           billing band, capped so it does not stretch across the strip. */
+        .civic-weather-band {
+          padding: 10px 24px 2px;
+        }
+        .civic-weather-band > * {
+          max-width: 360px;
         }
         .civic-billing-band {
           display: grid;
