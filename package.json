@@ -47,6 +47,9 @@
     "validate:yjs-sync": "node scripts/validate-yjs-sync.mjs"
   },
   "dependencies": {
+    "@blocknote/core": "^0.51.4",
+    "@blocknote/mantine": "^0.51.4",
+    "@blocknote/react": "^0.51.4",
     "@blocksuite/affine": "^0.22.4",
     "@blocksuite/data-view": "^0.22.4",
     "@blocksuite/integration-test": "^0.22.4",
@@ -103,6 +106,8 @@
     "urql": "^5.0.2",
     "weatherlayers-gl": "^2026.5.2",
     "web-ifc": "^0.0.77",
+    "y-indexeddb": "^9.0.12",
+    "y-protocols": "^1.0.7",
     "yjs": "^13.6.31"
   },
   "devDependencies": {

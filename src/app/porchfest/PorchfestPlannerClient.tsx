@@ -36,6 +36,7 @@ import {
   type DragEvent,
 } from "react";
 import { useMutation, useQuery } from "urql";
+import dynamic from "next/dynamic";
 import type { MapRef } from "react-map-gl/maplibre";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import type { Layer } from "@deck.gl/core";
@@ -67,10 +68,24 @@ import { buildPorchfestFlowLayers } from "@/components/atlas/PorchfestFlowLayer"
 import type { PlannerTaskNode, PlannerTaskStatus } from "@/lib/atlas/planner-phase4";
 import { taskProgress } from "@/lib/atlas/task-progress";
 import {
+  getGeoTaskStore,
+  useGeoTaskAnchors,
+  type GeoTaskAnchor,
+} from "@/lib/atlas/geo-task-store";
+import type { PlannerDropPicker } from "@/lib/atlas/planner-drop-anchor";
+
+// Client-only: BlockNote wraps ProseMirror, which touches `document` at
+// construction, so it must never render server-side.
+const GeoTaskNotePanel = dynamic(
+  () => import("@/components/atlas/GeoTaskNotePanel"),
+  { ssr: false },
+);
+import {
   PlannerEditModeToggle,
   PlannerPalette,
   CATEGORY_COLOR,
   PLANNER_CATEGORY_DRAG_TYPE,
+  PLANNER_TASK_DRAG_TYPE,
   type PlannerCategoryDragPayload,
   type PaletteMode,
 } from "@/components/atlas/PlannerPalette";
@@ -458,35 +473,90 @@ function mapTaskStatus(status: string): PlannerTaskStatus {
   }
 }
 
+/**
+ * Build a building/point anchor from the GraphQL task fields (the eventual
+ * cross-device authority once the resolver ships). The Yjs sidecar takes
+ * precedence in `tasksToNodes` so dropped tasks anchor before then.
+ */
+function gqlTaskAnchor(
+  task: EventTasksListQuery["eventTasks"][number],
+): GeoTaskAnchor | null {
+  const coordinate = task.coordinate;
+  if (task.geoAnchorKind === "building" && task.osmId && coordinate) {
+    return {
+      kind: "building",
+      osmId: task.osmId,
+      lng: coordinate[0],
+      lat: coordinate[1],
+    };
+  }
+  if (task.geoAnchorKind === "point" && coordinate) {
+    return { kind: "point", lng: coordinate[0], lat: coordinate[1] };
+  }
+  return null;
+}
+
 /** Adapt GraphQL tasks to the deck.gl task-icon node contract. */
 function tasksToNodes(
   tasks: readonly EventTasksListQuery["eventTasks"][number][],
   placementsById: Map<string, AtlasEventPlannerPlacement>,
+  anchors: ReadonlyMap<string, GeoTaskAnchor>,
 ): PlannerTaskNode[] {
   return tasks.map((task) => {
-    const placement = task.placementId
-      ? placementsById.get(task.placementId)
-      : null;
-    const geom = placement?.geometry as
-      | { type?: string; coordinates?: [number, number] }
-      | undefined;
-    const coords =
-      geom?.type === "Point" && geom.coordinates ? geom.coordinates : null;
-    return {
+    const base = {
       id: task.id,
       title: task.title,
       ownerDisplay: task.ownerDisplay ?? null,
-      priority: 0,
+      priority: 0 as const,
       status: mapTaskStatus(task.status),
       // Granular progress: notes-checklist ratio, else status-derived. Unifies
       // the map icon's progress bar with the task rail and event bars.
       completionPct: taskProgress(task),
-      childIds: [],
-      geoAnchorKind: task.placementId ? "placement" : "unanchored",
-      effectivePlacementId: task.placementId ?? null,
-      effectiveGeometry: coords
-        ? { type: "Point", coordinates: [coords[0], coords[1]] as const }
-        : null,
+      childIds: [] as readonly string[],
+    };
+
+    // Placement anchor: the GraphQL placementId is authoritative and the icon
+    // resolves from the live placement geometry, so it follows the placement
+    // when it moves (spec AC 1).
+    if (task.placementId) {
+      const placement = placementsById.get(task.placementId);
+      const geom = placement?.geometry as
+        | { type?: string; coordinates?: [number, number] }
+        | undefined;
+      const coords =
+        geom?.type === "Point" && geom.coordinates ? geom.coordinates : null;
+      return {
+        ...base,
+        geoAnchorKind: "placement",
+        effectivePlacementId: task.placementId,
+        effectiveGeometry: coords
+          ? { type: "Point", coordinates: [coords[0], coords[1]] as const }
+          : null,
+      };
+    }
+
+    // Building / point anchor: the Yjs sidecar is the local-first working
+    // store; the GraphQL fields are the eventual authority. A building anchor
+    // sits at its stored centroid and stays there (spec AC 2); a point anchor
+    // sits at the drop coordinate (spec AC 3).
+    const anchor = anchors.get(task.id) ?? gqlTaskAnchor(task);
+    if (anchor && (anchor.kind === "building" || anchor.kind === "point")) {
+      return {
+        ...base,
+        geoAnchorKind: anchor.kind,
+        effectivePlacementId: null,
+        effectiveGeometry: {
+          type: "Point",
+          coordinates: [anchor.lng, anchor.lat] as const,
+        },
+      };
+    }
+
+    return {
+      ...base,
+      geoAnchorKind: "unanchored",
+      effectivePlacementId: null,
+      effectiveGeometry: null,
     };
   });
 }
@@ -581,6 +651,9 @@ function PorchfestPlannerWorkspace({
   const [events, setEvents] = useState<SpatialEvent[]>([]);
   const [signals, setSignals] = useState<FreshSignal[]>([]);
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
+  // Task-drop anchor resolver handed up from the map (it owns the deck.gl
+  // picking buffer; the drop handler lives out here).
+  const dropPickerRef = useRef<PlannerDropPicker | null>(null);
   const [mapZoom, setMapZoom] = useState(17);
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(
     null,
@@ -1431,7 +1504,8 @@ function PorchfestPlannerWorkspace({
     const acceptsDrop =
       hasDataTransferType(dataTransfer, "Files") ||
       hasDataTransferType(dataTransfer, CIVIC_APP_DRAG_TYPE) ||
-      hasDataTransferType(dataTransfer, PLANNER_CATEGORY_DRAG_TYPE);
+      hasDataTransferType(dataTransfer, PLANNER_CATEGORY_DRAG_TYPE) ||
+      hasDataTransferType(dataTransfer, PLANNER_TASK_DRAG_TYPE);
     if (!acceptsDrop) return;
     event.preventDefault();
     setMapDropActive(true);
@@ -1443,7 +1517,8 @@ function PorchfestPlannerWorkspace({
     const acceptsDrop =
       hasDataTransferType(dataTransfer, "Files") ||
       hasDataTransferType(dataTransfer, CIVIC_APP_DRAG_TYPE) ||
-      hasDataTransferType(dataTransfer, PLANNER_CATEGORY_DRAG_TYPE);
+      hasDataTransferType(dataTransfer, PLANNER_CATEGORY_DRAG_TYPE) ||
+      hasDataTransferType(dataTransfer, PLANNER_TASK_DRAG_TYPE);
     if (!acceptsDrop) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
@@ -1460,6 +1535,76 @@ function PorchfestPlannerWorkspace({
     setMapDropActive(false);
   }, []);
 
+  // Task drop: resolve the anchor (placement > building > point) at the cursor
+  // and create a geo-task. The GraphQL task carries title/status/progress; the
+  // anchor lives in the Yjs sidecar (it persists + syncs without a backend
+  // change, the same way applications carry their location in the civic store).
+  const handleTaskDrop = useCallback(
+    (clientX: number, clientY: number) => {
+      const picker = dropPickerRef.current;
+      // Building pick stays mutually exclusive with address-edit mode: while
+      // that mode owns building clicks, a task drop over a building falls
+      // through to a point anchor (spec "Do not break").
+      const anchor = picker?.(clientX, clientY, {
+        allowBuilding: !addressEditMode,
+      });
+      if (!anchor) {
+        setToast("Map is still loading. Try again.");
+        return;
+      }
+      const title = `Task ${liveTasks.length + 1}`;
+      const placementId =
+        anchor.kind === "placement" ? anchor.placementId : null;
+      void createTask({
+        input: {
+          eventSlug: EVENT_SLUG,
+          title,
+          // geoAnchorKind / osmId / coordinate are intentionally NOT sent: the
+          // deployed TaskCreateInput predates them (same reason ownerDisplay is
+          // omitted in handleCreateTask). The anchor lives in the Yjs sidecar
+          // until the resolver ships; send them here once it does.
+          ...(placementId ? { placementId } : {}),
+        },
+      }).then((result) => {
+        const created = result.data?.createTask.task;
+        if (result.error || !created) {
+          setToast(`Task create failed: ${result.error?.message ?? "unknown"}`);
+          return;
+        }
+        const store = getGeoTaskStore();
+        if (anchor.kind === "placement") {
+          store.setAnchor(created.id, {
+            kind: "placement",
+            placementId: anchor.placementId,
+          });
+        } else if (anchor.kind === "building") {
+          store.setAnchor(created.id, {
+            kind: "building",
+            osmId: String(anchor.building.osm_id),
+            lng: anchor.building.position[0],
+            lat: anchor.building.position[1],
+          });
+        } else {
+          store.setAnchor(created.id, {
+            kind: "point",
+            lng: anchor.coordinate[0],
+            lat: anchor.coordinate[1],
+          });
+        }
+        setSelectedTaskId(created.id);
+        refreshTasks();
+        const where =
+          anchor.kind === "placement"
+            ? "to the placement"
+            : anchor.kind === "building"
+              ? "to the building"
+              : "on the map";
+        setToast(`Task added ${where}. Add a note in the panel.`);
+      });
+    },
+    [addressEditMode, createTask, liveTasks.length, refreshTasks],
+  );
+
   const handleMapDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setHtmlPlannerDragActive(false);
@@ -1471,6 +1616,12 @@ function PorchfestPlannerWorkspace({
         (text) => setDroppedFile({ name: file.name, text }),
         () => setToast(`Could not read ${file.name}.`),
       );
+      return;
+    }
+
+    // Third drag branch: a task. Anchors to whatever is under the cursor.
+    if (event.dataTransfer.getData(PLANNER_TASK_DRAG_TYPE) === "task") {
+      handleTaskDrop(event.clientX, event.clientY);
       return;
     }
 
@@ -1511,7 +1662,7 @@ function PorchfestPlannerWorkspace({
         pointGeometryFromCoordinate(coordinate),
       );
     }
-  }, [civicRows, handleDraw, mapRef]);
+  }, [civicRows, handleDraw, handleTaskDrop, mapRef]);
 
   const consumeDroppedFile = useCallback(() => setDroppedFile(null), []);
 
@@ -1680,10 +1831,21 @@ function PorchfestPlannerWorkspace({
     return { type: "off" };
   }, [editingAvailable, paletteMode]);
 
+  const geoTaskAnchors = useGeoTaskAnchors();
   const taskNodes = useMemo(
-    () => tasksToNodes(liveTasks, placementsById),
-    [liveTasks, placementsById],
+    () => tasksToNodes(liveTasks, placementsById, geoTaskAnchors),
+    [liveTasks, placementsById, geoTaskAnchors],
   );
+
+  // Selected-task note panel inputs (spec: note shown when the task is
+  // selected). Anchor kind drives the panel kicker.
+  const selectedTask = selectedTaskId
+    ? liveTasks.find((task) => task.id === selectedTaskId) ?? null
+    : null;
+  const selectedTaskAnchorKind: GeoTaskAnchor["kind"] | null = selectedTaskId
+    ? geoTaskAnchors.get(selectedTaskId)?.kind ??
+      (selectedTask?.placementId ? "placement" : null)
+    : null;
 
   // Weather overlay (Lane 4 Tier 2): desktop only. The manifest + forecast
   // hours load whenever the overlay is active (so the time slider shows), but
@@ -2185,6 +2347,9 @@ function PorchfestPlannerWorkspace({
           className="h-full w-full"
           onMapReady={setMapRef}
           onBuildingSelect={addressEditMode ? setBuildingForEdit : undefined}
+          onPlannerDropPickerReady={(picker) => {
+            dropPickerRef.current = picker;
+          }}
         />
 
         {/* Address editor (Step 3). Mode-gated: building clicks only open the
@@ -2278,6 +2443,55 @@ function PorchfestPlannerWorkspace({
               </span>
             ) : null}
           </button>
+        ) : null}
+
+        {/* Geo-task note: the BlockNote rich-text note for the selected task,
+            shown on the planning side (spec deliverable 6). Bottom-right on
+            desktop (clears the top-right address tools and the bottom-center
+            island); above the island on mobile. */}
+        {selectedTaskId ? (
+          <div
+            className="planner-panel pointer-events-auto absolute z-30 flex max-h-[min(60vh,520px)] w-[min(380px,calc(100vw-2rem))] flex-col gap-2 p-3"
+            style={
+              isMobile
+                ? {
+                    left: "0.75rem",
+                    right: "0.75rem",
+                    width: "auto",
+                    bottom:
+                      "calc(max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) + 132px)",
+                  }
+                : { right: "1rem", bottom: "1rem" }
+            }
+            aria-label="Task note"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="planner-kicker truncate">
+                  {selectedTaskAnchorKind === "placement"
+                    ? "Task note · placement"
+                    : selectedTaskAnchorKind === "building"
+                      ? "Task note · building"
+                      : selectedTaskAnchorKind === "point"
+                        ? "Task note · point"
+                        : "Task note"}
+                </p>
+                <p className="truncate text-[13px] font-medium text-[color:var(--ctx-ink)]">
+                  {selectedTask?.title ?? "Task"}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="planner-control shrink-0 px-2 py-1 text-[11px] font-medium"
+                onClick={() => setSelectedTaskId(null)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto rounded-md border border-[rgba(42,36,25,0.12)] bg-white">
+              <GeoTaskNotePanel taskId={selectedTaskId} />
+            </div>
+          </div>
         ) : null}
 
         {/* Transient toast */}

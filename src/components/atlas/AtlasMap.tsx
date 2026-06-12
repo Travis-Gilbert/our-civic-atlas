@@ -71,6 +71,7 @@ import {
 import type { MobileRuntimeSurfaceId } from "@/lib/atlas/contracts";
 import type { SelectedBuilding } from "@/lib/atlas/selected-building";
 import { ATLAS_DECK_LAYER_IDS } from "@/lib/atlas/renderer-bridge";
+import type { PlannerDropPicker } from "@/lib/atlas/planner-drop-anchor";
 import { usePrefersReducedMotion } from "@/lib/atlas/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -92,6 +93,46 @@ const ATLAS_MAX_BOUNDS: [[number, number], [number, number]] = [
   [-83.5, 43.18],
 ];
 const EMPTY_DRAG_PAN_BLOCK_LAYER_IDS: readonly string[] = [];
+
+/**
+ * Building footprint layers the task-drop resolver picks against (all
+ * `pickable: true`, independent of `onBuildingSelect`). The procedural
+ * archetype mesh is intentionally excluded: the footprint GeoJson layers sit
+ * at the same screen point and resolve a clean centroid via the shared
+ * normaliser without unwrapping a mesh instance.
+ */
+const BUILDING_PICK_LAYER_IDS: readonly string[] = [
+  ATLAS_DECK_LAYER_IDS.osmBuildings,
+  ATLAS_DECK_LAYER_IDS.urbanDesignModel,
+  ATLAS_DECK_LAYER_IDS.buildingFabric,
+];
+
+/**
+ * Read a placement id off a deck pick. Two placement shapes carry it: GeoJSON
+ * features (the editable placement layer + imported lines) expose
+ * `properties.placement_id`; the figure mesh layers' datum is the
+ * `AtlasEventPlannerPlacement` itself (an `id` + `category`, not a Feature).
+ */
+function extractPlacementId(object: unknown): string | null {
+  if (!object || typeof object !== "object") return null;
+  const record = object as {
+    type?: unknown;
+    id?: unknown;
+    category?: unknown;
+    properties?: { placement_id?: unknown } | null;
+  };
+  const fromProps = record.properties?.placement_id;
+  if (typeof fromProps === "string") return fromProps;
+  // Figure datum: a placement object, not a GeoJSON Feature.
+  if (
+    record.type !== "Feature" &&
+    typeof record.id === "string" &&
+    typeof record.category === "string"
+  ) {
+    return record.id;
+  }
+  return null;
+}
 
 const BASEMAP_STYLE: StyleSpecification = {
   version: 8,
@@ -535,6 +576,67 @@ function geometryCentroid(
     return [lngSum / ring.length, latSum / ring.length];
   }
   return null;
+}
+
+/**
+ * Normalise a deck.gl building pick into a `SelectedBuilding`. Shared by the
+ * address-editor click path (`handleBuildingClick`) and the planner task-drop
+ * anchor resolver, so both read the SAME building selection (spec: "the same
+ * building selection the address editor uses to get an osm_id"). Unwraps the
+ * three pick payloads: the osmBuildings / urbanDesignModel / buildingFabric
+ * footprint features, and the procedural archetype mesh instance (whose
+ * `anchorFeature` carries the footprint). `position` is the footprint centroid
+ * — the building-anchored icon location, with no later re-resolve needed.
+ */
+function normalizeSelectedBuilding(info: PickingInfo): SelectedBuilding | null {
+  if (!info.object) return null;
+  const candidate = info.object as {
+    anchorFeature?: GeoJSON.Feature;
+    properties?: Record<string, unknown>;
+    geometry?: GeoJSON.Geometry;
+  };
+  const feature: GeoJSON.Feature | undefined = candidate.anchorFeature
+    ? candidate.anchorFeature
+    : candidate.properties
+      ? (candidate as unknown as GeoJSON.Feature)
+      : undefined;
+  if (!feature || !feature.properties) return null;
+
+  const props = feature.properties as Record<string, unknown>;
+  const rawOsmId = props.osm_id ?? props.source_osm_id;
+  if (rawOsmId === undefined || rawOsmId === null) return null;
+
+  const name =
+    typeof props.name === "string" && props.name.trim().length > 0
+      ? props.name.trim()
+      : null;
+  // Address precedence: City of Flint parcel > OpenStreetMap tag > none.
+  const address = resolveBuildingAddress(rawOsmId, props.address);
+  const typology_class =
+    typeof props.typology_class === "string" ? props.typology_class : null;
+  const typology_confidence =
+    typeof props.typology_confidence === "number"
+      ? props.typology_confidence
+      : null;
+  const fabric_archetype =
+    typeof props.fabric_archetype === "string" ? props.fabric_archetype : null;
+
+  const position =
+    geometryCentroid(feature.geometry) ??
+    (info.coordinate
+      ? ([info.coordinate[0], info.coordinate[1]] as [number, number])
+      : null);
+  if (!position) return null;
+
+  return {
+    osm_id: rawOsmId as string | number,
+    name,
+    address,
+    typology_class,
+    typology_confidence,
+    fabric_archetype,
+    position,
+  };
 }
 
 type BoundsAccumulator = {
@@ -1217,6 +1319,13 @@ export type AtlasMapProps = {
    * PR 1.
    */
   onBuildingSelect?: (building: SelectedBuilding | null) => void;
+  /**
+   * Hands the parent a resolver that maps a viewport client point to a drop
+   * anchor (placement / building / point) against the live deck.gl picking
+   * buffer. Passed `null` on unmount. Used by the planner's task-drop handler,
+   * which lives outside the map. Mirrors how `onMapReady` hands up the MapRef.
+   */
+  onPlannerDropPickerReady?: (picker: PlannerDropPicker | null) => void;
 };
 
 export type UrbanDesignMaterialMode = "typology" | "sketch_model";
@@ -1251,6 +1360,7 @@ export function AtlasMap({
   deckLayerPointerDragHandler = null,
   selectedBuilding = null,
   onBuildingSelect,
+  onPlannerDropPickerReady,
   extraDeckLayers = [],
 }: AtlasMapProps) {
   ensurePmtilesProtocol();
@@ -1331,6 +1441,72 @@ export function AtlasMap({
     },
     [router],
   );
+
+  /**
+   * Resolve a task-drop anchor at a viewport client point, in the spec's
+   * priority order: placement (placed figure / imported line) first, then a
+   * building (when address-edit mode is not owning building clicks), then a
+   * point on open ground. Reuses the same `pickObject` buffer the placement
+   * drag and the building click already use.
+   */
+  const resolvePlannerDropAnchor = useCallback<PlannerDropPicker>(
+    (clientX, clientY, options) => {
+      const overlay = overlayRef.current;
+      const container = mapContainerRef.current;
+      if (!overlay || !container) return null;
+      const rect = container.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+
+      const groundCoordinate = (): [number, number] => {
+        const ground = mapRef.current?.getMap()?.unproject([x, y]);
+        return ground ? [ground.lng, ground.lat] : [0, 0];
+      };
+
+      // 1. Placement first. Placements (figures, lines, the editable layer)
+      //    draw above buildings, so the topmost pick is the placement when one
+      //    sits under the cursor.
+      const topInfo = overlay.pickObject({ x, y, radius: 12 });
+      const placementId = extractPlacementId(topInfo?.object);
+      if (placementId) {
+        const coordinate: [number, number] = topInfo?.coordinate
+          ? [topInfo.coordinate[0], topInfo.coordinate[1]]
+          : groundCoordinate();
+        return { kind: "placement", placementId, coordinate };
+      }
+
+      // 2. Building, unless the address editor owns building clicks right now.
+      if (options?.allowBuilding !== false) {
+        let building = topInfo ? normalizeSelectedBuilding(topInfo) : null;
+        if (!building) {
+          const buildingInfo = overlay.pickObject({
+            x,
+            y,
+            radius: 12,
+            layerIds: [...BUILDING_PICK_LAYER_IDS],
+          });
+          building = buildingInfo ? normalizeSelectedBuilding(buildingInfo) : null;
+        }
+        if (building) {
+          return {
+            kind: "building",
+            building,
+            coordinate: [building.position[0], building.position[1]],
+          };
+        }
+      }
+
+      // 3. Open ground.
+      return { kind: "point", coordinate: groundCoordinate() };
+    },
+    [],
+  );
+
+  useEffect(() => {
+    onPlannerDropPickerReady?.(resolvePlannerDropAnchor);
+    return () => onPlannerDropPickerReady?.(null);
+  }, [onPlannerDropPickerReady, resolvePlannerDropAnchor]);
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -2044,59 +2220,9 @@ export function AtlasMap({
   const handleBuildingClick = useCallback(
     (info: PickingInfo): boolean => {
       if (!onBuildingSelect) return false;
-      if (!info.object) return false;
-
-      // Unwrap mesh instance -> anchor feature when present.
-      const candidate = info.object as {
-        anchorFeature?: GeoJSON.Feature;
-        properties?: Record<string, unknown>;
-        geometry?: GeoJSON.Geometry;
-      };
-      const feature: GeoJSON.Feature | undefined = candidate.anchorFeature
-        ? candidate.anchorFeature
-        : candidate.properties
-          ? (candidate as unknown as GeoJSON.Feature)
-          : undefined;
-      if (!feature || !feature.properties) return false;
-
-      const props = feature.properties as Record<string, unknown>;
-      const rawOsmId = props.osm_id ?? props.source_osm_id;
-      if (rawOsmId === undefined || rawOsmId === null) return false;
-
-      const name =
-        typeof props.name === "string" && props.name.trim().length > 0
-          ? props.name.trim()
-          : null;
-      // Address precedence: City of Flint parcel (authoritative, geometric
-      // point-in-polygon join) > OpenStreetMap tag > none. No geocoding.
-      const address = resolveBuildingAddress(rawOsmId, props.address);
-      const typology_class =
-        typeof props.typology_class === "string" ? props.typology_class : null;
-      const typology_confidence =
-        typeof props.typology_confidence === "number"
-          ? props.typology_confidence
-          : null;
-      const fabric_archetype =
-        typeof props.fabric_archetype === "string"
-          ? props.fabric_archetype
-          : null;
-
-      const position =
-        geometryCentroid(feature.geometry) ??
-        (info.coordinate
-          ? ([info.coordinate[0], info.coordinate[1]] as [number, number])
-          : null);
-      if (!position) return false;
-
-      onBuildingSelect({
-        osm_id: rawOsmId as string | number,
-        name,
-        address,
-        typology_class,
-        typology_confidence,
-        fabric_archetype,
-        position,
-      });
+      const building = normalizeSelectedBuilding(info);
+      if (!building) return false;
+      onBuildingSelect(building);
       return true;
     },
     [onBuildingSelect],

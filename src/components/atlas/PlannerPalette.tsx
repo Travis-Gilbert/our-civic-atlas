@@ -34,6 +34,14 @@ interface PaletteCategoryButton {
 
 export const PLANNER_CATEGORY_DRAG_TYPE = "application/x-planner-category";
 
+/**
+ * The third drag payload (beside application and category). Dragging the Task
+ * chip onto the map drops a geo-task whose anchor is decided by what is under
+ * the cursor: a placed figure / line, a building, or open ground. The payload
+ * carries no anchor — the drop handler resolves it (see `planner-drop-anchor`).
+ */
+export const PLANNER_TASK_DRAG_TYPE = "application/x-planner-task";
+
 export interface PlannerCategoryDragPayload {
   readonly category: AtlasEventPlannerCategory;
   readonly label: string;
@@ -163,6 +171,20 @@ export function PlannerPalette({
     onCategoryDragStateChange?.(false);
   }, [onCategoryDragStateChange]);
 
+  const handleTaskDragStart = useCallback(
+    (event: DragEvent<HTMLButtonElement>) => {
+      if (!canEdit) {
+        event.preventDefault();
+        return;
+      }
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData(PLANNER_TASK_DRAG_TYPE, "task");
+      event.dataTransfer.setData("text/plain", "Task");
+      onCategoryDragStateChange?.(true);
+    },
+    [canEdit, onCategoryDragStateChange],
+  );
+
   if (!canEdit) {
     const disabledClassName = embedded
       ? "planner-muted px-1 py-1 text-[12px]"
@@ -209,6 +231,21 @@ export function PlannerPalette({
           </button>
         );
       })}
+      <button
+        type="button"
+        draggable={canEdit}
+        onDragStart={handleTaskDragStart}
+        onDragEnd={handleCategoryDragEnd}
+        className="planner-control col-span-2 flex min-h-[28px] cursor-grab items-center gap-2 px-2 py-1.5 text-left active:cursor-grabbing"
+        title="Drag onto a band, a building, or open ground to attach a task"
+      >
+        <span
+          aria-hidden="true"
+          className="planner-swatch"
+          style={{ backgroundColor: "#6b2c33" }}
+        />
+        <span>Task</span>
+      </button>
       <button
         type="button"
         onClick={toggleDelete}

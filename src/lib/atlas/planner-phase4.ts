@@ -23,14 +23,24 @@
 export type PlannerTaskPriority = 0 | 1 | 2 | 3;
 
 /**
- * Where this task is anchored in the world. `placement` means the
- * task hangs off a `PlannerPlacement` (an instance of a `PlannerEvent`
- * at a specific spot); other values fall back to the task's own
- * geometry. Used by `buildLayerData` to decide whether to fan out
- * tasks sharing a placement with progressive pixel offsets.
+ * Where this task is anchored in the world.
+ *  - `placement`: hangs off a `PlannerPlacement` (an event instance at a
+ *    spot); the icon rides the placement and follows it when it moves.
+ *  - `building`: pinned to an OSM building footprint; the icon sits at the
+ *    building centroid and stays there (drag-to-place onto a house).
+ *  - `point`: a free-standing geo-task at a fixed coordinate (drag onto open
+ *    ground).
+ *  - `freeform` / `unanchored`: legacy fallbacks that resolve from the task's
+ *    own geometry (or go off-canvas when it has none).
+ *
+ * `building` and `point` icons resolve from `effectiveGeometry` (the stored
+ * coordinate); only `placement` participates in `buildLayerData`'s shared-
+ * placement fan-out.
  */
 export type PlannerTaskGeoAnchorKind =
   | "placement"
+  | "building"
+  | "point"
   | "freeform"
   | "unanchored";
 

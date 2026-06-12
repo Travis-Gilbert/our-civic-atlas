@@ -878,6 +878,16 @@ type EventTask {
   status: String!
   placementId: ID
   notes: String
+  """Geo-anchor kind for a map-dropped task: "placement" (rides a placement,
+  via placementId), "building" (pinned to an OSM footprint, via osmId +
+  coordinate centroid), or "point" (free-standing at coordinate). Null for
+  rail-created tasks. The planner mirrors this in its Yjs sidecar so the icon
+  resolves before the resolver ships."""
+  geoAnchorKind: String
+  """OSM building id when geoAnchorKind = "building"."""
+  osmId: String
+  """Resolved [lng, lat] for building (centroid) and point anchors."""
+  coordinate: LatLng
   version: Int!
 }
 
@@ -1136,6 +1146,12 @@ input TaskCreateInput {
   status: String
   placementId: ID
   notes: String
+  """Geo-anchor for a map-dropped task. "placement" uses placementId;
+  "building" uses osmId + coordinate (footprint centroid); "point" uses
+  coordinate. See EventTask.geoAnchorKind."""
+  geoAnchorKind: String
+  osmId: String
+  coordinate: LatLng
 }
 
 input TaskUpdateInput {
@@ -1149,6 +1165,10 @@ input TaskUpdateInput {
   status: String
   placementId: ID
   notes: String
+  """See TaskCreateInput.geoAnchorKind."""
+  geoAnchorKind: String
+  osmId: String
+  coordinate: LatLng
 }
 
 input TaskDeleteInput {

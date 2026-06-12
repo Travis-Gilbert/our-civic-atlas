@@ -45,6 +45,7 @@ import type {
   DeckLayerPointerDragHandler,
   UrbanDesignMaterialMode,
 } from "./AtlasMap";
+import type { PlannerDropPicker } from "@/lib/atlas/planner-drop-anchor";
 
 const AtlasMap = dynamic(
   () => import("./AtlasMap").then((m) => m.AtlasMap),
@@ -103,6 +104,8 @@ export type ResponsiveAtlasMapProps = {
   mapDragPanEnabled?: boolean;
   dragPanBlockLayerIds?: readonly string[];
   deckLayerPointerDragHandler?: DeckLayerPointerDragHandler | null;
+  /** Hands up the task-drop anchor resolver. Pure passthrough to AtlasMap. */
+  onPlannerDropPickerReady?: (picker: PlannerDropPicker | null) => void;
 };
 
 function useHydrated(): boolean {

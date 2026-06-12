@@ -110,6 +110,9 @@ mutation CreateEventTask($input: TaskCreateInput!) {
       status
       placementId
       notes
+      geoAnchorKind
+      osmId
+      coordinate
       version
     }
     staleWrite
@@ -128,6 +131,9 @@ mutation UpdateEventTask($input: TaskUpdateInput!) {
       status
       placementId
       notes
+      geoAnchorKind
+      osmId
+      coordinate
       version
     }
     staleWrite
