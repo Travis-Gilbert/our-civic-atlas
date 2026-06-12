@@ -1,0 +1,115 @@
+{
+  "generatedAt": "2026-06-12T02:57:44.936Z",
+  "run": "2026-06-11T18:00:00.000Z",
+  "source": "NOAA GFS 0.25deg (NOMADS), GDAL GeoTIFF",
+  "bounds": [
+    -93.125,
+    39.875,
+    -79.875,
+    49.125
+  ],
+  "frames": [
+    {
+      "datetime": "2026-06-11T18:00:00.000Z",
+      "forecastHour": 0,
+      "wind": "/weather/wind_f000.tif",
+      "precip": "/weather/precip_f000.tif"
+    },
+    {
+      "datetime": "2026-06-11T21:00:00.000Z",
+      "forecastHour": 3,
+      "wind": "/weather/wind_f003.tif",
+      "precip": "/weather/precip_f003.tif"
+    },
+    {
+      "datetime": "2026-06-12T00:00:00.000Z",
+      "forecastHour": 6,
+      "wind": "/weather/wind_f006.tif",
+      "precip": "/weather/precip_f006.tif"
+    },
+    {
+      "datetime": "2026-06-12T03:00:00.000Z",
+      "forecastHour": 9,
+      "wind": "/weather/wind_f009.tif",
+      "precip": "/weather/precip_f009.tif"
+    },
+    {
+      "datetime": "2026-06-12T06:00:00.000Z",
+      "forecastHour": 12,
+      "wind": "/weather/wind_f012.tif",
+      "precip": "/weather/precip_f012.tif"
+    },
+    {
+      "datetime": "2026-06-12T09:00:00.000Z",
+      "forecastHour": 15,
+      "wind": "/weather/wind_f015.tif",
+      "precip": "/weather/precip_f015.tif"
+    },
+    {
+      "datetime": "2026-06-12T12:00:00.000Z",
+      "forecastHour": 18,
+      "wind": "/weather/wind_f018.tif",
+      "precip": "/weather/precip_f018.tif"
+    },
+    {
+      "datetime": "2026-06-12T15:00:00.000Z",
+      "forecastHour": 21,
+      "wind": "/weather/wind_f021.tif",
+      "precip": "/weather/precip_f021.tif"
+    },
+    {
+      "datetime": "2026-06-12T18:00:00.000Z",
+      "forecastHour": 24,
+      "wind": "/weather/wind_f024.tif",
+      "precip": "/weather/precip_f024.tif"
+    },
+    {
+      "datetime": "2026-06-12T21:00:00.000Z",
+      "forecastHour": 27,
+      "wind": "/weather/wind_f027.tif",
+      "precip": "/weather/precip_f027.tif"
+    },
+    {
+      "datetime": "2026-06-13T00:00:00.000Z",
+      "forecastHour": 30,
+      "wind": "/weather/wind_f030.tif",
+      "precip": "/weather/precip_f030.tif"
+    },
+    {
+      "datetime": "2026-06-13T03:00:00.000Z",
+      "forecastHour": 33,
+      "wind": "/weather/wind_f033.tif",
+      "precip": "/weather/precip_f033.tif"
+    },
+    {
+      "datetime": "2026-06-13T06:00:00.000Z",
+      "forecastHour": 36,
+      "wind": "/weather/wind_f036.tif",
+      "precip": "/weather/precip_f036.tif"
+    },
+    {
+      "datetime": "2026-06-13T09:00:00.000Z",
+      "forecastHour": 39,
+      "wind": "/weather/wind_f039.tif",
+      "precip": "/weather/precip_f039.tif"
+    },
+    {
+      "datetime": "2026-06-13T12:00:00.000Z",
+      "forecastHour": 42,
+      "wind": "/weather/wind_f042.tif",
+      "precip": "/weather/precip_f042.tif"
+    },
+    {
+      "datetime": "2026-06-13T15:00:00.000Z",
+      "forecastHour": 45,
+      "wind": "/weather/wind_f045.tif",
+      "precip": "/weather/precip_f045.tif"
+    },
+    {
+      "datetime": "2026-06-13T18:00:00.000Z",
+      "forecastHour": 48,
+      "wind": "/weather/wind_f048.tif",
+      "precip": "/weather/precip_f048.tif"
+    }
+  ]
+}

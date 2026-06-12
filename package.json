@@ -27,6 +27,7 @@
     "validate:time-travel": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-atlas-time-travel.mjs",
     "validate:urban-model": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/validate-urban-design-model.mjs",
     "atlas:starter": "node scripts/generate-atlas-starter.mjs",
+    "weather:fetch": "node scripts/fetch-gfs-weather.mjs",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "porchfest:import-kml": "node scripts/kml-to-event-layer.mjs",

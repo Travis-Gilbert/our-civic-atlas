@@ -1645,12 +1645,13 @@ function PorchfestPlannerWorkspace({
     [liveTasks, placementsById],
   );
 
-  // Weather overlay (Lane 4 Tier 2): desktop only, on toggle, and only once
-  // zoomed in past the suspend threshold. The data path is inert without a
-  // WeatherLayers Cloud token (an honest note shows in the Layers panel).
-  const weatherEnabled =
-    visibility.weather && !isMobile && mapZoom >= WEATHER_MIN_ZOOM;
-  const weather = usePorchfestWeather(weatherEnabled);
+  // Weather overlay (Lane 4 Tier 2): desktop only. The manifest + forecast
+  // hours load whenever the overlay is active (so the time slider shows), but
+  // the GPU layers only render once zoomed in past the suspend threshold.
+  // Data is free self-hosted NOAA GFS (public/weather), no token.
+  const weatherActive = visibility.weather && !isMobile;
+  const weatherVisible = weatherActive && mapZoom >= WEATHER_MIN_ZOOM;
+  const weather = usePorchfestWeather(weatherActive);
 
   const extraDeckLayers = useMemo<Layer[]>(() => {
     const layers: Layer[] = [buildBoundaryLayer()];
@@ -1774,10 +1775,10 @@ function PorchfestPlannerWorkspace({
     );
 
     // Forecast weather (Lane 4 Tier 2): wind particles + precipitation raster
-    // for the active forecast hour. weatherEnabled already folds in the toggle,
-    // the mobile gate, and the zoom-suspend threshold; the hook yields no
-    // layers without a WeatherLayers Cloud token.
-    if (weatherEnabled) layers.push(...weather.layers);
+    // for the active forecast hour, from self-hosted NOAA GFS GeoTIFFs.
+    // weatherVisible folds in the toggle, the mobile gate, and the zoom-suspend
+    // threshold; the layers simply drop out below the threshold.
+    if (weatherVisible) layers.push(...weather.layers);
 
     return layers;
   }, [
@@ -1797,7 +1798,7 @@ function PorchfestPlannerWorkspace({
     selectedTaskId,
     handleFlyToPlacement,
     civicRows,
-    weatherEnabled,
+    weatherVisible,
     weather.layers,
   ]);
 
@@ -1960,18 +1961,23 @@ function PorchfestPlannerWorkspace({
             The weather overlay is a desktop view; the forecast card covers
             phones.
           </p>
-        ) : !weather.available ? null : mapZoom < WEATHER_MIN_ZOOM ? (
+        ) : mapZoom < WEATHER_MIN_ZOOM ? (
           <p className="planner-note px-2 py-1 leading-4">
-            Zoom in to load the forecast frames.
+            Zoom in to the regional frame to see the wind and rain.
           </p>
-        ) : (
+        ) : weather.available ? (
           <PorchfestWeatherTimeline
             datetimes={weather.datetimes}
             datetime={weather.datetime}
             loading={weather.loading}
             onChange={weather.setDatetime}
           />
-        )
+        ) : weather.error ? (
+          <p className="planner-note px-2 py-1 leading-4">
+            Weather data unavailable. Run npm run weather:fetch to refresh the
+            forecast frames.
+          </p>
+        ) : null
       ) : null}
     </div>
   );

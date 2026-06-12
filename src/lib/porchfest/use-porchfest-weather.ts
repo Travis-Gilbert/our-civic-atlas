@@ -1,42 +1,76 @@
 "use client";
 
 /**
- * Forecast weather overlay data + layers (Lane 4 Tier 2).
+ * Forecast weather overlay data + layers (Lane 4 Tier 2), self-hosted edition.
  *
- * Loads WeatherLayers Cloud forecast frames (GFS wind + precipitation) and
- * builds the deck.gl ParticleLayer (wind) and RasterLayer (precipitation) for
- * the active forecast datetime. The heavy weatherlayers-gl runtime is pulled
- * in with a dynamic import() ONLY when the overlay is enabled with a token, so
- * the planner bundle stays lean for the common case (no token, overlay off).
+ * Loads the static GFS manifest (scripts/fetch-gfs-weather.mjs output) and, for
+ * the active forecast hour, loads the wind + precipitation GeoTIFF frames with
+ * weatherlayers-gl's loadTextureData and builds the deck.gl ParticleLayer
+ * (wind, VECTOR) and RasterLayer (precipitation, SCALAR). Free NOAA data, no
+ * subscription or token.
  *
- * Without a WeatherLayers Cloud token the hook returns available=false and no
- * layers; the planner shows an honest "needs a data token" note instead. The
- * data path is therefore inert in production until the subscription token is
- * configured, matching the repo's honest-degradation convention.
+ * weatherlayers-gl is browser-only (it references Worker at import), so the
+ * runtime is pulled in with a dynamic import() inside the client effect, never
+ * during SSR, and only when the overlay is active. The frames are tiny GeoTIFFs
+ * (~10 KB) so loading them per scrub is cheap.
  */
 
 import { useEffect, useState } from "react";
 import type { Layer } from "@deck.gl/core";
-import {
-  WEATHERLAYERS_TOKEN,
-  WEATHERLAYERS_WIND_DATASET,
-  WEATHERLAYERS_PRECIP_DATASET,
-  hasWeatherLayersToken,
-} from "@/lib/porchfest/weatherlayers-config";
+import { WEATHER_MANIFEST_URL } from "@/lib/porchfest/weatherlayers-config";
+
+interface WeatherFrame {
+  readonly datetime: string;
+  readonly forecastHour: number;
+  readonly wind: string;
+  readonly precip: string;
+}
+
+interface WeatherManifest {
+  readonly run: string;
+  readonly generatedAt: string;
+  readonly bounds: [number, number, number, number];
+  readonly frames: WeatherFrame[];
+}
 
 const nowIso = (): string => new Date().toISOString();
 
-// setLibrary registers geotiff globally for the data loader; once is enough.
+// setLibrary registers geotiff globally for loadTextureData; once is enough.
 let geotiffRegistered = false;
 
+// Precipitation rate (PRATE, kg/m^2/s) -> color. Dry is transparent; the ramp
+// climbs from a faint blue at drizzle to red at heavy rain. Domain values are
+// in PRATE units (~0.0003 is light, ~0.004 is heavy).
+const PRECIP_PALETTE: Array<[number, string]> = [
+  [0, "#00000000"],
+  [0.00005, "#9ec9ec70"],
+  [0.0003, "#4a90d0b0"],
+  [0.001, "#3257b8d0"],
+  [0.003, "#6a3da6e6"],
+  [0.006, "#c81e3cf2"],
+];
+
+function closestDatetime(datetimes: string[], target: string): string | null {
+  if (datetimes.length === 0) return null;
+  const t = Date.parse(target);
+  let best = datetimes[0];
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (const dt of datetimes) {
+    const diff = Math.abs(Date.parse(dt) - t);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = dt;
+    }
+  }
+  return best;
+}
+
 export interface PorchfestWeatherState {
-  /** A WeatherLayers Cloud token is configured. */
+  /** The weather manifest loaded and has forecast frames. */
   readonly available: boolean;
   readonly loading: boolean;
   readonly error: string | null;
-  /** Forecast datetimes (ISO) offered by the dataset. */
   readonly datetimes: readonly string[];
-  /** Active forecast datetime the layers render. */
   readonly datetime: string | null;
   readonly setDatetime: (datetime: string) => void;
   /** Built wind + precipitation layers for the active datetime. */
@@ -44,52 +78,47 @@ export interface PorchfestWeatherState {
 }
 
 export function usePorchfestWeather(enabled: boolean): PorchfestWeatherState {
-  const available = hasWeatherLayersToken();
-  const [datetimes, setDatetimes] = useState<string[]>([]);
+  const [manifest, setManifest] = useState<WeatherManifest | null>(null);
   const [datetime, setDatetime] = useState<string | null>(null);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Discover the forecast datetimes when first enabled with a token.
+  // Load the manifest once when first active.
   useEffect(() => {
-    if (!enabled || !available) return;
+    if (!enabled || manifest) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void (async () => {
-      try {
-        const { Client, setLibrary, getClosestStartDatetime } = await import(
-          "weatherlayers-gl/client"
-        );
-        if (!geotiffRegistered) {
-          const geotiff = await import("geotiff");
-          setLibrary("geotiff", geotiff);
-          geotiffRegistered = true;
-        }
-        const client = new Client({ accessToken: WEATHERLAYERS_TOKEN });
-        const windDataset = await client.loadDataset(WEATHERLAYERS_WIND_DATASET);
+    fetch(WEATHER_MANIFEST_URL)
+      .then((response) => {
+        if (!response.ok) throw new Error(`weather manifest HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((data: WeatherManifest) => {
         if (cancelled) return;
-        const dts = windDataset.datetimes;
-        setDatetimes(dts);
-        setDatetime(
-          (current) =>
-            current ?? getClosestStartDatetime(dts, nowIso()) ?? dts[0] ?? null,
-        );
-      } catch (caught) {
+        setManifest(data);
+        const dts = data.frames.map((frame) => frame.datetime);
+        setDatetime((current) => current ?? closestDatetime(dts, nowIso()));
+      })
+      .catch((caught) => {
         if (cancelled) return;
         setError(caught instanceof Error ? caught.message : String(caught));
         setLoading(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
-  }, [enabled, available]);
+  }, [enabled, manifest]);
 
-  // Load the data for the active datetime and build the layers.
+  // Build the layers for the active forecast frame.
   useEffect(() => {
-    if (!enabled || !available || !datetime) {
+    if (!enabled || !manifest || !datetime) {
+      setLayers([]);
+      return;
+    }
+    const frame = manifest.frames.find((entry) => entry.datetime === datetime);
+    if (!frame) {
       setLayers([]);
       return;
     }
@@ -97,47 +126,42 @@ export function usePorchfestWeather(enabled: boolean): PorchfestWeatherState {
     setLoading(true);
     void (async () => {
       try {
-        const [clientModule, deckModule] = await Promise.all([
-          import("weatherlayers-gl/client"),
-          import("weatherlayers-gl"),
-        ]);
-        const { Client } = clientModule;
-        const { ParticleLayer, RasterLayer } = deckModule;
-        const client = new Client({ accessToken: WEATHERLAYERS_TOKEN });
-        const [windDataset, precipDataset] = await Promise.all([
-          client.loadDataset(WEATHERLAYERS_WIND_DATASET),
-          client.loadDataset(WEATHERLAYERS_PRECIP_DATASET),
-        ]);
-        const [wind, precip] = await Promise.all([
-          client.loadDatasetData(WEATHERLAYERS_WIND_DATASET, datetime),
-          client.loadDatasetData(WEATHERLAYERS_PRECIP_DATASET, datetime),
+        const wl = await import("weatherlayers-gl");
+        if (!geotiffRegistered) {
+          const geotiff = await import("geotiff");
+          wl.setLibrary("geotiff", geotiff);
+          geotiffRegistered = true;
+        }
+        const [windTexture, precipTexture] = await Promise.all([
+          wl.loadTextureData(frame.wind),
+          wl.loadTextureData(frame.precip),
         ]);
         if (cancelled) return;
+        const bounds = manifest.bounds;
         const built: Layer[] = [
-          new RasterLayer({
+          new wl.RasterLayer({
             id: "porchfest-weather-precip",
-            image: precip.image,
-            image2: precip.image2,
-            imageWeight: precip.imageWeight,
-            imageType: precip.imageType,
-            imageUnscale: precip.imageUnscale,
-            bounds: precip.bounds,
-            palette: precipDataset.palette,
-            opacity: 0.42,
+            image: precipTexture,
+            imageType: wl.ImageType.SCALAR,
+            imageUnscale: null,
+            bounds,
+            // RasterLayer parses the raw cpt2js palette array internally.
+            palette: PRECIP_PALETTE,
+            opacity: 0.5,
           }) as unknown as Layer,
-          new ParticleLayer({
+          new wl.ParticleLayer({
             id: "porchfest-weather-wind",
-            image: wind.image,
-            image2: wind.image2,
-            imageWeight: wind.imageWeight,
-            imageType: wind.imageType,
-            imageUnscale: wind.imageUnscale,
-            bounds: wind.bounds,
-            numParticles: 3500,
-            maxAge: 25,
-            speedFactor: 3,
-            width: 1.6,
-            color: [255, 255, 255, 120],
+            image: windTexture,
+            imageType: wl.ImageType.VECTOR,
+            imageUnscale: null,
+            bounds,
+            numParticles: 4000,
+            maxAge: 30,
+            speedFactor: 4,
+            width: 2,
+            // Dark navy (Path B action color) so the streamlines read on the
+            // light Observable basemap; white particles wash out on it.
+            color: [0, 81, 134, 220],
             animate: true,
           }) as unknown as Layer,
         ];
@@ -153,18 +177,18 @@ export function usePorchfestWeather(enabled: boolean): PorchfestWeatherState {
     return () => {
       cancelled = true;
     };
-  }, [enabled, available, datetime]);
+  }, [enabled, manifest, datetime]);
 
-  // Drop the layers when the overlay is suspended (toggle off or zoomed out).
+  // Drop the layers when the overlay is suspended.
   useEffect(() => {
     if (!enabled) setLayers([]);
   }, [enabled]);
 
   return {
-    available,
+    available: (manifest?.frames.length ?? 0) > 0,
     loading,
     error,
-    datetimes,
+    datetimes: manifest?.frames.map((frame) => frame.datetime) ?? [],
     datetime,
     setDatetime,
     layers,

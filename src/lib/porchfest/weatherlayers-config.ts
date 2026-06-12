@@ -1,34 +1,17 @@
 /**
- * WeatherLayers Cloud configuration for the planner weather overlay (Lane 4
- * Tier 2). The data is a paid WeatherLayers Cloud subscription; the access
- * token is a browser-facing public env value (no service-tier secret), so it
- * is read at build time like the sync URL. When the token is absent the
- * overlay degrades to an honest "needs a data token" note and renders nothing.
+ * Self-hosted weather overlay configuration (Lane 4 Tier 2).
  *
- * Dataset slugs default to GFS but are env-overridable so the organizer can
- * point them at the exact slugs from their WeatherLayers Cloud catalog
- * without a code change.
+ * The overlay renders free NOAA GFS data converted to GeoTIFF frames by
+ * scripts/fetch-gfs-weather.mjs and served as static files. No subscription,
+ * no token: the frontend reads the manifest and loads each frame's textures.
  */
 
-export const WEATHERLAYERS_TOKEN =
-  process.env.NEXT_PUBLIC_WEATHERLAYERS_TOKEN ?? "";
-
-export const WEATHERLAYERS_WIND_DATASET =
-  process.env.NEXT_PUBLIC_WEATHERLAYERS_WIND_DATASET ??
-  "gfs/wind_10m_above_ground";
-
-export const WEATHERLAYERS_PRECIP_DATASET =
-  process.env.NEXT_PUBLIC_WEATHERLAYERS_PRECIP_DATASET ??
-  "gfs/precipitation_surface";
+/** Static manifest written by the GFS pipeline (run, bounds, forecast frames). */
+export const WEATHER_MANIFEST_URL = "/weather/manifest.json";
 
 /**
- * Suspend the GPU-heavy particle + raster layers below this zoom: a regional
- * weather field is meaningful at city/regional zoom but wasteful at a
- * continental frame, so the overlay only draws once the map is zoomed in to
- * at least this level.
+ * Suspend the GPU-heavy particle + raster layers below this zoom. The wind
+ * field reads best at a regional Great Lakes frame; at street zoom it is a
+ * single flat cell, and at a continental frame the particle field is wasteful.
  */
-export const WEATHER_MIN_ZOOM = 8;
-
-export function hasWeatherLayersToken(): boolean {
-  return WEATHERLAYERS_TOKEN.trim().length > 0;
-}
+export const WEATHER_MIN_ZOOM = 5;
