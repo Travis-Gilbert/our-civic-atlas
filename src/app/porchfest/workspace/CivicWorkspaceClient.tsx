@@ -413,6 +413,10 @@ function WorkspaceInner() {
   const [currentDocId, setCurrentDocId] = useState("");
   const [mobileRows, setMobileRows] = useState<CivicWorkspaceRow[]>([]);
   const [mobileView, setMobileView] = useState<MobileWorkspaceView>("table");
+  // Desktop database view (the BlockSuite block's active view). The segment
+  // control on the Applications strip drives it through the bridge; the native
+  // BlockSuite switcher is hidden in civic-editor-theme.css.
+  const [dbView, setDbView] = useState<MobileWorkspaceView>("table");
   const [activeMobileLane, setActiveMobileLane] =
     useState<PlanningStatus>("submitted");
   const [visibleMobileColumns, setVisibleMobileColumns] = useState<
@@ -599,6 +603,22 @@ function WorkspaceInner() {
     };
   }, []);
 
+  // Deep link: /porchfest/workspace?view=kanban opens the kanban view. Read
+  // once on mount; the apply effect below drives the editor when it is ready.
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (view === "kanban" || view === "table") setDbView(view);
+  }, []);
+
+  // Apply the desired database view whenever it changes or the applications doc
+  // becomes active. switchView retries internally until the block renders, so
+  // this lands the deep link on first paint and the segment control on click.
+  useEffect(() => {
+    if (state.kind === "ready" && currentDoc?.kind === "applications") {
+      apiRef.current?.switchView(dbView);
+    }
+  }, [state.kind, currentDoc?.kind, dbView]);
+
   const handleOpenDoc = (docId: string) => {
     apiRef.current?.openDoc(docId);
     setCurrentDocId(docId);
@@ -712,6 +732,30 @@ function WorkspaceInner() {
           <span className="planner-note civic-workspace-docnote" role="status">
             {deleteNotice}
           </span>
+        ) : null}
+        {currentDoc?.kind === "applications" ? (
+          <div
+            className="civic-workspace-viewseg"
+            role="group"
+            aria-label="Applications view"
+          >
+            <button
+              type="button"
+              data-active={dbView === "table" || undefined}
+              aria-pressed={dbView === "table"}
+              onClick={() => setDbView("table")}
+            >
+              Table
+            </button>
+            <button
+              type="button"
+              data-active={dbView === "kanban" || undefined}
+              aria-pressed={dbView === "kanban"}
+              onClick={() => setDbView("kanban")}
+            >
+              Kanban
+            </button>
+          </div>
         ) : null}
       </div>
       <form className="civic-billing-band" onSubmit={handleBillingRequest}>
@@ -865,13 +909,49 @@ function WorkspaceInner() {
           border-color: #e2e2e2;
           color: #1c1c1c;
         }
+        /* Lane 1d: the doc tabs, the view segment, and the billing band read
+           as ONE chrome strip, not three stacked bands, so the docbar drops
+           its own divider and the billing band below carries the single
+           bottom hairline. */
         .civic-workspace-docbar {
           display: flex;
           align-items: center;
           gap: 4px;
-          padding: 8px 24px;
-          border-bottom: 1px solid #e2e2e2;
+          padding: 8px 24px 6px;
           overflow-x: auto;
+        }
+        /* View segment control (Lane 1c): owns table/kanban switching now that
+           the native BlockSuite switcher is hidden. Anchored right on the
+           strip; reads as a compact pill in the Observable register. */
+        .civic-workspace-viewseg {
+          display: inline-flex;
+          margin-left: auto;
+          padding: 2px;
+          border: 1px solid #e2e2e2;
+          border-radius: 9999px;
+          background: #ffffff;
+          gap: 2px;
+        }
+        .civic-workspace-viewseg button {
+          padding: 4px 12px;
+          border: 0;
+          border-radius: 9999px;
+          background: transparent;
+          color: #454545;
+          font-family: var(--font-mono, inherit);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .civic-workspace-viewseg button:hover {
+          color: #1c1c1c;
+        }
+        .civic-workspace-viewseg button[data-active] {
+          background: #f1f6fb;
+          color: #005186;
         }
         .civic-workspace-doctab {
           display: inline-flex;
@@ -961,9 +1041,11 @@ function WorkspaceInner() {
           grid-template-columns: minmax(220px, 1fr) 112px auto minmax(0, 280px);
           gap: 12px;
           align-items: end;
-          padding: 12px 24px;
+          /* Hugs the docbar above it: together they are one chrome strip with
+             a single bottom hairline (Lane 1d). */
+          padding: 6px 24px 12px;
           border-bottom: 1px solid #e2e2e2;
-          background: #fbfbfb;
+          background: #ffffff;
         }
         .civic-billing-field {
           min-width: 0;
@@ -1117,6 +1199,11 @@ function WorkspaceInner() {
             font-size: 12px;
           }
           .civic-billing-band {
+            display: none;
+          }
+          /* The mobile read surface carries its own table/kanban segment, so
+             the desktop database segment is hidden with the billing band. */
+          .civic-workspace-viewseg {
             display: none;
           }
           .civic-mobile-workspace {

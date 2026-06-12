@@ -47,6 +47,13 @@ export interface CivicWorkspaceMounted {
   deleteNote(docId: string): boolean;
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;
+  /**
+   * Drive the applications database block's active view (table | kanban) from
+   * the workspace segment control. The native BlockSuite view switcher is
+   * hidden, so this bridge owns view switching; it retries until the database
+   * element renders so a ?view= deep link lands on first load.
+   */
+  switchView(view: "table" | "kanban"): boolean;
   destroy(): void;
 }
 

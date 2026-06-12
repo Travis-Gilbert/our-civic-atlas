@@ -79,3 +79,42 @@ affine-database .affine-database-block-row .database-cell {
   max-height: 38px;
   overflow: hidden;
 }
+
+/*
+ * Lane 1: the workspace owns view switching through a segment control on the
+ * Applications strip, so BlockSuite's own inner view switcher (the second
+ * stacked tab layer) is hidden. The toolbar tools (filter, sort, search) stay.
+ */
+affine-database data-view-header-views {
+  display: none;
+}
+
+/*
+ * Lane 1: theme the table view to the shadcn roster look: one bordered,
+ * rounded container with closed left/right edges, a muted header, and row
+ * hairlines. Pure presentation: the data view and its logic are untouched.
+ */
+affine-database affine-database-table {
+  border: 1px solid var(--affine-border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--affine-background-primary-color);
+}
+
+affine-database affine-database-table .affine-database-table-container {
+  border-radius: 10px;
+}
+
+affine-database affine-database-column-header {
+  background: var(--affine-background-secondary-color);
+  border-bottom: 1px solid var(--affine-border-color);
+}
+
+affine-database .affine-database-block-row {
+  border-bottom: 1px solid var(--affine-border-color);
+}
+
+/* The roster reads cleaner without the trailing add-row affordance hairline. */
+affine-database .affine-database-block-row.data-view-table-row-last {
+  border-bottom: none;
+}

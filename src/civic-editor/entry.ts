@@ -100,28 +100,80 @@ export interface CivicWorkspaceMountResult {
   /** Doc list changes (creation, rename, deletion, sync arrivals). */
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;
+  /**
+   * Drive the applications database block's active view from the workspace
+   * segment control (Lane 1). The native BlockSuite view switcher is hidden
+   * in civic-editor-theme.css, so this bridge owns view switching. Retries
+   * briefly until the database element renders, so a deep link (?view=kanban)
+   * lands on first load. Returns true when applied synchronously.
+   */
+  switchView(view: 'table' | 'kanban'): boolean;
   destroy(): void;
+}
+
+/**
+ * Card fields kept VISIBLE on kanban cards. Everything else is hidden so a
+ * card reads as a short triage chip (Lane 1): the row title is the card
+ * header automatically (civicObjectTitle), and these are the few non-title
+ * fields an organizer triages on. Keys map to column ids via columnIds.
+ */
+const KANBAN_CARD_FIELDS: ReadonlySet<string> = new Set([
+  'category',
+  'name',
+  'status',
+  'feePaid',
+]);
+
+/**
+ * Minimal structural surface of a kanban SingleView. The concrete
+ * KanbanSingleView class is not publicly exported from @blocksuite/data-view,
+ * so we reach the per-column hide control through this shape.
+ */
+interface KanbanCardColumn {
+  readonly id: string;
+  readonly hide$: { readonly value: boolean };
+  hideSet(hide: boolean): void;
+}
+interface KanbanCardView {
+  propertyGetOrCreate(columnId: string): KanbanCardColumn;
 }
 
 /**
  * Table + kanban views over the civic database (FR-007), grouped by the
  * planning status column. Runs in the browser only; the headless store
  * module deliberately leaves views to this layer.
+ *
+ * Card visibility (Lane 1) is healed on every mount, not just on first seed:
+ * docs already synced from production were created before this config existed
+ * and would otherwise come up with the full 43-column card dump. The heal is
+ * idempotent: a column's hidden state is only written when it actually flips.
  */
 function ensureCivicViews(handles: CivicDatabaseHandles): void {
   const datasource = new DatabaseBlockDataSource(handles.model);
-  if (datasource.viewManager.views$.value.length > 0) return;
+  const viewManager = datasource.viewManager;
 
-  datasource.viewManager.viewAdd('table');
-  const kanbanViewId = datasource.viewManager.viewAdd(
-    viewPresets.kanbanViewMeta.type,
-  );
-  const statusColumnId = handles.columnIds.get('status');
-  if (statusColumnId) {
-    datasource.viewManager
-      .viewGet(kanbanViewId)
-      ?.traitGet(groupTraitKey)
-      ?.changeGroup(statusColumnId);
+  if (viewManager.views$.value.length === 0) {
+    viewManager.viewAdd('table');
+    const kanbanViewId = viewManager.viewAdd(viewPresets.kanbanViewMeta.type);
+    const statusColumnId = handles.columnIds.get('status');
+    if (statusColumnId) {
+      viewManager
+        .viewGet(kanbanViewId)
+        ?.traitGet(groupTraitKey)
+        ?.changeGroup(statusColumnId);
+    }
+  }
+
+  for (const viewId of viewManager.views$.value) {
+    if (viewManager.viewDataGet(viewId)?.type !== viewPresets.kanbanViewMeta.type) {
+      continue;
+    }
+    const kanban = viewManager.viewGet(viewId) as unknown as KanbanCardView;
+    for (const [fieldKey, columnId] of handles.columnIds) {
+      const column = kanban.propertyGetOrCreate(columnId);
+      const shouldHide = !KANBAN_CARD_FIELDS.has(fieldKey);
+      if (column.hide$.value !== shouldHide) column.hideSet(shouldHide);
+    }
   }
 }
 
@@ -442,6 +494,44 @@ export async function mountCivicWorkspace(
     return () => subscription.unsubscribe();
   };
 
+  // The applications database block exposes its live view manager through
+  // dataSource.value (a lazy cell on the rendered element). The native view
+  // switcher is hidden in civic-editor-theme.css, so this drives the active
+  // view for the workspace segment control and the ?view= deep link.
+  type LiveViewManager = {
+    views$: { value: string[] };
+    viewDataGet(id: string): { type?: string } | undefined;
+    setCurrentView(id: string): void;
+  };
+  const findViewManager = (): LiveViewManager | null => {
+    const dbEl = (editor.querySelector('affine-database') ??
+      document.querySelector('affine-database')) as
+      | (Element & {
+          dataSource?: { value?: { viewManager?: LiveViewManager } };
+        })
+      | null;
+    return dbEl?.dataSource?.value?.viewManager ?? null;
+  };
+  const switchView = (view: 'table' | 'kanban', attempt = 0): boolean => {
+    const viewManager = findViewManager();
+    if (!viewManager) {
+      // The database renders a frame after the doc loads; retry up to ~1s so a
+      // deep link applies on first paint without the caller polling.
+      if (attempt < 60 && typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => switchView(view, attempt + 1));
+      }
+      return false;
+    }
+    const targetType =
+      view === 'kanban' ? viewPresets.kanbanViewMeta.type : 'table';
+    const targetId = viewManager.views$.value.find(
+      (id) => viewManager.viewDataGet(id)?.type === targetType,
+    );
+    if (!targetId) return false;
+    viewManager.setCurrentView(targetId);
+    return true;
+  };
+
   const result: CivicWorkspaceMountResult = {
     api,
     editor,
@@ -452,6 +542,7 @@ export async function mountCivicWorkspace(
     deleteNote,
     onDocsChanged,
     currentDocId: () => activeDocId,
+    switchView,
     destroy: () => {
       editor.remove();
       if (window.__civicWorkspaceMounted === result) {
