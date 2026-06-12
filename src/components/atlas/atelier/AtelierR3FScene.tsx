@@ -401,7 +401,10 @@ export function AtelierR3FScene({
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
       >
-        <color attach="background" args={["#26221c"]} />
+        {/* Blueprint drafting-table ground, matching atelier.css
+            --atelier-paper (#e6ebf1). The scene shares the surface register
+            so the 3D viewport reads as the same light blueprint table. */}
+        <color attach="background" args={["#e6ebf1"]} />
         {/* Key light from camera-right (spec line 35). */}
         <directionalLight
           position={[diagonal * 3, diagonal * 4, diagonal * 1.5]}
@@ -415,26 +418,28 @@ export function AtelierR3FScene({
           shadow-camera-near={0.1}
           shadow-camera-far={diagonal * 10}
         />
-        {/* Fill light from camera-left, dimmer warm tone. */}
+        {/* Fill light from camera-left, dimmer cool tone to suit the
+            blueprint register. */}
         <directionalLight
           position={[-diagonal * 2, diagonal * 2, diagonal * 0.5]}
           intensity={0.4}
-          color="#f0d4b0"
+          color="#dbe6f2"
         />
-        {/* Ambient. */}
-        <ambientLight intensity={0.45} />
+        {/* Ambient lifted for the light ground (the ghost porcelain reads
+            against a bright table, not a dark room). */}
+        <ambientLight intensity={0.7} />
 
-        {/* Paper-grid ground plane. drei Grid sized to comfortable
-            surround of the building. Cell color matches atelier.css
-            --atelier-grid (warm-cream vellum). */}
+        {/* Blueprint grid ground plane. drei Grid sized to a comfortable
+            surround of the building. Cell colors match atelier.css
+            --atelier-grid / --atelier-grid-soft (blueprint blue). */}
         <Grid
           args={[diagonal * 12, diagonal * 12]}
           cellSize={1}
           cellThickness={0.6}
-          cellColor="#6b5a45"
+          cellColor="#a6bcd8"
           sectionSize={5}
           sectionThickness={1.0}
-          sectionColor="#8a7155"
+          sectionColor="#6f8db5"
           fadeDistance={diagonal * 8}
           fadeStrength={1.4}
           infiniteGrid
