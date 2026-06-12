@@ -23,6 +23,17 @@ const HOST_REWRITE_EXPECTATIONS = [
   ['"/workspace"', '"/porchfest/workspace"'],
 ];
 
+const FLINT_ATLAS_REDIRECT_EXPECTATIONS = [
+  ['"/porchfest"', '"/planning"'],
+  ['"/porchfest/"', '"/planning"'],
+  ['"/porchfest/apply"', '"/apply"'],
+  ['"/porchfest/workspace"', '"/workspace"'],
+  ['"/porchfest/dashboard"', '"/dashboard"'],
+  ['"/porchfest-public"', '"/"'],
+  ['"/porchfest-public/sponsors"', '"/sponsors"'],
+  ['"/porchfest-public/board"', '"/board"'],
+];
+
 function check(label, condition, detail = '') {
   if (!condition) {
     throw new Error(`${label}${detail ? `: ${detail}` : ''}`);
@@ -43,9 +54,20 @@ console.log('2. porchfestflint.com host path table is present');
 const middleware = read('src/middleware.ts');
 check('porchfestflint.com host enabled', middleware.includes('"porchfestflint.com"'));
 check('www.porchfestflint.com host enabled', middleware.includes('"www.porchfestflint.com"'));
+check('flint.ourcivicatlas.org host enabled', middleware.includes('"flint.ourcivicatlas.org"'));
 for (const [sourcePath, targetPath] of HOST_REWRITE_EXPECTATIONS) {
   check(`${sourcePath} rewrites to ${targetPath}`, middleware.includes(`[${sourcePath}, ${targetPath}]`));
 }
+for (const [sourcePath, targetPath] of FLINT_ATLAS_REDIRECT_EXPECTATIONS) {
+  check(
+    `flint.ourcivicatlas.org ${sourcePath} redirects to porchfestflint.com${targetPath}`,
+    middleware.includes(`[${sourcePath}, ${targetPath}]`),
+  );
+}
+check(
+  'flint.ourcivicatlas.org PorchFest redirects preserve query string',
+  middleware.includes('target.search = req.nextUrl.search'),
+);
 check(
   'legacy /porchfest/workspace redirects to /workspace',
   middleware.includes('req.nextUrl.pathname === "/porchfest/workspace"') &&

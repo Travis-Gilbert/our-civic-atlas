@@ -17,6 +17,7 @@ const PORCHFEST_FLINT_HOSTS = new Set([
   "www.porchfestflint.com",
   "porchfestflint.localhost:3000",
 ]);
+const FLINT_ATLAS_HOSTS = new Set(["flint.ourcivicatlas.org"]);
 
 const PORCHFEST_FLINT_PATHS: ReadonlyMap<string, string> = new Map([
   ["/", "/porchfest-public"],
@@ -32,12 +33,32 @@ const PORCHFEST_FLINT_PATHS: ReadonlyMap<string, string> = new Map([
   ["/dashboard", "/porchfest/dashboard"],
 ]);
 
+const FLINT_ATLAS_PORCHFEST_REDIRECTS: ReadonlyMap<string, string> = new Map([
+  ["/porchfest", "/planning"],
+  ["/porchfest/", "/planning"],
+  ["/porchfest/apply", "/apply"],
+  ["/porchfest/workspace", "/workspace"],
+  ["/porchfest/dashboard", "/dashboard"],
+  ["/porchfest-public", "/"],
+  ["/porchfest-public/sponsors", "/sponsors"],
+  ["/porchfest-public/board", "/board"],
+]);
+
 function canonicalPorchfestPath(pathname: string): string {
   return pathname.startsWith("/porchfest") ? pathname : "/porchfest";
 }
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host")?.toLowerCase() ?? "";
+  if (FLINT_ATLAS_HOSTS.has(host)) {
+    const targetPath = FLINT_ATLAS_PORCHFEST_REDIRECTS.get(req.nextUrl.pathname);
+    if (targetPath) {
+      const target = new URL(`https://porchfestflint.com${targetPath}`);
+      target.search = req.nextUrl.search;
+      return NextResponse.redirect(target, 308);
+    }
+  }
+
   if (PORCHFEST_FLINT_HOSTS.has(host)) {
     if (req.nextUrl.pathname === "/porchfest/workspace") {
       const target = req.nextUrl.clone();
