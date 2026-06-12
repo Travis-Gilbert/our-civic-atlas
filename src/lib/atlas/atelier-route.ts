@@ -60,14 +60,16 @@ export function findNearestReconstruction(
 }
 
 /**
- * Build the canonical atelier URL for a reconstruction + year.
- * URL-encodes the parcelId (which contains colons).
+ * Build the canonical Reconstruction Engine URL for a reconstruction + year.
+ * URL-encodes the parcelId (which contains colons). The function name keeps
+ * the internal `Atelier` identifier; the user-facing route is
+ * `/open-flint-atlas/reconstruction-engine/`.
  */
 export function buildAtelierHref(
   reconstruction: HistoricalReconstruction,
   year: number,
 ): string {
-  return `/open-flint-atlas/atelier/${encodeURIComponent(reconstruction.civic_object_id)}/${year}`;
+  return `/open-flint-atlas/reconstruction-engine/${encodeURIComponent(reconstruction.civic_object_id)}/${year}`;
 }
 
 /**

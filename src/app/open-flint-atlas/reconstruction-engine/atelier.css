@@ -1,0 +1,896 @@
+/*
+ * The Reconstruction Engine - scoped CSS register.
+ *
+ * The Reconstruction Engine is the workshop surface where the engine's eight
+ * stages become visible, cinematic, and clickable
+ * (see `SPEC-THE-ATELIER.md` and `docs/plans/the-atelier/`).
+ *
+ * This file extends the `--ctx-*` token system from `src/app/open-flint-atlas/atlas.css`.
+ * Redesign 2026-06-12: the surface moved OUT of the original warm graphite
+ * register and INTO the Observable cool family the rest of the atlas runs, one
+ * step darker, with an architect's blueprint grid. The BUILDING MATERIAL layer
+ * stays porcelain per `docs/design/visual-grammar-v1.md` (the locked ghost
+ * palette); only the SURFACE register changed. Two layers, two palettes: a
+ * blueprint drafting table that belongs to the same family as the atlas, with
+ * the porcelain building on top.
+ *
+ * Scoped to `.atelier-theme` (internal class name retained; the user-facing name
+ * is "Reconstruction Engine") so this register does NOT affect the rest of the
+ * atlas. The engine route mounts the class on its top-level wrapper; everything
+ * inside reads these tokens, everything outside continues to read --ctx-* tokens.
+ *
+ * The `--atelier-*` token NAMES are kept so no per-component CSS needs editing;
+ * only the VALUES changed. See
+ * `docs/design/reconstruction-engine-visual-register-proposal.md` for the locked
+ * decisions and `docs/design/atelier-visual-register-proposal.md` for the prior
+ * warm-graphite register this supersedes.
+ */
+
+.atelier-theme {
+  /* ============================================================
+   * SURFACE - the blueprint drafting table.
+   * Observable cool family, one step darker than the atlas white. The
+   * ground is a cool gray; panels (dossier, chrome, cards) lift toward
+   * white so they read as paper on the table.
+   * ============================================================ */
+  --atelier-paper:        #e6ebf1;  /* Drafting-table ground (cool gray, darker than atlas white) */
+  --atelier-paper-glow:   #f4f7fb;  /* Elevated panels: dossier, chrome */
+  --atelier-paper-deep:   #d7dee7;  /* Recessed surfaces (popovers, under-dossier strip) */
+
+  /* ============================================================
+   * GRID - the architect's blueprint grid on the ground plane.
+   * Spec line 41: "a faint architect's drafting grid." Redesign:
+   * blueprint blue ruling on the cool ground. The R3F scene consumes
+   * --atelier-grid / --atelier-grid-soft for its 3D ground grid; the
+   * CSS surface uses the --atelier-grid-line-* rgba pair below.
+   * ============================================================ */
+  --atelier-grid:         #6f8db5;  /* Major grid lines (1m spacing), blueprint blue */
+  --atelier-grid-soft:    #a6bcd8;  /* Minor grid lines (0.2m spacing) */
+  --atelier-grid-major-opacity: 0.28;
+  --atelier-grid-minor-opacity: 0.14;
+  --atelier-grid-line-minor: rgba(111, 141, 181, 0.16);  /* CSS blueprint minor */
+  --atelier-grid-line-major: rgba(111, 141, 181, 0.30);  /* CSS blueprint major */
+  --atelier-grid-cell:       24px;   /* Minor spacing */
+  --atelier-grid-major-cell: 120px;  /* Major spacing (every 5 minors) */
+
+  /* ============================================================
+   * INK - text and chrome strokes. Now dark ink on the light blueprint
+   * ground (the same near-black the atlas uses), with cool grays.
+   * ============================================================ */
+  --atelier-ink:          #1c1c1c;  /* Content text; matches atlas near-black */
+  --atelier-ink-soft:     #38414f;  /* Body text and section subtitles (cool dark gray) */
+  --atelier-ink-mute:     #5d6877;  /* Captions, labels, secondary text */
+  --atelier-ink-faint:    #93a0b0;  /* Tertiary text (very low priority) */
+
+  /* ============================================================
+   * RULES - hairlines within the engine surface. Dark on light.
+   * ============================================================ */
+  --atelier-rule:         rgba(28, 40, 60, 0.16);  /* Strong dividers (dossier section breaks) */
+  --atelier-rule-soft:    rgba(28, 40, 60, 0.08);  /* Subtle hairlines */
+
+  /* ============================================================
+   * ACCENT - navy action, redline disagreement.
+   * Navy (#005186) is the single most important action per screen,
+   * matching the atlas. Conflict markers and provenance annotation stay a
+   * warm redline: the spec's "architect's pen" (line 39) and a literal
+   * blueprint-redline convention, a retained data-semantic for
+   * disagreement, not decoration.
+   * ============================================================ */
+  --atelier-accent:       #005186;                        /* Navy action (save button) */
+  --atelier-accent-soft:  #2f79ad;                        /* Navy hover */
+  --atelier-redline:      #b5482f;                        /* Conflict + provenance annotation */
+  --atelier-redline-soft: #d06a4a;
+  --atelier-accent-line-opacity: 0.55;                    /* Spec line 39: "at half opacity" */
+  --atelier-accent-glow:  rgba(0, 81, 134, 0.30);
+
+  /* ============================================================
+   * SOURCE CARDS - white index cards on the blueprint table.
+   * Source type stays as metadata, not a separate visual costume per card
+   * (2026-05-24 correction retained): calm, comparable evidence.
+   * ============================================================ */
+  --atelier-source-card-paper:           #ffffff;
+  --atelier-source-card-border:          rgba(28, 40, 60, 0.18);
+  --atelier-source-card-rule:            rgba(28, 40, 60, 0.08);
+  --atelier-source-card-ink:             #1c1c1c;
+  --atelier-source-card-ink-soft:        rgba(28, 28, 28, 0.72);
+  --atelier-source-card-ink-mute:        rgba(28, 28, 28, 0.54);
+
+  /* Card dimensions (desktop). Mobile compresses via the .atelier-mobile selector. */
+  --atelier-card-width:        280px;
+  --atelier-card-height:       120px;
+  --atelier-card-padding:      12px;
+  --atelier-card-radius:       2px;  /* Matches atlas card chrome */
+
+  /* Card shadows - cards float as paper on the light blueprint table */
+  --atelier-card-shadow:
+    0 2px 8px -2px rgba(28, 40, 60, 0.14),
+    0 1px 2px rgba(28, 40, 60, 0.08);
+  --atelier-card-shadow-hover:
+    0 8px 18px -6px rgba(28, 40, 60, 0.18),
+    0 2px 4px rgba(28, 40, 60, 0.10);
+
+  /* ============================================================
+   * DOSSIER PANEL - right-anchored side panel (Stage 7).
+   * Decision 5: 380px wide on desktop; full-height; scrollable.
+   * ============================================================ */
+  --atelier-dossier-width:           380px;
+  --atelier-dossier-padding:         20px;
+  --atelier-dossier-section-gap:     16px;
+  --atelier-dossier-background:      var(--atelier-paper-glow);
+  --atelier-dossier-border-top:      1px solid var(--atelier-rule);
+
+  /* ============================================================
+   * CONFLICT MARKERS - terracotta dots in 3D space.
+   * Spec line 130: "small terracotta marker on the building part where
+   * the disagreement occurred."
+   * ============================================================ */
+  --atelier-conflict-marker-size:        14px;
+  --atelier-conflict-marker-color:       var(--atelier-redline);
+  --atelier-conflict-marker-glow:        rgba(181, 72, 47, 0.34);
+  --atelier-conflict-popover-background: var(--atelier-paper-glow);
+  --atelier-conflict-popover-shadow:     var(--atelier-card-shadow);
+
+  /* ============================================================
+   * ATLAS UNDERLAYER VEIL - the recessed atlas behind the atelier.
+   * Decision 7: opacity 0.12 + 1.5s blur ramp on atelier-mount.
+   * Spec line 28: "the map, dynamic island, top bar all fade to a
+   * darker treatment, not invisible, but recessed."
+   * ============================================================ */
+  --atelier-veil-opacity:           0.12;
+  --atelier-veil-blur:              8px;
+  --atelier-veil-mount-duration:    1500ms;
+  --atelier-veil-unmount-duration:  500ms;
+
+  /* ============================================================
+   * DUST MOTES - Stage 0 ambient particle field.
+   * Decision 8: ~40 particles, warm cream, removed under reduced-motion.
+   * Spec line 55: "A faint dust-mote ambient particle field drifts,
+   * very slow."
+   * ============================================================ */
+  --atelier-motes-color:            var(--atelier-ink-mute);
+  --atelier-motes-opacity:          0.16;  /* Dark motes on the light blueprint ground */
+  --atelier-motes-count:            40;
+  --atelier-motes-drift-y:          0.05;   /* units / second */
+  --atelier-motes-sway-amplitude:   0.02;   /* units */
+  --atelier-motes-sway-period:      10000;  /* ms */
+
+  /* ============================================================
+   * MOTION - shared easing and durations.
+   * Reuses the existing islandTransition cubic-bezier so atlas and
+   * atelier motion read as one motion identity.
+   * ============================================================ */
+  --atelier-ease:               cubic-bezier(0.22, 1, 0.36, 1);
+  --atelier-ease-in:            cubic-bezier(0.42, 0, 1, 1);
+  --atelier-ease-out:           cubic-bezier(0, 0, 0.58, 1);
+  --atelier-fade-in-ms:         500;
+  --atelier-fade-out-ms:        300;
+
+  /* ============================================================
+   * TOP CHROME - the "RECONSTRUCTING" label + Skip/Exit strip.
+   * Decision 5: 56px tall strip at top.
+   * ============================================================ */
+  --atelier-chrome-height:           56px;
+  --atelier-chrome-padding-x:        20px;
+  --atelier-chrome-background:       transparent;  /* Transparent: chrome floats over the atelier paper */
+  --atelier-chrome-label-color:      var(--atelier-ink-mute);
+  --atelier-chrome-label-font-size:  11px;
+  --atelier-chrome-label-tracking:   0.14em;
+
+  /* ============================================================
+   * SAVE BUTTON - real backend wiring (Decision 6).
+   * Renders inside the dossier controls; success state shows share URL
+   * inline with a "Copy link" affordance.
+   * ============================================================ */
+  --atelier-save-button-background:   var(--atelier-accent);
+  --atelier-save-button-color:        #ffffff;
+  --atelier-save-button-padding:      8px 14px;
+  --atelier-save-button-radius:       4px;
+  --atelier-save-confirmation-background:  rgba(0, 81, 134, 0.10);
+  --atelier-save-confirmation-color:       var(--atelier-ink-soft);
+
+  /* ============================================================
+   * BASE - applied automatically to .atelier-theme containers.
+   * ============================================================ */
+  color-scheme: light;
+  background: var(--atelier-paper);
+  color: var(--atelier-ink);
+}
+
+/* ============================================================
+ * BLUEPRINT GRID - the architect's ruling on the drafting table.
+ * A four-layer ruled background (minor + major, both axes) on the cool
+ * ground, applied to the takeover surface so chrome and the table read
+ * as blueprint paper. The dossier panel paints its own --atelier-paper-glow
+ * over the grid, so it stays a clean panel ON the table.
+ * ============================================================ */
+.atelier-theme .atelier-blueprint-grid,
+.atelier-theme .atelier-surface {
+  background-color: var(--atelier-paper);
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--atelier-grid-line-minor) 0,
+      var(--atelier-grid-line-minor) 1px,
+      transparent 1px,
+      transparent var(--atelier-grid-cell)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--atelier-grid-line-minor) 0,
+      var(--atelier-grid-line-minor) 1px,
+      transparent 1px,
+      transparent var(--atelier-grid-cell)
+    ),
+    repeating-linear-gradient(
+      to right,
+      var(--atelier-grid-line-major) 0,
+      var(--atelier-grid-line-major) 1.25px,
+      transparent 1.25px,
+      transparent var(--atelier-grid-major-cell)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--atelier-grid-line-major) 0,
+      var(--atelier-grid-line-major) 1.25px,
+      transparent 1.25px,
+      transparent var(--atelier-grid-major-cell)
+    );
+}
+
+/* ============================================================
+ * SURFACE LAYOUT - the takeover container.
+ * Mounted by <AtelierSurface>. Full-viewport, fixed positioning,
+ * sits above the atlas underlayer with z-index sufficient to clear
+ * the dynamic island chrome.
+ * ============================================================ */
+.atelier-theme .atelier-surface {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;          /* Above dynamic island (1420) and atlas chrome (1400) */
+  display: grid;
+  grid-template-columns: 1fr var(--atelier-dossier-width);
+  grid-template-rows: var(--atelier-chrome-height) 1fr;
+  grid-template-areas:
+    "chrome chrome"
+    "scene  dossier";
+  overflow: hidden;
+  /* Background (blueprint grid) is set by the .atelier-blueprint-grid /
+     .atelier-surface rule above; no `background` shorthand here, which would
+     reset the grid image. */
+  color: var(--atelier-ink);
+  font-family: var(--font-sans);
+  animation: atelier-surface-fade-in var(--atelier-veil-mount-duration) var(--atelier-ease) both;
+  transition: opacity var(--atelier-veil-unmount-duration) var(--atelier-ease);
+}
+
+.atelier-theme .atelier-surface[data-exiting="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.atelier-theme .atelier-surface__chrome {
+  grid-area: chrome;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 var(--atelier-chrome-padding-x);
+  background: var(--atelier-chrome-background);
+  pointer-events: auto;
+}
+
+.atelier-theme .atelier-surface__scene {
+  grid-area: scene;
+  position: relative;
+  overflow: hidden;
+}
+
+.atelier-theme .atelier-surface__dossier {
+  grid-area: dossier;
+  overflow-y: auto;
+  background: var(--atelier-dossier-background);
+  border-left: 1px solid var(--atelier-rule);
+  padding: var(--atelier-dossier-padding);
+}
+
+@keyframes atelier-surface-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ============================================================
+ * STAGE 4 PAIRFORMER INFERENCE PULSE RINGS
+ *
+ * Spec lines 106-110:
+ *   "A different visual language. The screen darkens slightly. A
+ *    faint computational pulse — a soft expanding ring centered on
+ *    the focus building — radiates twice."
+ *
+ * Two terracotta rings centered on the scene area expand outward.
+ * One at 0ms, one at 250ms, each 600ms long, both fitting inside
+ * Stage 4's 1000ms budget. Triggered by the
+ * data-stage="pairformer_inference" attribute set by the
+ * choreographer on .atelier-surface. Pure CSS — no React state
+ * required (per atelier-animation-proposal.md refinement #5).
+ *
+ * The scene also gets a faint dark wash via ::after on the scene
+ * cell during this stage. Honors "screen darkens slightly."
+ *
+ * Removed entirely under prefers-reduced-motion: reduce; Stage 4's
+ * 250ms reduced budget keeps the label transition as the visible
+ * signal and skips the expanding ring (vestibular safety per
+ * animation-choreography.md gate).
+ * ============================================================ */
+.atelier-theme .atelier-surface__pulse-rings {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 4; /* above scene canvas (auto/0), below evidence cards */
+}
+
+.atelier-theme .atelier-surface__pulse-ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  border: 1px solid var(--atelier-accent);
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.atelier-theme
+  .atelier-surface[data-stage="pairformer_inference"]
+  .atelier-surface__pulse-ring--a {
+  animation: atelier-pulse-ring 600ms var(--atelier-ease) 0ms 1 both;
+}
+
+.atelier-theme
+  .atelier-surface[data-stage="pairformer_inference"]
+  .atelier-surface__pulse-ring--b {
+  animation: atelier-pulse-ring 600ms var(--atelier-ease) 250ms 1 both;
+}
+
+.atelier-theme
+  .atelier-surface[data-stage="pairformer_inference"]
+  .atelier-surface__scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  z-index: 3;
+  animation: atelier-pulse-darken 1000ms var(--atelier-ease) both;
+}
+
+@keyframes atelier-pulse-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  18% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(8);
+  }
+}
+
+@keyframes atelier-pulse-darken {
+  0%, 100% { opacity: 0; }
+  35%, 65% { opacity: 1; }
+}
+
+/* ============================================================
+ * TOP CHROME LABEL - "RECONSTRUCTING / 1500 N SAGINAW ST · CIRCA 1925"
+ * Uses uppercase tracked mono treatment matching the existing atlas
+ * --text-mono pattern.
+ * ============================================================ */
+.atelier-theme .atelier-chrome-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--atelier-chrome-label-color);
+  font-family: var(--font-mono);
+  font-size: var(--atelier-chrome-label-font-size);
+  line-height: 1.2;
+  letter-spacing: var(--atelier-chrome-label-tracking);
+  text-transform: uppercase;
+}
+
+.atelier-theme .atelier-chrome-label__eyebrow {
+  color: var(--atelier-ink-faint);
+  font-size: 10px;
+}
+
+.atelier-theme .atelier-chrome-label__title {
+  color: var(--atelier-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ============================================================
+ * TOP CHROME CONTROLS - Skip + Exit.
+ * ============================================================ */
+.atelier-theme .atelier-chrome-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.atelier-theme .atelier-chrome-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--atelier-ink-soft);
+  background: transparent;
+  border: 1px solid var(--atelier-rule);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 12px;
+  transition:
+    color 140ms var(--atelier-ease),
+    border-color 140ms var(--atelier-ease),
+    background-color 140ms var(--atelier-ease);
+}
+
+.atelier-theme .atelier-chrome-button:hover,
+.atelier-theme .atelier-chrome-button:focus-visible {
+  color: var(--atelier-ink);
+  border-color: var(--atelier-ink-mute);
+  background: rgba(242, 241, 236, 0.06);
+  outline: none;
+}
+
+.atelier-theme .atelier-chrome-button:active {
+  transform: translateY(1px);
+}
+
+/* ============================================================
+ * SOURCE CARDS - unified archival evidence cards.
+ * ============================================================ */
+.atelier-theme .atelier-source-card {
+  position: absolute;
+  width: var(--atelier-card-width);
+  min-height: var(--atelier-card-height);
+  padding: var(--atelier-card-padding);
+  border-radius: var(--atelier-card-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 9px,
+      var(--atelier-source-card-rule) 9px,
+      var(--atelier-source-card-rule) 10px
+    ),
+    var(--atelier-source-card-paper);
+  border: 1px solid var(--atelier-source-card-border);
+  color: var(--atelier-source-card-ink);
+  box-shadow: var(--atelier-card-shadow);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: auto;
+  transition:
+    transform 200ms var(--atelier-ease),
+    box-shadow 200ms var(--atelier-ease);
+}
+
+.atelier-theme .atelier-source-card:hover,
+.atelier-theme .atelier-source-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--atelier-card-shadow-hover);
+  outline: none;
+}
+
+.atelier-theme .atelier-source-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.atelier-theme .atelier-source-card__title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.atelier-theme .atelier-source-card__year {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--atelier-source-card-ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.atelier-theme .atelier-source-card__summary {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--atelier-source-card-ink-soft);
+}
+
+.atelier-theme .atelier-source-card__confidence-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--atelier-source-card-ink-mute);
+  letter-spacing: 0.06em;
+}
+
+/* ============================================================
+ * DOSSIER SECTIONS - per-part rows per `animation-choreography.md`
+ * Stage 7 and the Lost Flint brainstorm Track 5c stacked-row layout.
+ * ============================================================ */
+.atelier-theme .atelier-dossier__header {
+  margin-bottom: var(--atelier-dossier-section-gap);
+}
+
+.atelier-theme .atelier-dossier__title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--atelier-ink-mute);
+}
+
+.atelier-theme .atelier-dossier__subtitle {
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--atelier-ink);
+}
+
+.atelier-theme .atelier-dossier__caption {
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--atelier-ink-soft);
+}
+
+.atelier-theme .atelier-dossier__section {
+  padding: 12px 0;
+  border-top: 1px solid var(--atelier-rule);
+}
+
+.atelier-theme .atelier-dossier__section:first-of-type {
+  border-top: none;
+}
+
+.atelier-theme .atelier-dossier__section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--atelier-ink-mute);
+}
+
+.atelier-theme .atelier-dossier__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.atelier-theme .atelier-dossier__row-label {
+  color: var(--atelier-ink-soft);
+}
+
+.atelier-theme .atelier-dossier__row-value {
+  color: var(--atelier-ink);
+  font-weight: 500;
+}
+
+.atelier-theme .atelier-dossier__row-citation {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--atelier-ink-mute);
+}
+
+/* ============================================================
+ * DOSSIER CONTROLS - Replay + Save buttons inside dossier.
+ * Decision 6: Save button is REAL (wires to GraphQL mutation),
+ * not disabled.
+ * ============================================================ */
+.atelier-theme .atelier-dossier-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--atelier-dossier-section-gap);
+  padding-top: 12px;
+  border-top: 1px solid var(--atelier-rule);
+}
+
+.atelier-theme .atelier-replay-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--atelier-ink);
+  background: transparent;
+  border: 1px solid var(--atelier-rule);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 12px;
+  transition:
+    color 140ms var(--atelier-ease),
+    border-color 140ms var(--atelier-ease),
+    background-color 140ms var(--atelier-ease);
+}
+
+.atelier-theme .atelier-replay-button:hover,
+.atelier-theme .atelier-replay-button:focus-visible {
+  border-color: var(--atelier-ink-mute);
+  background: rgba(242, 241, 236, 0.06);
+  outline: none;
+}
+
+.atelier-theme .atelier-save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--atelier-save-button-color);
+  background: var(--atelier-save-button-background);
+  border: 1px solid transparent;
+  border-radius: var(--atelier-save-button-radius);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  padding: var(--atelier-save-button-padding);
+  transition:
+    transform 140ms var(--atelier-ease),
+    box-shadow 140ms var(--atelier-ease);
+}
+
+.atelier-theme .atelier-save-button:hover,
+.atelier-theme .atelier-save-button:focus-visible {
+  box-shadow: 0 6px 14px -8px var(--atelier-accent-glow);
+  outline: none;
+}
+
+.atelier-theme .atelier-save-button:active {
+  transform: translateY(1px);
+}
+
+.atelier-theme .atelier-save-button[data-state="saving"] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.atelier-theme .atelier-save-confirmation {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--atelier-save-confirmation-background);
+  border-radius: 4px;
+  color: var(--atelier-save-confirmation-color);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.atelier-theme .atelier-save-confirmation__url {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--atelier-ink);
+  word-break: break-all;
+}
+
+.atelier-theme .atelier-save-error {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(181, 72, 47, 0.12);
+  border-radius: 4px;
+  color: #7a2a1c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+ * CONFLICT MARKERS - 3D-space markers with popovers.
+ * Mounted by R3F Html via @react-three/drei; positioned at the
+ * geometry coordinate of MergeConflict.targetNodeId.
+ * ============================================================ */
+.atelier-theme .atelier-conflict-marker {
+  display: grid;
+  width: var(--atelier-conflict-marker-size);
+  height: var(--atelier-conflict-marker-size);
+  place-items: center;
+  background: var(--atelier-conflict-marker-color);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px var(--atelier-conflict-marker-glow);
+  transition: transform 200ms var(--atelier-ease);
+}
+
+.atelier-theme .atelier-conflict-marker:hover,
+.atelier-theme .atelier-conflict-marker:focus-visible {
+  transform: scale(1.18);
+  outline: none;
+}
+
+.atelier-theme .atelier-conflict-popover {
+  position: absolute;
+  min-width: 240px;
+  padding: 12px;
+  background: var(--atelier-conflict-popover-background);
+  color: var(--atelier-ink);
+  border-radius: 4px;
+  box-shadow: var(--atelier-conflict-popover-shadow);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.atelier-theme .atelier-conflict-popover__title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--atelier-accent-soft);
+}
+
+.atelier-theme .atelier-conflict-popover__disagreement {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--atelier-rule-soft);
+}
+
+.atelier-theme .atelier-conflict-popover__disagreement-source {
+  color: var(--atelier-ink-soft);
+}
+
+.atelier-theme .atelier-conflict-popover__disagreement-value {
+  color: var(--atelier-ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.atelier-theme .atelier-conflict-popover__resolution {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--atelier-rule);
+  color: var(--atelier-ink);
+  font-style: italic;
+}
+
+/* ============================================================
+ * REDUCED MOTION - per `animation-choreography.md` and Decision 8.
+ * All motion that could trigger vestibular reactions is removed.
+ * The atelier still tells the per-stage story in <= 2 seconds.
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .atelier-theme .atelier-surface {
+    animation-duration: 200ms;
+  }
+
+  .atelier-theme .atelier-source-card {
+    transition: none;
+  }
+
+  .atelier-theme .atelier-source-card:hover,
+  .atelier-theme .atelier-source-card:focus-visible {
+    transform: none;
+  }
+
+  .atelier-theme .atelier-conflict-marker {
+    transition: none;
+  }
+
+  .atelier-theme .atelier-conflict-marker:hover,
+  .atelier-theme .atelier-conflict-marker:focus-visible {
+    transform: none;
+  }
+
+  /* Dust motes are removed entirely in reduced-motion (handled by
+     <AtelierDustMotes>; the component checks the media query and
+     mounts null). No CSS rule needed here since the component is
+     responsible for the removal. */
+
+  /* Stage 4 pulse rings + scene darken are removed under reduced
+     motion. The Stage 4 label transition stays as the visible signal
+     (per animation-choreography.md vestibular gate). */
+  .atelier-theme .atelier-surface__pulse-ring,
+  .atelier-theme
+    .atelier-surface[data-stage="pairformer_inference"]
+    .atelier-surface__scene::after {
+    display: none;
+    animation: none;
+  }
+}
+
+/* ============================================================
+ * MOBILE LAYOUT (390 x 844 baseline) - per Decision 5 mobile spec.
+ * Dossier becomes a bottom drawer; source cards become a horizontal
+ * scroll strip below the building; conflict markers open bottom-sheet
+ * popovers.
+ * ============================================================ */
+@media (max-width: 767px) {
+  .atelier-theme .atelier-surface {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--atelier-chrome-height) 1fr auto;
+    grid-template-areas:
+      "chrome"
+      "scene"
+      "dossier";
+  }
+
+  .atelier-theme .atelier-surface__dossier {
+    max-height: 40vh;
+    border-left: none;
+    border-top: 1px solid var(--atelier-rule);
+  }
+
+  .atelier-theme .atelier-source-card {
+    /* On mobile, source cards become a horizontal scroll strip below
+       the building (their absolute positioning gets removed by the
+       parent strip container). */
+    position: relative;
+    width: 260px;
+    min-height: 100px;
+    flex-shrink: 0;
+  }
+
+  .atelier-theme .atelier-chrome-button {
+    min-height: 44px;  /* iOS HIG minimum tap target */
+    padding: 10px 16px;
+  }
+
+  .atelier-theme .atelier-save-button {
+    min-height: 44px;
+  }
+
+  .atelier-theme .atelier-replay-button {
+    min-height: 44px;
+  }
+}
+
+/* ============================================================
+ * HIGH-CONTRAST + FORCED-COLORS overrides.
+ * Per WCAG 2.2 AA conformance (PT-003 a11y proposal).
+ * ============================================================ */
+@media (forced-colors: active) {
+  .atelier-theme .atelier-source-card {
+    border: 1px solid CanvasText;
+  }
+
+  .atelier-theme .atelier-conflict-marker {
+    border: 2px solid CanvasText;
+  }
+
+  .atelier-theme .atelier-save-button,
+  .atelier-theme .atelier-replay-button,
+  .atelier-theme .atelier-chrome-button {
+    border: 1px solid CanvasText;
+  }
+}

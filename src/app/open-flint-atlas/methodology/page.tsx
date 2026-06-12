@@ -94,7 +94,7 @@ const CLASSIFIER_CONFIDENCE = [
 ];
 
 const KNOWN_LIMITS = [
-  "The public Atelier route still uses the Carriage Town fixture while the live GraphQL reconstruction resolver is connected.",
+  "The public Reconstruction Engine route still uses the Carriage Town fixture while the live GraphQL reconstruction resolver is connected.",
   "The current fixture has five Lost Flint reconstructions, and none yet meet the three-source pilot bar from the real-reconstruction plan.",
   "Model scores are support signals. They do not become final decisions about a building, block, or resident contribution.",
   "Photo, city-directory, and HABS-style ingest lanes need more work before the first production training run.",

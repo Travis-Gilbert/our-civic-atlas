@@ -500,7 +500,8 @@ export function CivicAtlasSidebar({
     const lostFlintRows = FLINT_LOST_RECONSTRUCTIONS.filter(
       (reconstruction) => matchesQuery(reconstruction.name),
     );
-    const atelierVisible = matchesQuery("Atelier");
+    const atelierVisible =
+      matchesQuery("Reconstruction Engine") || matchesQuery("Atelier");
     /* A live search forces the matching group open so results are
        reachable without an extra click. */
     const lostFlintOpen =
@@ -548,10 +549,10 @@ export function CivicAtlasSidebar({
           </SidebarGroup>
         ) : null}
         {atelierVisible ? (
-          <SidebarGroup title="Atelier">
+          <SidebarGroup title="Reconstruction Engine">
             <LinkRow
-              href="/open-flint-atlas/atelier/building%3Acarriage-town%3A3/1925"
-              label="Open the Atelier"
+              href="/open-flint-atlas/reconstruction-engine/building%3Acarriage-town%3A3/1925"
+              label="Open the Reconstruction Engine"
               sublabel="Carriage Town Storefront, circa 1925"
             />
           </SidebarGroup>

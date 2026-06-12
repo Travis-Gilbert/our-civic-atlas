@@ -419,7 +419,7 @@ export function AtlasDynamicIsland({
             aria-label={`Reconstructions visible in ${atlasYear}`}
           >
             <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-ink-mute)]">
-              Open Atelier · circa {atlasYear}
+              Open Reconstruction Engine · circa {atlasYear}
             </p>
             {atelierYearSuggestions.map((reconstruction) => (
               <Link
@@ -1192,9 +1192,9 @@ function BuildingDossier({
             <Link
               href={atelierHref}
               className="flex w-full items-center justify-between rounded-[8px] border border-[rgba(193,74,44,0.5)] bg-[rgba(193,74,44,0.08)] px-3 py-2 text-left text-[12px] leading-[1.3] text-[color:var(--ctx-ink)] transition-colors hover:bg-[rgba(193,74,44,0.16)]"
-              aria-label={`Open Atelier on ${nearestReconstruction.name} circa ${atelierYear}`}
+              aria-label={`Open the Reconstruction Engine on ${nearestReconstruction.name} circa ${atelierYear}`}
             >
-              <span>Reconstruct in Atelier</span>
+              <span>Open Reconstruction Engine</span>
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--ctx-accent)]">
                 {`Circa ${atelierYear}`}
               </span>

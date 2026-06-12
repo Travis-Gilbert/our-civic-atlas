@@ -110,10 +110,10 @@ export function AtlasSceneChrome({
             <Link href="/open-flint-atlas/sources">About</Link>
             <Link href="/open-flint-atlas/methodology">Methodology</Link>
             <Link
-              href="/open-flint-atlas/atelier/building%3Acarriage-town%3A3/1925"
-              aria-label="Open the Atelier on the Carriage Town Storefront circa 1925"
+              href="/open-flint-atlas/reconstruction-engine/building%3Acarriage-town%3A3/1925"
+              aria-label="Open the Reconstruction Engine on the Carriage Town Storefront circa 1925"
             >
-              Atelier
+              Reconstruction Engine
             </Link>
             <Link href="/open-flint-atlas/contribute" data-commit="true">
               Contribute

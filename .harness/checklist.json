@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "source": "theorems-harness hook checklist-contract",
+  "created_at": "2026-06-07T23:30:35Z",
+  "task": "\n# Files mentioned by the user:\n\n## RUSTYRED-GEOMETRY-PLUGIN.md: /Users/travisgilbert/Downloads/RUSTYRED-GEOMETRY-PLUGIN.md\n\n## RUSTYRED-PLUGIN-API.md: /Users/travisgilbert/Downloads/RUSTYRED-PLUGIN-API.md\n\n## My request for Codex:\nCan you and claude implement [$theorems-harness:theorems-harness](/Users/travisgilbert/.codex/plugins/cache/codex-marketplace/theorems-harness/0.4.5/skills/theorems-harness/SKILL.md) ",
+  "source_hash": "0d81c9ba8ac905717565c21a3e5064663ffae91e6b2daff5b54ef5a4a1eb8bd0",
+  "repo": "Open-Flint-Atlas-main-release",
+  "branch": "main",
+  "items": [
+    {
+      "id": "HH-001",
+      "deliverable": "The GeometryEncoder trait and the Point, WKB, WKT encoders",
+      "acceptance_criterion": "encode then decode round-trips a polygon and a linestring through `WkbEncoder`; `PointEncoder` reproduces today's lat/lon read and write exactly; the encoders are enumerable through the plugin. Verify the round-trips and a point-parity check against current behavior.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --features \"geometry s2\"`: `geometry::tests::wkb_encoder_round_trips_polygon_and_linestring`, `geometry::tests::wkt_encoder_round_trips_polygon`, `geometry::tests::point_encoder_matches_lat_lon_properties`, and `geometry::tests::geometry_plugin_enumerates_encoders` passed.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-002",
+      "deliverable": "The geometry designation and storage",
+      "acceptance_criterion": "designating a geometry label and property stores and retrieves a polygon on a node via the encoder; existing point designations are unchanged and pass their current tests. Verify a polygon designation round-trips and the existing point designation tests pass. Depends on 1.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --features \"geometry s2\"`: `geometry::tests::geometry_index_stores_and_retrieves_polygon_from_properties` passed. Existing point-only behavior also passed in `cargo test -p rustyred-core --no-default-features`.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-003",
+      "deliverable": "The S2 cover index",
+      "acceptance_criterion": "a polygon indexes into its covering cell-set; a point indexes to one cell with parity to today; upserting a changed geometry moves it between covers and leaves no stale cell references. Verify polygon cover insertion, point parity, and a move-between-covers case. Depends on 2.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --features \"geometry s2\"`: `geometry::tests::point_geometry_indexes_to_one_cell` and `geometry::tests::geometry_index_moves_between_covers_without_stale_cells` passed. F1 follow-up landed: polygon/non-point covers now use `s2::region::RegionCoverer` with the designated resolution as `max_level`; mixed-level cover cells are matched through S2 cell intersection instead of bbox sampling.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-004",
+      "deliverable": "Topology predicates (the narrow phase) via `geo`",
+      "acceptance_criterion": "`contains_point` returns the polygons that actually contain the point, not merely those whose bounding box overlaps it; `intersects` on a linestring returns only geometries it truly crosses; results match a PostGIS query on the same data. Verify each predicate against an equivalent PostGIS query for a known fixture. Depends on 3.",
+      "status": "verified_with_external_parity_gap",
+      "verification": "Verified in-repo by `cargo test -p rustyred-core --features \"geometry s2\"`: `geometry::tests::topology_predicates_refine_broad_phase_candidates` passed for contains, intersects, within, and false-positive broad-phase refinement. Downstream parity harness added in `/Users/travisgilbert/Tech Dev Local/Creative/Website/our-civic-atlas-backend-main-release/crates/rustyred-client/tests/postgis_geometry_parity.rs`; `cargo test -p rustyred-client` passed with the parity test present but ignored by default.",
+      "deferral_reason": "Railway PostGIS is an acceptable F2 parity target when run with a reachable `DATABASE_URL` and a geometry-enabled RustyRed deployment. This session did not produce the live SQL receipt: `railway run --service Research-Postgres` injected `postgres-g6qw.railway.internal`, which the laptop could not resolve, and `railway connect Research-Postgres` plus `railway connect Postgres-bFoi` both reached public proxies that closed the connection before query execution."
+    },
+    {
+      "id": "HH-005",
+      "deliverable": "Operations and endpoints generated through the plugin API",
+      "acceptance_criterion": "the `rustyred-client` (or an equivalent HTTP call) invokes the new endpoints and gets correct results; the existing `graph/spatial/bbox` endpoint is unchanged. Verify a call to each new endpoint and a regression call to `bbox`. Depends on 4 and the plugin API generation deliverable.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-server --features \"geometry s2\"`: `router::tests::spatial_geometry_plugin_routes_use_node_upsert_hooks_and_preserve_bbox` passed for designate_geometry, contains, intersects, within, and the unchanged spatial bbox route. Downstream `rustyred-client` now has typed methods for `designate_geometry`, contains/intersects/within, `bulk_nodes`, and `bulk_edges`; `cargo test -p rustyred-client` passed.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-006",
+      "deliverable": "Feature-gate the dependencies",
+      "acceptance_criterion": "`rustyred-core` builds and tests pass without `geometry` (point-only) and with `geometry` plus `s2` (full geometry); no new always-on dependency enters the default build. Verify both build configurations. Depends on 1 through 5.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --no-default-features`, `cargo test -p rustyred-core --features \"geometry s2\"`, `cargo test -p rustyred-server`, and `cargo test -p rustyred-server --features \"geometry s2\"`. `cargo tree -p rustyred-core --no-default-features` showed no geo/geozero/geo-types dependencies in the no-default tree.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-007",
+      "deliverable": "The RustyRedPlugin trait and the capability traits",
+      "acceptance_criterion": "the trait compiles; a no-op plugin registers and is enumerable; `SpatialBackend` and `FullTextBackend` satisfy the index-capability shape with no behavior change. Verify the existing `spatial` and `fulltext` unit tests still pass.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --no-default-features` and `cargo test -p rustyred-core --features \"geometry s2\"`: `plugin::tests::noop_plugin_registers_and_is_enumerable`, `plugin::tests::builtin_registry_enumerates_core_plugins`, existing spatial tests, and existing fulltext tests passed.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-008",
+      "deliverable": "The plugin registry with env-select compatibility",
+      "acceptance_criterion": "`make_spatial_backend_from_value` and `make_fulltext_backend_from_value` resolve through the registry and pass their existing tests unchanged; an unknown backend name still errors the way `make_spatial_backend_from_value(\"rtree\")` does today. Verify by running both factories' existing tests. Depends on 1.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --no-default-features` and `cargo test -p rustyred-core --features \"geometry s2\"`: existing `spatial::tests::make_spatial_backend_*` and `fulltext::tests::make_fulltext_backend_*` factory tests passed through the plugin registry.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-009",
+      "deliverable": "Operation registration through commands",
+      "acceptance_criterion": "a plugin-registered operation is callable through `execute_request_json` and returns a typed response; every existing command keeps working. Verify the existing executor tests pass and one new plugin operation round-trips. Depends on 1.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-core --no-default-features` and `cargo test -p rustyred-core --features \"geometry s2\"`: `executor::tests::plugin_operation_round_trips_through_json_executor` and existing executor command tests passed.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-010",
+      "deliverable": "MCP, HTTP, and gRPC generation from registered operations",
+      "acceptance_criterion": "registering a plugin surfaces its operations as MCP tools and HTTP endpoints without per-operation adapter edits; the existing `graph/fulltext/search`, `graph/spatial/bbox`, `graph/vector/hybrid`, and `graph/nodes/:id` endpoints still resolve. Verify the `rustyred-client` integration still works against the unchanged endpoints. Depends on 1, 3.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-mcp`, `cargo test -p rustyred-mcp --features \"geometry s2\"`, `cargo test -p rustyred-server`, and `cargo test -p rustyred-server --features \"geometry s2\"`. MCP lists geometry tools and enforces write scope; HTTP plugin routes pass; gRPC `ExecutePluginOperation` passes via `grpc::service::tests::grpc_plugin_operation_executes_geometry_and_registry_operations`; existing fulltext, spatial bbox, vector hybrid, and node endpoints remained green in the server suites.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-011",
+      "deliverable": "Lifecycle hooks",
+      "acceptance_criterion": "a plugin index updates on node upsert through the hook, matching today's direct-maintenance result; a query hook contributes candidates to a search. Verify spatial index maintenance through the hook produces the same results as the current direct path. Depends on 1.",
+      "status": "verified",
+      "verification": "Verified by `cargo test -p rustyred-server --features \"geometry s2\"`: `router::tests::spatial_geometry_plugin_routes_use_node_upsert_hooks_and_preserve_bbox` upserts through `RUSTYRED.GRAPH.NODE.UPSERT` and then resolves contains/intersects/within through the geometry index. Existing fulltext/spatial hook tests also passed.",
+      "deferral_reason": ""
+    },
+    {
+      "id": "HH-012",
+      "deliverable": "Conform the existing capabilities as reference plugins",
+      "acceptance_criterion": "all existing `rustyred-core` tests pass with the capabilities running as plugins; the HTTP surface the `rustyred-client` speaks is byte-unchanged. Verify the full existing test suite and a smoke call from the client. Depends on 1 through 5.",
+      "status": "verified_with_downstream_client_slice",
+      "verification": "Verified by full existing suites: `cargo test -p rustyred-core --no-default-features`, `cargo test -p rustyred-core --features \"geometry s2\"`, `cargo test -p rustyred-server`, `cargo test -p rustyred-server --features \"geometry s2\"`, `cargo test -p rustyred-mcp`, and `cargo test -p rustyred-mcp --features \"geometry s2\"`. Downstream client slice added in `/Users/travisgilbert/Tech Dev Local/Creative/Website/our-civic-atlas-backend-main-release/crates/rustyred-client`; `cargo test -p rustyred-client` passed.",
+      "deferral_reason": "Live `rustyred-client` smoke against Railway was not executed because it requires reachable `DATABASE_URL`, `RUSTYRED_URL`, and `RUSTYRED_API_TOKEN`; the executable ignored parity test now records that contract."
+    }
+  ]
+}
