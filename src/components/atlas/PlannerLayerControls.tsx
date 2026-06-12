@@ -25,6 +25,10 @@ export interface PlannerLayerVisibility {
   readonly after_party: boolean;
   readonly amenity: boolean;
   readonly tasks: boolean;
+  /** Animated origin-to-site flows from applicant home cities (Lane 3). */
+  readonly flows: boolean;
+  /** Forecast wind + precipitation overlay (Lane 4 Tier 2). */
+  readonly weather: boolean;
 }
 
 export const DEFAULT_PLANNER_VISIBILITY: PlannerLayerVisibility = {
@@ -38,6 +42,11 @@ export const DEFAULT_PLANNER_VISIBILITY: PlannerLayerVisibility = {
   after_party: true,
   amenity: true,
   tasks: true,
+  // Off by default: the flow overlay is a storytelling view, not the daily
+  // planning frame, so the planner opens on the clean placement map.
+  flows: false,
+  // Off by default: the forecast overlay is heavy and opt-in.
+  weather: false,
 };
 
 const CATEGORY_LABELS: ReadonlyArray<readonly [AtlasEventPlannerCategory, string]> = [
@@ -108,6 +117,32 @@ export function PlannerLayerControls({
                 className="planner-check h-3.5 w-3.5"
               />
               <span>Show task badges</span>
+            </span>
+          </label>
+        </li>
+        <li>
+          <label className="planner-row flex cursor-pointer items-center justify-between gap-2 px-1.5 py-1.5">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={visibility.flows}
+                onChange={toggle("flows")}
+                className="planner-check h-3.5 w-3.5"
+              />
+              <span>Show applicant flows</span>
+            </span>
+          </label>
+        </li>
+        <li>
+          <label className="planner-row flex cursor-pointer items-center justify-between gap-2 px-1.5 py-1.5">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={visibility.weather}
+                onChange={toggle("weather")}
+                className="planner-check h-3.5 w-3.5"
+              />
+              <span>Show weather</span>
             </span>
           </label>
         </li>

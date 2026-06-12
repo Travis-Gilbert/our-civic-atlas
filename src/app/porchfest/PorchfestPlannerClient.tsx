@@ -63,6 +63,7 @@ import {
   type PlannerEditablePlacement,
 } from "@/components/atlas/PlannerEditableLayer";
 import { createPlannerTaskLayers } from "@/components/atlas/PlannerTaskLayer";
+import { buildPorchfestFlowLayers } from "@/components/atlas/PorchfestFlowLayer";
 import type { PlannerTaskNode, PlannerTaskStatus } from "@/lib/atlas/planner-phase4";
 import { taskProgress } from "@/lib/atlas/task-progress";
 import {
@@ -81,6 +82,11 @@ import {
 } from "@/components/atlas/PlannerTaskRail";
 import { PlannerBookmarks } from "@/components/atlas/PlannerBookmarks";
 import { PlannerImportPanel } from "@/components/atlas/PlannerImportPanel";
+import { PorchfestForecastCard } from "@/components/atlas/PorchfestForecastCard";
+import { PorchfestWeatherTimeline } from "@/components/atlas/PorchfestWeatherTimeline";
+import { PORCHFEST_EVENT_SITE } from "@/lib/porchfest/porchfest-event";
+import { usePorchfestWeather } from "@/lib/porchfest/use-porchfest-weather";
+import { WEATHER_MIN_ZOOM } from "@/lib/porchfest/weatherlayers-config";
 import { PorchfestPlannerSidebar } from "@/components/atlas/PorchfestPlannerSidebar";
 import type { KmlEventFeature } from "@/lib/civic/kml-event-layer-rules";
 import {
@@ -1639,6 +1645,13 @@ function PorchfestPlannerWorkspace({
     [liveTasks, placementsById],
   );
 
+  // Weather overlay (Lane 4 Tier 2): desktop only, on toggle, and only once
+  // zoomed in past the suspend threshold. The data path is inert without a
+  // WeatherLayers Cloud token (an honest note shows in the Layers panel).
+  const weatherEnabled =
+    visibility.weather && !isMobile && mapZoom >= WEATHER_MIN_ZOOM;
+  const weather = usePorchfestWeather(weatherEnabled);
+
   const extraDeckLayers = useMemo<Layer[]>(() => {
     const layers: Layer[] = [buildBoundaryLayer()];
 
@@ -1749,6 +1762,23 @@ function PorchfestPlannerWorkspace({
       }),
     );
 
+    // Applicant origin flows (Lane 3): animated city-to-site flows from the
+    // civic store. Off by default; drawn on top so the streamlines read over
+    // the placement meshes when the storytelling view is toggled on.
+    layers.push(
+      ...buildPorchfestFlowLayers({
+        civicRows,
+        visible: visibility.flows,
+        eventSite: PORCHFEST_EVENT_SITE,
+      }),
+    );
+
+    // Forecast weather (Lane 4 Tier 2): wind particles + precipitation raster
+    // for the active forecast hour. weatherEnabled already folds in the toggle,
+    // the mobile gate, and the zoom-suspend threshold; the hook yields no
+    // layers without a WeatherLayers Cloud token.
+    if (weatherEnabled) layers.push(...weather.layers);
+
     return layers;
   }, [
     renderPlacements,
@@ -1766,6 +1796,9 @@ function PorchfestPlannerWorkspace({
     mapZoom,
     selectedTaskId,
     handleFlyToPlacement,
+    civicRows,
+    weatherEnabled,
+    weather.layers,
   ]);
 
   const liveTasksForRail = liveTasks;
@@ -1843,6 +1876,7 @@ function PorchfestPlannerWorkspace({
           connection returns.
         </p>
       ) : null}
+      <PorchfestForecastCard />
       <PlannerBookmarks
         eventSlug={EVENT_SLUG}
         mapRef={mapRef}
@@ -1898,6 +1932,7 @@ function PorchfestPlannerWorkspace({
           />
         </div>
       </div>
+      <PorchfestForecastCard />
       <div>
         <p className="planner-kicker">Camera</p>
         <div className="mt-1.5">
@@ -1913,11 +1948,38 @@ function PorchfestPlannerWorkspace({
   );
 
   const sidebarLayersContent = (
-    <PlannerLayerControls
-      visibility={visibility}
-      setVisibility={setVisibility}
-      placementCountByCategory={placementCountByCategory}
-    />
+    <div className="space-y-3">
+      <PlannerLayerControls
+        visibility={visibility}
+        setVisibility={setVisibility}
+        placementCountByCategory={placementCountByCategory}
+      />
+      {visibility.weather ? (
+        isMobile ? (
+          <p className="planner-note px-2 py-1 leading-4">
+            The weather overlay is a desktop view; the forecast card covers
+            phones.
+          </p>
+        ) : !weather.available ? (
+          <p className="planner-note px-2 py-1 leading-4">
+            Weather visualization needs a WeatherLayers Cloud data token. Set
+            NEXT_PUBLIC_WEATHERLAYERS_TOKEN to enable wind and precipitation
+            frames.
+          </p>
+        ) : mapZoom < WEATHER_MIN_ZOOM ? (
+          <p className="planner-note px-2 py-1 leading-4">
+            Zoom in to load the forecast frames.
+          </p>
+        ) : (
+          <PorchfestWeatherTimeline
+            datetimes={weather.datetimes}
+            datetime={weather.datetime}
+            loading={weather.loading}
+            onChange={weather.setDatetime}
+          />
+        )
+      ) : null}
+    </div>
   );
 
   const sidebarImportContent = (

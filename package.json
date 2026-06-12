@@ -55,6 +55,7 @@
     "@deck.gl/mapbox": "^9.3.2",
     "@deck.gl/mesh-layers": "^9.3.2",
     "@duckdb/duckdb-wasm": "^1.32.0",
+    "@flowmap.gl/layers": "^9.3.0",
     "@loaders.gl/gltf": "^4.4.2",
     "@observablehq/plot": "^0.6.17",
     "@protomaps/basemaps": "^5.7.2",
@@ -83,6 +84,7 @@
     "camera-controls": "^3.1.2",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
+    "geotiff": "^3.0.5",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
     "graphql": "^16.14.0",
@@ -96,6 +98,7 @@
     "tailwind-merge": "^3.5.0",
     "three": "^0.184.0",
     "urql": "^5.0.2",
+    "weatherlayers-gl": "^2026.5.2",
     "web-ifc": "^0.0.77",
     "yjs": "^13.6.31"
   },
