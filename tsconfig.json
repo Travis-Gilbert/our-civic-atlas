@@ -44,6 +44,8 @@
     // code. They are compiled and validated by the dedicated esbuild
     // pipeline instead (npm run build:civic-editor / validate:civic-store).
     "src/civic-editor",
+    "src/lib/civic/civic-task-docs.ts",
+    "src/lib/civic/civic-task-schema.ts",
     "src/lib/civic/civic-workspace.ts",
     "scripts/validate-civic-store.ts",
     "scripts/validate-civic-apply-bridge.ts",

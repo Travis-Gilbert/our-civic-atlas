@@ -31,7 +31,7 @@ export interface CivicStoreApi {
 export interface CivicDocSummary {
   id: string;
   title: string;
-  kind: "applications" | "note";
+  kind: "applications" | "note" | "todo-list";
 }
 
 export interface CivicWorkspaceMounted {
@@ -39,11 +39,14 @@ export interface CivicWorkspaceMounted {
   docs(): CivicDocSummary[];
   openDoc(docId: string): void;
   createNote(title?: string): string;
+  createTodoList(title?: string): string;
   /**
-   * Delete a note doc for every organizer (a plain CRDT update, synced like
-   * any other edit). Returns false instead of deleting for the applications
-   * doc and for any id that is not a note doc.
+   * Delete a workspace doc for every organizer (a plain CRDT update, synced
+   * like any other edit). Returns false instead of deleting for the
+   * applications doc and for unknown doc ids.
    */
+  deleteWorkspaceDoc(docId: string): boolean;
+  /** Back-compat alias for older callers. */
   deleteNote(docId: string): boolean;
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;

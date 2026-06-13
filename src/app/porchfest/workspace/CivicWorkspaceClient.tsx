@@ -666,6 +666,7 @@ function WorkspaceInner() {
     ReadonlySet<MobileColumnKey>
   >(() => new Set(DEFAULT_MOBILE_COLUMNS));
   const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [billingAmount, setBillingAmount] = useState("");
   const [billingNotice, setBillingNotice] = useState<BillingNotice>({
@@ -876,6 +877,7 @@ function WorkspaceInner() {
     apiRef.current?.openDoc(docId);
     setCurrentDocId(docId);
     setDeleteNotice(null);
+    setCreateMenuOpen(false);
   };
 
   const handleNewNote = () => {
@@ -886,7 +888,15 @@ function WorkspaceInner() {
     handleOpenDoc(docId);
   };
 
-  const handleDeleteNote = (doc: CivicDocSummary) => {
+  const handleNewTodoList = () => {
+    const mounted = apiRef.current;
+    if (!mounted) return;
+    const docId = mounted.createTodoList("Untitled to-do list");
+    setDocs(mounted.docs());
+    handleOpenDoc(docId);
+  };
+
+  const handleDeleteDoc = (doc: CivicDocSummary) => {
     const mounted = apiRef.current;
     if (!mounted) return;
     // The store is shared CRDT state: this deletion lands on every
@@ -895,7 +905,7 @@ function WorkspaceInner() {
       `Delete "${doc.title}"? This removes it for every organizer.`,
     );
     if (!confirmed) return;
-    if (!mounted.deleteNote(doc.id)) {
+    if (!mounted.deleteWorkspaceDoc(doc.id)) {
       setDeleteNotice(`"${doc.title}" cannot be deleted.`);
       return;
     }
@@ -951,6 +961,7 @@ function WorkspaceInner() {
             role="presentation"
             className="civic-workspace-doctab"
             data-current={doc.id === currentDocId || undefined}
+            data-kind={doc.kind}
           >
             <button
               type="button"
@@ -961,26 +972,42 @@ function WorkspaceInner() {
             >
               {doc.title}
             </button>
-            {doc.kind === "note" ? (
+            {doc.kind !== "applications" ? (
               <button
                 type="button"
                 className="planner-iconbtn civic-workspace-doctab-delete"
-                aria-label={`Delete note "${doc.title}"`}
-                onClick={() => handleDeleteNote(doc)}
+                aria-label={`Delete ${
+                  doc.kind === "todo-list" ? "to-do list" : "note"
+                } "${doc.title}"`}
+                onClick={() => handleDeleteDoc(doc)}
               >
                 ×
               </button>
             ) : null}
           </span>
         ))}
-        <button
-          type="button"
-          className="civic-workspace-doctab civic-workspace-doctab--new"
-          onClick={handleNewNote}
-          disabled={state.kind !== "ready"}
-        >
-          + New note
-        </button>
+        <span className="civic-workspace-newdoc">
+          <button
+            type="button"
+            className="civic-workspace-doctab civic-workspace-doctab--new"
+            aria-haspopup="menu"
+            aria-expanded={createMenuOpen}
+            onClick={() => setCreateMenuOpen((open) => !open)}
+            disabled={state.kind !== "ready"}
+          >
+            + New
+          </button>
+          {createMenuOpen && state.kind === "ready" ? (
+            <span className="civic-workspace-newdoc-menu" role="menu">
+              <button type="button" role="menuitem" onClick={handleNewTodoList}>
+                To-do list
+              </button>
+              <button type="button" role="menuitem" onClick={handleNewNote}>
+                Note
+              </button>
+            </span>
+          ) : null}
+        </span>
         {deleteNotice ? (
           <span className="planner-note civic-workspace-docnote" role="status">
             {deleteNotice}
@@ -1234,6 +1261,17 @@ function WorkspaceInner() {
         .civic-workspace-doctab[data-current] .civic-workspace-doctab-open {
           font-weight: 600;
         }
+        .civic-workspace-doctab[data-kind="todo-list"]::before {
+          content: "";
+          width: 6px;
+          height: 6px;
+          margin-left: 8px;
+          border-radius: 9999px;
+          background: #005186;
+        }
+        .civic-workspace-doctab[data-kind="todo-list"] .civic-workspace-doctab-open {
+          padding-left: 6px;
+        }
         .civic-workspace-doctab-open {
           padding: 6px 12px;
           border: 0;
@@ -1272,6 +1310,40 @@ function WorkspaceInner() {
           color: #c5c5c5;
           cursor: default;
           background: transparent;
+        }
+        .civic-workspace-newdoc {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+        }
+        .civic-workspace-newdoc-menu {
+          position: absolute;
+          z-index: 30;
+          top: calc(100% + 4px);
+          left: 0;
+          display: grid;
+          min-width: 132px;
+          padding: 4px;
+          border: 1px solid #d7d7d7;
+          border-radius: 6px;
+          background: #ffffff;
+          box-shadow: 0 10px 24px rgba(28, 28, 28, 0.12);
+        }
+        .civic-workspace-newdoc-menu button {
+          width: 100%;
+          padding: 7px 9px;
+          border: 0;
+          border-radius: 4px;
+          background: transparent;
+          color: #1c1c1c;
+          font: inherit;
+          font-size: 12px;
+          text-align: left;
+          cursor: pointer;
+        }
+        .civic-workspace-newdoc-menu button:hover {
+          background: #f1f6fb;
+          color: #005186;
         }
         .civic-workspace-docnote {
           margin: 0 0 0 8px;

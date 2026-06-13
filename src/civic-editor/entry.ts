@@ -19,12 +19,12 @@ import {
   BroadcastChannelAwarenessSource,
   IndexedDBDocSource,
 } from '@blocksuite/affine/sync';
+import { ViewExtensionManager } from '@blocksuite/affine/ext-loader';
+import { getInternalViewExtensions } from '@blocksuite/affine/extensions/view';
 import { groupTraitKey } from '@blocksuite/data-view';
 import { viewPresets } from '@blocksuite/data-view/view-presets';
 import { effects as editorEffects } from '@blocksuite/integration-test/effects';
-import { getTestViewManager } from '@blocksuite/integration-test/view';
 import type { TestAffineEditorContainer } from '@blocksuite/integration-test';
-import { Text } from '@blocksuite/affine/store';
 
 import '@toeverything/theme/style.css';
 // Observable register overrides; must follow the stock theme import so
@@ -43,6 +43,16 @@ import {
   type CivicDatabaseHandles,
   type CivicObjectRow,
 } from '../lib/civic/civic-workspace';
+import {
+  CIVIC_NOTES_DOC_ID,
+  SEEDED_DOCS_MAP_KEY,
+  createCivicTaskListDoc,
+  createOrganizerNoteDoc,
+  listCivicWorkspaceDocs,
+  setCivicDocKind,
+  type CivicDocSummary,
+} from '../lib/civic/civic-task-docs';
+import { CivicTaskViewExtension } from './civic-task-block';
 import { RustyRedDocSource } from './rustyred-doc-source';
 
 // Register the editor container and, through it, the affine view effects.
@@ -74,12 +84,6 @@ export interface CivicWorkspaceApi {
   onChange(listener: () => void): () => void;
 }
 
-export interface CivicDocSummary {
-  id: string;
-  title: string;
-  kind: 'applications' | 'note';
-}
-
 export interface CivicWorkspaceMountResult {
   api: CivicWorkspaceApi;
   editor: TestAffineEditorContainer;
@@ -90,12 +94,16 @@ export interface CivicWorkspaceMountResult {
   openDoc(docId: string): void;
   /** Create a fresh organizer note doc (page + todo starter) and return its id. */
   createNote(title?: string): string;
+  /** Create a task-list doc backed by first-class civic:task blocks. */
+  createTodoList(title?: string): string;
   /**
-   * Delete a note doc for every organizer. The removal is a plain CRDT
+   * Delete a workspace doc for every organizer. The removal is a plain CRDT
    * update on the workspace root doc, so it propagates over sync like any
    * other edit; no special server handling. Refuses (returns false) for the
-   * applications doc and for any id that is not a note doc.
+   * applications doc and for unknown docs.
    */
+  deleteWorkspaceDoc(docId: string): boolean;
+  /** Back-compat alias for callers created before task-list docs shipped. */
   deleteNote(docId: string): boolean;
   /** Doc list changes (creation, rename, deletion, sync arrivals). */
   onDocsChanged(listener: () => void): () => void;
@@ -182,23 +190,11 @@ interface CivicCore {
   api: CivicWorkspaceApi;
 }
 
-/** Organizer notes doc: docs + todo lists are first-class BlockSuite blocks. */
-const CIVIC_NOTES_DOC_ID = 'civic:notes:porchfest-2026';
-
-/**
- * Root-doc Y map recording which seeded docs this workspace has ever held.
- * Without it, deleteNote on the starter notes doc would be silently undone:
- * ensureNotesDoc runs at every core open, sees no doc, and reseeds. The
- * flag lives on the workspace root doc, so the "was deleted on purpose"
- * decision syncs to every client exactly the way the deletion itself did.
- */
-const SEEDED_DOCS_MAP_KEY = 'civic:seeded-docs';
-
 /**
  * Seed the starter notes doc once (adopt-not-reseed: runs after sync-ready,
- * and an existing doc is left untouched). The todo items are plain
- * `affine:list` blocks with type "todo"; organizers add more anywhere with
- * the editor's slash menu ("/to-do list", "/heading", and so on).
+ * and an existing doc is left untouched). The starter task rows are
+ * first-class `civic:task` blocks, so later registry-backed fields can attach
+ * to them without migrating from native list-block text.
  *
  * A workspace whose seeded flag is set but whose doc is gone had the doc
  * deleted through deleteNote; reseeding would resurrect it on every client,
@@ -209,43 +205,18 @@ function ensureNotesDoc(collection: ReturnType<typeof createCivicCollection>) {
   if (collection.getDoc(CIVIC_NOTES_DOC_ID)) {
     // Adopted docs from before the flag existed mark themselves here, so a
     // later deletion sticks for them too.
+    setCivicDocKind(collection, CIVIC_NOTES_DOC_ID, 'note');
     if (!seededDocs.get(CIVIC_NOTES_DOC_ID)) {
       seededDocs.set(CIVIC_NOTES_DOC_ID, true);
     }
     return;
   }
   if (seededDocs.get(CIVIC_NOTES_DOC_ID)) return;
-  const doc = collection.createDoc(CIVIC_NOTES_DOC_ID);
-  const store = doc.getStore({ id: CIVIC_NOTES_DOC_ID });
-  if (!doc.loaded) doc.load();
-  if (store.getModelsByFlavour('affine:page').length > 0) return;
-
-  const rootId = store.addBlock('affine:page', {
-    title: new Text('Organizer notes'),
-  });
-  store.addBlock('affine:surface', {}, rootId);
-  const noteId = store.addBlock('affine:note', {}, rootId);
-  store.addBlock(
-    'affine:paragraph',
-    {
-      text: new Text(
-        'Shared notes for the planning crew. Everything here syncs live, same as the applications database. Type / for to-do lists, headings, and more.',
-      ),
-    },
-    noteId,
-  );
-  for (const item of [
-    'Confirm porch hosts for the accepted acts',
-    'Walk the route and mark power access',
-    'Draft the day-of volunteer schedule',
-  ]) {
-    store.addBlock(
-      'affine:list',
-      { type: 'todo', checked: false, text: new Text(item) },
-      noteId,
-    );
-  }
-  collection.meta.setDocMeta(CIVIC_NOTES_DOC_ID, { title: 'Organizer notes' });
+  createOrganizerNoteDoc(collection, CIVIC_NOTES_DOC_ID, 'Organizer notes', [
+    { text: 'Confirm porch hosts for the accepted acts', priority: 'high' },
+    { text: 'Walk the route and mark power access' },
+    { text: 'Draft the day-of volunteer schedule' },
+  ]);
   seededDocs.set(CIVIC_NOTES_DOC_ID, true);
 }
 
@@ -355,6 +326,7 @@ function openCivicCore(): Promise<CivicCore> {
     if (!collection.meta.getDocMeta(CIVIC_EVENT_DOC_ID)?.title) {
       collection.meta.setDocMeta(CIVIC_EVENT_DOC_ID, { title: 'Applications' });
     }
+    setCivicDocKind(collection, CIVIC_EVENT_DOC_ID, 'applications');
     ensureNotesDoc(collection);
 
     const api: CivicWorkspaceApi = {
@@ -407,7 +379,10 @@ export async function mountCivicWorkspace(
   const editor = document.createElement(
     'affine-editor-container',
   ) as TestAffineEditorContainer;
-  const viewManager = getTestViewManager();
+  const viewManager = new ViewExtensionManager([
+    ...getInternalViewExtensions(),
+    CivicTaskViewExtension,
+  ]);
   editor.pageSpecs = viewManager.get('page');
   editor.edgelessSpecs = viewManager.get('edgeless');
   editor.doc = handles.store;
@@ -424,51 +399,25 @@ export async function mountCivicWorkspace(
     activeDocId = docId;
   };
 
-  const docs = (): CivicDocSummary[] => {
-    const metas = collection.meta.docMetas ?? [];
-    const summaries: CivicDocSummary[] = [];
-    for (const meta of metas) {
-      const id = (meta as { id: string }).id;
-      const title = (meta as { title?: string }).title;
-      summaries.push({
-        id,
-        title:
-          title && title.trim() !== ''
-            ? title
-            : id === CIVIC_EVENT_DOC_ID
-              ? 'Applications'
-              : 'Untitled note',
-        kind: id === CIVIC_EVENT_DOC_ID ? 'applications' : 'note',
-      });
-    }
-    // The applications doc always leads the rail.
-    summaries.sort((a, b) =>
-      a.kind === b.kind ? a.title.localeCompare(b.title) : a.kind === 'applications' ? -1 : 1,
-    );
-    return summaries;
-  };
+  const docs = (): CivicDocSummary[] =>
+    listCivicWorkspaceDocs(collection, CIVIC_EVENT_DOC_ID);
 
   const createNote = (title = 'Untitled note'): string => {
     const docId = `civic:note:${crypto.randomUUID().slice(0, 8)}`;
-    const doc = collection.createDoc(docId);
-    const store = doc.getStore({ id: docId });
-    if (!doc.loaded) doc.load();
-    const rootId = store.addBlock('affine:page', { title: new Text(title) });
-    store.addBlock('affine:surface', {}, rootId);
-    const noteId = store.addBlock('affine:note', {}, rootId);
-    store.addBlock('affine:paragraph', { text: new Text('') }, noteId);
-    collection.meta.setDocMeta(docId, { title });
+    createOrganizerNoteDoc(collection, docId, title);
     return docId;
   };
 
-  const deleteNote = (docId: string): boolean => {
-    // Only note docs are deletable. kind in docs() is id-derived (every doc
-    // except the applications database reads as 'note'), so the explicit
-    // event-doc guard plus the kind lookup refuse the applications doc and
-    // any id the workspace meta does not know.
+  const createTodoList = (title = 'Untitled to-do list'): string => {
+    const docId = `civic:todo:${crypto.randomUUID().slice(0, 8)}`;
+    createCivicTaskListDoc(collection, docId, title);
+    return docId;
+  };
+
+  const deleteWorkspaceDoc = (docId: string): boolean => {
     if (docId === CIVIC_EVENT_DOC_ID) return false;
     const summary = docs().find((entry) => entry.id === docId);
-    if (!summary || summary.kind !== 'note') return false;
+    if (!summary || summary.kind === 'applications') return false;
     // The removal disposes the doc's store; the mounted editor must not be
     // left rendering it.
     if (activeDocId === docId) openDoc(CIVIC_EVENT_DOC_ID);
@@ -486,6 +435,7 @@ export async function mountCivicWorkspace(
     }
     return true;
   };
+  const deleteNote = deleteWorkspaceDoc;
 
   const onDocsChanged = (listener: () => void) => {
     const subscription = collection.slots.docListUpdated.subscribe(() =>
@@ -539,6 +489,8 @@ export async function mountCivicWorkspace(
     docs,
     openDoc,
     createNote,
+    createTodoList,
+    deleteWorkspaceDoc,
     deleteNote,
     onDocsChanged,
     currentDocId: () => activeDocId,

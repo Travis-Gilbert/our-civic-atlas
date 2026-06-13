@@ -32,6 +32,11 @@ import {
   readCivicObjects,
   updateCivicObjectField,
 } from '../src/lib/civic/civic-workspace';
+import {
+  createCivicTaskListDoc,
+  listCivicWorkspaceDocs,
+} from '../src/lib/civic/civic-task-docs';
+import { CIVIC_TASK_FLAVOUR } from '../src/lib/civic/civic-task-schema';
 
 let failures = 0;
 function check(label: string, ok: boolean, detail?: unknown) {
@@ -106,6 +111,35 @@ async function main() {
       want: CIVIC_OBJECT_COLUMNS.length,
       got: handlesA.columnIds.size,
     },
+  );
+  check(
+    'civic task block schema registered',
+    handlesA.store.schema.flavourSchemaMap.has(CIVIC_TASK_FLAVOUR),
+  );
+  const taskDocId = createCivicTaskListDoc(
+    a,
+    'civic:todo:validate',
+    'Validation tasks',
+    [{ text: 'Confirm the task schema is first-class', priority: 'high' }],
+  );
+  const taskDoc = a.getDoc(taskDocId);
+  const taskStore = taskDoc?.getStore({ id: taskDocId });
+  const taskModels = taskStore?.getModelsByFlavour(CIVIC_TASK_FLAVOUR) ?? [];
+  check('task-list doc appears in workspace docs', Boolean(taskDoc));
+  check(
+    'task-list doc is kinded separately from notes',
+    listCivicWorkspaceDocs(a, CIVIC_EVENT_DOC_ID).find((doc) => doc.id === taskDocId)
+      ?.kind === 'todo-list',
+  );
+  check('task-list doc contains civic:task blocks', taskModels.length === 1, {
+    got: taskModels.length,
+  });
+  check(
+    'civic:task block keeps registry-backed fields',
+    taskModels[0]?.props.priority === 'high' &&
+      taskModels[0]?.props.status === 'todo' &&
+      taskModels[0]?.props.text.toString() ===
+        'Confirm the task schema is first-class',
   );
   const musicianRowId = insertCivicObject(handlesA, musician);
   insertCivicObject(handlesA, vendor);
