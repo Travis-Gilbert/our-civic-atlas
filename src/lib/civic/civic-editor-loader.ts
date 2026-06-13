@@ -31,7 +31,7 @@ export interface CivicStoreApi {
 export interface CivicDocSummary {
   id: string;
   title: string;
-  kind: "applications" | "note" | "todo-list";
+  kind: "applications" | "tasks" | "note" | "todo-list";
 }
 
 export interface CivicWorkspaceMounted {

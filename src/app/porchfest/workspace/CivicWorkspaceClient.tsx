@@ -868,7 +868,10 @@ function WorkspaceInner() {
   // becomes active. switchView retries internally until the block renders, so
   // this lands the deep link on first paint and the segment control on click.
   useEffect(() => {
-    if (state.kind === "ready" && currentDoc?.kind === "applications") {
+    if (
+      state.kind === "ready" &&
+      (currentDoc?.kind === "applications" || currentDoc?.kind === "tasks")
+    ) {
       apiRef.current?.switchView(dbView);
     }
   }, [state.kind, currentDoc?.kind, dbView]);
@@ -1007,11 +1010,12 @@ function WorkspaceInner() {
             {deleteNotice}
           </span>
         ) : null}
-        {currentDoc?.kind === "applications" ? (
+        {currentDoc?.kind === "applications" ||
+        currentDoc?.kind === "tasks" ? (
           <div
             className="civic-workspace-viewseg"
             role="group"
-            aria-label="Applications view"
+            aria-label="Database view"
           >
             <button
               type="button"

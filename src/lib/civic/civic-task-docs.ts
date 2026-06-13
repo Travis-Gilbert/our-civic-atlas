@@ -7,7 +7,11 @@ import {
   type CivicTaskStatus,
 } from './civic-task-schema';
 
-export type CivicWorkspaceDocKind = 'applications' | 'note' | 'todo-list';
+export type CivicWorkspaceDocKind =
+  | 'applications'
+  | 'tasks'
+  | 'note'
+  | 'todo-list';
 
 export interface CivicDocSummary {
   id: string;
@@ -57,6 +61,7 @@ export function readCivicDocKind(
   applicationsDocId: string,
 ): CivicWorkspaceDocKind {
   if (docId === applicationsDocId) return 'applications';
+  if (docId.startsWith('civic:tasks:')) return 'tasks';
   const recorded = kindMap(collection).get(docId);
   if (recorded) return recorded;
   return docId.startsWith('civic:todo:') ? 'todo-list' : 'note';
@@ -143,17 +148,21 @@ export function listCivicWorkspaceDocs(
           ? title
           : kind === 'applications'
             ? 'Applications'
-            : kind === 'todo-list'
-              ? 'Untitled to-do list'
-              : 'Untitled note',
+            : kind === 'tasks'
+              ? 'Tasks'
+              : kind === 'todo-list'
+                ? 'Untitled to-do list'
+                : 'Untitled note',
       kind,
     });
   }
   summaries.sort((a, b) => {
-    const order = { applications: 0, 'todo-list': 1, note: 2 } satisfies Record<
-      CivicWorkspaceDocKind,
-      number
-    >;
+    const order = {
+      applications: 0,
+      tasks: 1,
+      'todo-list': 2,
+      note: 3,
+    } satisfies Record<CivicWorkspaceDocKind, number>;
     return order[a.kind] === order[b.kind]
       ? a.title.localeCompare(b.title)
       : order[a.kind] - order[b.kind];

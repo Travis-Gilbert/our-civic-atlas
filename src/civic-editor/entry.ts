@@ -44,6 +44,14 @@ import {
   type CivicObjectRow,
 } from '../lib/civic/civic-workspace';
 import {
+  ensureTaskDatabase,
+  type TaskDatabaseHandles,
+} from '../lib/civic/civic-task-rows';
+import {
+  CIVIC_TASKS_DOC_ID,
+  CIVIC_TASKS_TITLE,
+} from '../lib/civic/civic-task-row-schema';
+import {
   CIVIC_NOTES_DOC_ID,
   SEEDED_DOCS_MAP_KEY,
   createCivicTaskListDoc,
@@ -133,6 +141,18 @@ const KANBAN_CARD_FIELDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Task kanban card fields (REVISION 2: tasks are rows). The applications card
+ * set above hides everything else; tasks need their own visible fields or the
+ * cards would show only the title. Status is the grouping column.
+ */
+const TASK_CARD_FIELDS: ReadonlySet<string> = new Set([
+  'status',
+  'priority',
+  'owner',
+  'dueAt',
+]);
+
+/**
  * Minimal structural surface of a kanban SingleView. The concrete
  * KanbanSingleView class is not publicly exported from @blocksuite/data-view,
  * so we reach the per-column hide control through this shape.
@@ -156,7 +176,10 @@ interface KanbanCardView {
  * and would otherwise come up with the full 43-column card dump. The heal is
  * idempotent: a column's hidden state is only written when it actually flips.
  */
-function ensureCivicViews(handles: CivicDatabaseHandles): void {
+function ensureCivicViews(
+  handles: CivicDatabaseHandles,
+  cardFields: ReadonlySet<string> = KANBAN_CARD_FIELDS,
+): void {
   const datasource = new DatabaseBlockDataSource(handles.model);
   const viewManager = datasource.viewManager;
 
@@ -179,7 +202,7 @@ function ensureCivicViews(handles: CivicDatabaseHandles): void {
     const kanban = viewManager.viewGet(viewId) as unknown as KanbanCardView;
     for (const [fieldKey, columnId] of handles.columnIds) {
       const column = kanban.propertyGetOrCreate(columnId);
-      const shouldHide = !KANBAN_CARD_FIELDS.has(fieldKey);
+      const shouldHide = !cardFields.has(fieldKey);
       if (column.hide$.value !== shouldHide) column.hideSet(shouldHide);
     }
   }
@@ -188,6 +211,7 @@ function ensureCivicViews(handles: CivicDatabaseHandles): void {
 interface CivicCore {
   handles: CivicDatabaseHandles;
   api: CivicWorkspaceApi;
+  taskHandles: TaskDatabaseHandles;
 }
 
 /**
@@ -329,6 +353,17 @@ function openCivicCore(): Promise<CivicCore> {
     setCivicDocKind(collection, CIVIC_EVENT_DOC_ID, 'applications');
     ensureNotesDoc(collection);
 
+    // Tasks are first-class ROWS in their own database doc (REVISION 2): they
+    // ride the same data-view table + kanban and the same map figure path as
+    // applications. Idempotent (adopted, never reseeded) like the event doc.
+    const taskHandles = ensureTaskDatabase(collection);
+    if (!collection.meta.getDocMeta(CIVIC_TASKS_DOC_ID)?.title) {
+      collection.meta.setDocMeta(CIVIC_TASKS_DOC_ID, {
+        title: CIVIC_TASKS_TITLE,
+      });
+    }
+    setCivicDocKind(collection, CIVIC_TASKS_DOC_ID, 'tasks');
+
     const api: CivicWorkspaceApi = {
       insert: (fields) => insertCivicObject(handles, fields),
       list: () => readCivicObjects(handles),
@@ -348,7 +383,7 @@ function openCivicCore(): Promise<CivicCore> {
       },
     };
 
-    return { handles, api };
+    return { handles, api, taskHandles };
   })();
   return corePromise;
 }
@@ -375,6 +410,10 @@ export async function mountCivicWorkspace(
   const { handles, api } = core;
   const collection = handles.collection;
   ensureCivicViews(handles);
+  ensureCivicViews(
+    core.taskHandles as unknown as CivicDatabaseHandles,
+    TASK_CARD_FIELDS,
+  );
 
   const editor = document.createElement(
     'affine-editor-container',
@@ -450,7 +489,9 @@ export async function mountCivicWorkspace(
   // view for the workspace segment control and the ?view= deep link.
   type LiveViewManager = {
     views$: { value: string[] };
-    viewDataGet(id: string): { type?: string } | undefined;
+    // The live view data exposes `mode`, not `type`; the view OBJECT
+    // (viewGet) is what carries the resolved `type` ('table' | 'kanban').
+    viewGet(id: string): { type?: string } | undefined;
     setCurrentView(id: string): void;
   };
   const findViewManager = (): LiveViewManager | null => {
@@ -475,7 +516,7 @@ export async function mountCivicWorkspace(
     const targetType =
       view === 'kanban' ? viewPresets.kanbanViewMeta.type : 'table';
     const targetId = viewManager.views$.value.find(
-      (id) => viewManager.viewDataGet(id)?.type === targetType,
+      (id) => viewManager.viewGet(id)?.type === targetType,
     );
     if (!targetId) return false;
     viewManager.setCurrentView(targetId);

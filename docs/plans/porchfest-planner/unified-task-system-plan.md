@@ -4,6 +4,29 @@ Status: ACTIVE. Owner split: Claude Code (UI / map / kanban / CRDT plumbing)
 + Codex (civic:task schema half). Supersedes the standalone GraphQL
 `eventTasks` *editing* path and Codex's list-only `civic:task` render.
 
+## REVISION 2 (user-confirmed 2026-06-13): tasks are ROWS, reuse the existing kanban
+
+The kanban substrate flipped from blocks to ROWS. The existing data-view kanban
++ table + map binding are ROW-based (the Applications database). Rather than
+build a block board, **tasks become first-class civic-object ROWS in a dedicated
+tasks database**, reusing the existing `ensureCivicViews` (table + kanban grouped
+by task status, native per-column add) and `bindCivicRowsToMap` (figures +
+drag-to-place). Goal: "add the feature with proper wiring," minimal new design.
+
+Consequences:
+- Phase 0's civic:task BLOCK redesign (committed 4e7c84e) stays as the inline
+  task-list view inside note/todo-list docs; the kanban/map first-class task is
+  the ROW.
+- The task map seam is now `bindCivicRowsToMap` (EXISTING), not the new
+  `bindPlaceableBlocksToMap` (EM-040). EM-041 (task-on-map) is satisfied by the
+  row path directly.
+- Phases below that assumed blocks are superseded: Phase 2 = task ROW schema +
+  dedicated tasks database + table/kanban views + a "Tasks" workspace tab +
+  bridge methods. Phase 3 (map) = reuse `bindCivicRowsToMap` for task rows.
+- CONSISTENCY FLAG (Travis + Codex): diverges from the block-based civic:email
+  plan. Tasks(row) + email(block) is not "one model." Open: should email and all
+  objects also be rows, or is tasks-as-rows a deliberate split? Non-blocking.
+
 ## The decision (user-confirmed 2026-06-13)
 
 The two task systems that exist today were meant to be ONE first-class system:
@@ -91,10 +114,27 @@ and GAIN geo + progress fields, rather than collapsing into civic-object rows.
 - [ ] UT-012 `civic:task` progress: derive from child completion, or add explicit `completionPct`; confirm priority/owner/dueAt/status present (they are).
 - [ ] UT-013 Doc helpers + validator coverage for the new fields (`validate:civic-store`).
 
-### Phase 2 - Workspace task kanban (Claude)
-- [ ] UT-021 Status-grouped board over `civic:task` blocks (To do / Doing / Blocked / Done), reusing the applications-kanban visual language + the approved card anatomy.
-- [ ] UT-022 Drag-to-restatus writes `status` to the CRDT block.
-- [ ] UT-023 Board reads/writes through the existing mounted civic bridge; no second Yjs client.
+### Phase 2 - Task ROWS: dedicated tasks database + kanban (Claude) [REVISION 2]
+Grounded against `src/lib/civic/civic-workspace.ts` (the applications DB pattern).
+Build as a PARALLEL module, not a refactor of the working applications code, so
+`validate:civic-store` / `validate:civic-map-binding` stay green.
+
+STATUS (2026-06-13): UT-021..025 DONE + browser-verified. The Tasks tab renders a
+status kanban + table reusing the data-view machinery (native per-column add
+included); the Table/Kanban segment toggle is reliable. `switchView` fixed to read
+`viewGet(id).type` (the live view data exposes `mode`, not `type`) -- this also
+repairs a LATENT applications-kanban bug. All validators green. Remaining polish
+(not blocking): (a) kanban column labels show raw option values `todo/doing/blocked/
+done` rather than friendly `To do/...` (would need friendly select-option values);
+(b) a native "Ungrouped" column shows; (c) applications seeded docs lack a kanban
+view because `ensureCivicViews` only adds views to an EMPTY db -- a separate latent
+fix; (d) the React task API (list/insert/update/onChange) is deferred to Phase 3
+(map) + the mobile surface.
+- [ ] UT-021 Task column schema `TASK_COLUMNS: CivicColumnSpec[]` (reuse the CivicColumnSpec shape, scope:'planning') in new `src/lib/civic/civic-task-row-schema.ts`: title(text), status(select todo/doing/blocked/done), priority(select low/normal/high), owner(text), dueAt(date), startsAt(date), location(text JSON {lng,lat}), address(text), figureKey(select CIVIC_FIGURE_KEYS), notes(text), parentId(text -> subtasks), done(checkbox). Reuse parseCivicLocation/serializeCivicLocation.
+- [ ] UT-022 Parallel DB module `src/lib/civic/civic-task-rows.ts` mirroring civic-workspace.ts (headless-safe: model.props writes, no view imports): ensureTaskDatabase(collection,'civic:tasks:porchfest-2026'), insertTask, readTasks, updateTaskField, onChange. Cell encode/decode is generic; can later extract a shared core.
+- [ ] UT-023 Boot the tasks DB in entry.ts openCivicCore (next to ensureCivicDatabase); doc kind 'tasks'; `ensureCivicViews(taskHandles)` yields table + kanban grouped by the task status column FOR FREE (it is generic over handles).
+- [ ] UT-024 Bridge + UI: expose task list/insert/update + a 'tasks' CivicDocSummary; CivicWorkspaceClient gets a Tasks tab + Table/Kanban viewseg (existing switchView/findViewManager are generic over affine-database). Native per-column add ships with the kanban view.
+- [ ] UT-025 Validate: build:civic-editor, new validate:civic-task-store, browser smoke (Tasks tab: table + kanban, per-column add, drag-to-restatus writes the CRDT).
 
 ### Phase 3 - Map placement of tasks = EM-040 + EM-041 (Claude; co-owned with email lane)
 - [ ] UT-031 Shared placement facet on the civic:task spine: real `coordinate:[lng,lat]` + anchor vocab (`geoAnchorKind`/`osmId`/`placementId`); `locationLabel` stays the human label. (EM-040; civic-task-schema.ts is Codex's file -> coordinate the additive field.)
