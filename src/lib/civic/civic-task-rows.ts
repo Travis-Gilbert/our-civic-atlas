@@ -364,7 +364,7 @@ export function insertTask(
   fields: TaskRowFields,
 ): string {
   const { store, model, columnIds } = handles;
-  const withDefaults: TaskRowFields = { status: 'todo', ...fields };
+  const withDefaults: TaskRowFields = { status: 'To do', ...fields };
 
   const rowId = store.addBlock(
     'affine:paragraph',

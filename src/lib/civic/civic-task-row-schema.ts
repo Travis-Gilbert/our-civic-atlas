@@ -25,10 +25,13 @@ import {
 export const CIVIC_TASKS_DOC_ID = 'civic:tasks:porchfest-2026';
 export const CIVIC_TASKS_TITLE = 'Porchfest 2026 Tasks';
 
-export const TASK_ROW_STATUSES = ['todo', 'doing', 'blocked', 'done'] as const;
+// Friendly option values double as the kanban column labels: the native
+// data-view kanban renders the select option value verbatim as the group
+// header, so the values ARE the display labels (TickTick-style).
+export const TASK_ROW_STATUSES = ['To do', 'Doing', 'Blocked', 'Done'] as const;
 export type TaskRowStatus = (typeof TASK_ROW_STATUSES)[number];
 
-export const TASK_ROW_PRIORITIES = ['low', 'normal', 'high'] as const;
+export const TASK_ROW_PRIORITIES = ['Low', 'Normal', 'High'] as const;
 export type TaskRowPriority = (typeof TASK_ROW_PRIORITIES)[number];
 
 /**
