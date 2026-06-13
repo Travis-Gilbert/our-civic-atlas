@@ -61,6 +61,7 @@ import {
   type CivicDocSummary,
 } from '../lib/civic/civic-task-docs';
 import { CivicTaskViewExtension } from './civic-task-block';
+import { CivicEmailViewExtension } from './civic-email-block';
 import { RustyRedDocSource } from './rustyred-doc-source';
 
 // Register the editor container and, through it, the affine view effects.
@@ -421,6 +422,7 @@ export async function mountCivicWorkspace(
   const viewManager = new ViewExtensionManager([
     ...getInternalViewExtensions(),
     CivicTaskViewExtension,
+    CivicEmailViewExtension,
   ]);
   editor.pageSpecs = viewManager.get('page');
   editor.edgelessSpecs = viewManager.get('edgeless');

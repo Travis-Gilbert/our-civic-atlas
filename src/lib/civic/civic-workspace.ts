@@ -53,6 +53,7 @@ import {
   type CivicObjectFields,
 } from './civic-object-schema';
 import { CivicTaskStoreExtension } from './civic-task-schema';
+import { CivicEmailStoreExtension } from './civic-email-schema';
 
 export const CIVIC_EVENT_DOC_ID = 'civic:porchfest-2026';
 export const CIVIC_EVENT_TITLE = 'Porchfest 2026 Applications';
@@ -125,7 +126,11 @@ interface CivicColumnData {
 }
 
 const storeExtensionManager = new StoreExtensionManager(
-  [...getInternalStoreExtensions(), CivicTaskStoreExtension],
+  [
+    ...getInternalStoreExtensions(),
+    CivicTaskStoreExtension,
+    CivicEmailStoreExtension,
+  ],
 );
 
 type TestWorkspaceOptions = NonNullable<

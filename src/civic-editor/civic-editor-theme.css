@@ -86,6 +86,25 @@
   --civic-meta-fg: #656565;
   --civic-task-hover: #fafafa;
   --civic-task-ring: #005186;
+
+  /*
+   * civic:email responded-state chips (the shared Inbox). Reuse the task
+   * status hues so "needs reply" reads with the same urgency grammar as an
+   * overdue/blocked task. needs_reply = blocked red, replied = done green,
+   * deferred / no_reply_needed = neutral. Same computed >=4.5:1 contrast.
+   */
+  --civic-responded-needs-fg: #a8463a;
+  --civic-responded-needs-bg: #f6e3df;
+  --civic-responded-replied-fg: #2f6a3f;
+  --civic-responded-replied-bg: #e4f0e6;
+  --civic-responded-neutral-fg: #656565;
+  --civic-responded-neutral-bg: #f1f1f1;
+
+  /* civic:email thread surface + unread dot. */
+  --civic-email-outbound-fill: #f7f8f9;
+  --civic-email-turn-rule: #ececec;
+  --civic-unread-disc: #005186;
+  --civic-unread-read-ring: #d7dde2;
 }
 
 affine-editor-container {
