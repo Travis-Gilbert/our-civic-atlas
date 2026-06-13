@@ -45,11 +45,15 @@ import {
 } from '../lib/civic/civic-workspace';
 import {
   ensureTaskDatabase,
+  readTasks,
+  updateTaskField,
   type TaskDatabaseHandles,
+  type TaskRow,
 } from '../lib/civic/civic-task-rows';
 import {
   CIVIC_TASKS_DOC_ID,
   CIVIC_TASKS_TITLE,
+  type TaskFieldKey,
 } from '../lib/civic/civic-task-row-schema';
 import {
   CIVIC_NOTES_DOC_ID,
@@ -93,8 +97,18 @@ export interface CivicWorkspaceApi {
   onChange(listener: () => void): () => void;
 }
 
+export interface CivicTaskWorkspaceApi {
+  /** All first-class task rows as plain schema fields. */
+  list(): TaskRow[];
+  /** Organizer/map edit path for a single task field. */
+  update(rowId: string, key: TaskFieldKey, value: unknown): void;
+  /** Subscribe to task-row changes. */
+  onChange(listener: () => void): () => void;
+}
+
 export interface CivicWorkspaceMountResult {
   api: CivicWorkspaceApi;
+  tasks: CivicTaskWorkspaceApi;
   editor: TestAffineEditorContainer;
   handles: CivicDatabaseHandles;
   /** All workspace docs: the applications database plus organizer notes. */
@@ -213,6 +227,7 @@ interface CivicCore {
   handles: CivicDatabaseHandles;
   api: CivicWorkspaceApi;
   taskHandles: TaskDatabaseHandles;
+  taskApi: CivicTaskWorkspaceApi;
 }
 
 /**
@@ -384,13 +399,26 @@ function openCivicCore(): Promise<CivicCore> {
       },
     };
 
-    return { handles, api, taskHandles };
+    const taskApi: CivicTaskWorkspaceApi = {
+      list: () => readTasks(taskHandles),
+      update: (rowId, key, value) =>
+        updateTaskField(taskHandles, rowId, key, value),
+      onChange: (listener) => {
+        const subscription = taskHandles.store.slots.blockUpdated.subscribe(() =>
+          listener(),
+        );
+        return () => subscription.unsubscribe();
+      },
+    };
+
+    return { handles, api, taskHandles, taskApi };
   })();
   return corePromise;
 }
 
 export interface CivicStoreOpenResult {
   api: CivicWorkspaceApi;
+  tasks: CivicTaskWorkspaceApi;
   handles: CivicDatabaseHandles;
 }
 
@@ -401,7 +429,7 @@ export interface CivicStoreOpenResult {
  */
 export async function openCivicStore(): Promise<CivicStoreOpenResult> {
   const core = await openCivicCore();
-  return { api: core.api, handles: core.handles };
+  return { api: core.api, tasks: core.taskApi, handles: core.handles };
 }
 
 export async function mountCivicWorkspace(
@@ -527,6 +555,7 @@ export async function mountCivicWorkspace(
 
   const result: CivicWorkspaceMountResult = {
     api,
+    tasks: core.taskApi,
     editor,
     handles,
     docs,

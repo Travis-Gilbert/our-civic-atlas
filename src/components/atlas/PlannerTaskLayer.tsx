@@ -14,6 +14,7 @@ export interface PlannerTaskLayerOptions {
   readonly visible: boolean;
   readonly zoom: number;
   readonly selectedTaskId: string | null;
+  readonly highlightedTaskIds?: ReadonlySet<string>;
   readonly onClickTask?: (task: PlannerTaskNode, info: PickingInfo) => void;
 }
 
@@ -50,11 +51,13 @@ function buildTaskIcon(
   task: PlannerTaskNode,
   variant: PlannerTaskLayerDatum["variant"],
   selected: boolean,
+  highlighted: boolean,
 ) {
   const cacheKey = [
     task.id,
     variant,
     selected ? "selected" : "default",
+    highlighted ? "highlighted" : "ordinary",
     task.title,
     task.ownerDisplay ?? "",
     task.priority,
@@ -69,15 +72,15 @@ function buildTaskIcon(
   const progressWidth = Math.max(8, Math.round((width - 12) * clampPercent(task.completionPct)));
   const title = truncateTitle(task.title, variant === "detail" ? 24 : 10);
   const ownerInitial = escapeXml((task.ownerDisplay ?? "P").slice(0, 1).toUpperCase());
-  const background = selected ? "#fff8ef" : "#fbf7ee";
-  const stroke = selected ? "#005186" : TASK_STROKE;
+  const background = highlighted ? "#fff2d4" : selected ? "#fff8ef" : "#fbf7ee";
+  const stroke = highlighted ? "#c14a2c" : selected ? "#005186" : TASK_STROKE;
   const progressFill = PRIORITY_FILL[task.priority];
   const chevron = task.childIds.length > 0 ? "▾" : "";
 
   const svg = variant === "detail"
     ? `
       <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="14" fill="${background}" stroke="${stroke}" stroke-width="${selected ? 2 : 1.25}" />
+        <rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="14" fill="${background}" stroke="${stroke}" stroke-width="${selected || highlighted ? 2 : 1.25}" />
         <circle cx="20" cy="18" r="11" fill="${OWNER_FILL}" />
         <text x="20" y="22" font-size="11" text-anchor="middle" fill="#f7efe3" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">${ownerInitial}</text>
         <circle cx="${width - 18}" cy="14" r="5" fill="${PRIORITY_FILL[task.priority]}" />
@@ -89,7 +92,7 @@ function buildTaskIcon(
     `
     : `
       <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="12" fill="${background}" stroke="${stroke}" stroke-width="${selected ? 2 : 1.25}" />
+        <rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="12" fill="${background}" stroke="${stroke}" stroke-width="${selected || highlighted ? 2 : 1.25}" />
         <circle cx="16" cy="14" r="8" fill="${OWNER_FILL}" />
         <text x="16" y="17" font-size="8" text-anchor="middle" fill="#f7efe3" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">${ownerInitial}</text>
         <circle cx="${width - 12}" cy="11" r="4" fill="${PRIORITY_FILL[task.priority]}" />
@@ -133,6 +136,7 @@ function createIconLayer(
   data: readonly PlannerTaskLayerDatum[],
   visible: boolean,
   selectedTaskId: string | null,
+  highlightedTaskIds: ReadonlySet<string>,
   onClickTask?: (task: PlannerTaskNode, info: PickingInfo) => void,
 ): IconLayer<PlannerTaskLayerDatum> {
   return new IconLayer<PlannerTaskLayerDatum>({
@@ -145,9 +149,17 @@ function createIconLayer(
     getPosition: (datum) =>
       (datum.task.effectiveGeometry?.coordinates ?? [0, 0]) as [number, number],
     getPixelOffset: (datum) => datum.offset,
-    getSize: (datum) => (datum.variant === "detail" ? 42 : 30),
+    getSize: (datum) => {
+      const base = datum.variant === "detail" ? 42 : 30;
+      return highlightedTaskIds.has(datum.task.id) ? base + 8 : base;
+    },
     getIcon: (datum) =>
-      buildTaskIcon(datum.task, datum.variant, datum.task.id === selectedTaskId),
+      buildTaskIcon(
+        datum.task,
+        datum.variant,
+        datum.task.id === selectedTaskId,
+        highlightedTaskIds.has(datum.task.id),
+      ),
     onClick: (info) => {
       const datum = info.object;
       if (!datum || !onClickTask) return false;
@@ -155,7 +167,11 @@ function createIconLayer(
       return true;
     },
     updateTriggers: {
-      getIcon: selectedTaskId,
+      getIcon: [selectedTaskId, highlightedTaskIds],
+      getSize: highlightedTaskIds,
+    },
+    transitions: {
+      getSize: 180,
     },
   });
 }
@@ -165,6 +181,7 @@ export function createPlannerTaskLayers({
   visible,
   zoom,
   selectedTaskId,
+  highlightedTaskIds = new Set<string>(),
   onClickTask,
 }: PlannerTaskLayerOptions): Layer[] {
   if (!visible || tasks.length === 0) return [];
@@ -179,6 +196,7 @@ export function createPlannerTaskLayers({
       compactData,
       zoom < 16.8,
       selectedTaskId,
+      highlightedTaskIds,
       onClickTask,
     ),
     createIconLayer(
@@ -186,6 +204,7 @@ export function createPlannerTaskLayers({
       detailData,
       zoom >= 16.8,
       selectedTaskId,
+      highlightedTaskIds,
       onClickTask,
     ),
   ];

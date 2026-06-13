@@ -44,7 +44,9 @@ import type { Feature, FeatureCollection, Geometry } from "geojson";
 import { ListChecks } from "lucide-react";
 import { useIsMobile } from "@/lib/atlas/use-is-mobile";
 import { useNetworkStatus } from "@/lib/atlas/use-network-status";
+import { usePrefersReducedMotion } from "@/lib/atlas/use-prefers-reduced-motion";
 import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
+import { useRunOfShowClock } from "@/lib/atlas/use-run-of-show-clock";
 import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
@@ -69,6 +71,8 @@ import {
 } from "@/components/atlas/PlannerEditableLayer";
 import { createPlannerTaskLayers } from "@/components/atlas/PlannerTaskLayer";
 import { buildPorchfestFlowLayers } from "@/components/atlas/PorchfestFlowLayer";
+import { buildPorchfestRunOfShowLayers } from "@/components/atlas/PorchfestRunOfShowLayer";
+import { PorchfestRunOfShowPanel } from "@/components/atlas/PorchfestRunOfShowPanel";
 import type { PlannerTaskNode, PlannerTaskStatus } from "@/lib/atlas/planner-phase4";
 import { taskProgress } from "@/lib/atlas/task-progress";
 import {
@@ -119,10 +123,17 @@ import {
   CreatePlacementDocument,
   DeleteEventTaskDocument,
   DeletePlacementDocument,
+  EventApplicationsDocument,
+  EventEmailChannelDocument,
+  EventEmailOutreachDocument,
   EventPlacementsDocument,
   EventTasksListDocument,
+  SendEventApplicationEmailDocument,
+  UpdateEventEmailOutreachDocument,
   UpdateEventTaskDocument,
   UpdatePlacementDocument,
+  type EventApplicationsQuery,
+  type EventEmailOutreachQuery,
   type EventTasksListQuery,
 } from "@/lib/api/graphql/generated/graphql";
 import {
@@ -136,6 +147,7 @@ import {
 import {
   openCivicStore,
   type CivicStoreApi,
+  type CivicTaskRow,
 } from "@/lib/civic/civic-editor-loader";
 import {
   bindCivicRowsToMap,
@@ -144,6 +156,7 @@ import {
 } from "@/lib/civic/civic-map-binding";
 import {
   CIVIC_FIGURE_KEYS,
+  parseCivicLocation,
   type CivicObjectFields,
 } from "@/lib/civic/civic-object-schema";
 import { reconcileAddressLocation } from "@/lib/civic/civic-address-sync";
@@ -156,10 +169,24 @@ import {
   isCivicFigureKey,
   resolveCivicFigureKey,
 } from "@/lib/civic/civic-figure-resolver";
+import {
+  activeRunOfShowPerformances,
+  buildRunOfShowPerformances,
+  buildRunOfShowTrips,
+  isTaskActiveAtRunOfShowTime,
+  type RunOfShowTimedTaskLike,
+} from "@/lib/porchfest/run-of-show";
 
 const TENANT_SLUG = "flint";
 const EVENT_SLUG = "porchfest-2026";
 const PLANNER_DRAG_BLOCK_LAYER_IDS = ["planner-editable-direct-drag"] as const;
+const EMPTY_ID_SET: ReadonlySet<string> = new Set();
+const EMAIL_REPLY_STATE_OPTIONS = [
+  "NOT_REPLIED",
+  "REPLIED",
+  "DEFERRED",
+  "MANUAL",
+] as const;
 /**
  * Sentinel version for civic-object placements inside the editable layer.
  * Civic objects live in the BlockSuite/Yjs store, not the GraphQL
@@ -293,6 +320,8 @@ type SelectedIslandRow = {
 type TaskLocationDetail = {
   readonly label: string;
 };
+type EventApplicationRow = EventApplicationsQuery["eventApplications"][number];
+type EmailOutreachRow = EventEmailOutreachQuery["eventEmailOutreach"][number];
 
 const USD_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -358,6 +387,60 @@ function formatTaskDueAt(value: string | null): string | null {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function normalizeSourceKey(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function emailDisplayLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function emailTimestamp(value: string | null | undefined): number {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function latestEmailOutreach(
+  current: EmailOutreachRow | undefined,
+  candidate: EmailOutreachRow,
+): EmailOutreachRow {
+  if (!current) return candidate;
+  const currentTime = Math.max(
+    emailTimestamp(current.lastEventAt),
+    emailTimestamp(current.sentAt),
+    emailTimestamp(current.updatedAt),
+    emailTimestamp(current.createdAt),
+  );
+  const candidateTime = Math.max(
+    emailTimestamp(candidate.lastEventAt),
+    emailTimestamp(candidate.sentAt),
+    emailTimestamp(candidate.updatedAt),
+    emailTimestamp(candidate.createdAt),
+  );
+  return candidateTime >= currentTime ? candidate : current;
+}
+
+function defaultOutreachSubject(row: CivicMapRow): string {
+  return `Carriage Town PorchFest follow-up: ${row.title}`;
+}
+
+function defaultOutreachBody(row: CivicMapRow): string {
+  const recipient = firstTextValue(row.fields.name, row.title) ?? row.title;
+  return [
+    `Hi ${recipient},`,
+    "",
+    "Thanks for applying to Carriage Town PorchFest. We are reviewing applications and wanted to follow up.",
+    "",
+    "Best,",
+    "Carriage Town PorchFest",
+  ].join("\n");
 }
 
 type PlannerPlacementRow = {
@@ -578,6 +661,78 @@ function tasksToNodes(
   });
 }
 
+function taskRowStatusToPlanner(status: string | undefined): PlannerTaskStatus {
+  switch (status) {
+    case "Doing":
+      return "in_progress";
+    case "Blocked":
+      return "blocked";
+    case "Done":
+      return "done";
+    default:
+      return "todo";
+  }
+}
+
+function taskRowPriorityToPlanner(
+  priority: string | undefined,
+): PlannerTaskNode["priority"] {
+  switch (priority) {
+    case "High":
+      return 3;
+    case "Low":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function civicTaskRowsToNodes(rows: readonly CivicTaskRow[]): PlannerTaskNode[] {
+  return rows.map((row) => {
+    const location = parseCivicLocation(row.fields.location);
+    const done = row.fields.done === true || row.fields.status === "Done";
+    return {
+      id: `civic-task:${row.rowId}`,
+      title: row.title,
+      ownerDisplay: row.fields.owner ?? null,
+      priority: taskRowPriorityToPlanner(row.fields.priority),
+      status: done ? "done" : taskRowStatusToPlanner(row.fields.status),
+      completionPct: done ? 1 : 0,
+      childIds: [] as readonly string[],
+      geoAnchorKind: location ? "point" : "unanchored",
+      effectivePlacementId: null,
+      effectiveGeometry: location
+        ? {
+            type: "Point",
+            coordinates: [location.lng, location.lat] as const,
+          }
+        : null,
+    };
+  });
+}
+
+function graphTaskToRunOfShowTask(
+  task: EventTasksListQuery["eventTasks"][number],
+): RunOfShowTimedTaskLike {
+  return {
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    startsAt: null,
+    dueAt: task.dueAt,
+  };
+}
+
+function civicTaskRowToRunOfShowTask(row: CivicTaskRow): RunOfShowTimedTaskLike {
+  return {
+    id: `civic-task:${row.rowId}`,
+    title: row.title,
+    status: row.fields.status,
+    startsAt: row.fields.startsAt ?? null,
+    dueAt: row.fields.dueAt ?? null,
+  };
+}
+
 /**
  * PlannerPalette's CATEGORY_COLOR carries the planner's category palette as
  * CSS "rgb(r g b)" strings (the legend swatch format); deck.gl wants numeric
@@ -772,6 +927,11 @@ function PorchfestPlannerWorkspace({
   // On phones the whole chrome folds into the bottom island.
   const isMobile = useIsMobile();
   const networkOnline = useNetworkStatus();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [runOfShowEnabled, setRunOfShowEnabled] = useState(false);
+  const runOfShowClock = useRunOfShowClock();
+  const runOfShowTime = runOfShowClock.t;
+  const pauseRunOfShow = runOfShowClock.pause;
   // Feature 2 drop target: a file dropped anywhere on the map wrapper opens
   // the import flow. Only the first file is read; the import panel detects
   // the kind (CSV vs KML vs GeoJSON) and owns the preview/commit UI.
@@ -779,6 +939,17 @@ function PorchfestPlannerWorkspace({
     name: string;
     text: string;
   } | null>(null);
+  const [emailComposerRowId, setEmailComposerRowId] = useState<string | null>(
+    null,
+  );
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSendingRowId, setEmailSendingRowId] = useState<string | null>(
+    null,
+  );
+  const [emailUpdatingOutreachId, setEmailUpdatingOutreachId] = useState<
+    string | null
+  >(null);
   // Click-to-place arming for an unplaced application: while set, the next
   // map click writes that row's `location` into the civic store. The title
   // rides along so the banner and toast can name the row after the unplaced
@@ -810,6 +981,21 @@ function PorchfestPlannerWorkspace({
     variables: { tenantSlug: TENANT_SLUG, eventSlug: EVENT_SLUG },
     requestPolicy: "cache-and-network",
   });
+  const [applicationsResult, refetchApplications] = useQuery({
+    query: EventApplicationsDocument,
+    variables: { tenantSlug: TENANT_SLUG, eventSlug: EVENT_SLUG },
+    requestPolicy: "cache-and-network",
+  });
+  const [emailChannelResult, refetchEmailChannel] = useQuery({
+    query: EventEmailChannelDocument,
+    variables: { tenantSlug: TENANT_SLUG, eventSlug: EVENT_SLUG },
+    requestPolicy: "cache-and-network",
+  });
+  const [emailOutreachResult, refetchEmailOutreach] = useQuery({
+    query: EventEmailOutreachDocument,
+    variables: { tenantSlug: TENANT_SLUG, eventSlug: EVENT_SLUG },
+    requestPolicy: "cache-and-network",
+  });
 
   const [, createPlacement] = useMutation(CreatePlacementDocument);
   const [, updatePlacement] = useMutation(UpdatePlacementDocument);
@@ -817,12 +1003,46 @@ function PorchfestPlannerWorkspace({
   const [, createTask] = useMutation(CreateEventTaskDocument);
   const [, updateTask] = useMutation(UpdateEventTaskDocument);
   const [, deleteTask] = useMutation(DeleteEventTaskDocument);
+  const [, sendEventApplicationEmail] = useMutation(
+    SendEventApplicationEmailDocument,
+  );
+  const [, updateEventEmailOutreach] = useMutation(
+    UpdateEventEmailOutreachDocument,
+  );
 
   const liveRows = placementsResult.data?.placements ?? null;
   const liveTasks = useMemo(
     () => tasksResult.data?.eventTasks ?? [],
     [tasksResult.data],
   );
+  const liveApplications = useMemo(
+    () => applicationsResult.data?.eventApplications ?? [],
+    [applicationsResult.data?.eventApplications],
+  );
+  const emailOutreach = useMemo(
+    () => emailOutreachResult.data?.eventEmailOutreach ?? [],
+    [emailOutreachResult.data?.eventEmailOutreach],
+  );
+  const emailChannel = emailChannelResult.data?.eventEmailChannel ?? null;
+  const applicationsBySourceKey = useMemo(() => {
+    const map = new Map<string, EventApplicationRow>();
+    for (const row of liveApplications) {
+      const sourceKey = normalizeSourceKey(row.sourceKey);
+      if (sourceKey) map.set(sourceKey, row);
+    }
+    return map;
+  }, [liveApplications]);
+  const emailOutreachByApplicationId = useMemo(() => {
+    const map = new Map<string, EmailOutreachRow>();
+    for (const outreach of emailOutreach) {
+      if (!outreach.applicationId) continue;
+      map.set(
+        outreach.applicationId,
+        latestEmailOutreach(map.get(outreach.applicationId), outreach),
+      );
+    }
+    return map;
+  }, [emailOutreach]);
 
   /* --- civic-object store (Phase 5 two-way binding) ---------------- */
 
@@ -839,17 +1059,23 @@ function PorchfestPlannerWorkspace({
   const [civicRows, setCivicRows] = useState<
     ReturnType<CivicStoreApi["list"]>
   >([]);
+  const [civicTaskRows, setCivicTaskRows] = useState<CivicTaskRow[]>([]);
   useEffect(() => {
     let disposed = false;
     let offChange: (() => void) | undefined;
+    let offTaskChange: (() => void) | undefined;
     openCivicStore()
-      .then((api) => {
+      .then((store) => {
         if (disposed) return;
+        const { api, tasks } = store;
         civicApiRef.current = api;
         setCivicApi(api);
         const refresh = () => setCivicRows(api.list());
+        const refreshTasks = () => setCivicTaskRows(tasks?.list() ?? []);
         offChange = api.onChange(refresh);
+        offTaskChange = tasks?.onChange(refreshTasks);
         refresh();
+        refreshTasks();
       })
       .catch((error: unknown) => {
         // The planner stays fully functional on GraphQL placements alone.
@@ -861,6 +1087,7 @@ function PorchfestPlannerWorkspace({
     return () => {
       disposed = true;
       offChange?.();
+      offTaskChange?.();
       civicApiRef.current = null;
     };
   }, []);
@@ -1097,6 +1324,13 @@ function PorchfestPlannerWorkspace({
     },
     [selectedCivicRowId],
   );
+  const handleSelectedSetTimeChange = useCallback(
+    (value: string) => {
+      if (!selectedCivicRowId) return;
+      civicApiRef.current?.update(selectedCivicRowId, "setTime", value);
+    },
+    [selectedCivicRowId],
+  );
 
   const selectedCategoryLabel = selectedPlacement
     ? plannerCategoryLabel(selectedPlacement.category)
@@ -1187,6 +1421,26 @@ function PorchfestPlannerWorkspace({
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {selectedCivicRowId ? (
+        <div className="space-y-1.5 border-t border-[rgba(42,36,25,0.08)] pt-3">
+          <label
+            htmlFor="planner-island-set-time"
+            className="planner-kicker block"
+          >
+            Set time
+          </label>
+          <input
+            id="planner-island-set-time"
+            className="planner-tile w-full px-2 py-1.5 text-[12px] planner-ink"
+            value={selectedCivicFields?.setTime ?? ""}
+            onChange={(event) =>
+              handleSelectedSetTimeChange(event.target.value)
+            }
+            placeholder="5:00-5:45"
+          />
+        </div>
       ) : null}
 
       {selectedCivicRowId ? (
@@ -1388,12 +1642,21 @@ function PorchfestPlannerWorkspace({
     return () => window.clearTimeout(id);
   }, [toast]);
 
+  useEffect(() => {
+    if (!runOfShowEnabled) pauseRunOfShow();
+  }, [pauseRunOfShow, runOfShowEnabled]);
+
   const refreshPlacements = useCallback(() => {
     refetchPlacements({ requestPolicy: "network-only" });
   }, [refetchPlacements]);
   const refreshTasks = useCallback(() => {
     refetchTasks({ requestPolicy: "network-only" });
   }, [refetchTasks]);
+  const refreshEmail = useCallback(() => {
+    refetchApplications({ requestPolicy: "network-only" });
+    refetchEmailChannel({ requestPolicy: "network-only" });
+    refetchEmailOutreach({ requestPolicy: "network-only" });
+  }, [refetchApplications, refetchEmailChannel, refetchEmailOutreach]);
 
   /* --- SSE realtime consumption (PP-8) ---------------------------- */
   // Connects only when an SSE endpoint is configured. On a planner_change
@@ -1412,6 +1675,7 @@ function PorchfestPlannerWorkspace({
     const onChange = () => {
       refreshPlacements();
       refreshTasks();
+      refreshEmail();
     };
     source.addEventListener("planner_change", onChange);
     source.onerror = () => {
@@ -1421,7 +1685,7 @@ function PorchfestPlannerWorkspace({
       source?.removeEventListener("planner_change", onChange);
       source?.close();
     };
-  }, [refreshPlacements, refreshTasks]);
+  }, [refreshEmail, refreshPlacements, refreshTasks]);
 
   /* --- placement mutation handlers -------------------------------- */
 
@@ -1874,6 +2138,77 @@ function PorchfestPlannerWorkspace({
     [deleteTask, refreshTasks],
   );
 
+  const handleOpenEmailComposer = useCallback((row: CivicMapRow) => {
+    setEmailComposerRowId(row.rowId);
+    setEmailSubject(defaultOutreachSubject(row));
+    setEmailBody(defaultOutreachBody(row));
+  }, []);
+
+  const handleSendApplicationEmail = useCallback(
+    (row: CivicMapRow, application: EventApplicationRow | undefined) => {
+      const subject = emailSubject.trim();
+      const bodyMarkdown = emailBody.trim();
+      if (!application) {
+        setToast("Email send needs the live backend application row.");
+        return;
+      }
+      if (!subject || !bodyMarkdown) {
+        setToast("Email needs a subject and message.");
+        return;
+      }
+      setEmailSendingRowId(row.rowId);
+      void sendEventApplicationEmail({
+        input: {
+          eventSlug: EVENT_SLUG,
+          applicationId: application.id,
+          subject,
+          bodyMarkdown,
+        },
+      }).then((result) => {
+        setEmailSendingRowId(null);
+        if (result.error) {
+          setToast(`Email send failed: ${result.error.message}`);
+          return;
+        }
+        if (result.data?.sendEventApplicationEmail.staleWrite) {
+          setToast("Email state changed elsewhere. Reloaded the latest.");
+        } else {
+          setToast(`Email sent to ${application.contactEmail}.`);
+          setEmailComposerRowId(null);
+        }
+        refreshEmail();
+      });
+    },
+    [emailBody, emailSubject, refreshEmail, sendEventApplicationEmail],
+  );
+
+  const handleUpdateEmailReplyState = useCallback(
+    (
+      outreach: EmailOutreachRow,
+      replyState: EmailOutreachRow["replyState"],
+    ) => {
+      setEmailUpdatingOutreachId(outreach.id);
+      void updateEventEmailOutreach({
+        input: {
+          outreachId: outreach.id,
+          expectedVersion: outreach.version,
+          replyState,
+        },
+      }).then((result) => {
+        setEmailUpdatingOutreachId(null);
+        if (result.error) {
+          setToast(`Email state update failed: ${result.error.message}`);
+          return;
+        }
+        if (result.data?.updateEventEmailOutreach.staleWrite) {
+          setToast("Email state changed elsewhere. Reloaded the latest.");
+        }
+        refreshEmail();
+      });
+    },
+    [refreshEmail, updateEventEmailOutreach],
+  );
+
   /* --- selection + camera ----------------------------------------- */
 
   const handleSelectPlacement = useCallback(
@@ -1923,8 +2258,80 @@ function PorchfestPlannerWorkspace({
 
   const geoTaskAnchors = useGeoTaskAnchors();
   const taskNodes = useMemo(
-    () => tasksToNodes(liveTasks, placementsById, geoTaskAnchors),
-    [liveTasks, placementsById, geoTaskAnchors],
+    () => [
+      ...tasksToNodes(liveTasks, placementsById, geoTaskAnchors),
+      ...civicTaskRowsToNodes(civicTaskRows),
+    ],
+    [liveTasks, placementsById, geoTaskAnchors, civicTaskRows],
+  );
+  const runOfShowPerformances = useMemo(
+    () =>
+      buildRunOfShowPerformances({
+        placements: renderPlacements,
+        civicRows,
+      }),
+    [renderPlacements, civicRows],
+  );
+  const activeRunOfShow = useMemo(
+    () => activeRunOfShowPerformances(runOfShowPerformances, runOfShowTime),
+    [runOfShowPerformances, runOfShowTime],
+  );
+  const runOfShowTrips = useMemo(
+    () => buildRunOfShowTrips(runOfShowPerformances),
+    [runOfShowPerformances],
+  );
+  const activeRunOfShowPlacementIds = useMemo(
+    () => new Set(activeRunOfShow.map((performance) => performance.placementId)),
+    [activeRunOfShow],
+  );
+  const scheduledRunOfShowPlacementIds = useMemo(
+    () =>
+      new Set(
+        runOfShowPerformances.map((performance) => performance.placementId),
+      ),
+    [runOfShowPerformances],
+  );
+  const timedRunOfShowTasks = useMemo(
+    () => [
+      ...liveTasks.map(graphTaskToRunOfShowTask),
+      ...civicTaskRows.map(civicTaskRowToRunOfShowTask),
+    ],
+    [liveTasks, civicTaskRows],
+  );
+  const activeRunOfShowTaskIds = useMemo(
+    () =>
+      new Set(
+        timedRunOfShowTasks
+          .filter((task) => isTaskActiveAtRunOfShowTime(task, runOfShowTime))
+          .map((task) => task.id),
+      ),
+    [timedRunOfShowTasks, runOfShowTime],
+  );
+  const runOfShowScaleMultiplier = useCallback(
+    (placement: AtlasEventPlannerPlacement) => {
+      if (!runOfShowEnabled) return 1;
+      if (activeRunOfShowPlacementIds.has(placement.id)) return 1.42;
+      if (scheduledRunOfShowPlacementIds.has(placement.id)) return 0.72;
+      return 1;
+    },
+    [
+      activeRunOfShowPlacementIds,
+      runOfShowEnabled,
+      scheduledRunOfShowPlacementIds,
+    ],
+  );
+  const runOfShowOpacityMultiplier = useCallback(
+    (placement: AtlasEventPlannerPlacement) => {
+      if (!runOfShowEnabled) return 1;
+      if (activeRunOfShowPlacementIds.has(placement.id)) return 1;
+      if (scheduledRunOfShowPlacementIds.has(placement.id)) return 0.38;
+      return 0.82;
+    },
+    [
+      activeRunOfShowPlacementIds,
+      runOfShowEnabled,
+      scheduledRunOfShowPlacementIds,
+    ],
   );
   const taskLocationDetails = useMemo<ReadonlyMap<string, TaskLocationDetail>>(() => {
     const details = new Map<string, TaskLocationDetail>();
@@ -2044,7 +2451,20 @@ function PorchfestPlannerWorkspace({
         placements: renderPlacements,
         visibility,
         selectedPlacementId,
+        getScaleMultiplier: runOfShowScaleMultiplier,
+        getOpacityMultiplier: runOfShowOpacityMultiplier,
+        animated: !prefersReducedMotion,
         onClickPlacement: handleSelectPlacement,
+      }),
+    );
+
+    layers.push(
+      ...buildPorchfestRunOfShowLayers({
+        visible: runOfShowEnabled,
+        currentTime: runOfShowTime,
+        performances: runOfShowPerformances,
+        trips: runOfShowTrips,
+        reducedMotion: prefersReducedMotion,
       }),
     );
 
@@ -2081,6 +2501,9 @@ function PorchfestPlannerWorkspace({
         visible: visibility.tasks,
         zoom: mapZoom,
         selectedTaskId,
+        highlightedTaskIds: runOfShowEnabled
+          ? activeRunOfShowTaskIds
+          : EMPTY_ID_SET,
         onClickTask: (task) => {
           setSelectedTaskId(task.id);
           if (task.effectivePlacementId) {
@@ -2128,6 +2551,14 @@ function PorchfestPlannerWorkspace({
     handleFlyToPlacement,
     handleFlyToTask,
     civicRows,
+    runOfShowEnabled,
+    runOfShowTime,
+    runOfShowPerformances,
+    runOfShowTrips,
+    runOfShowScaleMultiplier,
+    runOfShowOpacityMultiplier,
+    activeRunOfShowTaskIds,
+    prefersReducedMotion,
     weatherVisible,
     weather.layers,
   ]);
@@ -2183,6 +2614,24 @@ function PorchfestPlannerWorkspace({
       placementCountByCategory={placementCountByCategory}
     />
   );
+  const runOfShowPanel = (
+    <PorchfestRunOfShowPanel
+      enabled={runOfShowEnabled}
+      time={runOfShowTime}
+      playing={runOfShowClock.playing}
+      performances={runOfShowPerformances}
+      activeTaskCount={activeRunOfShowTaskIds.size}
+      onEnabledChange={setRunOfShowEnabled}
+      onTimeChange={runOfShowClock.scrubTo}
+      onPlayingChange={(playing) => {
+        if (playing) {
+          runOfShowClock.play();
+        } else {
+          runOfShowClock.pause();
+        }
+      }}
+    />
+  );
   const islandInfoContent = (
     <div className="space-y-3">
       <div>
@@ -2207,6 +2656,7 @@ function PorchfestPlannerWorkspace({
         </p>
       ) : null}
       <PorchfestForecastCard />
+      {runOfShowPanel}
       <PlannerBookmarks
         eventSlug={EVENT_SLUG}
         mapRef={mapRef}
@@ -2263,6 +2713,7 @@ function PorchfestPlannerWorkspace({
         </div>
       </div>
       <PorchfestForecastCard />
+      {runOfShowPanel}
       <div>
         <p className="planner-kicker">Camera</p>
         <div className="mt-1.5">
@@ -2369,6 +2820,27 @@ function PorchfestPlannerWorkspace({
             cancels.
           </p>
         ) : null}
+        <div className="planner-note px-2 py-1 leading-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="planner-ink-soft text-[10px] uppercase tracking-wide">
+              Email
+            </span>
+            <button
+              type="button"
+              className="planner-tile px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide planner-ink"
+              onClick={refreshEmail}
+            >
+              Refresh
+            </button>
+          </div>
+          <p className="planner-ink-soft mt-1 text-[11px]">
+            {emailChannel
+              ? `${emailChannel.senderName ?? "Sender"} <${emailChannel.senderEmail}> · ${emailDisplayLabel(emailChannel.deliveryWebhookStatus)}`
+              : emailChannelResult.fetching
+                ? "Loading channel..."
+                : "Channel record pending"}
+          </p>
+        </div>
         {unplacedRows.length > 0 ? (
           <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {unplacedRows.map((row) => {
@@ -2376,43 +2848,144 @@ function PorchfestPlannerWorkspace({
               const plannerCategory = civicCategoryToPlannerCategory(
                 row.fields.category,
               );
+              const sourceKey = normalizeSourceKey(row.fields.sourceId);
+              const backendApplication = sourceKey
+                ? applicationsBySourceKey.get(sourceKey)
+                : undefined;
+              const outreach = backendApplication
+                ? emailOutreachByApplicationId.get(backendApplication.id)
+                : undefined;
+              const composerOpen = emailComposerRowId === row.rowId;
+              const sending = emailSendingRowId === row.rowId;
+              const emailAddress =
+                backendApplication?.contactEmail ?? row.fields.email ?? null;
               return (
                 <li
                   key={row.rowId}
                   draggable
                   onDragStart={(event) => handleApplicationDragStart(event, row)}
                   onDragEnd={handlePlannerSourceDragEnd}
-                  className="planner-drag-source flex items-center justify-between gap-2 rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
+                  className="planner-drag-source rounded border border-[color:var(--ctx-rule)] px-2 py-1.5 text-[12px]"
                   title={`Drag ${row.title} to the map`}
                 >
-                  <span className="planner-ink min-w-0 flex-1 truncate">
-                    {row.title}
-                  </span>
-                  <span className="planner-ink-soft flex shrink-0 items-center gap-1 text-[10px] uppercase tracking-wide">
-                    <span
-                      aria-hidden="true"
-                      className="planner-swatch"
-                      style={{ backgroundColor: CATEGORY_COLOR[plannerCategory] }}
-                    />
-                    <span>{row.fields.category ?? "application"}</span>
-                  </span>
-                  <button
-                    type="button"
-                    aria-pressed={isArmed}
-                    onClick={() =>
-                      setPlacementArm(
-                        isArmed
-                          ? null
-                          : {
-                              armedRowId: row.rowId,
-                              armedTitle: row.title,
-                            },
-                      )
-                    }
-                    className="planner-tile shrink-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide planner-ink"
-                  >
-                    {isArmed ? "Cancel" : "Place"}
-                  </button>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="planner-ink min-w-0 flex-1 truncate">
+                      {row.title}
+                    </span>
+                    <span className="planner-ink-soft flex shrink-0 items-center gap-1 text-[10px] uppercase tracking-wide">
+                      <span
+                        aria-hidden="true"
+                        className="planner-swatch"
+                        style={{ backgroundColor: CATEGORY_COLOR[plannerCategory] }}
+                      />
+                      <span>{row.fields.category ?? "application"}</span>
+                    </span>
+                    <button
+                      type="button"
+                      aria-pressed={isArmed}
+                      onClick={() =>
+                        setPlacementArm(
+                          isArmed
+                            ? null
+                            : {
+                                armedRowId: row.rowId,
+                                armedTitle: row.title,
+                              },
+                        )
+                      }
+                      className="planner-tile shrink-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide planner-ink"
+                    >
+                      {isArmed ? "Cancel" : "Place"}
+                    </button>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span className="planner-ink-soft min-w-0 truncate text-[11px]">
+                      {emailAddress ?? "No email"}
+                    </span>
+                    <span className="planner-faint text-[10px] uppercase tracking-wide">
+                      {outreach
+                        ? emailDisplayLabel(outreach.deliveryState)
+                        : backendApplication
+                          ? "Not sent"
+                          : "Backend pending"}
+                    </span>
+                    {outreach ? (
+                      <select
+                        aria-label={`Reply state for ${row.title}`}
+                        className="planner-control min-h-[24px] px-1.5 py-0.5 text-[10px]"
+                        value={outreach.replyState}
+                        disabled={emailUpdatingOutreachId === outreach.id}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onChange={(event) =>
+                          handleUpdateEmailReplyState(
+                            outreach,
+                            event.target.value as EmailOutreachRow["replyState"],
+                          )
+                        }
+                      >
+                        {EMAIL_REPLY_STATE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {emailDisplayLabel(option)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="planner-tile px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide planner-ink disabled:opacity-50"
+                      disabled={!backendApplication || sending}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={() =>
+                        composerOpen
+                          ? setEmailComposerRowId(null)
+                          : handleOpenEmailComposer(row)
+                      }
+                    >
+                      {composerOpen ? "Close" : outreach ? "Follow up" : "Email"}
+                    </button>
+                  </div>
+                  {composerOpen ? (
+                    <form
+                      className="mt-2 space-y-1"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        handleSendApplicationEmail(row, backendApplication);
+                      }}
+                    >
+                      <input
+                        className="planner-control w-full px-2 py-1 text-[12px]"
+                        value={emailSubject}
+                        onChange={(event) => setEmailSubject(event.target.value)}
+                        placeholder="Subject"
+                        disabled={sending}
+                      />
+                      <textarea
+                        className="planner-control min-h-24 w-full resize-y px-2 py-1 text-[12px] leading-4"
+                        value={emailBody}
+                        onChange={(event) => setEmailBody(event.target.value)}
+                        placeholder="Message"
+                        disabled={sending}
+                      />
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          className="planner-control px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
+                          onClick={() => setEmailComposerRowId(null)}
+                          disabled={sending}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="planner-button px-2 py-1 text-[10px] font-semibold uppercase tracking-wide disabled:opacity-50"
+                          disabled={!backendApplication || sending}
+                        >
+                          {sending ? "Sending" : "Send"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
                 </li>
               );
             })}

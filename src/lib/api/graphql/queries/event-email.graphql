@@ -1,0 +1,115 @@
+# Porchfest Planner email channel and outreach operations.
+#
+# The browser never receives Resend API keys, webhook secrets, Gmail tokens,
+# or Railway credentials. These operations expose only organizer-visible
+# channel status and outbound email task state from the Axum GraphQL backend.
+
+query EventEmailChannel($tenantSlug: String! = "flint", $eventSlug: String!) {
+  eventEmailChannel(tenantSlug: $tenantSlug, eventSlug: $eventSlug) {
+    id
+    eventLayerId
+    provider
+    senderEmail
+    senderName
+    replyToEmail
+    replyRoutingMode
+    deliveryWebhookStatus
+    providerDeploymentLabel
+    createdAt
+    updatedAt
+    version
+  }
+}
+
+query EventEmailOutreach(
+  $tenantSlug: String! = "flint"
+  $eventSlug: String!
+  $applicationId: ID
+  $deliveryState: EventEmailDeliveryState
+  $replyState: EventEmailReplyState
+) {
+  eventEmailOutreach(
+    tenantSlug: $tenantSlug
+    eventSlug: $eventSlug
+    applicationId: $applicationId
+    deliveryState: $deliveryState
+    replyState: $replyState
+  ) {
+    id
+    eventLayerId
+    applicationId
+    recipientEmail
+    subject
+    previewText
+    resendEmailId
+    messageId
+    replyToEmail
+    deliveryState
+    replyState
+    notesDocId
+    createdByUserId
+    sentAt
+    lastEventAt
+    createdAt
+    updatedAt
+    version
+  }
+}
+
+mutation ConfigureEventEmailChannel($input: EventEmailChannelConfigureInput!) {
+  configureEventEmailChannel(input: $input) {
+    channel {
+      id
+      eventLayerId
+      provider
+      senderEmail
+      senderName
+      replyToEmail
+      replyRoutingMode
+      deliveryWebhookStatus
+      providerDeploymentLabel
+      createdAt
+      updatedAt
+      version
+    }
+    staleWrite
+  }
+}
+
+mutation SendEventApplicationEmail($input: EventApplicationEmailSendInput!) {
+  sendEventApplicationEmail(input: $input) {
+    outreach {
+      id
+      eventLayerId
+      applicationId
+      recipientEmail
+      subject
+      previewText
+      resendEmailId
+      messageId
+      replyToEmail
+      deliveryState
+      replyState
+      notesDocId
+      sentAt
+      lastEventAt
+      version
+    }
+    staleWrite
+  }
+}
+
+mutation UpdateEventEmailOutreach($input: EventEmailOutreachUpdateInput!) {
+  updateEventEmailOutreach(input: $input) {
+    outreach {
+      id
+      deliveryState
+      replyState
+      notesDocId
+      lastEventAt
+      updatedAt
+      version
+    }
+    staleWrite
+  }
+}

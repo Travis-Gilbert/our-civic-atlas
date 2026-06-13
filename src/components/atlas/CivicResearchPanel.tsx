@@ -35,7 +35,6 @@
  *   src/lib/api/graphql/queries/civic-research.graphql
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { gql } from "urql";
 import {
   AlertCircle,
   Bookmark,
@@ -44,6 +43,7 @@ import {
 } from "lucide-react";
 
 import { getTheseusClient } from "@/lib/api/graphql/client";
+import { CivicResearchDocument } from "@/lib/api/graphql/generated/graphql";
 import { useResearchArtifactPromotion } from "@/lib/atlas/use-research-artifact-promotion";
 
 /* ------------------------------------------------------------------ */
@@ -225,114 +225,6 @@ function mergedSourceUseTags(
     ]),
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  GraphQL document                                                   */
-/* ------------------------------------------------------------------ */
-
-/**
- * Document mirrors `src/lib/api/graphql/queries/civic-research.graphql`. We
- * keep the document inline so this panel does not depend on codegen output;
- * codegen will pick the operation up from the `.graphql` file when it next
- * runs, and the inline string remains a valid `DocumentNode` either way.
- */
-const CIVIC_RESEARCH_MUTATION = gql`
-  mutation CivicResearch(
-    $query: String!
-    $budget: JSON
-    $scope: JSON
-    $sessionId: String
-    $folioId: String
-  ) {
-    civicResearch(
-      input: {
-        query: $query
-        budget: $budget
-        scope: $scope
-        sessionId: $sessionId
-        folioId: $folioId
-      }
-    ) {
-      runId
-      skill
-      results {
-        query
-        totalResultCount
-        reranked
-        acceptedConfidenceFloor
-        inferredTimeRange {
-          start
-          end
-          label
-        }
-        places {
-          id
-          name
-          placeType
-          centroid
-          confidence
-          temporalStatus
-        }
-        signals {
-          id
-          signalKind
-          title
-          summary
-          publishedAt
-          relativeTimeLabel
-          confidence
-          place {
-            id
-            name
-          }
-        }
-        events {
-          id
-          title
-          summary
-          occurredAt
-          confidence
-          place {
-            id
-            name
-          }
-        }
-        historicalReconstructions {
-          id
-          name
-          description
-          position
-          confidence
-          timeStart
-          timeEnd
-        }
-        sources {
-          id
-          name
-          sourceType
-          trustTier
-        }
-      }
-      candidateSources {
-        candidateId
-        runId
-        sourceId
-        title
-        sourceType
-        uri
-        trustTier
-        confidence
-        status
-        parcelRef
-        year
-        candidateGraphKey
-        promotionMutation
-        proposedUseTags
-        payload
-      }
-    }
-  }
-`;
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -671,7 +563,7 @@ export function CivicResearchPanel({
 
       try {
         const result = await client
-          .mutation<CivicResearchMutationData>(CIVIC_RESEARCH_MUTATION, {
+          .mutation<CivicResearchMutationData>(CivicResearchDocument, {
             query: trimmed,
           })
           .toPromise();

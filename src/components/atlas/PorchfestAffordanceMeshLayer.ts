@@ -127,6 +127,15 @@ export interface PorchfestAffordanceMeshLayerOptions {
   readonly getBearingDeg?: (
     placement: AtlasEventPlannerPlacement,
   ) => number | null;
+  /** Optional data-driven emphasis, e.g. run-of-show active acts. */
+  readonly getScaleMultiplier?: (
+    placement: AtlasEventPlannerPlacement,
+  ) => number;
+  /** Optional opacity dimming for inactive time-aware figures. */
+  readonly getOpacityMultiplier?: (
+    placement: AtlasEventPlannerPlacement,
+  ) => number;
+  readonly animated?: boolean;
   /**
    * Picking handler. Lands the same selection payload the flat layer
    * does, so picking an affordance selects its placement exactly as
@@ -202,6 +211,9 @@ export function buildPorchfestAffordanceMeshLayers({
   selectedPlacementId = null,
   layerIdPrefix = "porchfest-affordance",
   getBearingDeg,
+  getScaleMultiplier,
+  getOpacityMultiplier,
+  animated = true,
   onClickPlacement,
 }: PorchfestAffordanceMeshLayerOptions): Layer[] {
   if (placements.length === 0) return [];
@@ -230,8 +242,15 @@ export function buildPorchfestAffordanceMeshLayers({
       // base rests on the ground (z = 0). Selected placements lift a
       // little so the chosen form pops above its neighbors.
       getTranslation: (placement: AtlasEventPlannerPlacement) => {
-        const lift = placement.id === selectedPlacementId ? heightM * 0.25 : 0;
-        return [0, 0, heightM * 0.5 + lift] as [number, number, number];
+        const scale = getScaleMultiplier?.(placement) ?? 1;
+        const scaledHeight = heightM * scale;
+        const lift =
+          placement.id === selectedPlacementId ? scaledHeight * 0.25 : 0;
+        return [0, 0, scaledHeight * 0.5 + lift] as [
+          number,
+          number,
+          number,
+        ];
       },
       // Compass bearing converts to deck yaw via yaw = 90 - bearing.
       // Default orientation turns the form slightly off-axis so it reads
@@ -241,15 +260,27 @@ export function buildPorchfestAffordanceMeshLayers({
         const yaw = bearing == null ? -30 : 90 - bearing;
         return [0, yaw, 0] as [number, number, number];
       },
-      getColor: (placement: AtlasEventPlannerPlacement) =>
-        placement.id === selectedPlacementId
-          ? brighten(baseColor)
-          : ([baseColor[0], baseColor[1], baseColor[2], baseColor[3]] as [
-              number,
-              number,
-              number,
-              number,
-            ]),
+      getColor: (placement: AtlasEventPlannerPlacement) => {
+        const color =
+          placement.id === selectedPlacementId
+            ? brighten(baseColor)
+            : ([baseColor[0], baseColor[1], baseColor[2], baseColor[3]] as [
+                number,
+                number,
+                number,
+                number,
+              ]);
+        const opacity = Math.max(
+          0.1,
+          Math.min(1, getOpacityMultiplier?.(placement) ?? 1),
+        );
+        return [color[0], color[1], color[2], Math.round(color[3] * opacity)] as [
+          number,
+          number,
+          number,
+          number,
+        ];
+      },
       parameters: {
         depthCompare: "less-equal" as const,
         depthWriteEnabled: true,
@@ -262,10 +293,27 @@ export function buildPorchfestAffordanceMeshLayers({
         return true;
       },
       updateTriggers: {
-        getColor: selectedPlacementId,
-        getTranslation: selectedPlacementId,
+        getColor: [selectedPlacementId, getOpacityMultiplier],
+        getTranslation: [selectedPlacementId, getScaleMultiplier],
+        getOrientation: getBearingDeg,
+        getScale: getScaleMultiplier,
       },
     };
+    const getScale = (placement: AtlasEventPlannerPlacement) => {
+      const multiplier = Math.max(0.2, getScaleMultiplier?.(placement) ?? 1);
+      return [
+        size[0] * multiplier,
+        size[1] * multiplier,
+        size[2] * multiplier,
+      ] as [number, number, number];
+    };
+    const transitions = animated
+      ? {
+          getColor: 220,
+          getScale: 260,
+          getTranslation: 260,
+        }
+      : undefined;
 
     if (bucket.entry?.kind === "glb") {
       // GLB authoring convention: a unit-scale asset (~1m extents around
@@ -277,7 +325,8 @@ export function buildPorchfestAffordanceMeshLayers({
           scenegraph: bucket.entry.url,
           loaders: [GLTFLoader],
           sizeScale: 1,
-          getScale: () => size as [number, number, number],
+          getScale,
+          transitions,
           _lighting: "pbr",
           ...shared,
         }),
@@ -293,7 +342,8 @@ export function buildPorchfestAffordanceMeshLayers({
         id: `${layerIdPrefix}-${bucket.id}`,
         mesh: mesh ?? getPorchfestAffordanceGeometry(cat),
         sizeScale: 1,
-        getScale: () => size as [number, number, number],
+        getScale,
+        transitions,
         material: DEFAULT_MATERIAL,
         ...shared,
       }),

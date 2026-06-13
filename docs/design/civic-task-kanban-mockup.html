@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>civic:task kanban board mockup (Observable-cool register)</title>
+<style>
+  :root {
+    --ink: #1c1c1c; --ink-soft: #454545; --ink-faint: #c5c5c5;
+    --surface: #ffffff; --col-bg: #f7f8f9; --hairline: #e2e2e2;
+    --navy: #005186; --navy-wash: #f1f6fb;
+    --p-high: #bf5f52; --p-normal: #005186; --p-low: #9aa7b3;
+    --st-todo-fg:#454545; --st-todo-bg:#f1f1f1;
+    --st-doing-fg:#8a5a16; --st-doing-bg:#f7eddc;
+    --st-blocked-fg:#a8463a; --st-blocked-bg:#f6e3df;
+    --st-done-fg:#2f6a3f; --st-done-bg:#e4f0e6;
+    --due-overdue:#a8463a; --meta-fg:#656565;
+    --mono: ui-monospace,"SFMono-Regular",Menlo,monospace;
+    --sans: "IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:24px;background:#eef0f2;color:var(--ink);font-family:var(--sans);font-stretch:87.5%;}
+  .frame{max-width:1080px;margin:0 auto;}
+  .kicker{margin:0 0 2px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-soft);}
+  h1{margin:0 0 4px;font-size:18px;font-weight:600;}
+  .sub{margin:0 0 16px;color:var(--meta-fg);font-size:13px;}
+
+  /* List/Board toggle */
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .seg{display:inline-flex;padding:2px;border:1px solid var(--hairline);border-radius:9999px;background:#fff;gap:2px;}
+  .seg button{padding:4px 12px;border:0;border-radius:9999px;background:transparent;color:var(--ink-soft);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+  .seg button[aria-pressed="true"]{background:var(--navy-wash);color:var(--navy);}
+
+  /* board */
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start;}
+  .col{background:var(--col-bg);border:1px solid var(--hairline);border-radius:10px;padding:8px;}
+  .col.done{opacity:.92;}
+  .colhead{display:flex;align-items:center;gap:7px;padding:4px 6px 8px;}
+  .dot{width:8px;height:8px;border-radius:9999px;}
+  .col.todo .dot{background:#9aa7b3;} .col.doing .dot{background:#c08a3a;}
+  .col.blocked .dot{background:#bf5f52;} .col.done .dot{background:#4a8a5a;}
+  .colname{font-size:12px;font-weight:700;letter-spacing:.02em;}
+  .count{color:var(--meta-fg);font-size:12px;font-variant-numeric:tabular-nums;}
+
+  /* card (approved card language, minus the status chip) */
+  .card{background:#fff;border:1px solid var(--hairline);border-radius:8px;padding:10px 11px;margin-bottom:8px;box-shadow:0 2px 8px -4px rgba(0,0,0,.12);cursor:grab;}
+  .card:hover{box-shadow:0 4px 12px -5px rgba(0,0,0,.16);}
+  .crow{display:grid;grid-template-columns:18px 1fr;gap:9px;align-items:start;}
+  .check{position:relative;width:18px;height:18px;margin-top:1px;border-radius:5px;border:2px solid var(--p-normal);background:#fff;}
+  .check.high{border-color:var(--p-high);} .check.low{border-color:var(--p-low);}
+  .check.done{background:var(--p-normal);border-color:var(--p-normal);}
+  .check.done::after{content:"";position:absolute;left:5px;top:1.5px;width:4px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .title{font-size:13.5px;line-height:18px;color:var(--ink);}
+  .card.is-done .title{color:var(--ink-faint);text-decoration:line-through;text-decoration-thickness:1px;}
+  .meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:7px;font-size:12px;color:var(--meta-fg);}
+  .due{font-weight:600;} .due.overdue{color:var(--due-overdue);}
+  .who{color:var(--navy);font-weight:600;}
+  .glyph{opacity:.75;}
+  /* progress slot (Phase 4 target) */
+  .prog{margin-top:8px;height:4px;border-radius:2px;background:#e7e9ec;overflow:hidden;}
+  .prog > i{display:block;height:100%;border-radius:2px;background:var(--p-normal);}
+  .prog.high > i{background:var(--p-high);}
+  .add{width:100%;margin-top:2px;padding:7px 8px;border:1px dashed var(--hairline);border-radius:7px;background:transparent;color:var(--meta-fg);font-size:12px;font-weight:600;text-align:left;cursor:pointer;}
+  .add:hover{border-color:var(--navy);color:var(--navy);}
+  .empty{padding:10px 8px;color:var(--ink-faint);font-size:12px;}
+  .note{margin:16px 4px 0;font-size:12px;color:var(--ink-soft);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <p class="kicker">PorchFest 2026 / Team Tasks</p>
+  <h1>Task board &mdash; civic:task grouped by status</h1>
+  <p class="sub">Drag a card between columns to restatus (writes status to the CRDT). Same card language as the list rows; the status chip is dropped because the column is the status.</p>
+
+  <div class="toolbar">
+    <span class="seg" role="group" aria-label="To-do list view">
+      <button>List</button>
+      <button aria-pressed="true">Board</button>
+    </span>
+  </div>
+
+  <div class="board">
+    <!-- To do -->
+    <section class="col todo">
+      <div class="colhead"><span class="dot"></span><span class="colname">To do</span><span class="count">3</span></div>
+      <article class="card">
+        <div class="crow"><span class="check high"></span><div><div class="title">Confirm porch hosts for the accepted acts</div>
+          <div class="meta"><span class="due overdue">Jun 8 &middot; overdue</span><span class="who">@maria</span></div></div></div>
+      </article>
+      <article class="card">
+        <div class="crow"><span class="check"></span><div><div class="title">Walk the route and mark power access</div>
+          <div class="meta"><span class="due">Today</span><span class="glyph">&#9678; 2</span></div>
+          <div class="prog"><i style="width:50%"></i></div></div></div>
+      </article>
+      <article class="card">
+        <div class="crow"><span class="check low"></span><div><div class="title">Order extra route signage</div></div></div>
+      </article>
+      <button class="add">+ Add task</button>
+    </section>
+
+    <!-- Doing -->
+    <section class="col doing">
+      <div class="colhead"><span class="dot"></span><span class="colname">Doing</span><span class="count">1</span></div>
+      <article class="card">
+        <div class="crow"><span class="check"></span><div><div class="title">Draft the day-of volunteer schedule</div>
+          <div class="meta"><span class="due">Tue</span><span class="glyph">&#9998; note</span></div></div></div>
+      </article>
+      <button class="add">+ Add task</button>
+    </section>
+
+    <!-- Blocked -->
+    <section class="col blocked">
+      <div class="colhead"><span class="dot"></span><span class="colname">Blocked</span><span class="count">1</span></div>
+      <article class="card">
+        <div class="crow"><span class="check"></span><div><div class="title">Confirm rain plan with hosts</div>
+          <div class="meta"><span class="who">@devon</span></div></div></div>
+      </article>
+      <button class="add">+ Add task</button>
+    </section>
+
+    <!-- Done -->
+    <section class="col done">
+      <div class="colhead"><span class="dot"></span><span class="colname">Done</span><span class="count">2</span></div>
+      <article class="card is-done">
+        <div class="crow"><span class="check done"></span><div><div class="title">Email the city permit office</div></div></div>
+      </article>
+      <article class="card is-done">
+        <div class="crow"><span class="check done high"></span><div><div class="title">Book the sound system</div></div></div>
+      </article>
+      <button class="add">+ Add task</button>
+    </section>
+  </div>
+
+  <p class="note">Column header = status color dot + label + count (quiet, not a heavy filled bar). Cards reuse the approved register; the progress bar (Walk the route) is the Phase 4 target slot. Keyboard users get a "Move" control on each card so restatus never requires a pointer drag. Everything maps to existing <code>--civic-*</code> / <code>--atlas-*</code> tokens.</p>
+</div>
+</body>
+</html>

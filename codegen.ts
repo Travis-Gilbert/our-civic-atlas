@@ -17,13 +17,15 @@ import { resolveCodegenSchema } from "./src/lib/api/graphql/endpoints";
  *
  * Generated output: `src/lib/api/graphql/generated/`
  *
- * Documents scan: every `.graphql` operation file in `src/` plus inline
- * tagged template literals.
+ * Documents scan: every `.graphql` operation file in `src/`.
+ * Inline GraphQL strings should mirror a checked-in `.graphql` operation
+ * rather than becoming a second codegen source; that keeps codegen from
+ * parsing unrelated TypeScript syntax in UI/runtime files.
  */
 const config: CodegenConfig = {
   overwrite: true,
   schema: resolveCodegenSchema(),
-  documents: ["src/**/*.graphql", "src/**/!(generated)/*.{ts,tsx}"],
+  documents: ["src/**/*.graphql"],
   ignoreNoDocuments: true,
   generates: {
     "src/lib/api/graphql/generated/": {

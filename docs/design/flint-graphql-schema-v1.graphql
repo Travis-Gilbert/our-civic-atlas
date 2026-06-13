@@ -789,6 +789,24 @@ type Query {
     eventSlug: String!
   ): [EventTask!]!
 
+  """Email channel configuration for an event layer. This is organizer-facing
+  status only: Resend API keys and webhook secrets stay on the backend."""
+  eventEmailChannel(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+  ): EventEmailChannel
+
+  """Outbound organizer emails and confirmation sends for an event layer,
+  joined to applications when applicable. Resend supplies delivery state;
+  Gmail or Resend inbound can later supply reply state."""
+  eventEmailOutreach(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+    applicationId: ID
+    deliveryState: EventEmailDeliveryState
+    replyState: EventEmailReplyState
+  ): [EventEmailOutreach!]!
+
   # ---- Phase 3: notes + bookmarks ----
 
   placementNotes(
@@ -891,6 +909,80 @@ type EventTask {
   version: Int!
 }
 
+"""Delivery lifecycle known from the outbound provider. Resend owns these
+states; reply state is tracked separately because delivery webhooks do not
+prove that a recipient replied."""
+enum EventEmailDeliveryState {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  DELIVERY_DELAYED
+  BOUNCED
+  COMPLAINED
+  FAILED
+  SUPPRESSED
+  RECEIVED
+}
+
+"""Human workflow state for replies. Gmail metadata/history sync or Resend
+inbound can flip this to REPLIED; organizers can mark DEFERRED or MANUAL."""
+enum EventEmailReplyState {
+  NOT_REPLIED
+  REPLIED
+  DEFERRED
+  MANUAL
+}
+
+"""Where the event expects reply detection to come from."""
+enum EventEmailReplyRoutingMode {
+  GMAIL_METADATA
+  RESEND_INBOUND
+  MANUAL
+}
+
+"""Event email channel status. The v1 Porchfest channel sends through Resend
+from porchfest@cthna.org, but the schema keeps provider details explicit so
+another event can choose a different sender without a frontend rebuild."""
+type EventEmailChannel {
+  id: ID!
+  eventLayerId: ID!
+  provider: String!
+  senderEmail: String!
+  senderName: String
+  replyToEmail: String
+  replyRoutingMode: EventEmailReplyRoutingMode!
+  deliveryWebhookStatus: String!
+  providerDeploymentLabel: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  version: Int!
+}
+
+"""One outbound email task or confirmation tied to the event. Application
+outreach uses applicationId; general organizer announcements may leave it null."""
+type EventEmailOutreach {
+  id: ID!
+  eventLayerId: ID!
+  applicationId: ID
+  recipientEmail: String!
+  subject: String!
+  previewText: String
+  resendEmailId: String
+  messageId: String
+  replyToEmail: String
+  deliveryState: EventEmailDeliveryState!
+  replyState: EventEmailReplyState!
+  notesDocId: ID
+  createdByUserId: ID
+  sentAt: DateTime
+  lastEventAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+  version: Int!
+}
+
 # -----------------------------------------------------------------------------
 # Mutation (write paths)
 # -----------------------------------------------------------------------------
@@ -952,6 +1044,10 @@ type Mutation {
   createTask(input: TaskCreateInput!): TaskMutationResult!
   updateTask(input: TaskUpdateInput!): TaskMutationResult!
   deleteTask(input: TaskDeleteInput!): TaskMutationResult!
+
+  configureEventEmailChannel(input: EventEmailChannelConfigureInput!): EventEmailChannelMutationResult!
+  sendEventApplicationEmail(input: EventApplicationEmailSendInput!): EventEmailOutreachMutationResult!
+  updateEventEmailOutreach(input: EventEmailOutreachUpdateInput!): EventEmailOutreachMutationResult!
 
   # ---- Phase 3 ----
 
@@ -1052,6 +1148,16 @@ type TaskMutationResult {
   task: EventTask
   staleWrite: Boolean!
   deleted: Boolean!
+}
+
+type EventEmailChannelMutationResult {
+  channel: EventEmailChannel
+  staleWrite: Boolean!
+}
+
+type EventEmailOutreachMutationResult {
+  outreach: EventEmailOutreach
+  staleWrite: Boolean!
 }
 
 type EventApplicationSubmitResult {
@@ -1174,6 +1280,37 @@ input TaskUpdateInput {
 input TaskDeleteInput {
   taskId: ID!
   expectedVersion: Int!
+}
+
+input EventEmailChannelConfigureInput {
+  eventSlug: String!
+  provider: String = "resend"
+  senderEmail: String! = "porchfest@cthna.org"
+  senderName: String = "Carriage Town PorchFest"
+  replyToEmail: String = "porchfest@cthna.org"
+  replyRoutingMode: EventEmailReplyRoutingMode = MANUAL
+  """Human-readable deployment label only, e.g. "Railway: Resend Starter".
+  Provider secrets and service identifiers stay out of GraphQL."""
+  providerDeploymentLabel: String
+  expectedVersion: Int
+}
+
+input EventApplicationEmailSendInput {
+  eventSlug: String!
+  applicationId: ID!
+  subject: String!
+  bodyMarkdown: String!
+  replyToEmail: String
+  notesDocId: ID
+  idempotencyKey: String
+}
+
+input EventEmailOutreachUpdateInput {
+  outreachId: ID!
+  expectedVersion: Int!
+  deliveryState: EventEmailDeliveryState
+  replyState: EventEmailReplyState
+  notesDocId: ID
 }
 
 # -----------------------------------------------------------------------------

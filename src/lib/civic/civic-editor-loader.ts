@@ -12,6 +12,7 @@
  */
 
 import type { CivicObjectFields } from "./civic-object-schema";
+import type { TaskFieldKey, TaskRowFields } from "./civic-task-row-schema";
 
 const EDITOR_SRC = "/civic-editor/civic-editor.mjs";
 const EDITOR_CSS = "/civic-editor/civic-editor.css";
@@ -28,6 +29,23 @@ export interface CivicStoreApi {
   onChange(listener: () => void): () => void;
 }
 
+export interface CivicTaskRow {
+  rowId: string;
+  title: string;
+  fields: Partial<TaskRowFields>;
+}
+
+export interface CivicTaskStoreApi {
+  list(): CivicTaskRow[];
+  update(rowId: string, key: TaskFieldKey, value: unknown): void;
+  onChange(listener: () => void): () => void;
+}
+
+export interface CivicStoreOpenResult {
+  api: CivicStoreApi;
+  tasks?: CivicTaskStoreApi;
+}
+
 export interface CivicDocSummary {
   id: string;
   title: string;
@@ -36,6 +54,7 @@ export interface CivicDocSummary {
 
 export interface CivicWorkspaceMounted {
   api: CivicStoreApi;
+  tasks?: CivicTaskStoreApi;
   docs(): CivicDocSummary[];
   openDoc(docId: string): void;
   createNote(title?: string): string;
@@ -62,7 +81,7 @@ export interface CivicWorkspaceMounted {
 
 export interface CivicBridge {
   mount(container: HTMLElement): Promise<CivicWorkspaceMounted>;
-  openStore(): Promise<{ api: CivicStoreApi }>;
+  openStore(): Promise<CivicStoreOpenResult>;
 }
 
 function bridgeWindow(): { __civicWorkspace?: CivicBridge } {
@@ -141,8 +160,7 @@ export function loadCivicBridge(): Promise<CivicBridge> {
 }
 
 /** Headless civic store for map binding and diagnostics. */
-export async function openCivicStore(): Promise<CivicStoreApi> {
+export async function openCivicStore(): Promise<CivicStoreOpenResult> {
   const bridge = await loadCivicBridge();
-  const { api } = await bridge.openStore();
-  return api;
+  return bridge.openStore();
 }

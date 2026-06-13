@@ -37,9 +37,19 @@ export interface ForecastNow {
   readonly weatherCode: number;
 }
 
+export interface ForecastHour {
+  /** Local ISO hour in the requested timezone, e.g. "2026-07-17T17:00". */
+  readonly time: string;
+  readonly tempF: number;
+  readonly precipProbPct: number;
+  readonly windMph: number;
+  readonly weatherCode: number;
+}
+
 export interface PorchfestForecast {
   readonly now: ForecastNow | null;
   readonly days: readonly ForecastDay[];
+  readonly hours: readonly ForecastHour[];
   readonly loading: boolean;
   readonly error: string | null;
 }
@@ -57,6 +67,13 @@ interface OpenMeteoResponse {
     temperature_2m_min?: number[];
     precipitation_probability_max?: (number | null)[];
     wind_speed_10m_max?: number[];
+    weather_code?: number[];
+  };
+  hourly?: {
+    time?: string[];
+    temperature_2m?: number[];
+    precipitation_probability?: (number | null)[];
+    wind_speed_10m?: number[];
     weather_code?: number[];
   };
 }
@@ -85,6 +102,8 @@ function buildUrl(lat: number, lon: number, timezone: string): string {
     latitude: lat.toFixed(4),
     longitude: lon.toFixed(4),
     current: "temperature_2m,weather_code,wind_speed_10m,precipitation",
+    hourly:
+      "temperature_2m,weather_code,precipitation_probability,wind_speed_10m",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max",
     temperature_unit: "fahrenheit",
@@ -99,6 +118,7 @@ function buildUrl(lat: number, lon: number, timezone: string): string {
 function parse(body: OpenMeteoResponse): {
   now: ForecastNow | null;
   days: ForecastDay[];
+  hours: ForecastHour[];
 } {
   const now: ForecastNow | null = body.current
     ? {
@@ -119,7 +139,18 @@ function parse(body: OpenMeteoResponse): {
     windMaxMph: d?.wind_speed_10m_max?.[i] ?? Number.NaN,
     weatherCode: d?.weather_code?.[i] ?? 0,
   }));
-  return { now, days };
+
+  const h = body.hourly;
+  const hourTimes = h?.time ?? [];
+  const hours: ForecastHour[] = hourTimes.map((time, i) => ({
+    time,
+    tempF: h?.temperature_2m?.[i] ?? Number.NaN,
+    precipProbPct: h?.precipitation_probability?.[i] ?? 0,
+    windMph: h?.wind_speed_10m?.[i] ?? Number.NaN,
+    weatherCode: h?.weather_code?.[i] ?? 0,
+  }));
+
+  return { now, days, hours };
 }
 
 export function usePorchfestForecast(
@@ -130,6 +161,7 @@ export function usePorchfestForecast(
   const [state, setState] = useState<PorchfestForecast>({
     now: null,
     days: [],
+    hours: [],
     loading: true,
     error: null,
   });
@@ -145,9 +177,9 @@ export function usePorchfestForecast(
         if (!response.ok) throw new Error(`Open-Meteo HTTP ${response.status}`);
         const body = (await response.json()) as OpenMeteoResponse;
         if (cancelled) return;
-        const { now, days } = parse(body);
+        const { now, days, hours } = parse(body);
         lastFetched = Date.now();
-        setState({ now, days, loading: false, error: null });
+        setState({ now, days, hours, loading: false, error: null });
       } catch (error) {
         if (cancelled) return;
         setState((prev) => ({
