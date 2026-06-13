@@ -17,13 +17,13 @@ const [porchfestClient, atlasMap, taskRail] = await Promise.all([
   readSource("src/components/atlas/PlannerTaskRail.tsx"),
 ]);
 
-console.log("1. mobile basemap restores pickable OSM buildings");
+console.log("1. planner basemap uses pickable OSM buildings across viewports");
 check(
-  "mobile enables the raw OSM building layer",
+  "planner enables the raw OSM building layer",
   porchfestClient.includes("osmBuildings: true"),
 );
 check(
-  "mobile keeps the heavier urban model disabled",
+  "planner keeps the heavier urban model disabled",
   porchfestClient.includes("urbanDesignModel: false"),
 );
 check(
@@ -38,8 +38,8 @@ check(
     atlasMap.includes("? \"oblique\" : viewMode"),
 );
 check(
-  "PorchFest opts mobile into raw OSM building extrusion",
-  porchfestClient.includes("forceOsmBuildingExtrusion={isMobile}"),
+  "PorchFest opts every planner viewport into raw OSM building extrusion",
+  porchfestClient.includes("forceOsmBuildingExtrusion={true}"),
 );
 
 console.log("2. mobile address selection is wired");

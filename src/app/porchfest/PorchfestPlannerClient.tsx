@@ -178,14 +178,16 @@ const CARRIAGE_TOWN_BOUNDS: [[number, number], [number, number]] = [
   [-83.6925, 43.0265],
 ];
 
-// Basemap layer visibility (buildings on so the 3D affordances read
-// against the sketch-model neighborhood, events off to avoid clutter).
+// Planner basemap layer visibility. Raw OSM buildings are the universal
+// regular-building read here: they carry the darker drawn footprint, warm
+// extrusion, and contact-shadow treatment that made the mobile map feel better.
+// The heavier urban-design massing stack stays out of the event-planning view.
 const DEFAULT_BASEMAP_LAYERS: Record<string, boolean> = {
   places: true,
   buildings: true,
-  urbanDesignModel: true,
-  buildingFabric: true,
-  osmBuildings: false,
+  urbanDesignModel: false,
+  buildingFabric: false,
+  osmBuildings: true,
   events: false,
   wards: true,
   infrastructure: true,
@@ -2463,7 +2465,7 @@ function PorchfestPlannerWorkspace({
           viewMode={isMobile ? "atlas" : "oblique"}
           activeLens="explore"
           urbanDesignMaterialMode="sketch_model"
-          forceOsmBuildingExtrusion={isMobile}
+          forceOsmBuildingExtrusion={true}
           extraDeckLayers={extraDeckLayers}
           mapDragPanEnabled={
             !editModeEnabled && !placementDragActive && !htmlPlannerDragActive

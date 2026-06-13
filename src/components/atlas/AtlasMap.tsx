@@ -1293,7 +1293,7 @@ export type AtlasMapProps = {
   urbanDesignMaterialMode?: UrbanDesignMaterialMode;
   /**
    * Force the raw OSM building layer to extrude even when the camera mode is
-   * `atlas`. Event-planner mobile surfaces use this to keep the lightweight
+   * `atlas`. Event-planner surfaces use this to keep the lightweight
    * OSM/address layer three-dimensional without opting into the heavier urban
    * design massing stack.
    */
