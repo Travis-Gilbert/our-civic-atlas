@@ -969,7 +969,7 @@ function WorkspaceInner() {
             >
               {doc.title}
             </button>
-            {doc.kind !== "applications" ? (
+            {doc.kind !== "applications" && doc.kind !== "inbox" ? (
               <button
                 type="button"
                 className="planner-iconbtn civic-workspace-doctab-delete"

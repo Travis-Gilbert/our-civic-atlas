@@ -29,6 +29,11 @@ import {
   parseEmailMessages,
 } from '../src/lib/civic/civic-email-schema';
 import { createCivicCollection } from '../src/lib/civic/civic-workspace';
+import {
+  CIVIC_INBOX_DOC_ID,
+  createInboxDoc,
+  listCivicWorkspaceDocs,
+} from '../src/lib/civic/civic-task-docs';
 import type { Workspace } from '@blocksuite/affine/store';
 
 let failures = 0;
@@ -208,6 +213,26 @@ async function main() {
       model.props.messageCount,
     );
   }
+
+  console.log('5. inbox singleton doc: created, kinded, listed, sorted');
+  const c = createCivicCollection({ id: 'validate-email-c' });
+  c.meta.initialize();
+  const inboxId = createInboxDoc(c);
+  check('inbox doc uses the singleton id', inboxId === CIVIC_INBOX_DOC_ID);
+  check('inbox doc exists', Boolean(c.getDoc(CIVIC_INBOX_DOC_ID)));
+  const inboxDocs = listCivicWorkspaceDocs(c, 'civic:porchfest-2026');
+  const inboxSummary = inboxDocs.find((d) => d.id === CIVIC_INBOX_DOC_ID);
+  check('inbox appears in workspace docs', Boolean(inboxSummary));
+  check(
+    'inbox kind resolves to "inbox"',
+    inboxSummary?.kind === 'inbox',
+    inboxSummary?.kind,
+  );
+  check(
+    'inbox title resolves to "Inbox"',
+    inboxSummary?.title === 'Inbox',
+    inboxSummary?.title,
+  );
 
   if (failures > 0) {
     console.error(`\nvalidate-civic-email-store: ${failures} failure(s)`);

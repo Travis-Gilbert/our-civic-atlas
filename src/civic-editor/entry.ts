@@ -56,9 +56,11 @@ import {
   type TaskFieldKey,
 } from '../lib/civic/civic-task-row-schema';
 import {
+  CIVIC_INBOX_DOC_ID,
   CIVIC_NOTES_DOC_ID,
   SEEDED_DOCS_MAP_KEY,
   createCivicTaskListDoc,
+  createInboxDoc,
   createOrganizerNoteDoc,
   listCivicWorkspaceDocs,
   setCivicDocKind,
@@ -261,6 +263,26 @@ function ensureNotesDoc(collection: ReturnType<typeof createCivicCollection>) {
 }
 
 /**
+ * Seed the shared Inbox doc once (adopt-not-reseed, same guard as the notes
+ * doc). The Inbox is a singleton like the applications/tasks databases; real
+ * email threads hydrate from the backend later and render as civic:email
+ * blocks. A deleted inbox is not resurrected, matching the notes behavior.
+ */
+function ensureInboxDoc(collection: ReturnType<typeof createCivicCollection>) {
+  const seededDocs = collection.doc.getMap<boolean>(SEEDED_DOCS_MAP_KEY);
+  if (collection.getDoc(CIVIC_INBOX_DOC_ID)) {
+    setCivicDocKind(collection, CIVIC_INBOX_DOC_ID, 'inbox');
+    if (!seededDocs.get(CIVIC_INBOX_DOC_ID)) {
+      seededDocs.set(CIVIC_INBOX_DOC_ID, true);
+    }
+    return;
+  }
+  if (seededDocs.get(CIVIC_INBOX_DOC_ID)) return;
+  createInboxDoc(collection);
+  seededDocs.set(CIVIC_INBOX_DOC_ID, true);
+}
+
+/**
  * One civic client runtime per page: collection, sync engine, handles, and
  * the plain-data api. Both the workspace editor mount and the headless map
  * binding share this core, so a page never holds two IndexedDB connections
@@ -379,6 +401,9 @@ function openCivicCore(): Promise<CivicCore> {
       });
     }
     setCivicDocKind(collection, CIVIC_TASKS_DOC_ID, 'tasks');
+
+    // The shared Inbox doc (civic:email blocks). Singleton, seeded once.
+    ensureInboxDoc(collection);
 
     const api: CivicWorkspaceApi = {
       insert: (fields) => insertCivicObject(handles, fields),

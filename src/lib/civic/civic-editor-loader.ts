@@ -49,7 +49,7 @@ export interface CivicStoreOpenResult {
 export interface CivicDocSummary {
   id: string;
   title: string;
-  kind: "applications" | "tasks" | "note" | "todo-list";
+  kind: "applications" | "tasks" | "inbox" | "note" | "todo-list";
 }
 
 export interface CivicWorkspaceMounted {

@@ -10,6 +10,7 @@ import {
 export type CivicWorkspaceDocKind =
   | 'applications'
   | 'tasks'
+  | 'inbox'
   | 'note'
   | 'todo-list';
 
@@ -35,6 +36,8 @@ export interface CivicTaskSeed {
 }
 
 export const CIVIC_NOTES_DOC_ID = 'civic:notes:porchfest-2026';
+export const CIVIC_INBOX_DOC_ID = 'civic:inbox:porchfest-2026';
+export const CIVIC_INBOX_TITLE = 'Inbox';
 
 export const SEEDED_DOCS_MAP_KEY = 'civic:seeded-docs';
 const DOC_KIND_MAP_KEY = 'civic:doc-kinds';
@@ -62,6 +65,7 @@ export function readCivicDocKind(
 ): CivicWorkspaceDocKind {
   if (docId === applicationsDocId) return 'applications';
   if (docId.startsWith('civic:tasks:')) return 'tasks';
+  if (docId.startsWith('civic:inbox:')) return 'inbox';
   const recorded = kindMap(collection).get(docId);
   if (recorded) return recorded;
   return docId.startsWith('civic:todo:') ? 'todo-list' : 'note';
@@ -131,6 +135,32 @@ export function createCivicTaskListDoc(
   return docId;
 }
 
+/**
+ * The shared Inbox: a singleton doc of civic:email blocks, seeded once like the
+ * applications/tasks databases (adopt-not-reseed via the seed guard in entry).
+ * Seeded EMPTY of mail on purpose: real threads arrive from the backend hydrate
+ * and render below this description. Seeding sample emails would pollute the
+ * shared synced store (local dev syncs to production).
+ */
+export function createInboxDoc(collection: Workspace): string {
+  const { store, noteId } = newWorkspaceDoc(
+    collection,
+    CIVIC_INBOX_DOC_ID,
+    CIVIC_INBOX_TITLE,
+  );
+  store.addBlock(
+    'affine:paragraph',
+    {
+      text: new Text(
+        'Shared inbox. Replies to applicants, sponsors, and venues show up here as they arrive.',
+      ),
+    },
+    noteId,
+  );
+  setCivicDocKind(collection, CIVIC_INBOX_DOC_ID, 'inbox');
+  return CIVIC_INBOX_DOC_ID;
+}
+
 export function listCivicWorkspaceDocs(
   collection: Workspace,
   applicationsDocId: string,
@@ -150,9 +180,11 @@ export function listCivicWorkspaceDocs(
             ? 'Applications'
             : kind === 'tasks'
               ? 'Tasks'
-              : kind === 'todo-list'
-                ? 'Untitled to-do list'
-                : 'Untitled note',
+              : kind === 'inbox'
+                ? 'Inbox'
+                : kind === 'todo-list'
+                  ? 'Untitled to-do list'
+                  : 'Untitled note',
       kind,
     });
   }
@@ -160,8 +192,9 @@ export function listCivicWorkspaceDocs(
     const order = {
       applications: 0,
       tasks: 1,
-      'todo-list': 2,
-      note: 3,
+      inbox: 2,
+      'todo-list': 3,
+      note: 4,
     } satisfies Record<CivicWorkspaceDocKind, number>;
     return order[a.kind] === order[b.kind]
       ? a.title.localeCompare(b.title)
