@@ -73,6 +73,7 @@ import { createPlannerTaskLayers } from "@/components/atlas/PlannerTaskLayer";
 import { buildPorchfestFlowLayers } from "@/components/atlas/PorchfestFlowLayer";
 import { buildPorchfestRunOfShowLayers } from "@/components/atlas/PorchfestRunOfShowLayer";
 import { PorchfestRunOfShowPanel } from "@/components/atlas/PorchfestRunOfShowPanel";
+import { RunOfShowHaloOverlay } from "@/components/atlas/RunOfShowHaloOverlay";
 import type { PlannerTaskNode, PlannerTaskStatus } from "@/lib/atlas/planner-phase4";
 import { taskProgress } from "@/lib/atlas/task-progress";
 import {
@@ -3054,6 +3055,16 @@ function PorchfestPlannerWorkspace({
           onPlannerDropPickerReady={(picker) => {
             dropPickerRef.current = picker;
           }}
+        />
+
+        {/* Run-of-show: anime.js halo pulse over the stages active at the
+            cursor t, on top of the deck.gl figure emphasis. Pointer-events-none
+            and reduced-motion aware; only renders while run-of-show is on. */}
+        <RunOfShowHaloOverlay
+          performances={activeRunOfShow}
+          map={mapRef}
+          visible={runOfShowEnabled}
+          prefersReducedMotion={prefersReducedMotion}
         />
 
         {/* Address editor (Step 3). Mode-gated: building clicks only open the
