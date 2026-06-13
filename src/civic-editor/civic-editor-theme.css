@@ -58,6 +58,36 @@
   --affine-hover-color-secondary: rgba(0, 81, 134, 0.08);
 }
 
+/*
+ * civic:task semantic palette (the unified task system). TickTick's task
+ * AFFORDANCES (priority-coded checkbox, status chips, overdue heat) mapped
+ * onto the Observable-cool register, NOT TickTick's saturation. Every value
+ * traces to the atlas semantic palette. Contrast is computed: chip fg/bg
+ * pairs hold >=4.5:1 at the chip label size; the priority border/fill red is
+ * used for UI (>=3:1); overdue TEXT uses the darker red for 4.5:1+.
+ * Defined on :root so the custom properties pierce the BlockSuite shadow DOM
+ * into the civic-task lit component (same mechanism as the --affine-* set).
+ */
+:root {
+  --civic-priority-high: #bf5f52; /* = --atlas-state-safety (terracotta) */
+  --civic-priority-normal: #005186; /* = --ctx-accent (navy, the default) */
+  --civic-priority-low: #9aa7b3; /* quiet cool gray */
+
+  --civic-status-todo-fg: #454545;
+  --civic-status-todo-bg: #f1f1f1;
+  --civic-status-doing-fg: #8a5a16;
+  --civic-status-doing-bg: #f7eddc;
+  --civic-status-blocked-fg: #a8463a;
+  --civic-status-blocked-bg: #f6e3df;
+  --civic-status-done-fg: #2f6a3f;
+  --civic-status-done-bg: #e4f0e6;
+
+  --civic-due-overdue: #a8463a;
+  --civic-meta-fg: #656565;
+  --civic-task-hover: #fafafa;
+  --civic-task-ring: #005186;
+}
+
 affine-editor-container {
   font-stretch: var(--font-plex-width, 87.5%);
 }

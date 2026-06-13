@@ -941,12 +941,6 @@ function WorkspaceInner() {
   return (
     <div className="civic-workspace-shell">
       <header className="civic-workspace-header">
-        <div>
-          <p className="civic-workspace-overline">
-            PorchFest 2026 · Organizers
-          </p>
-          <h1>Planning workspace</h1>
-        </div>
         <nav className="civic-workspace-nav" aria-label="Planner surfaces">
           <a href="/porchfest">Map</a>
           <a href="/porchfest/apply">Applications</a>
@@ -1160,12 +1154,14 @@ function WorkspaceInner() {
            the identity, the h1 stays for the document outline but reads
            as a quiet line, and the nav is a content-hugging hairline
            strip anchored right. */
+        /* The overline + page-title block was removed; the header is now a
+           slim right-aligned nav strip, reclaiming the vertical space. */
         .civic-workspace-header {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-end;
           gap: 16px;
-          padding: 14px 24px 10px;
+          padding: 8px 24px 0;
         }
         .civic-workspace-nav {
           display: flex;
