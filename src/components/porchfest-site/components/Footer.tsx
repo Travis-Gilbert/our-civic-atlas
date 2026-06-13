@@ -26,6 +26,7 @@ export default function Footer() {
           <div>
             <h4 style={{ ...mono, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.14em', color: 'rgba(240,235,228,.28)', marginBottom: 12 }}>CTHNA</h4>
             <a href="https://www.cthna.org" target="_blank" rel="noopener noreferrer" style={{ ...sans, display: 'block', fontSize: 14, color: muted, textDecoration: 'none', marginBottom: 8 }}>cthna.org</a>
+            <a href="mailto:porchfest@cthna.org" style={{ ...sans, display: 'block', fontSize: 14, color: muted, textDecoration: 'none', marginBottom: 8 }}>porchfest@cthna.org</a>
           </div>
         </div>
       </div>
