@@ -21,3 +21,6 @@ export const PORCHFEST_EVENT_SITE = { lat: 43.0205, lon: -83.702 } as const;
 
 /** Human label for the festival day, e.g. "Friday, July 17". */
 export const PORCHFEST_EVENT_DATE_LABEL = "Friday, July 17";
+
+/** Last day public PorchFest applications are open. */
+export const PORCHFEST_APPLICATION_CLOSE_LABEL = "June 24";

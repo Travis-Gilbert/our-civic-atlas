@@ -36,6 +36,7 @@ import { useMutation } from "urql";
 
 import { SubmitEventApplicationDocument } from "@/lib/api/graphql/generated/graphql";
 import type { EventApplicationSubmitInput } from "@/lib/api/graphql/generated/graphql";
+import { PORCHFEST_APPLICATION_CLOSE_LABEL } from "@/lib/porchfest/porchfest-event";
 import {
   BAND_SIZES,
   ENT_TYPES,
@@ -472,7 +473,8 @@ export function PorchfestApplicationForm() {
           <h1 className="civic-apply-display">PorchFest 2026 application</h1>
           <p className="civic-apply-lede">
             Free to apply, free to play. Your application is saved the moment
-            you submit it; nothing else is required first.
+            you submit it; nothing else is required first. Applications close{" "}
+            {PORCHFEST_APPLICATION_CLOSE_LABEL}.
           </p>
         </header>
 
