@@ -5,6 +5,7 @@ import ScrollReveal from '../components/ScrollReveal';
 import ResponsiveImg from '../components/ResponsiveImg';
 import { C, serif, sans, mono, tagStyle } from '../tokens';
 import { CATEGORIES, PHOTOS, accentColor, accentBright, accentDim } from '../porchfest-data';
+import { PORCHFEST_APPLICATION_CLOSE_LABEL } from '@/lib/porchfest/porchfest-event';
 
 function ApplyCard({ cat, delay }) {
   const [hovered, setHovered] = useState(false);
@@ -91,7 +92,7 @@ export default function ApplyCTA() {
               Play a porch.<br/>Feed the block.<br/>Be part of it.
             </h2>
             <p style={{ ...sans, fontSize: 16, color: 'rgba(240,235,228,.5)', lineHeight: 1.7, maxWidth: '42ch' }}>
-              Musicians, food vendors, entertainers, and anyone with something to offer the neighborhood. Applications close in May. Selected acts hear back by mid-May 2026.
+              Musicians, food vendors, entertainers, and anyone with something to offer the neighborhood. Applications close {PORCHFEST_APPLICATION_CLOSE_LABEL}. Selected acts hear back by email.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={2}>
