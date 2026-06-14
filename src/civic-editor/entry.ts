@@ -502,9 +502,20 @@ export async function mountCivicWorkspace(
     return docId;
   };
 
-  const createTodoList = (title = 'Untitled to-do list'): string => {
-    const docId = `civic:todo:${crypto.randomUUID().slice(0, 8)}`;
-    createCivicTaskListDoc(collection, docId, title);
+  const createTodoList = (title = 'Untitled task list'): string => {
+    // Task lists are ROWS, not civic:task blocks. A block doc had no clean
+    // "add another task" affordance, so users reached for the slash menu and
+    // inserted affine:database blocks ("new tables/groups instead of rows").
+    // Each new list is now its own tasks database with table + kanban, exactly
+    // like the Porchfest Tasks tab, so adding an item is always a row.
+    const docId = `civic:tasks:${crypto.randomUUID().slice(0, 8)}`;
+    const listHandles = ensureTaskDatabase(collection, docId);
+    collection.meta.setDocMeta(docId, { title });
+    setCivicDocKind(collection, docId, 'tasks');
+    ensureCivicViews(
+      listHandles as unknown as CivicDatabaseHandles,
+      TASK_CARD_FIELDS,
+    );
     return docId;
   };
 
