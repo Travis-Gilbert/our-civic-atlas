@@ -19,6 +19,16 @@ Done:
   field-authority validator green (`npm run validate:civic-email-store`); bundle
   builds; typecheck clean. The block renders collapsed + expands to a read-only
   thread; the responded chip writes the manual override.
+- EM-012 / EM-013 (inbox doc) / EM-014: the Inbox is a singleton seeded
+  workspace doc, surfaced as a tab beside Applications/Tasks (commit `cb38d71`).
+  No `createInbox` bridge method was needed: the inbox is seeded in
+  `openCivicCore` (`ensureInboxDoc`, adopt-not-reseed) and the existing generic
+  doc-tab machinery renders it; the registered view draws the email blocks.
+  VISUALLY VERIFIED on a sync-disabled local server (no prod contact): the
+  collapsed cards (unread dot, counterparty, subject, meta, the three
+  responded-state chip tints) and the expanded read transcript (inbound plain /
+  outbound faint-fill, mono attribution, direction-turn hairlines, navy LATEST,
+  read-on-open) both render per the approved design. 25 validator checks green.
 
 Discoveries that reshape later rows (verified against HEAD, not assumed):
 - The email GraphQL schema is ALREADY shipped by Codex
@@ -49,9 +59,19 @@ email read/reply resolvers + a parallel run-of-show feature. Stay off
 `event-email.graphql`, `PorchfestPlannerClient.tsx`; sequence the GraphQL
 slices (EM-020..EM-033) after Codex's read model lands.
 
-Next: EM-012 (inbox doc kind) + EM-013 (bridge `createInbox`) + EM-014
-(workspace Inbox tab + "+ New" entry + seed) to make the inbox visible
-end-to-end, then browser verification.
+Next (the read-only inbox foundation is done + verified; remaining slices are
+gated on Codex's GraphQL read model or step into a hot lane):
+- EM-021 (hydrate): map the backend thread/message read model -> civic:email
+  blocks, idempotent by threadId, field-authority merge. Buildable now against a
+  defined input interface (decoupled from Codex's exact GraphQL types), then a
+  thin adapter when Codex lands the `eventEmailThreads`/messages read model.
+- EM-030 / EM-033 (reply + compose) + EM-032 (state mutation): depend on the
+  backend reply/compose resolvers (Codex lane).
+- EM-040 (placement -> map billboard): collides with Codex's currently-active
+  planner-map lane (`PorchfestPlannerClient`, run-of-show); sequence when that
+  settles.
+Not pushed: the inbox is empty until EM-021; deploy the foundation with data
+rather than an empty tab, or push sooner if an empty-but-live tab is wanted.
 
 ## Executive Summary
 
