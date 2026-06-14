@@ -147,7 +147,8 @@ export function usePorchfestWeather(enabled: boolean): PorchfestWeatherState {
             bounds,
             // RasterLayer parses the raw cpt2js palette array internally.
             palette: PRECIP_PALETTE,
-            opacity: 0.5,
+            // Keep rain legible without turning the 3D planner mesh blue.
+            opacity: 0.18,
           }) as unknown as Layer,
           new wl.ParticleLayer({
             id: "porchfest-weather-wind",

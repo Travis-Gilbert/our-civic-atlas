@@ -2391,6 +2391,12 @@ function PorchfestPlannerWorkspace({
   const extraDeckLayers = useMemo<Layer[]>(() => {
     const layers: Layer[] = [buildBoundaryLayer()];
 
+    // Forecast weather (Lane 4 Tier 2): keep wind + precipitation under the
+    // planner meshes so forecast context cannot wash out the placed objects.
+    // weatherVisible folds in the toggle, the mobile gate, and the zoom-suspend
+    // threshold; the layers simply drop out below the threshold.
+    if (weatherVisible) layers.push(...weather.layers);
+
     // Non-Point placements (imported closures, barrier runs) have no mesh
     // form; one flat GeoJsonLayer strokes them in category color so line
     // imports stay visible and selectable. Pushed before the meshes so the
@@ -2526,12 +2532,6 @@ function PorchfestPlannerWorkspace({
         eventSite: PORCHFEST_EVENT_SITE,
       }),
     );
-
-    // Forecast weather (Lane 4 Tier 2): wind particles + precipitation raster
-    // for the active forecast hour, from self-hosted NOAA GFS GeoTIFFs.
-    // weatherVisible folds in the toggle, the mobile gate, and the zoom-suspend
-    // threshold; the layers simply drop out below the threshold.
-    if (weatherVisible) layers.push(...weather.layers);
 
     return layers;
   }, [

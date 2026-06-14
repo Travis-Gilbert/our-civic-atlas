@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import porchfestFixture from '../src/data/open-flint-atlas/fixtures/porchfest-2026.json';
 import {
   activeRunOfShowPerformances,
@@ -128,6 +130,38 @@ check(
     },
     185,
   ),
+);
+
+const plannerClientSource = readFileSync(
+  join(process.cwd(), 'src/app/porchfest/PorchfestPlannerClient.tsx'),
+  'utf8',
+);
+const weatherSource = readFileSync(
+  join(process.cwd(), 'src/lib/porchfest/use-porchfest-weather.ts'),
+  'utf8',
+);
+const weatherPushIndex = plannerClientSource.indexOf(
+  'if (weatherVisible) layers.push(...weather.layers);',
+);
+const meshLayerIndex = plannerClientSource.indexOf(
+  '...buildPorchfestAffordanceMeshLayers({',
+);
+const flowLayerIndex = plannerClientSource.indexOf(
+  '...buildPorchfestFlowLayers({',
+);
+check(
+  'forecast weather renders below planner meshes',
+  weatherPushIndex > -1 && meshLayerIndex > -1 && weatherPushIndex < meshLayerIndex,
+  { weatherPushIndex, meshLayerIndex },
+);
+check(
+  'forecast weather renders below storytelling flows',
+  weatherPushIndex > -1 && flowLayerIndex > -1 && weatherPushIndex < flowLayerIndex,
+  { weatherPushIndex, flowLayerIndex },
+);
+check(
+  'precipitation raster remains below washout opacity',
+  weatherSource.includes('opacity: 0.18'),
 );
 
 if (failures > 0) {
