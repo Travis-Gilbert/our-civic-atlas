@@ -209,15 +209,17 @@ const CARRIAGE_TOWN_BOUNDS: [[number, number], [number, number]] = [
 // Planner basemap layer visibility. Raw OSM buildings are the universal
 // regular-building read here: they carry the darker drawn footprint, warm
 // extrusion, and contact-shadow treatment that made the mobile map feel better.
-// The heavier urban-design massing stack stays out of the event-planning view.
+// Broad civic-place polygons stay out of the event-planning view because ward
+// fills tint the whole work surface blue and obscure the placement meshes.
+// The heavier urban-design massing stack stays out as well.
 const DEFAULT_BASEMAP_LAYERS: Record<string, boolean> = {
-  places: true,
+  places: false,
   buildings: true,
   urbanDesignModel: false,
   buildingFabric: false,
   osmBuildings: true,
   events: false,
-  wards: true,
+  wards: false,
   infrastructure: true,
   scenarioEnvelopes: false,
   // Realtime traffic flow: parity with /open-flint-atlas. The MDOT 2024 AADT

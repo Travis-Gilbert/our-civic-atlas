@@ -16,6 +16,10 @@ const [porchfestClient, atlasMap, taskRail] = await Promise.all([
   readSource("src/components/atlas/AtlasMap.tsx"),
   readSource("src/components/atlas/PlannerTaskRail.tsx"),
 ]);
+const desktopBasemapDefaults =
+  porchfestClient.match(
+    /const DEFAULT_BASEMAP_LAYERS:[\s\S]*?Record<string, boolean> = \{([\s\S]*?)\};/,
+  )?.[1] ?? "";
 
 console.log("1. planner basemap uses pickable OSM buildings across viewports");
 check(
@@ -40,6 +44,14 @@ check(
 check(
   "PorchFest opts every planner viewport into raw OSM building extrusion",
   porchfestClient.includes("forceOsmBuildingExtrusion={true}"),
+);
+check(
+  "desktop planner disables broad civic place fills",
+  desktopBasemapDefaults.includes("places: false"),
+);
+check(
+  "desktop planner disables ward fills that blue-wash the map",
+  desktopBasemapDefaults.includes("wards: false"),
 );
 
 console.log("2. mobile address selection is wired");
