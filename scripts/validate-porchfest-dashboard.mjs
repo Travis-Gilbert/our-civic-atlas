@@ -106,6 +106,16 @@ assertIncludes(
 );
 assertIncludes(
   moneyLoader,
+  "function isSummaryOnlyRow(row)",
+  "dashboard money summary-row guard",
+);
+assertIncludes(
+  moneyLoader,
+  "!isSummaryOnlyRow(row)",
+  "dashboard money summary-row exclusion",
+);
+assertIncludes(
+  moneyLoader,
   "from event_application_billing_requests",
   "dashboard money Postgres fallback",
 );

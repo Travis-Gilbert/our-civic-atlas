@@ -93,15 +93,35 @@ function parseCsvRows(csvText) {
   });
 }
 
-function sponsorshipRollup(rows, source) {
-  const activeRows = rows.filter((row) =>
-    [
-      "sponsorName",
-      "amountAsked",
+function hasValue(row, key) {
+  return String(field(row, key)).trim() !== "";
+}
+
+function isSummaryOnlyRow(row) {
+  return (
+    !hasValue(row, "sponsorName") &&
+    hasValue(row, "amountAsked") &&
+    ![
       "amountPromised",
       "amountCollected",
       "porchSponsored",
-    ].some((key) => String(field(row, key)).trim() !== ""),
+      "moneyCollected",
+      "dateCollected",
+    ].some((key) => hasValue(row, key))
+  );
+}
+
+function sponsorshipRollup(rows, source) {
+  const activeRows = rows.filter(
+    (row) =>
+      !isSummaryOnlyRow(row) &&
+      [
+        "sponsorName",
+        "amountAsked",
+        "amountPromised",
+        "amountCollected",
+        "porchSponsored",
+      ].some((key) => hasValue(row, key)),
   );
 
   let askedCents = 0;
