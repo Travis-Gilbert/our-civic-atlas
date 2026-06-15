@@ -402,6 +402,19 @@ async function main() {
       workspaceSource.includes('Update Google Sheet') &&
       workspaceSource.includes('window.confirm('),
   );
+  check(
+    'workspace keeps raw Google env setup out of the visible status line',
+    workspaceSource.includes('googleStatusDetail') &&
+      workspaceSource.includes('Google Sheets sync needs backend configuration') &&
+      workspaceSource.includes('title={googleStatusDetail}') &&
+      !workspaceSource.includes('Set GOOGLE_WORKSPACE_CLIENT_ID'),
+  );
+  check(
+    'workspace editor width stays responsive inside the viewport',
+    workspaceSource.includes(
+      '--affine-editor-width: min(1100px, calc(100vw - 48px));',
+    ) && workspaceSource.includes('--affine-editor-side-padding: clamp(16px, 2vw, 28px);'),
+  );
   const automaticImportIndex = workspaceSource.indexOf('runGoogleSheetImport("auto")');
   const explicitExportIndex = workspaceSource.indexOf('exportCivicRowsToGoogleSheet({');
   check(

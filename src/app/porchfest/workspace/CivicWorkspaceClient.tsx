@@ -774,11 +774,17 @@ function WorkspaceInner() {
   const googleConnection =
     googleConnectionResult.data?.googleWorkspaceConnection ?? null;
   const googleSheetsConfigured = Boolean(googleConnection?.sheetsConfigured);
+  const googleStatusDetail =
+    googleConnectionResult.error?.message ?? googleConnection?.message ?? undefined;
   const googleStatus = googleConnectionResult.fetching
     ? "Checking Google Workspace"
-    : googleConnectionResult.error?.message ??
-      googleConnection?.message ??
-      "Google Sheets sync is not configured";
+    : googleSheetsConfigured
+      ? "Google Sheets sync ready"
+      : "Google Sheets sync needs backend configuration";
+  const googleNoticeMessage =
+    googleNotice.message && (googleNotice.kind !== "idle" || googleSheetsConfigured)
+      ? googleNotice.message
+      : null;
   const lastGoogleSyncLabel = lastGoogleSyncAt
     ? new Date(lastGoogleSyncAt).toLocaleTimeString("en-US", {
         hour: "numeric",
@@ -1267,10 +1273,14 @@ function WorkspaceInner() {
         <PorchfestForecastCard />
       </div>
       <section className="civic-google-band" aria-label="Google Workspace sync">
-        <div className="civic-google-status" data-kind={googleNotice.kind}>
+        <div
+          className="civic-google-status"
+          data-kind={googleNotice.kind}
+          title={googleStatusDetail}
+        >
           <span>{googleStatus}</span>
           {lastGoogleSyncLabel ? <span>Last sync {lastGoogleSyncLabel}</span> : null}
-          {googleNotice.message ? <span>{googleNotice.message}</span> : null}
+          {googleNoticeMessage ? <span>{googleNoticeMessage}</span> : null}
         </div>
         <div className="civic-google-actions">
           <button
@@ -1661,9 +1671,9 @@ function WorkspaceInner() {
           padding: 4px 24px 8px;
         }
         .civic-google-band {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: start;
           gap: 12px;
           padding: 6px 24px;
           border-top: 1px solid #eeeeee;
@@ -1673,6 +1683,7 @@ function WorkspaceInner() {
           display: flex;
           min-width: 0;
           align-items: center;
+          flex-wrap: wrap;
           gap: 10px;
           color: #454545;
           font-size: 12px;
@@ -1682,7 +1693,7 @@ function WorkspaceInner() {
           min-width: 0;
           overflow: hidden;
           text-overflow: ellipsis;
-          white-space: nowrap;
+          white-space: normal;
         }
         .civic-google-status[data-kind="success"] span:last-child {
           color: #005186;
@@ -1841,18 +1852,8 @@ function WorkspaceInner() {
         .civic-workspace-editor affine-editor-container {
           display: block;
           height: 100%;
-          /* Reclaim the oversized left gutter for the spreadsheet/content
-             column. AFFiNE centers page content with
-             "max-width: var(--affine-editor-width); margin: 0 auto" (default
-             944px), so the only lever is the column width: widening it shrinks
-             the centered margins, pulling the table and titles left into the
-             empty gutter and freeing the right side where the table was
-             crammed. The var is consumed inside the page-root shadow DOM and
-             inherits from here, winning on specificity. ~1100px reclaims about
-             15% of the left margin on a wide display; raise it for more, lower
-             for less. (--affine-editor-side-padding has no effect in this
-             layout, so it is intentionally not set here.) */
-          --affine-editor-width: 1100px;
+          --affine-editor-width: min(1100px, calc(100vw - 48px));
+          --affine-editor-side-padding: clamp(16px, 2vw, 28px);
         }
         /* Same height contract the upstream BlockSuite playground and
            AFFiNE apply to the page editor: a definite-height
