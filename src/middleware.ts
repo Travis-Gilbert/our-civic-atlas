@@ -1,9 +1,9 @@
 /**
- * PorchFest host routing.
+ * Civic Atlas and PorchFest host routing.
  *
- * flint.ourcivicatlas.org keeps the canonical Civic Atlas paths under
- * /porchfest. porchfestflint.com is the public brand domain: clean public
- * paths rewrite into this same Next app without changing the browser URL.
+ * flint.ourcivicatlas.org is the canonical Atlas host. porchfestflint.com is
+ * the public event host. Both domains currently land on this same Next app, so
+ * middleware keeps the public paths separated without duplicating route files.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -33,7 +33,33 @@ const PORCHFEST_FLINT_PATHS: ReadonlyMap<string, string> = new Map([
   ["/dashboard", "/porchfest/dashboard"],
 ]);
 
-const FLINT_ATLAS_PORCHFEST_REDIRECTS: ReadonlyMap<string, string> = new Map([
+const FLINT_ATLAS_CLEAN_PATH_PREFIXES = [
+  "/atelier",
+  "/contribute",
+  "/explore",
+  "/interventions",
+  "/layer-lab",
+  "/lost-flint",
+  "/memory",
+  "/methodology",
+  "/mobile-candidate",
+  "/node",
+  "/object",
+  "/place",
+  "/plan",
+  "/reconstruction-engine",
+  "/safety",
+  "/scene",
+  "/sources",
+] as const;
+
+const FLINT_ATLAS_PORCHFEST_PATHS: ReadonlyMap<string, string> = new Map([
+  ["/planning", "/planning"],
+  ["/apply", "/apply"],
+  ["/workspace", "/workspace"],
+  ["/sponsors", "/sponsors"],
+  ["/board", "/board"],
+  ["/dashboard", "/dashboard"],
   ["/porchfest", "/planning"],
   ["/porchfest/", "/planning"],
   ["/porchfest/apply", "/apply"],
@@ -44,22 +70,78 @@ const FLINT_ATLAS_PORCHFEST_REDIRECTS: ReadonlyMap<string, string> = new Map([
   ["/porchfest-public/board", "/board"],
 ]);
 
+function isPathInPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function atlasInternalPath(pathname: string): string | null {
+  if (pathname === "/") return "/open-flint-atlas";
+  if (pathname === "/open-flint-atlas") return null;
+  if (pathname.startsWith("/open-flint-atlas/")) return null;
+
+  const atlasPrefix = FLINT_ATLAS_CLEAN_PATH_PREFIXES.find((prefix) =>
+    isPathInPrefix(pathname, prefix),
+  );
+  if (!atlasPrefix) return null;
+  return `/open-flint-atlas${pathname}`;
+}
+
+function porchfestPathForFlintAtlasHost(pathname: string): string | null {
+  const exactPath = FLINT_ATLAS_PORCHFEST_PATHS.get(pathname);
+  if (exactPath) return exactPath;
+  if (pathname.startsWith("/porchfest/")) return "/planning";
+  if (pathname.startsWith("/porchfest-public/")) return "/";
+  return null;
+}
+
+function atlasPathForPorchfestHost(pathname: string): string | null {
+  if (pathname === "/open-flint-atlas" || pathname === "/open-flint-atlas/") {
+    return "/";
+  }
+  if (!pathname.startsWith("/open-flint-atlas/")) return null;
+  return pathname.slice("/open-flint-atlas".length);
+}
+
 function canonicalPorchfestPath(pathname: string): string {
   return pathname.startsWith("/porchfest") ? pathname : "/porchfest";
+}
+
+function redirectToHost(
+  req: NextRequest,
+  host: string,
+  pathname: string,
+): NextResponse {
+  const target = new URL(`https://${host}${pathname}`);
+  target.search = req.nextUrl.search;
+  return NextResponse.redirect(target, 308);
+}
+
+function rewritePath(req: NextRequest, pathname: string): NextResponse {
+  const target = req.nextUrl.clone();
+  target.pathname = pathname;
+  return NextResponse.rewrite(target);
 }
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host")?.toLowerCase() ?? "";
   if (FLINT_ATLAS_HOSTS.has(host)) {
-    const targetPath = FLINT_ATLAS_PORCHFEST_REDIRECTS.get(req.nextUrl.pathname);
+    const porchfestPath = porchfestPathForFlintAtlasHost(req.nextUrl.pathname);
+    if (porchfestPath) {
+      return redirectToHost(req, "porchfestflint.com", porchfestPath);
+    }
+
+    const targetPath = atlasInternalPath(req.nextUrl.pathname);
     if (targetPath) {
-      const target = new URL(`https://porchfestflint.com${targetPath}`);
-      target.search = req.nextUrl.search;
-      return NextResponse.redirect(target, 308);
+      return rewritePath(req, targetPath);
     }
   }
 
   if (PORCHFEST_FLINT_HOSTS.has(host)) {
+    const atlasPath = atlasPathForPorchfestHost(req.nextUrl.pathname);
+    if (atlasPath) {
+      return redirectToHost(req, "flint.ourcivicatlas.org", atlasPath);
+    }
+
     if (req.nextUrl.pathname === "/porchfest/workspace") {
       const target = req.nextUrl.clone();
       target.pathname = "/workspace";
@@ -70,9 +152,7 @@ export function middleware(req: NextRequest) {
     if (!targetPath) {
       return NextResponse.next();
     }
-    const target = req.nextUrl.clone();
-    target.pathname = targetPath;
-    return NextResponse.rewrite(target);
+    return rewritePath(req, targetPath);
   }
 
   if (!PORCHFEST_HOSTS.has(host)) {

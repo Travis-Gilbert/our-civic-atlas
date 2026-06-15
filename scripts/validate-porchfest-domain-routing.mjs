@@ -23,7 +23,24 @@ const HOST_REWRITE_EXPECTATIONS = [
   ['"/workspace"', '"/porchfest/workspace"'],
 ];
 
+const FLINT_ATLAS_CLEAN_PATH_EXPECTATIONS = [
+  '"/contribute"',
+  '"/lost-flint"',
+  '"/methodology"',
+  '"/node"',
+  '"/object"',
+  '"/place"',
+  '"/scene"',
+  '"/sources"',
+];
+
 const FLINT_ATLAS_REDIRECT_EXPECTATIONS = [
+  ['"/planning"', '"/planning"'],
+  ['"/apply"', '"/apply"'],
+  ['"/workspace"', '"/workspace"'],
+  ['"/sponsors"', '"/sponsors"'],
+  ['"/board"', '"/board"'],
+  ['"/dashboard"', '"/dashboard"'],
   ['"/porchfest"', '"/planning"'],
   ['"/porchfest/"', '"/planning"'],
   ['"/porchfest/apply"', '"/apply"'],
@@ -50,13 +67,24 @@ for (const relativePath of REQUIRED_FILES) {
   check(relativePath, existsSync(path.join(ROOT, relativePath)));
 }
 
-console.log('2. porchfestflint.com host path table is present');
+console.log('2. host split path tables are present');
 const middleware = read('src/middleware.ts');
 check('porchfestflint.com host enabled', middleware.includes('"porchfestflint.com"'));
 check('www.porchfestflint.com host enabled', middleware.includes('"www.porchfestflint.com"'));
 check('flint.ourcivicatlas.org host enabled', middleware.includes('"flint.ourcivicatlas.org"'));
+check(
+  'flint.ourcivicatlas.org root rewrites to the atlas route',
+  middleware.includes('if (pathname === "/") return "/open-flint-atlas"'),
+);
+for (const cleanPath of FLINT_ATLAS_CLEAN_PATH_EXPECTATIONS) {
+  check(`flint.ourcivicatlas.org clean Atlas path ${cleanPath} is recognized`, middleware.includes(cleanPath));
+}
+check(
+  'clean Atlas paths rewrite under /open-flint-atlas',
+  middleware.includes('return `/open-flint-atlas${pathname}`'),
+);
 for (const [sourcePath, targetPath] of HOST_REWRITE_EXPECTATIONS) {
-  check(`${sourcePath} rewrites to ${targetPath}`, middleware.includes(`[${sourcePath}, ${targetPath}]`));
+  check(`porchfestflint.com ${sourcePath} rewrites to ${targetPath}`, middleware.includes(`[${sourcePath}, ${targetPath}]`));
 }
 for (const [sourcePath, targetPath] of FLINT_ATLAS_REDIRECT_EXPECTATIONS) {
   check(
@@ -67,6 +95,21 @@ for (const [sourcePath, targetPath] of FLINT_ATLAS_REDIRECT_EXPECTATIONS) {
 check(
   'flint.ourcivicatlas.org PorchFest redirects preserve query string',
   middleware.includes('target.search = req.nextUrl.search'),
+);
+check(
+  'flint.ourcivicatlas.org unknown /porchfest/* routes redirect to /planning',
+  middleware.includes('pathname.startsWith("/porchfest/")') &&
+    middleware.includes('return "/planning"'),
+);
+check(
+  'porchfestflint.com /open-flint-atlas redirects to flint.ourcivicatlas.org root',
+  middleware.includes('pathname === "/open-flint-atlas"') &&
+    middleware.includes('return "/"') &&
+    middleware.includes('redirectToHost(req, "flint.ourcivicatlas.org", atlasPath)'),
+);
+check(
+  'porchfestflint.com /open-flint-atlas/* strips the old prefix on redirect',
+  middleware.includes('pathname.slice("/open-flint-atlas".length)'),
 );
 check(
   'legacy /porchfest/workspace redirects to /workspace',
