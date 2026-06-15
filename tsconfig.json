@@ -50,6 +50,7 @@
     "src/lib/civic/civic-workspace.ts",
     "src/lib/civic/civic-task-rows.ts",
     "scripts/validate-civic-store.ts",
+    "scripts/validate-civic-task-reorder.ts",
     "scripts/validate-civic-email-store.ts",
     "scripts/validate-civic-apply-bridge.ts",
     "scripts/validate-civic-ledger-ingest.ts",
