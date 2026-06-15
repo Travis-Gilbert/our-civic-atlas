@@ -9,6 +9,7 @@ import {
 } from '@blocksuite/affine/ext-loader';
 import { BlockViewExtension, FlavourExtension } from '@blocksuite/std';
 import { getInlineRangeProvider, type InlineRangeProvider } from '@blocksuite/std/inline';
+import type { BlockModel } from '@blocksuite/affine/store';
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { query } from 'lit/decorators.js';
 import { literal } from 'lit/static-html.js';
@@ -33,6 +34,15 @@ const STATUS_LABEL: Record<CivicTaskStatus, string> = {
   blocked: 'Blocked',
   done: 'Done',
 };
+
+/*
+ * The task being dragged, shared across every civic-task instance in the one
+ * editor bundle. The HTML5 DataTransfer cannot carry a live BlockModel, so the
+ * source block records itself here on dragstart and clears on dragend/drop;
+ * drop targets read it to call store.moveBlocks. Module scope is safe because
+ * the whole editor is a single bundle with one runtime.
+ */
+let draggingTask: CivicTaskBlockModel | null = null;
 
 /**
  * Friendly due-date label + overdue flag, computed against the start of today.
@@ -91,6 +101,7 @@ function formatTaskCurrency(amountCents: number): string {
 export class CivicTaskBlockComponent extends CaptionedBlockComponent<CivicTaskBlockModel> {
   static override styles = css`
     .civic-task-block {
+      position: relative;
       display: grid;
       grid-template-columns: 24px minmax(0, 1fr) auto;
       gap: 9px;
@@ -289,8 +300,130 @@ export class CivicTaskBlockComponent extends CaptionedBlockComponent<CivicTaskBl
       opacity: 0.7;
     }
 
+    /*
+     * Row actions, TickTick-style: hidden until the row is hovered or a control
+     * inside it is keyboard-focused. The drag handle is absolutely positioned in
+     * the left gutter so revealing it never reflows the row; the delete button
+     * keeps a reserved slot in the controls cluster so the status chip never
+     * shifts on hover. Both stay reachable by keyboard (focus reveals them).
+     */
+    .civic-task-drag {
+      position: absolute;
+      left: -22px;
+      top: 6px;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--civic-meta-fg, #9aa0a6);
+      cursor: grab;
+      opacity: 0;
+      transition:
+        opacity 120ms ease,
+        background-color 120ms ease,
+        color 120ms ease;
+      touch-action: none;
+    }
+    .civic-task-drag svg {
+      display: block;
+      width: 14px;
+      height: 14px;
+    }
+    .civic-task-drag:hover {
+      background: var(--civic-task-hover, #efefef);
+      color: var(--affine-text-primary-color, #1c1c1c);
+    }
+    .civic-task-drag:active {
+      cursor: grabbing;
+    }
+    .civic-task-drag:focus-visible {
+      outline: 2px solid var(--civic-task-ring, #005186);
+      outline-offset: 1px;
+    }
+
+    .civic-task-delete {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin-left: 4px;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--civic-meta-fg, #9aa0a6);
+      cursor: pointer;
+      opacity: 0;
+      transition:
+        opacity 120ms ease,
+        background-color 120ms ease,
+        color 120ms ease;
+    }
+    .civic-task-delete svg {
+      display: block;
+      width: 15px;
+      height: 15px;
+    }
+    .civic-task-delete:hover {
+      background: var(--civic-status-blocked-bg, #f6e3df);
+      color: var(--civic-due-overdue, #a8463a);
+    }
+    .civic-task-delete:focus-visible {
+      outline: 2px solid var(--civic-task-ring, #005186);
+      outline-offset: 1px;
+    }
+
+    /* Reveal the row actions on hover or when keyboard focus is inside the row. */
+    .civic-task-block:hover .civic-task-drag,
+    .civic-task-block:focus-within .civic-task-drag,
+    .civic-task-drag:focus-visible,
+    .civic-task-block:hover .civic-task-delete,
+    .civic-task-block:focus-within .civic-task-delete,
+    .civic-task-delete:focus-visible {
+      opacity: 1;
+    }
+
+    /* readonly stores get no row actions at all. */
+    .civic-task-drag[aria-disabled='true'],
+    .civic-task-delete:disabled {
+      display: none;
+    }
+
+    /* The source row dims while it is being dragged. */
+    .civic-task-block[data-dragging='true'] {
+      opacity: 0.45;
+    }
+
+    /* Drop indicator: a 2px rule on the edge the task would land against. */
+    .civic-task-block[data-drop='before']::before,
+    .civic-task-block[data-drop='after']::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--civic-priority-normal, #005186);
+      pointer-events: none;
+    }
+    .civic-task-block[data-drop='before']::before {
+      top: -1px;
+    }
+    .civic-task-block[data-drop='after']::after {
+      bottom: -1px;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .civic-task-check {
+      .civic-task-check,
+      .civic-task-drag,
+      .civic-task-delete {
         transition: none;
       }
     }
@@ -326,6 +459,128 @@ export class CivicTaskBlockComponent extends CaptionedBlockComponent<CivicTaskBl
       status,
       done: status === 'done',
     } satisfies Partial<CivicTaskProps>);
+  };
+
+  @query('.civic-task-block')
+  private accessor _blockEl: HTMLDivElement | null = null;
+
+  @query('.civic-task-drag')
+  private accessor _dragHandle: HTMLElement | null = null;
+
+  private readonly _deleteTask = (event: Event) => {
+    event.stopPropagation();
+    if (this.store.readonly) return;
+    this.store.captureSync();
+    // Default delete removes the task and its subtasks together, matching the
+    // single "delete this row" affordance users expect from the trash button.
+    this.store.deleteBlock(this.model);
+  };
+
+  /** True when `ancestor` sits above `node` in the block tree (guards self/cycle drops). */
+  private _isAncestorOf(ancestor: BlockModel, node: BlockModel): boolean {
+    let current: BlockModel | null = this.store.getParent(node);
+    while (current) {
+      if (current === ancestor) return true;
+      current = this.store.getParent(current);
+    }
+    return false;
+  }
+
+  // --- Drag source (the handle) -------------------------------------------
+  private readonly _onHandlePointerdown = (event: PointerEvent) => {
+    // The handle's only job is to seed an HTML5 drag; stop BlockSuite's pointer
+    // selection / text caret from engaging underneath it.
+    event.stopPropagation();
+  };
+
+  private readonly _onHandleDragstart = (event: DragEvent) => {
+    if (this.store.readonly) {
+      event.preventDefault();
+      return;
+    }
+    event.stopPropagation();
+    draggingTask = this.model;
+    if (this._blockEl) this._blockEl.dataset.dragging = 'true';
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      // A payload is required for the drag to start in some browsers.
+      event.dataTransfer.setData('text/plain', this.model.id);
+    }
+  };
+
+  private readonly _onHandleDragend = () => {
+    draggingTask = null;
+    if (this._blockEl) {
+      delete this._blockEl.dataset.dragging;
+      delete this._blockEl.dataset.drop;
+    }
+  };
+
+  // --- Drop target (any task row) -----------------------------------------
+  private _dropEdge(event: DragEvent): 'before' | 'after' {
+    const rect = (this._blockEl ?? this).getBoundingClientRect();
+    return event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+  }
+
+  private _canAccept(): boolean {
+    return (
+      !this.store.readonly &&
+      draggingTask !== null &&
+      draggingTask !== this.model &&
+      !this._isAncestorOf(draggingTask, this.model)
+    );
+  }
+
+  private readonly _onBlockDragover = (event: DragEvent) => {
+    if (!this._canAccept()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    if (this._blockEl) this._blockEl.dataset.drop = this._dropEdge(event);
+  };
+
+  private readonly _onBlockDragleave = (event: DragEvent) => {
+    // Ignore leave events fired while moving onto a descendant of this row.
+    const related = event.relatedTarget as Node | null;
+    if (related && this.contains(related)) return;
+    if (this._blockEl) delete this._blockEl.dataset.drop;
+  };
+
+  private readonly _onBlockDrop = (event: DragEvent) => {
+    const dragged = draggingTask;
+    if (this._blockEl) delete this._blockEl.dataset.drop;
+    if (!dragged || !this._canAccept()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const parent = this.store.getParent(this.model);
+    if (!parent) return;
+    const before = this._dropEdge(event) === 'before';
+    this.store.captureSync();
+    this.store.moveBlocks([dragged], parent, this.model, before);
+  };
+
+  // --- Keyboard reorder (accessible parity for the handle) ----------------
+  private readonly _onHandleKeydown = (event: KeyboardEvent) => {
+    if (this.store.readonly) return;
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    const parent = this.store.getParent(this.model);
+    if (!parent) return;
+    const siblings = parent.children;
+    const index = siblings.indexOf(this.model);
+    if (index < 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.key === 'ArrowUp') {
+      if (index === 0) return;
+      this.store.captureSync();
+      this.store.moveBlocks([this.model], parent, siblings[index - 1], true);
+    } else {
+      if (index >= siblings.length - 1) return;
+      this.store.captureSync();
+      this.store.moveBlocks([this.model], parent, siblings[index + 1], false);
+    }
+    // Keep focus on the handle so repeated arrow presses keep moving the task.
+    requestAnimationFrame(() => this._dragHandle?.focus());
   };
 
   get inlineManager() {
@@ -379,7 +634,32 @@ export class CivicTaskBlockComponent extends CaptionedBlockComponent<CivicTaskBl
         data-done=${done ? 'true' : 'false'}
         data-priority=${priority}
         data-status=${status}
+        @dragover=${this._onBlockDragover}
+        @dragleave=${this._onBlockDragleave}
+        @drop=${this._onBlockDrop}
       >
+        <span
+          class="civic-task-drag"
+          role="button"
+          tabindex=${this.store.readonly ? -1 : 0}
+          aria-label="Reorder task. Drag, or focus and use the up and down arrow keys."
+          aria-disabled=${this.store.readonly ? 'true' : 'false'}
+          title="Drag to reorder"
+          draggable=${this.store.readonly ? 'false' : 'true'}
+          @pointerdown=${this._onHandlePointerdown}
+          @dragstart=${this._onHandleDragstart}
+          @dragend=${this._onHandleDragend}
+          @keydown=${this._onHandleKeydown}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+            <circle cx="6" cy="4" r="1.4"></circle>
+            <circle cx="10" cy="4" r="1.4"></circle>
+            <circle cx="6" cy="8" r="1.4"></circle>
+            <circle cx="10" cy="8" r="1.4"></circle>
+            <circle cx="6" cy="12" r="1.4"></circle>
+            <circle cx="10" cy="12" r="1.4"></circle>
+          </svg>
+        </span>
         <input
           class="civic-task-check"
           type="checkbox"
@@ -463,6 +743,31 @@ export class CivicTaskBlockComponent extends CaptionedBlockComponent<CivicTaskBl
               )}
             </select>
           </span>
+          <button
+            class="civic-task-delete"
+            type="button"
+            aria-label="Delete task"
+            title="Delete task"
+            ?disabled=${this.store.readonly}
+            @click=${this._deleteTask}
+            @pointerdown=${this._stopControlEvent}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 4.5h10"></path>
+              <path d="M6.5 4.5V3.2c0-.4.3-.7.7-.7h1.6c.4 0 .7.3.7.7V4.5"></path>
+              <path d="M4.4 4.5l.5 8c0 .6.5 1 1 1h4.2c.5 0 1-.4 1-1l.5-8"></path>
+              <path d="M6.7 7.2v3.6"></path>
+              <path d="M9.3 7.2v3.6"></path>
+            </svg>
+          </button>
         </div>
         ${children}
       </div>

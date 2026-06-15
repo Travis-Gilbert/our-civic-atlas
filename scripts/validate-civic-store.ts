@@ -19,6 +19,8 @@
  */
 
 import * as Y from 'yjs';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import {
   CIVIC_OBJECT_COLUMNS,
@@ -28,6 +30,7 @@ import {
   CIVIC_EVENT_DOC_ID,
   createCivicCollection,
   ensureCivicDatabase,
+  hydrateCivicObjectsFromExternalSource,
   insertCivicObject,
   readCivicObjects,
   updateCivicObjectField,
@@ -49,6 +52,10 @@ function check(label: string, ok: boolean, detail?: unknown) {
       console.error(`      ${JSON.stringify(detail)}`);
     }
   }
+}
+
+function source(path: string): string {
+  return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
 const musician: CivicObjectFields = {
@@ -73,6 +80,7 @@ const musician: CivicObjectFields = {
 
 const vendor: CivicObjectFields = {
   category: 'vendor',
+  sourceId: 'google-sheet:vendor:ray@example.com',
   name: 'Ray Delgado',
   email: 'ray@example.com',
   businessName: 'Coney Ray',
@@ -251,6 +259,75 @@ async function main() {
     );
   }
 
+  console.log('4. Google Sheet hydrate keeps planning fields local');
+  const hydratedExisting = hydrateCivicObjectsFromExternalSource(handlesA, [
+    {
+      sourceId: vendor.sourceId,
+      category: 'vendor',
+      name: 'Ray Delgado',
+      email: 'ray.updated@example.com',
+      businessName: 'Coney Ray Collective',
+      status: 'accepted',
+      location: '{"lng":-83.7,"lat":43.0}',
+      feePaid: 5000,
+    },
+  ]);
+  check('Google hydrate updates an existing source row', hydratedExisting.updated === 1, hydratedExisting);
+  check('Google hydrate does not insert duplicate source rows', hydratedExisting.inserted === 0, hydratedExisting);
+  const hydratedVendor = readCivicObjects(handlesA).find(
+    (r) => r.fields.sourceId === vendor.sourceId,
+  );
+  check(
+    'Google hydrate updates source-owned email',
+    hydratedVendor?.fields.email === 'ray.updated@example.com',
+    hydratedVendor?.fields.email,
+  );
+  check(
+    'Google hydrate updates source-owned business name',
+    hydratedVendor?.fields.businessName === 'Coney Ray Collective',
+    hydratedVendor?.fields.businessName,
+  );
+  check(
+    'Google hydrate does not overwrite planning status',
+    hydratedVendor?.fields.status === 'submitted',
+    hydratedVendor?.fields.status,
+  );
+  check(
+    'Google hydrate does not write planning location',
+    hydratedVendor?.fields.location === undefined,
+    hydratedVendor?.fields.location,
+  );
+  check(
+    'Google hydrate does not write planning money',
+    hydratedVendor?.fields.feePaid === undefined,
+    hydratedVendor?.fields.feePaid,
+  );
+  const hydratedNew = hydrateCivicObjectsFromExternalSource(handlesA, [
+    {
+      sourceId: 'google-sheet:sponsor:acme@example.com',
+      category: 'sponsor',
+      name: 'A.C.M.E. Foundation',
+      email: 'acme@example.com',
+      orgName: 'A.C.M.E. Foundation',
+      tier: 'Porch sponsor',
+      status: 'accepted',
+    },
+  ]);
+  check('Google hydrate inserts new source rows', hydratedNew.inserted === 1, hydratedNew);
+  const hydratedSponsor = readCivicObjects(handlesA).find(
+    (r) => r.fields.sourceId === 'google-sheet:sponsor:acme@example.com',
+  );
+  check(
+    'new Google rows keep source-owned fields',
+    hydratedSponsor?.fields.orgName === 'A.C.M.E. Foundation',
+    hydratedSponsor?.fields.orgName,
+  );
+  check(
+    'new Google rows get local planning defaults',
+    hydratedSponsor?.fields.status === 'submitted',
+    hydratedSponsor?.fields.status,
+  );
+
   console.log('5. column backfill: a contract column added after doc creation');
   // Simulate a doc created before the `figureKey` column existed: remove
   // the Figure column from the block. The key map keeps its (now stale)
@@ -286,6 +363,61 @@ async function main() {
     'figureKey writes and reads through the backfilled column',
     healedRow?.fields.figureKey === 'musician-solo',
     healedRow?.fields.figureKey,
+  );
+
+  console.log('6. workspace undo bridge');
+  const loaderSource = source('src/lib/civic/civic-editor-loader.ts');
+  const entrySource = source('src/civic-editor/entry.ts');
+  const workspaceSource = source(
+    'src/app/porchfest/workspace/CivicWorkspaceClient.tsx',
+  );
+  check(
+    'loader exposes undo in the structural bridge type',
+    loaderSource.includes('canUndo(): boolean') &&
+      loaderSource.includes('undo(): boolean') &&
+      loaderSource.includes('onHistoryChanged(listener: () => void): () => void'),
+  );
+  check(
+    'editor bundle calls BlockSuite store history',
+    entrySource.includes('editor.doc.canUndo') &&
+      entrySource.includes('editor.doc.undo()') &&
+      entrySource.includes('editor.doc.history.onUpdated.subscribe'),
+  );
+  check(
+    'workspace chrome renders the undo icon button',
+    workspaceSource.includes('Undo2') &&
+      workspaceSource.includes('aria-label="Undo last workspace edit"') &&
+      workspaceSource.includes('mounted?.undo()'),
+  );
+
+  console.log('7. Google Workspace sync surface keeps write-back explicit');
+  check(
+    'bridge exposes Google hydrate in the structural store type',
+    loaderSource.includes('hydrateExternalRows(rows: CivicObjectFields[])') &&
+      entrySource.includes('hydrateCivicObjectsFromExternalSource(handles, rows)'),
+  );
+  check(
+    'workspace renders Google import and explicit export actions',
+    workspaceSource.includes('Sync from Google') &&
+      workspaceSource.includes('Update Google Sheet') &&
+      workspaceSource.includes('window.confirm('),
+  );
+  const automaticImportIndex = workspaceSource.indexOf('runGoogleSheetImport("auto")');
+  const explicitExportIndex = workspaceSource.indexOf('exportCivicRowsToGoogleSheet({');
+  check(
+    'workspace polls Google Sheet import without automatic export',
+    workspaceSource.includes('GOOGLE_SHEET_REFRESH_MS') &&
+      automaticImportIndex > explicitExportIndex &&
+      explicitExportIndex > -1,
+  );
+  check(
+    'GraphQL operation names include one-way import and explicit export',
+    source('src/lib/api/graphql/queries/google-workspace.graphql').includes(
+      'mutation SyncGoogleSheetCivicRows',
+    ) &&
+      source('src/lib/api/graphql/queries/google-workspace.graphql').includes(
+        'mutation ExportCivicRowsToGoogleSheet',
+      ),
   );
 
   if (failures > 0) {

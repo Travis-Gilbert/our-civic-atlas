@@ -508,6 +508,92 @@ export function ingestCivicObjectsBySourceId(
   return added;
 }
 
+export interface CivicExternalHydrateResult {
+  inserted: number;
+  updated: number;
+  unchanged: number;
+}
+
+const EXTERNAL_HYDRATE_KEYS = CIVIC_OBJECT_COLUMNS.filter(
+  (column) => column.scope !== 'planning',
+).map((column) => column.key);
+
+function isHydratableExternalValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+function civicValueEqual(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+function externalHydrateFields(row: CivicObjectFields): CivicObjectFields {
+  const fields: Partial<Record<CivicFieldKey, unknown>> = {};
+  for (const key of EXTERNAL_HYDRATE_KEYS) {
+    const value = row[key as keyof CivicObjectFields];
+    if (isHydratableExternalValue(value)) fields[key] = value;
+  }
+  return fields as CivicObjectFields;
+}
+
+/**
+ * External source hydrate (Google Sheets v1): insert new sourceId rows and
+ * update existing non-planning fields. Planning fields remain organizer-owned
+ * BlockSuite state until an explicit export writes them to Google.
+ */
+export function hydrateCivicObjectsFromExternalSource(
+  handles: CivicDatabaseHandles,
+  rows: readonly CivicObjectFields[],
+): CivicExternalHydrateResult {
+  const existingBySourceId = new Map(
+    readCivicObjects(handles)
+      .map((row) => [row.fields.sourceId, row] as const)
+      .filter((entry): entry is [string, CivicObjectRow] => typeof entry[0] === 'string'),
+  );
+  let inserted = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const row of rows) {
+    const hydratableRow = externalHydrateFields(row);
+    const sourceId = hydratableRow.sourceId;
+    const existing = sourceId ? existingBySourceId.get(sourceId) : undefined;
+    if (!existing) {
+      const rowId = insertCivicObject(handles, hydratableRow);
+      if (sourceId) {
+        existingBySourceId.set(sourceId, {
+          rowId,
+          title: civicObjectTitle(hydratableRow),
+          fields: { ...hydratableRow },
+        });
+      }
+      inserted += 1;
+      continue;
+    }
+
+    let wrote = false;
+    const existingFields = existing.fields as Partial<Record<CivicFieldKey, unknown>>;
+    for (const key of EXTERNAL_HYDRATE_KEYS) {
+      if (key === 'sourceId') continue;
+      const value = hydratableRow[key as keyof CivicObjectFields];
+      if (!isHydratableExternalValue(value)) continue;
+      if (civicValueEqual(existingFields[key], value)) continue;
+      updateCivicObjectField(handles, existing.rowId, key, value);
+      existingFields[key] = value;
+      wrote = true;
+    }
+    if (wrote) {
+      updated += 1;
+    } else {
+      unchanged += 1;
+    }
+  }
+
+  return { inserted, updated, unchanged };
+}
+
 export interface CivicObjectRow {
   rowId: string;
   title: string;

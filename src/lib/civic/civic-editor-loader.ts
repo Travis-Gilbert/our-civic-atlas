@@ -26,6 +26,11 @@ export interface CivicStoreApi {
   }>;
   update(rowId: string, key: string, value: unknown): void;
   ingestLedgerRows(rows: CivicObjectFields[]): number;
+  hydrateExternalRows(rows: CivicObjectFields[]): {
+    inserted: number;
+    updated: number;
+    unchanged: number;
+  };
   onChange(listener: () => void): () => void;
 }
 
@@ -69,6 +74,12 @@ export interface CivicWorkspaceMounted {
   deleteNote(docId: string): boolean;
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;
+  /** Whether the active workspace doc has a local undo step. */
+  canUndo(): boolean;
+  /** Undo the active workspace doc's last local edit. */
+  undo(): boolean;
+  /** Active-doc history changes, including doc switches and undo stack updates. */
+  onHistoryChanged(listener: () => void): () => void;
   /**
    * Drive the applications database block's active view (table | kanban) from
    * the workspace segment control. The native BlockSuite view switcher is

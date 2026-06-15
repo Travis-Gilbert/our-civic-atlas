@@ -19,3 +19,6 @@ test-results/
 
 # Generated PorchFest board dashboard (npm run build:dashboard)
 /public/porchfest-dashboard/
+
+# Local data snapshots (yjs workspace backups)
+backup/

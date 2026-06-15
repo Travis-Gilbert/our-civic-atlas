@@ -807,6 +807,14 @@ type Query {
     replyState: EventEmailReplyState
   ): [EventEmailOutreach!]!
 
+  """Server-owned Google Workspace connection status for the event planner.
+  The browser never receives Google refresh tokens or Gmail/Sheets access
+  tokens. CONNECTED means the backend has enough env/config to call Google APIs."""
+  googleWorkspaceConnection(
+    tenantSlug: String! = "flint"
+    eventSlug: String!
+  ): GoogleWorkspaceConnection!
+
   # ---- Phase 3: notes + bookmarks ----
 
   placementNotes(
@@ -983,6 +991,50 @@ type EventEmailOutreach {
   version: Int!
 }
 
+"""Backend-owned Google Workspace connection status. Status is intentionally
+operator-readable, not a token/account object."""
+type GoogleWorkspaceConnection {
+  tenantSlug: String!
+  eventSlug: String!
+  status: String!
+  googleAccountEmail: String
+  scopes: [String!]!
+  sheetsConfigured: Boolean!
+  gmailConfigured: Boolean!
+  linkedSpreadsheetId: String
+  defaultSheetRange: String
+  lastCheckedAt: DateTime
+  message: String
+}
+
+"""One normalized civic row read from Google Sheets. `fields` uses the same
+keys as CivicObjectFields / the BlockSuite civic database columns."""
+type GoogleSheetCivicRow {
+  sourceId: String!
+  rowNumber: Int!
+  targetKind: String!
+  fields: JSON!
+  rowHash: String!
+}
+
+type GoogleSheetSyncResult {
+  connection: GoogleWorkspaceConnection!
+  rows: [GoogleSheetCivicRow!]!
+  rowCount: Int!
+  importedAt: DateTime
+  message: String
+}
+
+type GoogleSheetExportResult {
+  connection: GoogleWorkspaceConnection!
+  dryRun: Boolean!
+  rowCount: Int!
+  updatedRange: String
+  updatedCells: Int!
+  exportedAt: DateTime
+  message: String
+}
+
 # -----------------------------------------------------------------------------
 # Mutation (write paths)
 # -----------------------------------------------------------------------------
@@ -1048,6 +1100,13 @@ type Mutation {
   configureEventEmailChannel(input: EventEmailChannelConfigureInput!): EventEmailChannelMutationResult!
   sendEventApplicationEmail(input: EventApplicationEmailSendInput!): EventEmailOutreachMutationResult!
   updateEventEmailOutreach(input: EventEmailOutreachUpdateInput!): EventEmailOutreachMutationResult!
+  """Explicit inbound pull: Google Sheet -> backend -> BlockSuite hydrate.
+  This reads the configured Google Sheet and returns normalized civic rows;
+  it does not write back to Google."""
+  syncGoogleSheetCivicRows(input: GoogleSheetSyncInput!): GoogleSheetSyncResult!
+  """Explicit outbound push: BlockSuite rows -> backend -> Google Sheet.
+  This is never called automatically. Use dryRun=true for preview/diff flows."""
+  exportCivicRowsToGoogleSheet(input: ExportCivicRowsToGoogleSheetInput!): GoogleSheetExportResult!
 
   # ---- Phase 3 ----
 
@@ -1311,6 +1370,30 @@ input EventEmailOutreachUpdateInput {
   deliveryState: EventEmailDeliveryState
   replyState: EventEmailReplyState
   notesDocId: ID
+}
+
+input GoogleSheetSyncInput {
+  tenantSlug: String = "flint"
+  eventSlug: String = "porchfest-2026"
+  spreadsheetId: String
+  range: String
+  targetKind: String = "applications"
+}
+
+input GoogleSheetCivicRowInput {
+  sourceId: String
+  fields: JSON!
+}
+
+input ExportCivicRowsToGoogleSheetInput {
+  tenantSlug: String = "flint"
+  eventSlug: String = "porchfest-2026"
+  spreadsheetId: String
+  range: String
+  targetKind: String = "applications"
+  rows: [GoogleSheetCivicRowInput!]!
+  """When true, return the export count/range without writing to Google."""
+  dryRun: Boolean = true
 }
 
 # -----------------------------------------------------------------------------
@@ -1920,4 +2003,70 @@ extend type Query {
   status is FIXTURE_FALLBACK and segments carry FIXTURE / PENDING_LIVE_SOURCE
   sourceStatus: the engine never reports LIVE for a fixture segment."""
   trafficRealtime(networkId: ID!): TrafficRealtimeSnapshot!
+}
+
+# -----------------------------------------------------------------------------
+# Extension: Run-of-show set-time projection (durable festival schedule)
+# -----------------------------------------------------------------------------
+#
+# The civic planning store (Yjs civic objects) is the system of record for the
+# organizer-set set time per placement, held as free text (e.g. "14:00-14:45").
+# This is the one-way, derived Postgres projection of the PARSED window (minutes
+# from the festival start, the run-of-show cursor t), so the schedule survives as
+# queryable durable data for reporting and cross-system reads, not only as CRDT
+# free text. The planner pushes via projectEventSetTimes; nothing writes back to
+# the CRDT. Resolver: our-civic-atlas-backend
+# crates/civic-atlas-server/src/graphql/event_set_time.rs (migration 0027,
+# event_set_time_projections; tenant-isolated by RLS, the same projection shape
+# as event_email_outreach).
+
+"""One act's durable set-time window, projected from the planning CRDT."""
+type EventSetTimeProjection {
+  id: ID!
+  eventLayerId: ID!
+  """Civic object provenance key (the planning store sourceId)."""
+  sourceKey: String!
+  actName: String!
+  """Original free text the organizer entered, e.g. "14:00-14:45"."""
+  setTimeRaw: String
+  """Parsed window, minutes from the festival start (the run-of-show cursor)."""
+  startMinute: Int!
+  endMinute: Int!
+  projectedAt: String
+  version: Int!
+}
+
+input EventSetTimeProjectionInput {
+  sourceKey: String!
+  actName: String!
+  setTimeRaw: String
+  startMinute: Int!
+  endMinute: Int!
+}
+
+input ProjectEventSetTimesInput {
+  eventSlug: String!
+  projections: [EventSetTimeProjectionInput!]!
+  """Full-snapshot semantics: when true, projections absent from this batch are
+  removed for the layer. Default false (upsert only)."""
+  pruneMissing: Boolean
+}
+
+type ProjectEventSetTimesResult {
+  projections: [EventSetTimeProjection!]!
+  upserted: Int!
+  pruned: Int!
+}
+
+extend type Query {
+  """The durable set-time schedule projected for an event layer, ordered by
+  start time. Empty until the planner has pushed at least once."""
+  eventSetTimeProjections(eventSlug: String!): [EventSetTimeProjection!]!
+}
+
+extend type Mutation {
+  """One-way push of the run-of-show schedule from the planning CRDT into the
+  durable Postgres projection. Upserts each act by sourceKey; pruneMissing also
+  removes acts no longer in the snapshot."""
+  projectEventSetTimes(input: ProjectEventSetTimesInput!): ProjectEventSetTimesResult!
 }

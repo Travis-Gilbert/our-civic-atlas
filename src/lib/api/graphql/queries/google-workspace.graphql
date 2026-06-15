@@ -1,0 +1,68 @@
+# Google Workspace sync for the PorchFest planning workspace.
+#
+# Direction is intentional:
+# - syncGoogleSheetCivicRows: Google Sheets -> backend -> BlockSuite hydrate
+# - exportCivicRowsToGoogleSheet: BlockSuite -> backend -> Google Sheets, only
+#   from an explicit organizer action.
+
+query GoogleWorkspaceConnection(
+  $tenantSlug: String! = "flint"
+  $eventSlug: String!
+) {
+  googleWorkspaceConnection(tenantSlug: $tenantSlug, eventSlug: $eventSlug) {
+    tenantSlug
+    eventSlug
+    status
+    googleAccountEmail
+    scopes
+    sheetsConfigured
+    gmailConfigured
+    linkedSpreadsheetId
+    defaultSheetRange
+    lastCheckedAt
+    message
+  }
+}
+
+mutation SyncGoogleSheetCivicRows($input: GoogleSheetSyncInput!) {
+  syncGoogleSheetCivicRows(input: $input) {
+    rowCount
+    importedAt
+    message
+    connection {
+      status
+      googleAccountEmail
+      sheetsConfigured
+      gmailConfigured
+      linkedSpreadsheetId
+      defaultSheetRange
+      message
+    }
+    rows {
+      sourceId
+      rowNumber
+      targetKind
+      fields
+      rowHash
+    }
+  }
+}
+
+mutation ExportCivicRowsToGoogleSheet($input: ExportCivicRowsToGoogleSheetInput!) {
+  exportCivicRowsToGoogleSheet(input: $input) {
+    dryRun
+    rowCount
+    updatedRange
+    updatedCells
+    exportedAt
+    message
+    connection {
+      status
+      googleAccountEmail
+      sheetsConfigured
+      linkedSpreadsheetId
+      defaultSheetRange
+      message
+    }
+  }
+}

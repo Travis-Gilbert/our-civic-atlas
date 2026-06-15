@@ -1,0 +1,35 @@
+# Run-of-show set-time projection (durable festival schedule).
+#
+# One-way push of the parsed run-of-show schedule from the planning CRDT into
+# the Postgres projection (schema Extension "Run-of-show set-time projection" +
+# backend migration 0027). The planner only pushes; the query reads it back for
+# reporting and cross-system reads.
+
+mutation ProjectEventSetTimes($input: ProjectEventSetTimesInput!) {
+  projectEventSetTimes(input: $input) {
+    upserted
+    pruned
+    projections {
+      id
+      sourceKey
+      actName
+      startMinute
+      endMinute
+      projectedAt
+      version
+    }
+  }
+}
+
+query EventSetTimeProjections($eventSlug: String!) {
+  eventSetTimeProjections(eventSlug: $eventSlug) {
+    id
+    sourceKey
+    actName
+    setTimeRaw
+    startMinute
+    endMinute
+    projectedAt
+    version
+  }
+}

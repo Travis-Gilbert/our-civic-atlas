@@ -19,16 +19,21 @@
 import {
   type FormEvent,
   type TouchEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { useMutation, useQuery } from "urql";
+import { CloudDownload, CloudUpload, Undo2 } from "lucide-react";
 
 import {
   EventApplicationsDocument,
+  ExportCivicRowsToGoogleSheetDocument,
+  GoogleWorkspaceConnectionDocument,
   RequestEventApplicationBillingDocument,
+  SyncGoogleSheetCivicRowsDocument,
   type EventApplicationsQuery,
 } from "@/lib/api/graphql/generated/graphql";
 import { PlannerClientProvider } from "@/lib/api/graphql/PlannerClientProvider";
@@ -54,6 +59,7 @@ import {
 
 const EVENT_SLUG = "porchfest-2026";
 const APPLICATION_LEDGER_REFRESH_MS = 15_000;
+const GOOGLE_SHEET_REFRESH_MS = 60_000;
 
 type EventApplicationRow = EventApplicationsQuery["eventApplications"][number];
 type CivicWorkspaceRow = ReturnType<CivicStoreApi["list"]>[number];
@@ -114,6 +120,11 @@ type BillingNotice =
   | { kind: "success"; message: string; link?: string }
   | { kind: "error"; message: string };
 
+type GoogleSyncNotice =
+  | { kind: "idle"; message: string }
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string };
+
 interface BillingSnapshot {
   billingRef?: string;
   paymentLinkUrl?: string;
@@ -126,6 +137,32 @@ function parseAmountCents(value: string): number | null {
   const amount = Number(normalized);
   if (!Number.isFinite(amount) || amount <= 0) return null;
   return Math.round(amount * 100);
+}
+
+function googleFieldsToCivicFields(row: {
+  sourceId: string;
+  fields: unknown;
+}): CivicObjectFields | null {
+  const fields = objectValue(row.fields);
+  if (!fields) return null;
+  return {
+    category: "other",
+    ...(fields as Partial<CivicObjectFields>),
+    sourceId: row.sourceId,
+  } as CivicObjectFields;
+}
+
+function rowsForGoogleExport(rows: readonly CivicWorkspaceRow[]) {
+  return rows.map((row) => {
+    const sourceId = row.fields.sourceId ?? `civic-row:${row.rowId}`;
+    return {
+      sourceId,
+      fields: {
+        ...row.fields,
+        sourceId,
+      },
+    };
+  });
 }
 
 function formatCurrency(cents: number): string {
@@ -650,6 +687,7 @@ function WorkspaceInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MountState>({ kind: "loading" });
   const mountedRef = useRef(false);
+  const apiRef = useRef<CivicWorkspaceMounted | null>(null);
   const [docs, setDocs] = useState<CivicDocSummary[]>([]);
   const [currentDocId, setCurrentDocId] = useState("");
   const [mobileRows, setMobileRows] = useState<CivicWorkspaceRow[]>([]);
@@ -668,11 +706,18 @@ function WorkspaceInner() {
   >(() => new Set(DEFAULT_MOBILE_COLUMNS));
   const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [billingAmount, setBillingAmount] = useState("");
   const [billingNotice, setBillingNotice] = useState<BillingNotice>({
     kind: "idle",
   });
+  const [googleNotice, setGoogleNotice] = useState<GoogleSyncNotice>({
+    kind: "idle",
+    message: "Google sync ready",
+  });
+  const [lastGoogleSyncAt, setLastGoogleSyncAt] = useState<string | null>(null);
+  const googleSyncInFlightRef = useRef(false);
   const networkOnline = useNetworkStatus();
 
   const [applicationsResult, reexecuteApplications] = useQuery({
@@ -681,6 +726,15 @@ function WorkspaceInner() {
   });
   const [billingResult, requestBilling] = useMutation(
     RequestEventApplicationBillingDocument,
+  );
+  const [googleConnectionResult, reexecuteGoogleConnection] = useQuery({
+    query: GoogleWorkspaceConnectionDocument,
+    variables: { eventSlug: EVENT_SLUG },
+    requestPolicy: "cache-and-network",
+  });
+  const [, syncGoogleSheet] = useMutation(SyncGoogleSheetCivicRowsDocument);
+  const [googleExportResult, exportCivicRowsToGoogleSheet] = useMutation(
+    ExportCivicRowsToGoogleSheetDocument,
   );
 
   useEffect(() => {
@@ -717,6 +771,20 @@ function WorkspaceInner() {
     () => docs.find((doc) => doc.id === currentDocId) ?? null,
     [docs, currentDocId],
   );
+  const googleConnection =
+    googleConnectionResult.data?.googleWorkspaceConnection ?? null;
+  const googleSheetsConfigured = Boolean(googleConnection?.sheetsConfigured);
+  const googleStatus = googleConnectionResult.fetching
+    ? "Checking Google Workspace"
+    : googleConnectionResult.error?.message ??
+      googleConnection?.message ??
+      "Google Sheets sync is not configured";
+  const lastGoogleSyncLabel = lastGoogleSyncAt
+    ? new Date(lastGoogleSyncAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
 
   const toggleMobileColumn = (key: MobileColumnKey) => {
     setVisibleMobileColumns((current) => {
@@ -811,8 +879,124 @@ function WorkspaceInner() {
     });
   }
 
+  const runGoogleSheetImport = useCallback(
+    async (mode: "auto" | "manual") => {
+      if (googleSyncInFlightRef.current) return;
+      const mounted = apiRef.current;
+      if (!mounted || state.kind !== "ready") return;
+      if (!googleSheetsConfigured) {
+        if (mode === "manual") {
+          setGoogleNotice({
+            kind: "error",
+            message:
+              googleConnection?.message ?? "Google Sheets sync is not configured",
+          });
+        }
+        return;
+      }
+
+      googleSyncInFlightRef.current = true;
+      if (mode === "manual") {
+        setGoogleNotice({ kind: "idle", message: "Syncing from Google" });
+      }
+      try {
+        const result = await syncGoogleSheet({
+          input: {
+            eventSlug: EVENT_SLUG,
+            targetKind: "applications",
+          },
+        });
+        if (result.error) {
+          setGoogleNotice({
+            kind: "error",
+            message: result.error.message,
+          });
+          return;
+        }
+        const payload = result.data?.syncGoogleSheetCivicRows;
+        if (!payload) {
+          setGoogleNotice({
+            kind: "error",
+            message: "Google sync returned no rows.",
+          });
+          return;
+        }
+        const rows = payload.rows.flatMap((row) => {
+          const fields = googleFieldsToCivicFields(row);
+          return fields ? [fields] : [];
+        });
+        const hydrated = mounted.api.hydrateExternalRows(rows);
+        if (rows.length > 0) {
+          setMobileRows(mounted.api.list());
+        }
+        setLastGoogleSyncAt(payload.importedAt ?? new Date().toISOString());
+        setGoogleNotice({
+          kind: "success",
+          message: `Google imported ${payload.rowCount} row(s): ${hydrated.inserted} new, ${hydrated.updated} updated.`,
+        });
+        reexecuteGoogleConnection({ requestPolicy: "network-only" });
+      } finally {
+        googleSyncInFlightRef.current = false;
+      }
+    },
+    [
+      googleConnection?.message,
+      googleSheetsConfigured,
+      reexecuteGoogleConnection,
+      state.kind,
+      syncGoogleSheet,
+    ],
+  );
+
+  const handleExportToGoogleSheet = async () => {
+    const mounted = apiRef.current;
+    if (!mounted) return;
+    if (!googleSheetsConfigured) {
+      setGoogleNotice({
+        kind: "error",
+        message:
+          googleConnection?.message ?? "Google Sheets export is not configured",
+      });
+      return;
+    }
+    const rows = rowsForGoogleExport(mounted.api.list());
+    const confirmed = window.confirm(
+      `Update the configured Google Sheet with ${rows.length} workspace row(s)?`,
+    );
+    if (!confirmed) return;
+
+    setGoogleNotice({ kind: "idle", message: "Updating Google Sheet" });
+    const result = await exportCivicRowsToGoogleSheet({
+      input: {
+        eventSlug: EVENT_SLUG,
+        targetKind: "applications",
+        rows,
+        dryRun: false,
+      },
+    });
+    if (result.error) {
+      setGoogleNotice({
+        kind: "error",
+        message: result.error.message,
+      });
+      return;
+    }
+    const payload = result.data?.exportCivicRowsToGoogleSheet;
+    if (!payload) {
+      setGoogleNotice({
+        kind: "error",
+        message: "Google export returned no result.",
+      });
+      return;
+    }
+    setGoogleNotice({
+      kind: "success",
+      message: `Updated ${payload.rowCount} row(s) in Google Sheets.`,
+    });
+    reexecuteGoogleConnection({ requestPolicy: "network-only" });
+  };
+
   // Mount the editor bundle once.
-  const apiRef = useRef<CivicWorkspaceMounted | null>(null);
   useEffect(() => {
     if (mountedRef.current || !containerRef.current) return;
     mountedRef.current = true;
@@ -820,6 +1004,7 @@ function WorkspaceInner() {
     let offChange: (() => void) | undefined;
 
     let offDocs: (() => void) | undefined;
+    let offHistory: (() => void) | undefined;
     loadCivicBridge()
       .then((bridge) => bridge.mount(containerRef.current as HTMLElement))
       .then((mounted) => {
@@ -846,8 +1031,11 @@ function WorkspaceInner() {
           setCurrentDocId(mounted.currentDocId());
         };
         offDocs = mounted.onDocsChanged(refreshDocs);
+        const refreshHistory = () => setCanUndo(mounted.canUndo());
+        offHistory = mounted.onHistoryChanged(refreshHistory);
         refreshDocs();
         refresh();
+        refreshHistory();
       })
       .catch((error: unknown) => {
         setState({
@@ -860,6 +1048,7 @@ function WorkspaceInner() {
       disposed = true;
       offChange?.();
       offDocs?.();
+      offHistory?.();
       apiRef.current?.destroy();
       apiRef.current = null;
     };
@@ -887,8 +1076,18 @@ function WorkspaceInner() {
   const handleOpenDoc = (docId: string) => {
     apiRef.current?.openDoc(docId);
     setCurrentDocId(docId);
+    setCanUndo(apiRef.current?.canUndo() ?? false);
     setDeleteNotice(null);
     setCreateMenuOpen(false);
+  };
+
+  const handleUndo = () => {
+    const mounted = apiRef.current;
+    if (!mounted?.undo()) return;
+    setMobileRows(mounted.api.list());
+    setDocs(mounted.docs());
+    setCurrentDocId(mounted.currentDocId());
+    setCanUndo(mounted.canUndo());
   };
 
   const handleNewNote = () => {
@@ -947,6 +1146,15 @@ function WorkspaceInner() {
       setMobileRows(mounted.api.list());
     }
   }, [applicationsResult.data, state.kind]);
+
+  useEffect(() => {
+    if (state.kind !== "ready" || !googleSheetsConfigured) return;
+    void runGoogleSheetImport("auto");
+    const interval = window.setInterval(() => {
+      void runGoogleSheetImport("auto");
+    }, GOOGLE_SHEET_REFRESH_MS);
+    return () => window.clearInterval(interval);
+  }, [googleSheetsConfigured, runGoogleSheetImport, state.kind]);
 
   return (
     <div className="civic-workspace-shell">
@@ -1017,35 +1225,80 @@ function WorkspaceInner() {
             {deleteNotice}
           </span>
         ) : null}
-        {currentDoc?.kind === "applications" ||
-        currentDoc?.kind === "tasks" ? (
-          <div
-            className="civic-workspace-viewseg"
-            role="group"
-            aria-label="Database view"
+        <div className="civic-workspace-actions">
+          {currentDoc?.kind === "applications" ||
+          currentDoc?.kind === "tasks" ? (
+            <div
+              className="civic-workspace-viewseg"
+              role="group"
+              aria-label="Database view"
+            >
+              <button
+                type="button"
+                data-active={dbView === "table" || undefined}
+                aria-pressed={dbView === "table"}
+                onClick={() => setDbView("table")}
+              >
+                Table
+              </button>
+              <button
+                type="button"
+                data-active={dbView === "kanban" || undefined}
+                aria-pressed={dbView === "kanban"}
+                onClick={() => setDbView("kanban")}
+              >
+                Kanban
+              </button>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className="civic-workspace-history-button"
+            aria-label="Undo last workspace edit"
+            title="Undo"
+            onClick={handleUndo}
+            disabled={state.kind !== "ready" || !canUndo}
           >
-            <button
-              type="button"
-              data-active={dbView === "table" || undefined}
-              aria-pressed={dbView === "table"}
-              onClick={() => setDbView("table")}
-            >
-              Table
-            </button>
-            <button
-              type="button"
-              data-active={dbView === "kanban" || undefined}
-              aria-pressed={dbView === "kanban"}
-              onClick={() => setDbView("kanban")}
-            >
-              Kanban
-            </button>
-          </div>
-        ) : null}
+            <Undo2 aria-hidden="true" size={16} strokeWidth={2} />
+          </button>
+        </div>
       </div>
       <div className="civic-weather-band">
         <PorchfestForecastCard />
       </div>
+      <section className="civic-google-band" aria-label="Google Workspace sync">
+        <div className="civic-google-status" data-kind={googleNotice.kind}>
+          <span>{googleStatus}</span>
+          {lastGoogleSyncLabel ? <span>Last sync {lastGoogleSyncLabel}</span> : null}
+          {googleNotice.message ? <span>{googleNotice.message}</span> : null}
+        </div>
+        <div className="civic-google-actions">
+          <button
+            type="button"
+            className="civic-google-button"
+            onClick={() => void runGoogleSheetImport("manual")}
+            disabled={state.kind !== "ready" || !googleSheetsConfigured}
+          >
+            <CloudDownload aria-hidden="true" size={16} strokeWidth={2} />
+            <span>Sync from Google</span>
+          </button>
+          <button
+            type="button"
+            className="civic-google-button civic-google-button--write"
+            onClick={() => void handleExportToGoogleSheet()}
+            disabled={
+              state.kind !== "ready" ||
+              !googleSheetsConfigured ||
+              googleExportResult.fetching
+            }
+          >
+            <CloudUpload aria-hidden="true" size={16} strokeWidth={2} />
+            <span>
+              {googleExportResult.fetching ? "Updating" : "Update Google Sheet"}
+            </span>
+          </button>
+        </div>
+      </section>
       <form className="civic-billing-band" onSubmit={handleBillingRequest}>
         <div className="civic-billing-field civic-billing-field--application">
           <label htmlFor="civic-billing-application">Application</label>
@@ -1216,9 +1469,14 @@ function WorkspaceInner() {
         /* View segment control (Lane 1c): owns table/kanban switching now that
            the native BlockSuite switcher is hidden. Anchored right on the
            strip; reads as a compact pill in the Observable register. */
-        .civic-workspace-viewseg {
+        .civic-workspace-actions {
           display: inline-flex;
           margin-left: auto;
+          align-items: center;
+          gap: 6px;
+        }
+        .civic-workspace-viewseg {
+          display: inline-flex;
           padding: 2px;
           border: 1px solid #e2e2e2;
           border-radius: 9999px;
@@ -1245,6 +1503,29 @@ function WorkspaceInner() {
         .civic-workspace-viewseg button[data-active] {
           background: #f1f6fb;
           color: #005186;
+        }
+        .civic-workspace-history-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          padding: 0;
+          border: 1px solid #e2e2e2;
+          border-radius: 9999px;
+          background: #ffffff;
+          color: #1c1c1c;
+          cursor: pointer;
+        }
+        .civic-workspace-history-button:hover:not(:disabled) {
+          border-color: #005186;
+          color: #005186;
+          background: #f1f6fb;
+        }
+        .civic-workspace-history-button:disabled {
+          color: #b8b8b8;
+          cursor: default;
+          background: #f5f5f5;
         }
         .civic-workspace-doctab {
           display: inline-flex;
@@ -1378,6 +1659,77 @@ function WorkspaceInner() {
            tab strip, never a centerpiece card. */
         .civic-weather-band {
           padding: 4px 24px 8px;
+        }
+        .civic-google-band {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 6px 24px;
+          border-top: 1px solid #eeeeee;
+          background: #fbfbfb;
+        }
+        .civic-google-status {
+          display: flex;
+          min-width: 0;
+          align-items: center;
+          gap: 10px;
+          color: #454545;
+          font-size: 12px;
+          line-height: 16px;
+        }
+        .civic-google-status span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .civic-google-status[data-kind="success"] span:last-child {
+          color: #005186;
+          font-weight: 700;
+        }
+        .civic-google-status[data-kind="error"] span:last-child {
+          color: #9f1f1f;
+          font-weight: 700;
+        }
+        .civic-google-actions {
+          display: inline-flex;
+          flex: 0 0 auto;
+          align-items: center;
+          gap: 8px;
+        }
+        .civic-google-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          min-height: 32px;
+          padding: 0 12px;
+          border: 1px solid #cfcfcf;
+          border-radius: 2px;
+          background: #ffffff;
+          color: #1c1c1c;
+          font-family: var(--font-mono, inherit);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .civic-google-button:hover:not(:disabled) {
+          border-color: #005186;
+          color: #005186;
+          background: #f1f6fb;
+        }
+        .civic-google-button--write {
+          border-color: #1c1c1c;
+        }
+        .civic-google-button:disabled {
+          border-color: #d7d7d7;
+          background: #f5f5f5;
+          color: #9a9a9a;
+          cursor: default;
         }
         .civic-billing-band {
           display: grid;
@@ -1540,6 +1892,31 @@ function WorkspaceInner() {
             padding-top: 5px;
             padding-bottom: 5px;
             font-size: 12px;
+          }
+          .civic-google-band {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 7px;
+            padding: 6px 10px;
+          }
+          .civic-google-status {
+            display: grid;
+            gap: 2px;
+            font-size: 11px;
+          }
+          .civic-google-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+          }
+          .civic-google-button {
+            min-width: 0;
+            padding: 0 8px;
+            font-size: 10px;
+          }
+          .civic-google-button span {
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
           .civic-billing-band {
             display: none;

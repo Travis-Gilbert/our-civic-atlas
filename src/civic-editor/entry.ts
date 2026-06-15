@@ -37,6 +37,7 @@ import {
   createCivicCollection,
   ensureCivicDatabase,
   ingestCivicObjectsBySourceId,
+  hydrateCivicObjectsFromExternalSource,
   insertCivicObject,
   readCivicObjects,
   updateCivicObjectField,
@@ -59,7 +60,6 @@ import {
   CIVIC_INBOX_DOC_ID,
   CIVIC_NOTES_DOC_ID,
   SEEDED_DOCS_MAP_KEY,
-  createCivicTaskListDoc,
   createInboxDoc,
   createOrganizerNoteDoc,
   listCivicWorkspaceDocs,
@@ -95,6 +95,12 @@ export interface CivicWorkspaceApi {
    * whose sourceId is not yet in the store. Returns how many were added.
    */
   ingestLedgerRows(rows: CivicObjectFields[]): number;
+  /** External source hydrate (Google Sheets): update non-planning fields. */
+  hydrateExternalRows(rows: CivicObjectFields[]): {
+    inserted: number;
+    updated: number;
+    unchanged: number;
+  };
   /** Subscribe to civic store changes (map binding, counters). */
   onChange(listener: () => void): () => void;
 }
@@ -133,6 +139,12 @@ export interface CivicWorkspaceMountResult {
   /** Doc list changes (creation, rename, deletion, sync arrivals). */
   onDocsChanged(listener: () => void): () => void;
   currentDocId(): string;
+  /** Whether the active workspace doc has a local undo step. */
+  canUndo(): boolean;
+  /** Undo the active workspace doc's last local edit. */
+  undo(): boolean;
+  /** Active-doc history changes, including doc switches and undo stack updates. */
+  onHistoryChanged(listener: () => void): () => void;
   /**
    * Drive the applications database block's active view from the workspace
    * segment control (Lane 1). The native BlockSuite view switcher is hidden
@@ -416,6 +428,8 @@ function openCivicCore(): Promise<CivicCore> {
           value,
         ),
       ingestLedgerRows: (rows) => ingestCivicObjectsBySourceId(handles, rows),
+      hydrateExternalRows: (rows) =>
+        hydrateCivicObjectsFromExternalSource(handles, rows),
       onChange: (listener) => {
         const subscription = handles.store.slots.blockUpdated.subscribe(() =>
           listener(),
@@ -483,6 +497,20 @@ export async function mountCivicWorkspace(
   container.append(editor);
 
   let activeDocId = CIVIC_EVENT_DOC_ID;
+  const historyListeners = new Set<() => void>();
+  let unsubscribeHistory: (() => void) | null = null;
+  const emitHistoryChanged = () => {
+    for (const listener of historyListeners) listener();
+  };
+  const bindActiveHistory = () => {
+    unsubscribeHistory?.();
+    const subscription = editor.doc.history.onUpdated.subscribe(() => {
+      emitHistoryChanged();
+    });
+    unsubscribeHistory = () => subscription.unsubscribe();
+    emitHistoryChanged();
+  };
+  bindActiveHistory();
 
   const openDoc = (docId: string) => {
     const doc = collection.getDoc(docId);
@@ -491,6 +519,7 @@ export async function mountCivicWorkspace(
     if (!doc.loaded) doc.load();
     editor.doc = store;
     activeDocId = docId;
+    bindActiveHistory();
   };
 
   const docs = (): CivicDocSummary[] =>
@@ -549,6 +578,21 @@ export async function mountCivicWorkspace(
     return () => subscription.unsubscribe();
   };
 
+  const canUndo = () => editor.doc.canUndo;
+  const undo = (): boolean => {
+    if (!editor.doc.canUndo) return false;
+    editor.doc.undo();
+    emitHistoryChanged();
+    return true;
+  };
+  const onHistoryChanged = (listener: () => void) => {
+    historyListeners.add(listener);
+    listener();
+    return () => {
+      historyListeners.delete(listener);
+    };
+  };
+
   // The applications database block exposes its live view manager through
   // dataSource.value (a lazy cell on the rendered element). The native view
   // switcher is hidden in civic-editor-theme.css, so this drives the active
@@ -602,8 +646,13 @@ export async function mountCivicWorkspace(
     deleteNote,
     onDocsChanged,
     currentDocId: () => activeDocId,
+    canUndo,
+    undo,
+    onHistoryChanged,
     switchView,
     destroy: () => {
+      unsubscribeHistory?.();
+      historyListeners.clear();
       editor.remove();
       if (window.__civicWorkspaceMounted === result) {
         window.__civicWorkspaceMounted = undefined;

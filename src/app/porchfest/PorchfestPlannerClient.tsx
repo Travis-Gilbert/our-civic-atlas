@@ -47,6 +47,7 @@ import { useNetworkStatus } from "@/lib/atlas/use-network-status";
 import { usePrefersReducedMotion } from "@/lib/atlas/use-prefers-reduced-motion";
 import { useTrafficRealtime } from "@/lib/atlas/use-traffic-realtime";
 import { useRunOfShowClock } from "@/lib/atlas/use-run-of-show-clock";
+import { useRunOfShowProjectionSync } from "@/lib/atlas/use-run-of-show-projection";
 import type { DeckLayerPointerDragHandler } from "@/components/atlas/AtlasMap";
 
 import { ResponsiveAtlasMap } from "@/components/atlas/ResponsiveAtlasMap";
@@ -2294,6 +2295,12 @@ function PorchfestPlannerWorkspace({
       ),
     [runOfShowPerformances],
   );
+  // One-way durable projection of the schedule (CRDT -> Postgres, best-effort).
+  useRunOfShowProjectionSync({
+    performances: runOfShowPerformances,
+    enabled: runOfShowEnabled,
+    eventSlug: EVENT_SLUG,
+  });
   const timedRunOfShowTasks = useMemo(
     () => [
       ...liveTasks.map(graphTaskToRunOfShowTask),
