@@ -128,6 +128,42 @@ assertIncludes(
 );
 assertIncludes(dashboardRoute, "src={DASHBOARD_INDEX}", "dashboard iframe");
 
+const boardData = read("src/components/porchfest-site/board-data.ts");
+assertIncludes(
+  boardData,
+  "SPONSORSHIP_FINANCE",
+  "PorchFest board sponsorship fallback",
+);
+assertIncludes(
+  boardData,
+  "askedCents: 2620000",
+  "PorchFest board asked fallback",
+);
+assertIncludes(
+  boardData,
+  "collectedCents: 500000",
+  "PorchFest board collected fallback",
+);
+
+const boardBaseline = read(
+  "src/components/porchfest-site/sections/board/Baseline.tsx",
+);
+assertIncludes(
+  boardBaseline,
+  "MONEY_DATA_PATH = '/porchfest-dashboard/data/money.json'",
+  "PorchFest board stable money feed",
+);
+assertIncludes(
+  boardBaseline,
+  "Sponsorship & Finance",
+  "PorchFest board finance tab label",
+);
+assertIncludes(
+  boardBaseline,
+  "normalizeFinance(data)",
+  "PorchFest board money normalizer",
+);
+
 const dashboardCopy = read("dashboard/src/index.md");
 const buildScript = read("scripts/build-dashboard.mjs");
 assertIncludes(

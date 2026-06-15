@@ -21,6 +21,23 @@ export const BUDGET = {
   spent: 0,
 };
 
+export const SPONSORSHIP_FINANCE = {
+  status: 'live',
+  source: 'sponsorship-csv-env',
+  currency: 'USD',
+  goalCents: BUDGET.goal * 100,
+  askedCents: 2620000,
+  promisedCents: 1100000,
+  collectedCents: 500000,
+  openPromisedCents: 600000,
+  sponsorRows: 31,
+  askedCount: 28,
+  promisedCount: 6,
+  collectedCount: 1,
+  porchesSponsored: 2,
+  asOf: '2026-06-15',
+};
+
 // KPI tiles shown next to the budget bar.
 // Update values by hand when a batch of new applications or inquiries comes in.
 export const KPIS = [
