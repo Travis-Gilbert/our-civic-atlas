@@ -1841,6 +1841,18 @@ function WorkspaceInner() {
         .civic-workspace-editor affine-editor-container {
           display: block;
           height: 100%;
+          /* Reclaim the oversized left gutter for the spreadsheet/content
+             column. AFFiNE centers page content with
+             "max-width: var(--affine-editor-width); margin: 0 auto" (default
+             944px), so the only lever is the column width: widening it shrinks
+             the centered margins, pulling the table and titles left into the
+             empty gutter and freeing the right side where the table was
+             crammed. The var is consumed inside the page-root shadow DOM and
+             inherits from here, winning on specificity. ~1100px reclaims about
+             15% of the left margin on a wide display; raise it for more, lower
+             for less. (--affine-editor-side-padding has no effect in this
+             layout, so it is intentionally not set here.) */
+          --affine-editor-width: 1100px;
         }
         /* Same height contract the upstream BlockSuite playground and
            AFFiNE apply to the page editor: a definite-height
