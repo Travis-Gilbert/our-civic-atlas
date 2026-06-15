@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import porchfestFixture from '../src/data/open-flint-atlas/fixtures/porchfest-2026.json';
 import {
+  RUN_OF_SHOW_DURATION_MINUTES,
+  RUN_OF_SHOW_PHASES,
+  RUN_OF_SHOW_PUBLIC_END_MINUTE,
+  RUN_OF_SHOW_PUBLIC_START_MINUTE,
   activeRunOfShowPerformances,
   buildRunOfShowPerformances,
   buildRunOfShowTrips,
@@ -70,32 +74,54 @@ const explicitRows = [
 ];
 
 const parsed = parseRunOfShowTimeWindow('5:30-6:15');
-check('parses festival wall-clock windows', parsed?.startMinute === 210 && parsed.endMinute === 255, parsed);
-check('formats cursor labels from the festival start', formatRunOfShowClock(180) === '5:00');
+check('uses 9 AM to 11 PM run-of-show coverage', RUN_OF_SHOW_DURATION_MINUTES === 14 * 60);
+check(
+  'keeps 5 PM to 10 PM as the public festival core',
+  RUN_OF_SHOW_PUBLIC_START_MINUTE === 8 * 60 && RUN_OF_SHOW_PUBLIC_END_MINUTE === 13 * 60,
+);
+check(
+  'phase labels disambiguate AM and PM across the long day',
+  RUN_OF_SHOW_PHASES[0]?.label === '9 AM' &&
+    RUN_OF_SHOW_PHASES.at(-1)?.label === '11 PM' &&
+    RUN_OF_SHOW_PHASES.some((phase) => phase.label === '5 PM'),
+  RUN_OF_SHOW_PHASES.map((phase) => phase.label),
+);
+check('parses festival wall-clock windows', parsed?.startMinute === 510 && parsed.endMinute === 555, parsed);
+check('formats the run-of-show day start', formatRunOfShowClock(0, { meridiem: true }) === '9:00 AM');
+check('formats evening act labels with meridiem', formatRunOfShowClock(480, { meridiem: true }) === '5:00 PM');
 check(
   'builds event-day Open-Meteo local hour keys',
-  runOfShowForecastHourKey(180) === '2026-07-17T17:00',
-  runOfShowForecastHourKey(180),
+  runOfShowForecastHourKey(480) === '2026-07-17T17:00',
+  runOfShowForecastHourKey(480),
 );
 
 const explicit = buildRunOfShowPerformances({ placements, civicRows: explicitRows });
 check('explicit set times create performances', explicit.length === 2, explicit);
 check(
   '5:00 active set comes from explicit row',
-  activeRunOfShowPerformances(explicit, 180).map((p) => p.actName).join(',') === 'North Porch Trio',
+  activeRunOfShowPerformances(explicit, 480).map((p) => p.actName).join(',') === 'North Porch Trio',
 );
 check(
   '6:00 active set changes from the same clock',
-  activeRunOfShowPerformances(explicit, 240).map((p) => p.actName).join(',') === 'Queen Street Brass',
+  activeRunOfShowPerformances(explicit, 540).map((p) => p.actName).join(',') === 'Queen Street Brass',
 );
 
 const draft = buildRunOfShowPerformances({ placements, civicRows: [] });
-const activeFive = activeRunOfShowPerformances(draft, 180).map((p) => p.placementId).sort();
-const activeSix = activeRunOfShowPerformances(draft, 240).map((p) => p.placementId).sort();
-const activeSeven = activeRunOfShowPerformances(draft, 300).map((p) => p.placementId).sort();
+const activeFive = activeRunOfShowPerformances(draft, 480).map((p) => p.placementId).sort();
+const activeSix = activeRunOfShowPerformances(draft, 540).map((p) => p.placementId).sort();
+const activeSeven = activeRunOfShowPerformances(draft, 600).map((p) => p.placementId).sort();
 check('fixture fallback produces draft stage performances', draft.some((p) => p.source === 'draft_stage'));
 check(
-  'draft 5/6/7 active sets differ',
+  'draft fallback fills the 5 PM to 10 PM festival core',
+  draft.every(
+    (performance) =>
+      performance.startMinute >= RUN_OF_SHOW_PUBLIC_START_MINUTE &&
+      performance.endMinute <= RUN_OF_SHOW_PUBLIC_END_MINUTE,
+  ),
+  draft,
+);
+check(
+  'draft 5/6/7 PM active sets differ',
   activeFive.join('|') !== activeSix.join('|') && activeSix.join('|') !== activeSeven.join('|'),
   { activeFive, activeSix, activeSeven },
 );
@@ -116,7 +142,7 @@ check(
       status: 'To do',
       dueAt: '2026-07-17T17:05:00-04:00',
     },
-    185,
+    485,
   ),
 );
 check(
@@ -128,7 +154,7 @@ check(
       status: 'Done',
       dueAt: '2026-07-17T17:05:00-04:00',
     },
-    185,
+    485,
   ),
 );
 

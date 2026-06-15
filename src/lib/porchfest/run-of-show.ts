@@ -21,6 +21,16 @@ export const RUN_OF_SHOW_DURATION_MINUTES =
   windowDurationMinutes(RUN_OF_SHOW_WINDOW);
 export const RUN_OF_SHOW_SNAP_MINUTES = SNAP_STEP_MINUTES;
 export const RUN_OF_SHOW_DEFAULT_SET_LENGTH_MINUTES = DEFAULT_SET_MINUTES;
+export const RUN_OF_SHOW_PUBLIC_START_MINUTE_OF_DAY = 17 * 60;
+export const RUN_OF_SHOW_PUBLIC_END_MINUTE_OF_DAY = 22 * 60;
+export const RUN_OF_SHOW_PUBLIC_START_MINUTE = clampT(
+  RUN_OF_SHOW_PUBLIC_START_MINUTE_OF_DAY - RUN_OF_SHOW_WINDOW.startMinuteOfDay,
+  RUN_OF_SHOW_WINDOW,
+);
+export const RUN_OF_SHOW_PUBLIC_END_MINUTE = clampT(
+  RUN_OF_SHOW_PUBLIC_END_MINUTE_OF_DAY - RUN_OF_SHOW_WINDOW.startMinuteOfDay,
+  RUN_OF_SHOW_WINDOW,
+);
 
 export type RunOfShowScheduleSource =
   | "set_time"
@@ -88,7 +98,9 @@ export const RUN_OF_SHOW_PHASES: readonly RunOfShowPhase[] = phaseTicks(
   RUN_OF_SHOW_SNAP_MINUTES,
 ).map((phase) => ({
   minute: phase.t,
-  label: phase.label,
+  label: phase.isHour
+    ? formatClock(phase.minuteOfDay, { meridiem: true }).replace(":00", "")
+    : formatClock(phase.minuteOfDay, { meridiem: true }),
 }));
 
 function pointFromGeometry(
@@ -131,8 +143,11 @@ export function nearestRunOfShowSnap(value: number): number {
   );
 }
 
-export function formatRunOfShowClock(minute: number): string {
-  return formatClock(tToMinuteOfDay(minute, RUN_OF_SHOW_WINDOW));
+export function formatRunOfShowClock(
+  minute: number,
+  options?: { readonly meridiem?: boolean },
+): string {
+  return formatClock(tToMinuteOfDay(minute, RUN_OF_SHOW_WINDOW), options);
 }
 
 export function runOfShowForecastHourKey(minute: number): string {
@@ -160,6 +175,22 @@ function byStartThenName(
     a.startMinute - b.startMinute ||
     a.endMinute - b.endMinute ||
     a.actName.localeCompare(b.actName)
+  );
+}
+
+function draftStageStartMinute(index: number): number {
+  const publicWindowMinutes = Math.max(
+    RUN_OF_SHOW_DEFAULT_SET_LENGTH_MINUTES,
+    RUN_OF_SHOW_PUBLIC_END_MINUTE - RUN_OF_SHOW_PUBLIC_START_MINUTE,
+  );
+  const slotCount = Math.max(
+    1,
+    Math.floor(publicWindowMinutes / RUN_OF_SHOW_DEFAULT_SET_LENGTH_MINUTES),
+  );
+  return Math.min(
+    RUN_OF_SHOW_DURATION_MINUTES,
+    RUN_OF_SHOW_PUBLIC_START_MINUTE +
+      (index % slotCount) * RUN_OF_SHOW_DEFAULT_SET_LENGTH_MINUTES,
   );
 }
 
@@ -227,7 +258,7 @@ export function buildRunOfShowPerformances({
 
   return draftStages
     .map(({ placement, point }, index) => {
-      const startMinute = (index % 5) * 60;
+      const startMinute = draftStageStartMinute(index);
       return {
         id: `draft-stage:${placement.id}`,
         actName: placement.label,

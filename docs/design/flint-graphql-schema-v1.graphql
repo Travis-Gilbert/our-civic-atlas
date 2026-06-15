@@ -2010,7 +2010,7 @@ extend type Query {
 # -----------------------------------------------------------------------------
 #
 # The civic planning store (Yjs civic objects) is the system of record for the
-# organizer-set set time per placement, held as free text (e.g. "14:00-14:45").
+# organizer-set set time per placement, held as free text (e.g. "17:00-17:45").
 # This is the one-way, derived Postgres projection of the PARSED window (minutes
 # from the festival start, the run-of-show cursor t), so the schedule survives as
 # queryable durable data for reporting and cross-system reads, not only as CRDT
@@ -2027,7 +2027,7 @@ type EventSetTimeProjection {
   """Civic object provenance key (the planning store sourceId)."""
   sourceKey: String!
   actName: String!
-  """Original free text the organizer entered, e.g. "14:00-14:45"."""
+  """Original free text the organizer entered, e.g. "17:00-17:45"."""
   setTimeRaw: String
   """Parsed window, minutes from the festival start (the run-of-show cursor)."""
   startMinute: Int!

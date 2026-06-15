@@ -32,25 +32,23 @@ export interface FestivalWindow {
   readonly date: string;
   /** IANA time zone for clock display and the Open-Meteo hourly lookup. */
   readonly timezone: string;
-  /** Local clock minute-of-day the festival opens (e.g. 14:00 -> 840). */
+  /** Local clock minute-of-day the run-of-show opens (e.g. 09:00 -> 540). */
   readonly startMinuteOfDay: number;
-  /** Local clock minute-of-day the festival closes (e.g. 19:00 -> 1140). */
+  /** Local clock minute-of-day the run-of-show closes (e.g. 23:00 -> 1380). */
   readonly endMinuteOfDay: number;
 }
 
 /**
  * Default window: PorchFest 2026 (date + tz from the canonical event facts),
- * a five-hour afternoon block 2:00 PM -> 7:00 PM. This reconciles the spec's
- * two time hints: set-time data opens at "14:00-14:45" (2 PM) and the named
- * phase labels run "5:00, 6:00, 7:00" (mid-to-late festival). The real hours
- * can be edited here, or auto-fit to the actual schedule via
- * `fitFestivalWindowToSchedule` in run-of-show-schedule.ts when set times exist.
+ * a full event-day coverage block from 9:00 AM -> 11:00 PM. The public festival
+ * core remains 5:00 PM -> 10:00 PM; this wider window covers setup, arrivals,
+ * teardown, and after-show tasks without hiding organizer work outside showtime.
  */
 export const DEFAULT_FESTIVAL_WINDOW: FestivalWindow = {
   date: PORCHFEST_EVENT_DATE,
   timezone: PORCHFEST_EVENT_TZ,
-  startMinuteOfDay: 14 * 60,
-  endMinuteOfDay: 19 * 60,
+  startMinuteOfDay: 9 * 60,
+  endMinuteOfDay: 23 * 60,
 };
 
 /** The scrubber's snap granularity and the phase-tick spacing. */
@@ -118,7 +116,7 @@ export interface PhaseTick {
 /**
  * The named phase labels along the track: one per snap step from start to end,
  * inclusive. Whole-hour marks are flagged so the scrubber can emphasize them
- * (5:00, 6:00, 7:00) over the half-hour ticks.
+ * over the half-hour ticks.
  */
 export function phaseTicks(
   window: FestivalWindow,

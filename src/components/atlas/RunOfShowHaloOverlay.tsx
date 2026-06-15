@@ -53,7 +53,10 @@ export function RunOfShowHaloOverlay({
   // reprojection is only needed when the active set changes or the map moves.
   const setKey = performances.map((p) => p.placementId).join("|");
   const perfRef = useRef(performances);
-  perfRef.current = performances;
+
+  useEffect(() => {
+    perfRef.current = performances;
+  }, [performances]);
 
   useEffect(() => {
     if (!map || !visible || perfRef.current.length === 0) {

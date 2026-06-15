@@ -72,7 +72,7 @@ export function PorchfestRunOfShowPanel({
   const forecastKey = runOfShowForecastHourKey(time);
   const weatherHour =
     forecast.hours.find((hour) => hour.time === forecastKey) ?? null;
-  const currentPhase = formatRunOfShowClock(time);
+  const currentPhase = formatRunOfShowClock(time, { meridiem: true });
   const activeNames = active
     .slice(0, 3)
     .map((performance) => performance.actName)
@@ -155,7 +155,7 @@ export function PorchfestRunOfShowPanel({
                 <button
                   key={phase.minute}
                   type="button"
-                  className={`planner-control min-h-[26px] px-1.5 py-1 text-[11px] ${
+                  className={`planner-control min-h-[26px] whitespace-nowrap px-1.5 py-1 text-[11px] tabular-nums ${
                     nearestRunOfShowSnap(time) === phase.minute
                       ? "is-active"
                       : ""

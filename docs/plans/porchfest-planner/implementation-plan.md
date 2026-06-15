@@ -33,8 +33,47 @@ The spec was written against a monorepo layout. This repo
 
 ### Deferral source
 
-- **Geotemporal scrubber (spec section 8):** deferred **by the spec itself**
-  ("later, once the core loop works"). Not a self-imposed cut.
+- **Geotemporal scrubber (spec section 8):** the broad cross-surface historical
+  scrubber remains deferred by the spec itself ("later, once the core loop
+  works"). The PorchFest operational run-of-show is no longer deferred: it ships
+  as an event-day overlay inside the existing `/porchfest` planner.
+
+## Status checkpoint: 2026-06-15
+
+The run-of-show lane is now explicitly tracked here instead of only living in
+commit history.
+
+Current receipts:
+
+- Commit `35c37ca` added the run-of-show mode on the existing `/porchfest`
+  planner: one master clock, a panel scrubber, active-act emphasis, TripsLayer
+  pedestrian flow, weather-hour lookup, timed-task highlighting, and a focused
+  validator.
+- This update corrects the master clock from the old 2:00 PM -> 7:00 PM window
+  to a 9:00 AM -> 11:00 PM event-day window. The public festival core remains
+  5:00 PM -> 10:00 PM for draft fallback slots.
+- The run-of-show validator covers the 9 AM -> 11 PM envelope, PM-disambiguated
+  labels, 5 PM / 6 PM explicit set-time activation, draft fallback coverage
+  across the 5 PM -> 10 PM festival core, task highlighting, TripsLayer payloads,
+  and weather-layer ordering.
+
+Run-of-show gates:
+
+- [x] **ROS-1 Master clock:** one cursor `t` drives panel time, active stages,
+  trips, weather hour, and timed task highlighting.
+- [x] **ROS-2 Day envelope:** the displayed run-of-show covers 9:00 AM through
+  11:00 PM so setup and teardown are visible around the 5:00 PM -> 10:00 PM
+  festival.
+- [x] **ROS-3 Draft fallback:** when organizer set times are missing, music
+  stages distribute through the 5:00 PM -> 10:00 PM festival core instead of
+  clustering in the morning.
+- [x] **ROS-4 Focused validation:** `npm run validate:porchfest-run-of-show`
+  is the regression guard for the run-of-show lane.
+- [ ] **ROS-5 Live lineup proof:** verify the final organizer-entered set times
+  from the shared workspace cover the full festival lineup. This depends on live
+  planner data, not just fixture fallback.
+- [ ] **ROS-6 Visual gate:** capture desktop and mobile planner screenshots with
+  run-of-show enabled before marking the lane product-complete.
 
 ## Status checkpoint: 2026-06-11
 
@@ -152,6 +191,9 @@ Remaining gates for the approved end-to-end plan:
 - [x] **RG-5 Backend realtime stream decision:** finish the planner SSE stream
   for GraphQL placements/tasks on the native Axum backend (`f5833ef`). YCRDT
   still owns the shared BlockSuite workspace lane under RG-1/RG-2.
+- [x] **RG-6 Run-of-show mode:** ship the event-day run-of-show overlay on the
+  existing `/porchfest` planner. The remaining gates are live lineup proof and
+  visual proof, tracked as ROS-5 and ROS-6 above.
 
 ## Buildable checklist (this repo)
 
@@ -193,6 +235,10 @@ Each item backrefs the spec section it implements.
   verification was skipped by explicit user direction because Chrome is not
   usable on this machine; current proof is the no-Chrome validation set in the
   status checkpoint above.
+- [x] **PP-10 (run-of-show):** Add the operational run-of-show overlay on the
+  existing planner route: master clock, panel scrubber, active stage emphasis,
+  pedestrian trips, weather-hour binding, timed-task highlighting, and durable
+  projection push.
 
 ## Compose architecture (the seam)
 
@@ -214,5 +260,6 @@ PorchfestPlannerClient (mounts PlannerClientProvider)
 
 - Backend resolver implementation + DB seed + Railway env (G1) -> sibling repo.
 - SSE stream server (G2) -> sibling repo.
-- Geotemporal scrubber (spec 8) -> deferred by spec.
+- Cross-surface historical geotemporal scrubber (spec 8) -> deferred by spec.
+  PorchFest's operational run-of-show overlay is built in this repo.
 - Magic-link auth (spec 9) -> deferred by spec; `canEdit=true` for the internal tool.
