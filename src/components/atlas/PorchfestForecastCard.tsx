@@ -74,7 +74,11 @@ export function PorchfestForecastCard() {
       </>
     );
   } else {
-    return null;
+    detail = (
+      <span className="planner-muted truncate">
+        Forecast opens near event day
+      </span>
+    );
   }
 
   return (
