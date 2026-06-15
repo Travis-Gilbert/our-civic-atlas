@@ -53,6 +53,7 @@ import {
 } from "@/lib/civic/civic-object-schema";
 
 const EVENT_SLUG = "porchfest-2026";
+const APPLICATION_LEDGER_REFRESH_MS = 15_000;
 
 type EventApplicationRow = EventApplicationsQuery["eventApplications"][number];
 type CivicWorkspaceRow = ReturnType<CivicStoreApi["list"]>[number];
@@ -682,6 +683,13 @@ function WorkspaceInner() {
     RequestEventApplicationBillingDocument,
   );
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      reexecuteApplications({ requestPolicy: "network-only" });
+    }, APPLICATION_LEDGER_REFRESH_MS);
+    return () => window.clearInterval(interval);
+  }, [reexecuteApplications]);
+
   const applications = useMemo(
     () => applicationsResult.data?.eventApplications ?? [],
     [applicationsResult.data?.eventApplications],
@@ -917,15 +925,13 @@ function WorkspaceInner() {
     setCurrentDocId(mounted.currentDocId());
   };
 
-  // One-way ledger ingestion once both the editor and the query are ready.
-  const ingestedRef = useRef(false);
+  // One-way ledger ingestion whenever fresh application rows arrive.
   useEffect(() => {
     const rows = applicationsResult.data?.eventApplications;
     const mounted = apiRef.current;
-    if (ingestedRef.current || !rows || !mounted || state.kind !== "ready") {
+    if (!rows || !mounted || state.kind !== "ready") {
       return;
     }
-    ingestedRef.current = true;
     const mapped = rows.map((row) =>
       mapEventApplicationToCivicFields(row as EventApplicationLedgerRow),
     );
@@ -936,9 +942,10 @@ function WorkspaceInner() {
         Array.from(new Set(dropped)),
       );
     }
-    mounted.api.ingestLedgerRows(mapped.map((m) => m.fields));
-    setMobileRows(mounted.api.list());
-    setState({ kind: "ready" });
+    const added = mounted.api.ingestLedgerRows(mapped.map((m) => m.fields));
+    if (added > 0) {
+      setMobileRows(mounted.api.list());
+    }
   }, [applicationsResult.data, state.kind]);
 
   return (

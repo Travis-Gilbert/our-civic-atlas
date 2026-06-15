@@ -9,6 +9,9 @@
  * Run: npm run validate:civic-ledger-ingest
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import {
   createCivicCollection,
   ensureCivicDatabase,
@@ -42,6 +45,10 @@ function sameArray(actual: unknown, expected: string[]): boolean {
     actual.length === expected.length &&
     expected.every((value, index) => actual[index] === value)
   );
+}
+
+function source(path: string): string {
+  return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
 function ledgerRow(
@@ -295,6 +302,20 @@ async function main() {
       afterReplay?.fields.status,
     );
   }
+
+  console.log('4. workspace keeps ingesting fresh ledger rows');
+  const workspaceSource = source(
+    'src/app/porchfest/workspace/CivicWorkspaceClient.tsx',
+  );
+  check(
+    'workspace polls the application ledger',
+    workspaceSource.includes('APPLICATION_LEDGER_REFRESH_MS') &&
+      workspaceSource.includes('reexecuteApplications({ requestPolicy: "network-only" })'),
+  );
+  check(
+    'workspace ingestion is not one-shot gated',
+    !workspaceSource.includes('ingestedRef'),
+  );
 
   if (failures > 0) {
     console.error(`\nvalidate-civic-ledger-ingest: ${failures} failure(s)`);
