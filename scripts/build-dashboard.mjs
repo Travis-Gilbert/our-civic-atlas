@@ -33,6 +33,7 @@ import {
   mkdirSync,
   rmSync,
   cpSync,
+  readFileSync,
   writeFileSync,
   readdirSync,
 } from "node:fs";
@@ -83,6 +84,40 @@ function writeFallback(message) {
   console.warn(`[dashboard] wrote fallback page (${message})`);
 }
 
+function publishStableDataFiles() {
+  const indexPath = join(distDir, "index.html");
+  const hashedDataDir = join(distDir, "_file", "data");
+  const stableDataDir = join(distDir, "data");
+  let html = readFileSync(indexPath, "utf8");
+  const registeredDataPaths = [
+    ...html.matchAll(/"path":"\.\/_file\/data\/([a-z-]+)\.[a-f0-9]+\.json"/g),
+  ];
+
+  if (registeredDataPaths.length === 0) {
+    throw new Error("observable build registered no dashboard data files");
+  }
+
+  mkdirSync(stableDataDir, { recursive: true });
+  for (const match of registeredDataPaths) {
+    const [registeredPath, name] = match;
+    const hashedFile = registeredPath
+      .replace('"path":"./_file/data/', "")
+      .replace('"', "");
+    const sourcePath = join(hashedDataDir, hashedFile);
+    const stablePath = `./data/${name}.json`;
+    if (!existsSync(sourcePath)) {
+      throw new Error(`registered dashboard data file is missing: ${sourcePath}`);
+    }
+    cpSync(sourcePath, join(stableDataDir, `${name}.json`));
+    html = html.replace(registeredPath, `"path":"${stablePath}"`);
+  }
+
+  writeFileSync(indexPath, html);
+  console.log(
+    `[dashboard] published ${registeredDataPaths.length} stable data file(s).`,
+  );
+}
+
 if (process.env.SKIP_DASHBOARD_BUILD === "true") {
   console.log("[dashboard] SKIP_DASHBOARD_BUILD=true - skipping build.");
   if (!existsSync(join(publicOutDir, "index.html"))) {
@@ -108,6 +143,7 @@ try {
   if (!existsSync(join(distDir, "index.html"))) {
     throw new Error("observable build produced no dist/index.html");
   }
+  publishStableDataFiles();
 
   // 3. Stage into public/porchfest-dashboard (replace any prior output).
   rmSync(publicOutDir, { recursive: true, force: true });

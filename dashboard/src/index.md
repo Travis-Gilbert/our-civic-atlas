@@ -32,7 +32,7 @@ const FAINT = "var(--theme-foreground-fainter)";
 
 <div class="hero">
   <h1>PorchFest 2026 | board view</h1>
-  <p>Where the festival stands: money against the goal, who has applied, how much is on the map, and what is left. Figures refresh when the dashboard rebuilds.</p>
+  <p>Where the festival stands: money against the goal, the current roster, and what is left. Figures refresh when the dashboard rebuilds.</p>
 </div>
 
 ```js

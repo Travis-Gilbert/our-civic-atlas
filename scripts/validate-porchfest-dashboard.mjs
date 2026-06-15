@@ -61,6 +61,16 @@ assertIncludes(dashboardRoute, "src={DASHBOARD_INDEX}", "dashboard iframe");
 
 const dashboardCopy = read("dashboard/src/index.md");
 const buildScript = read("scripts/build-dashboard.mjs");
+assertIncludes(
+  buildScript,
+  "function publishStableDataFiles()",
+  "dashboard stable data publisher",
+);
+assertIncludes(
+  buildScript,
+  '"path":"${stablePath}"',
+  "dashboard index data-path rewrite",
+);
 const observableConfig = read("dashboard/observablehq.config.js");
 const boardFacingCopy = [
   dashboardCopy,
