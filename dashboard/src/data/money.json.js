@@ -12,10 +12,10 @@
 // from configuration (PORCHFEST_FUNDRAISING_GOAL_CENTS) so the board can change
 // the target without a code change.
 //
-// When no read-only database is configured, this emits a clearly-marked
-// "pending" payload and the page renders an honest "ledger pending" card
-// instead of a fabricated number. Either way only the JSON below ships to the
-// browser - never the connection string.
+// When no read-only database is configured, this emits a clearly marked source
+// state and the page renders the funding source as unavailable instead of a
+// fabricated number. Either way only the JSON below ships to the browser -
+// never the connection string.
 
 import { openDb, withTenant, GOAL_CENTS, nowIso } from "./_lib.js";
 

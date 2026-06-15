@@ -14,8 +14,8 @@ import {
 ```
 
 ```js
-// All figures are precomputed snapshots written by the build-time data
-// loaders in src/data/. The browser only ever reads these JSON files.
+// All figures are refreshed by the data loaders in src/data/. The browser only
+// ever reads the JSON files emitted by the dashboard build.
 const money = await FileAttachment("data/money.json").json();
 const submissions = await FileAttachment("data/submissions.json").json();
 const placements = await FileAttachment("data/placements.json").json();
@@ -32,13 +32,13 @@ const FAINT = "var(--theme-foreground-fainter)";
 ```
 
 <div class="hero">
-  <h1>PorchFest 2026 — board view</h1>
-  <p>Where the festival stands: money against the goal, who has applied, how much is on the map, and what is left. Figures are precomputed and refresh on each rebuild; they are not live.</p>
+  <h1>PorchFest 2026 | board view</h1>
+  <p>Where the festival stands: money against the goal, who has applied, how much is on the map, and what is left. Figures refresh when the dashboard rebuilds.</p>
 </div>
 
 ```js
-// Honest banner whenever a source could not be read at build time.
-const pending = [
+// Source banner whenever a loader could not read its upstream system.
+const unavailableSources = [
   money.status === "pending" ? "fundraising ledger" : null,
   submissions.status === "pending" ? "submissions" : null,
   placements.status === "pending" ? "map placements" : null,
@@ -47,11 +47,11 @@ const pending = [
 ```
 
 ```js
-pending.length > 0
-  ? html`<div class="note" label="Some figures pending">
-      The following could not be read at the last build and show as pending:
-      <b>${pending.join(", ")}</b>. They will populate on the next rebuild once
-      the source is reachable.
+unavailableSources.length > 0
+  ? html`<div class="note" label="Source needs refresh">
+      These sources were unavailable during the last dashboard refresh:
+      <b>${unavailableSources.join(", ")}</b>. They will update after the next
+      successful refresh.
     </div>`
   : null
 ```
@@ -69,24 +69,24 @@ const moneyPct = goalCents ? Math.min(raisedCents / goalCents, 1) : null;
   <div class="card">
     <h2>Raised</h2>
     <div class="big">${money.status === "pending" ? "—" : formatMoney(raisedCents, money.currency)}</div>
-    <div class="muted">${money.status === "pending" ? "ledger pending" : `${money.paidCount} payment${money.paidCount === 1 ? "" : "s"} received`}</div>
+    <div class="muted">${money.status === "pending" ? "ledger source unavailable" : `${money.paidCount} payment${money.paidCount === 1 ? "" : "s"} received`}</div>
   </div>
   <div class="card">
     <h2>Goal</h2>
     <div class="big">${goalCents != null ? formatMoney(goalCents, money.currency) : "—"}</div>
-    <div class="muted">${goalCents != null ? "fundraising target" : "goal not set"}</div>
+    <div class="muted">${goalCents != null ? "fundraising target" : "goal not configured"}</div>
   </div>
   <div class="card">
     <h2>Gap to goal</h2>
     <div class="big">${gapCents != null ? formatMoney(gapCents, money.currency) : "—"}</div>
-    <div class="muted">${moneyPct != null ? `${Math.round(moneyPct * 100)}% of goal raised` : "set a goal to track the gap"}</div>
+    <div class="muted">${moneyPct != null ? `${Math.round(moneyPct * 100)}% of goal raised` : "add a goal to track the gap"}</div>
   </div>
 </div>
 
 <div class="grid grid-cols-1">
   <div class="card">
     <h2>Progress to goal</h2>
-    ${goalCents ? resize((width) => moneyBar(width)) : html`<div class="muted">No goal configured. Set <code>PORCHFEST_FUNDRAISING_GOAL_CENTS</code> to show the thermometer.</div>`}
+    ${goalCents ? resize((width) => moneyBar(width)) : html`<div class="muted">No fundraising goal configured yet.</div>`}
   </div>
 </div>
 
@@ -223,9 +223,8 @@ const biggest = placedRows[0];
 ```js
 html`<div class="note" label="What this shows">
   The festival map is the imported <b>placements</b> layer: vendor stalls, music
-  porches, parking, and amenities. Which applicant is assigned to which porch is
-  tracked live in the planning workspace (the realtime store) and is not part of
-  this build-time snapshot, so this section is the map's composition, not an
+  porches, parking, and amenities. Applicant-to-porch assignments remain in the
+  planning workspace, so this section is the map's composition rather than an
   applicant-by-applicant placement count.
 </div>`
 ```
@@ -344,7 +343,7 @@ function statusBar(width) {
 ```
 
 <footer class="built">
-  Last built ${formatTimestamp(meta.builtAt)} · event <code>${meta.eventSlug}</code> · tenant <code>${meta.tenantSlug}</code>${meta.moneyLedgerConfigured ? "" : " · money ledger not wired"}
+  Last refreshed ${formatTimestamp(meta.builtAt)} · event <code>${meta.eventSlug}</code> · tenant <code>${meta.tenantSlug}</code>${meta.moneyLedgerConfigured ? "" : " · money ledger source unavailable"}
 </footer>
 
 <style>

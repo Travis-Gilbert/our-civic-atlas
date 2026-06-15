@@ -6,7 +6,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Board Dashboard | PorchFest",
   description:
-    "Board-facing PorchFest dashboard: money raised against goal, submissions by category, mapped progress, and what is left. Figures are precomputed at build time and refresh on a schedule.",
+    "Board-facing PorchFest dashboard: money raised against goal, submissions by category, mapped progress, and what is left. Figures refresh on the dashboard schedule.",
 };
 
 /**
@@ -14,11 +14,11 @@ export const metadata: Metadata = {
  * Next tree (see dashboard/ and scripts/build-dashboard.mjs) and staged into
  * public/porchfest-dashboard/. We mount it here by a same-origin iframe, the
  * same isolation pattern the BlockSuite workspace bundle uses: the dashboard
- * keeps its own build, its own rebuild cadence, and its precomputed data,
- * while the route gives it a home and a frame of chrome.
+ * keeps its own build, its own refresh cadence, and its emitted data, while the
+ * route gives it a home and a frame of chrome.
  *
  * Same-origin (served from our own public/) means no CORS and no credential -
- * the static output only ever contains the loaders' precomputed JSON.
+ * the static output only ever contains the loaders' emitted JSON.
  */
 
 const DASHBOARD_INDEX = "/porchfest-dashboard/index.html";

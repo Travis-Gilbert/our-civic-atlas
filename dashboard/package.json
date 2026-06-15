@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Board-facing PorchFest dashboard. A self-contained Observable Framework static site (its own build, its own deps) bridged into the Next app at /porchfest/dashboard, exactly the way the BlockSuite workspace bundle is bridged in rather than imported. Data loaders run at build time; the browser only ever sees precomputed snapshots, so no database or service credential is shipped.",
+  "description": "Board-facing PorchFest dashboard. A self-contained Observable Framework static site bridged into the Next app at /porchfest/dashboard. Data loaders refresh the dashboard output without shipping database or service credentials to the browser.",
   "scripts": {
     "clean": "observable clean",
     "dev": "observable preview",

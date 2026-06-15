@@ -2,8 +2,8 @@
 //
 // This is a SEPARATE BUILD TARGET, not a component inside the Next tree.
 // `observable build` compiles src/ into dist/ as a self-contained static
-// site: HTML, JS, theme CSS, and the precomputed JSON snapshots emitted by
-// the build-time data loaders in src/data/. The Next app mounts dist/ at
+// site: HTML, JS, theme CSS, and the refreshed JSON emitted by the build-time
+// data loaders in src/data/. The Next app mounts dist/ at
 // /porchfest/dashboard by iframe (see ../scripts/build-dashboard.mjs, which
 // copies dist/ into ../public/porchfest-dashboard/).
 //
@@ -13,7 +13,7 @@
 // system; we only nudge the focus/accent variable so links and emphasis
 // read as the brand navy rather than Framework's default blue.
 
-export default {
+const config = {
   title: "PorchFest Board",
 
   // Source lives in src/; the build emits to dist/ (the default, named here
@@ -48,5 +48,7 @@ export default {
   // source of truth for freshness (spec: "a page footer states the last
   // build time").
   footer:
-    "PorchFest board dashboard. Figures are precomputed at build time and refresh on each deploy and on the scheduled rebuild; they are not live.",
+    "PorchFest board dashboard. Figures refresh on each deploy and scheduled dashboard refresh.",
 };
+
+export default config;

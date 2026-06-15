@@ -11,9 +11,9 @@
  * and copies dashboard/dist -> public/porchfest-dashboard.
  *
  * Build-time data loaders read the live system (GraphQL + read-only Postgres)
- * and bake JSON snapshots into the output, so each run refreshes the figures.
- * Loaders degrade to "pending" on their own when a source is unreachable, so a
- * data hiccup does not fail the build.
+ * and emit refreshed JSON into the output. Loaders write an unavailable source
+ * state on their own when a source is unreachable, so a data hiccup does not
+ * fail the build.
  *
  * Resilience: by default a hard failure here (npm/tooling) is NON-fatal to the
  * Next deploy - the dashboard is an auxiliary reporting surface and must not
@@ -43,6 +43,13 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dashboardDir = join(repoRoot, "dashboard");
 const distDir = join(dashboardDir, "dist");
 const publicOutDir = join(repoRoot, "public", "porchfest-dashboard");
+const dataCacheDir = join(
+  dashboardDir,
+  "src",
+  ".observablehq",
+  "cache",
+  "data",
+);
 
 const strict = process.env.DASHBOARD_BUILD_STRICT === "true";
 
@@ -58,7 +65,7 @@ function writeFallback(message) {
     join(publicOutDir, "index.html"),
     `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PorchFest board - pending</title>
+<title>PorchFest board - refresh needed</title>
 <style>
   :root { color-scheme: light; }
   body { font: 15px/1.5 system-ui, sans-serif; color: #1c1c1c; background: #fff;
@@ -68,10 +75,9 @@ function writeFallback(message) {
   p { color: #555; }
   code { background: #f2f2f2; padding: 0.1rem 0.35rem; border-radius: 4px; }
 </style></head><body><div class="box">
-  <h1>PorchFest board dashboard is pending</h1>
-  <p>The dashboard could not be built at <b>${builtAt}</b>. ${message}</p>
-  <p>It will populate on the next successful rebuild. Run
-  <code>npm run build:dashboard</code> locally to build it.</p>
+  <h1>PorchFest board dashboard needs a refresh</h1>
+  <p>The dashboard could not refresh at <b>${builtAt}</b>. ${message}</p>
+  <p>It will update after the next successful refresh.</p>
 </div></body></html>`,
   );
   console.warn(`[dashboard] wrote fallback page (${message})`);
@@ -95,6 +101,8 @@ try {
   }
 
   // 2. Build the static site. Data loaders run here.
+  rmSync(dataCacheDir, { recursive: true, force: true });
+  console.log("[dashboard] cleared data loader cache.");
   run("npm", ["run", "build"], dashboardDir);
 
   if (!existsSync(join(distDir, "index.html"))) {
