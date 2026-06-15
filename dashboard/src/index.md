@@ -18,7 +18,6 @@ import {
 // ever reads the JSON files emitted by the dashboard build.
 const money = await FileAttachment("data/money.json").json();
 const submissions = await FileAttachment("data/submissions.json").json();
-const placements = await FileAttachment("data/placements.json").json();
 const tasks = await FileAttachment("data/tasks.json").json();
 const meta = await FileAttachment("data/meta.json").json();
 ```
@@ -41,7 +40,6 @@ const FAINT = "var(--theme-foreground-fainter)";
 const unavailableSources = [
   money.status === "pending" ? "fundraising ledger" : null,
   submissions.status === "pending" ? "submissions" : null,
-  placements.status === "pending" ? "map placements" : null,
   tasks.status === "pending" ? "tasks" : null,
 ].filter(Boolean);
 ```
@@ -138,21 +136,21 @@ const subRows = [...(submissions.byCategory ?? [])]
 
 <div class="grid grid-cols-4">
   <div class="card">
-    <h2>Total applications</h2>
+    <h2>Total records</h2>
     <div class="big">${submissions.status === "pending" ? "—" : submissions.total.toLocaleString()}</div>
-    <div class="muted">across ${subRows.length} categor${subRows.length === 1 ? "y" : "ies"}</div>
+    <div class="muted">applications and organizer-entered rows across ${subRows.length} categor${subRows.length === 1 ? "y" : "ies"}</div>
   </div>
   ${subRows.slice(0, 3).map((r) => html`<div class="card">
     <h2>${r.label}</h2>
     <div class="big">${r.count.toLocaleString()}</div>
-    <div class="muted">${submissions.total > 0 ? Math.round((r.count / submissions.total) * 100) : 0}% of applications</div>
+    <div class="muted">${submissions.total > 0 ? Math.round((r.count / submissions.total) * 100) : 0}% of records</div>
   </div>`)}
 </div>
 
 <div class="grid grid-cols-2">
   <div class="card">
-    <h2>Applications by category</h2>
-    ${subRows.length ? resize((width) => categoryBar(subRows, width)) : html`<div class="muted">No submissions yet.</div>`}
+    <h2>Roster by category</h2>
+    ${subRows.length ? resize((width) => categoryBar(subRows, width)) : html`<div class="muted">No records yet.</div>`}
   </div>
   <div class="card">
     <h2>Submissions over time</h2>
@@ -166,7 +164,7 @@ function categoryBar(rows, width) {
     width,
     height: Math.max(140, rows.length * 38),
     marginLeft: 96,
-    x: {label: "Applications", grid: true},
+    x: {label: "Records", grid: true},
     y: {label: null},
     marks: [
       Plot.barX(rows, {x: "count", y: "label", fill: NAVY, rx: 3, sort: {y: "x", reverse: true}}),
@@ -188,66 +186,6 @@ function submissionsOverTime(width) {
       Plot.areaY(data, {x: "date", y: "cumulative", fill: NAVY, fillOpacity: 0.12, curve: "step-after"}),
       Plot.lineY(data, {x: "date", y: "cumulative", stroke: NAVY, curve: "step-after"}),
       Plot.ruleY([0]),
-    ],
-  });
-}
-```
-
-## On the festival map
-
-```js
-const placedRows = [...(placements.byCategory ?? [])]
-  .map((r) => ({...r, label: labelFor(r.category)}))
-  .sort((a, b) => b.count - a.count);
-const biggest = placedRows[0];
-```
-
-<div class="grid grid-cols-3">
-  <div class="card">
-    <h2>Placed on the map</h2>
-    <div class="big">${placements.status === "pending" ? "—" : placements.total.toLocaleString()}</div>
-    <div class="muted">placements across ${placedRows.length} categor${placedRows.length === 1 ? "y" : "ies"}</div>
-  </div>
-  <div class="card">
-    <h2>Applications received</h2>
-    <div class="big">${submissions.total.toLocaleString()}</div>
-    <div class="muted">the applicant pipeline, above</div>
-  </div>
-  <div class="card">
-    <h2>Largest on the map</h2>
-    <div class="big">${biggest ? biggest.count.toLocaleString() : "—"}</div>
-    <div class="muted">${biggest ? biggest.label.toLowerCase() : "nothing placed yet"}</div>
-  </div>
-</div>
-
-```js
-html`<div class="note" label="What this shows">
-  The festival map is the imported <b>placements</b> layer: vendor stalls, music
-  porches, parking, and amenities. Applicant-to-porch assignments remain in the
-  planning workspace, so this section is the map's composition rather than an
-  applicant-by-applicant placement count.
-</div>`
-```
-
-<div class="grid grid-cols-1">
-  <div class="card">
-    <h2>Placements by category</h2>
-    ${placedRows.length ? resize((width) => placedBar(width)) : html`<div class="muted">Nothing placed on the map yet.</div>`}
-  </div>
-</div>
-
-```js
-function placedBar(width) {
-  return Plot.plot({
-    width,
-    height: Math.max(160, placedRows.length * 34),
-    marginLeft: 110,
-    x: {label: "Placements", grid: true},
-    y: {label: null},
-    marks: [
-      Plot.barX(placedRows, {x: "count", y: "label", fill: NAVY, rx: 3, sort: {y: "x", reverse: true}}),
-      Plot.text(placedRows, {x: "count", y: "label", text: (d) => d.count, dx: 6, textAnchor: "start", fill: "var(--theme-foreground-muted)"}),
-      Plot.ruleX([0]),
     ],
   });
 }

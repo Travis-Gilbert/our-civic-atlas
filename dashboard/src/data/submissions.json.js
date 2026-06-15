@@ -1,10 +1,14 @@
-// Submissions loader: total applications and a breakdown by category, plus a
-// submissions-over-time series so the board sees the shape of who has applied.
+// Submissions loader: total application/workspace rows and a breakdown by
+// category, plus a submissions-over-time series so the board sees the shape of
+// who has applied.
 //
-// Two interchangeable paths produce the same shape:
-//   - Preferred when a read-only DB is wired: a cheap SQL GROUP BY over the
+// Three interchangeable paths produce the same shape:
+//   - Preferred: the live BlockSuite/Yjs planning workspace. This includes
+//     organizer-entered rows, category corrections, and imported application
+//     rows in the same place the planner and workspace edit.
+//   - When a read-only DB is wired: a cheap SQL GROUP BY over the
 //     event_applications ledger (no PII pulled, just counts).
-//   - Default everywhere else: the public GraphQL `eventApplications` read,
+//   - Default fallback: the public GraphQL `eventApplications` read,
 //     selecting only category/status/createdAt. This needs no credential and
 //     always works against the live backend.
 //
@@ -19,7 +23,9 @@ import {
   TENANT_SLUG,
   EVENT_SLUG,
   nowIso,
+  WORKSPACE_SYNC_URL,
 } from "./_lib.js";
+import * as Y from "yjs";
 
 const SUBMISSIONS_QUERY = /* GraphQL */ `
   query DashboardSubmissions($tenantSlug: String!, $eventSlug: String!) {
@@ -30,6 +36,10 @@ const SUBMISSIONS_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+const WORKSPACE_DOC_ID = "civic:porchfest-2026";
+const TAG_PULL = 0x00;
+const TAG_PULL_REPLY = 0x01;
 
 /** day-bucket an ISO timestamp to YYYY-MM-DD (UTC). Null-safe. */
 function dayBucket(iso) {
@@ -70,6 +80,109 @@ function rollup(rows, source) {
   };
 }
 
+function pullWorkspaceDoc() {
+  if (typeof WebSocket === "undefined") {
+    throw new Error("WebSocket is not available in this Node runtime");
+  }
+  return new Promise((resolve, reject) => {
+    const doc = new Y.Doc();
+    const url = `${WORKSPACE_SYNC_URL.replace(/\/$/, "")}/${encodeURIComponent(
+      WORKSPACE_DOC_ID,
+    )}`;
+    const ws = new WebSocket(url);
+    ws.binaryType = "arraybuffer";
+    const timer = setTimeout(() => {
+      try {
+        ws.close();
+      } catch {}
+      reject(new Error("workspace pull timeout"));
+    }, 20000);
+
+    ws.onopen = () => {
+      const stateVector = Y.encodeStateVector(doc);
+      const frame = new Uint8Array(1 + stateVector.length);
+      frame[0] = TAG_PULL;
+      frame.set(stateVector, 1);
+      ws.send(frame);
+    };
+
+    ws.onmessage = (event) => {
+      const frame = new Uint8Array(event.data);
+      if (frame[0] !== TAG_PULL_REPLY) return;
+      clearTimeout(timer);
+      if (frame.length > 1) Y.applyUpdate(doc, frame.subarray(1));
+      ws.close();
+      resolve(doc);
+    };
+
+    ws.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error("workspace websocket error"));
+    };
+  });
+}
+
+function decodeWorkspaceRows(doc) {
+  const columnIdMap = doc.getMap("civic:column-ids").toJSON();
+  const fieldKeyByColumnId = Object.fromEntries(
+    Object.entries(columnIdMap).map(([fieldKey, columnId]) => [
+      columnId,
+      fieldKey,
+    ]),
+  );
+
+  const blocks = doc.getMap("blocks");
+  let database = null;
+  for (const [, block] of blocks) {
+    if (block.get("sys:flavour") === "affine:database") {
+      database = block;
+      break;
+    }
+  }
+  if (!database) throw new Error("no civic workspace database found");
+
+  const optionValueByColumnId = {};
+  for (const column of database.get("prop:columns").toJSON()) {
+    const options = column?.data?.options;
+    if (Array.isArray(options)) {
+      optionValueByColumnId[column.id] = Object.fromEntries(
+        options.map((option) => [option.id, option.value]),
+      );
+    }
+  }
+
+  const cells = database.get("prop:cells").toJSON();
+  return database.get("sys:children").toArray().map((rowId) => {
+    const rowCells = cells[rowId] ?? {};
+    const fields = {};
+    for (const [columnId, cell] of Object.entries(rowCells)) {
+      const fieldKey = fieldKeyByColumnId[columnId];
+      if (!fieldKey) continue;
+      let value = cell?.value;
+      if (value === null || value === undefined) continue;
+      const optionMap = optionValueByColumnId[columnId];
+      if (optionMap) {
+        value = Array.isArray(value)
+          ? value.map((id) => optionMap[id]).filter(Boolean)
+          : (optionMap[value] ?? value);
+      }
+      fields[fieldKey] = value;
+    }
+    return {
+      category: fields.category ?? "uncategorized",
+      createdAt: fields.submittedAt,
+    };
+  });
+}
+
+async function loadFromWorkspace() {
+  const rows = decodeWorkspaceRows(await pullWorkspaceDoc());
+  if (rows.length === 0) {
+    throw new Error("workspace returned zero civic rows");
+  }
+  return rollup(rows, "workspace-yjs");
+}
+
 async function loadFromGraphql() {
   const data = await graphql(SUBMISSIONS_QUERY, {
     tenantSlug: TENANT_SLUG,
@@ -94,6 +207,14 @@ async function loadFromDb(sql) {
 }
 
 async function load() {
+  try {
+    return await loadFromWorkspace();
+  } catch (error) {
+    console.warn(
+      `submissions: workspace path failed (${error.message}); using ledger fallback`,
+    );
+  }
+
   const sql = openDb();
   if (sql) {
     try {

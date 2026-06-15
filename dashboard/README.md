@@ -1,18 +1,17 @@
 # PorchFest board dashboard
 
 A board-facing dashboard that shows where PorchFest stands: money raised against
-the goal, submissions by category, how much is on the map, and what is left.
+the goal, the current workspace roster by category, and what is left.
 
 This is an **[Observable Framework](https://observablehq.com/framework)** project
 — a separate static-site build target, **not** a React component inside the Next
 tree. `observable build` compiles `src/` into `dist/`: HTML, JS, theme CSS, and
-the precomputed JSON snapshots emitted by the build-time data loaders. The Next
+refreshed JSON emitted by the build-time data loaders. The Next
 app mounts that static output at `/porchfest/dashboard` by iframe, the same way
 the BlockSuite workspace bundle is bridged into its route rather than imported.
 
-It does not update live. It rebuilds on each deploy and on a scheduled CI
-rebuild, so the board sees figures that are recent, not real-time. A footer
-states the last build time.
+It rebuilds on each deploy and on a scheduled CI rebuild, so the board sees
+recent figures. A footer states the last refresh time.
 
 ## Layout
 
@@ -23,12 +22,11 @@ dashboard/
     index.md               the single dashboard page (cards + Observable Plot)
     components/format.js    client-side formatting helpers
     data/
-      _lib.js              shared loader config: GraphQL + read-only Postgres
+      _lib.js              shared loader config: Yjs + GraphQL + read-only Postgres
       money.json.js        raised vs goal            (read-only Postgres)
-      submissions.json.js  applications by category  (GraphQL, or Postgres)
-      placements.json.js   placements by category    (GraphQL)
+      submissions.json.js  workspace roster by category (Yjs, GraphQL/Postgres fallback)
       tasks.json.js        open/done + rollup        (GraphQL)
-      meta.json.js         last-built timestamp
+      meta.json.js         last-refresh timestamp
 ```
 
 ## Where the data comes from
@@ -38,7 +36,9 @@ output, never a connection string or token. This respects the project's
 GraphQL-only-at-runtime boundary: a build-time loader is not the runtime
 frontend.
 
-- **GraphQL reads** (`submissions`, `placements`, `tasks`) hit the public Axum
+- **RustyRed/Yjs read** (`submissions`) pulls the live planning workspace first,
+  so organizer-entered vendors and category corrections are counted.
+- **GraphQL reads** (`submissions` fallback, `tasks`) hit the public Axum
   endpoint the frontend already talks to. No credential.
 - **Read-only Postgres** (`money`, and optionally the cheaper `submissions`
   aggregate) reads the ledger directly, because the schema exposes no money
@@ -53,6 +53,7 @@ show as pending).
 | Variable | Purpose | Default |
 |---|---|---|
 | `PORCHFEST_DASHBOARD_GRAPHQL_URL` | GraphQL endpoint for the reads | the production Railway endpoint |
+| `PORCHFEST_WORKSPACE_SYNC_URL` | RustyRed/Yjs sync endpoint for the workspace roster | the production RustyRed endpoint |
 | `PORCHFEST_TENANT_SLUG` | Tenant for GraphQL reads | `flint` |
 | `PORCHFEST_EVENT_SLUG` | Event layer slug | `porchfest-2026` |
 | `PORCHFEST_READONLY_DATABASE_URL` | Read-only Postgres for the money ledger | unset → money pending |

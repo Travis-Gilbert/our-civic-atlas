@@ -22,6 +22,16 @@ function assertExcludes(haystack, pattern, label) {
 const submissionsLoader = read("dashboard/src/data/submissions.json.js");
 assertIncludes(
   submissionsLoader,
+  "WORKSPACE_DOC_ID = \"civic:porchfest-2026\"",
+  "dashboard workspace submissions loader",
+);
+assertIncludes(
+  submissionsLoader,
+  'return rollup(rows, "workspace-yjs");',
+  "dashboard workspace rollup",
+);
+assertIncludes(
+  submissionsLoader,
   "eventApplications(tenantSlug: $tenantSlug, eventSlug: $eventSlug)",
   "dashboard submissions GraphQL loader",
 );
@@ -34,6 +44,11 @@ assertIncludes(
   submissionsLoader,
   'return rollup(data.eventApplications ?? [], "graphql");',
   "dashboard submissions GraphQL rollup",
+);
+assertIncludes(
+  submissionsLoader,
+  "return await loadFromWorkspace();",
+  "dashboard workspace-first source order",
 );
 
 const dashboardRoute = read("src/app/porchfest/dashboard/page.tsx");
@@ -65,9 +80,10 @@ for (const pattern of [
   /\bledger pending\b/i,
   /\bfigures pending\b/i,
   /\bbuild-time snapshot\b/i,
+  /\bOn the festival map\b/i,
   /PORCHFEST_[A-Z0-9_]+/,
 ]) {
   assertExcludes(boardFacingCopy, pattern, "PorchFest dashboard");
 }
 
-console.log("PorchFest dashboard wiring is connected to applications.");
+console.log("PorchFest dashboard wiring is connected to the workspace roster.");

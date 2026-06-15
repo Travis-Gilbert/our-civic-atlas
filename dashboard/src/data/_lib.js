@@ -4,8 +4,10 @@
 // routed or shipped to the browser; it is imported only by the sibling
 // *.json.js loaders, which run in Node during `observable build`.
 //
-// Two data planes, exactly as the spec names them:
-//   - GraphQL reads (public Axum endpoint) for submissions, placements, tasks.
+// Three data planes, exactly as the product surfaces now use them:
+//   - RustyRed/Yjs reads for the planner workspace roster. This is where
+//     organizer-created rows and category corrections live.
+//   - GraphQL reads (public Axum endpoint) for fallback submissions and tasks.
 //     The endpoint is already public; no credential is involved.
 //   - A read-only Postgres connection for the money ledger (and, when wired,
 //     the cheaper submissions aggregate). The connection string is a
@@ -27,6 +29,11 @@ export const GRAPHQL_URL =
 
 export const TENANT_SLUG = process.env.PORCHFEST_TENANT_SLUG ?? "flint";
 export const EVENT_SLUG = process.env.PORCHFEST_EVENT_SLUG ?? "porchfest-2026";
+export const WORKSPACE_SYNC_URL =
+  process.env.PORCHFEST_WORKSPACE_SYNC_URL ??
+  process.env.RUSTYRED_SYNC_URL ??
+  process.env.NEXT_PUBLIC_RUSTYRED_SYNC_URL ??
+  "wss://rustyred-production-fc07.up.railway.app/v1/tenants/flint/sync/yjs";
 
 /**
  * Read-only Postgres connection string. Optional: when absent (local dev, or a
