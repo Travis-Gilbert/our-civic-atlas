@@ -51,6 +51,65 @@ assertIncludes(
   "dashboard workspace-first source order",
 );
 
+const tasksLoader = read("dashboard/src/data/tasks.json.js");
+assertIncludes(
+  tasksLoader,
+  "TASKS_DOC_ID = \"civic:tasks:porchfest-2026\"",
+  "dashboard task workspace loader",
+);
+assertIncludes(
+  tasksLoader,
+  "TASK_COLUMN_ID_MAP_KEY = \"civic:task-column-ids\"",
+  "dashboard task column map decoder",
+);
+assertIncludes(
+  tasksLoader,
+  'return rollup(tasks, "workspace-yjs");',
+  "dashboard task workspace rollup",
+);
+assertIncludes(
+  tasksLoader,
+  "eventTasks(tenantSlug: $tenantSlug, eventSlug: $eventSlug)",
+  "dashboard task GraphQL fallback",
+);
+assertIncludes(
+  tasksLoader,
+  "return await loadFromWorkspace();",
+  "dashboard task workspace-first source order",
+);
+
+const moneyLoader = read("dashboard/src/data/money.json.js");
+assertIncludes(
+  moneyLoader,
+  "PORCHFEST_SPONSORSHIP_SHEET_ID",
+  "dashboard money Google Sheets source",
+);
+assertIncludes(
+  moneyLoader,
+  "spreadsheets.values.get",
+  "dashboard money Sheets values read",
+);
+assertIncludes(
+  moneyLoader,
+  "PORCHFEST_SPONSORSHIP_CSV_PATH",
+  "dashboard money CSV seed source",
+);
+assertIncludes(
+  moneyLoader,
+  "PORCHFEST_SPONSORSHIP_CSV_BASE64",
+  "dashboard money encrypted CSV seed source",
+);
+assertIncludes(
+  moneyLoader,
+  "sponsorshipRollup(rows",
+  "dashboard money sponsorship aggregate",
+);
+assertIncludes(
+  moneyLoader,
+  "from event_application_billing_requests",
+  "dashboard money Postgres fallback",
+);
+
 const dashboardRoute = read("src/app/porchfest/dashboard/page.tsx");
 assertIncludes(
   dashboardRoute,

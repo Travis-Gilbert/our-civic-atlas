@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@observablehq/framework": "^1.13.0",
+    "csv-parse": "^7.0.0",
+    "googleapis": "^173.0.0",
     "postgres": "^3.4.5",
     "yjs": "^13.6.31"
   },

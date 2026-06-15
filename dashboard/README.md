@@ -23,9 +23,9 @@ dashboard/
     components/format.js    client-side formatting helpers
     data/
       _lib.js              shared loader config: Yjs + GraphQL + read-only Postgres
-      money.json.js        raised vs goal            (read-only Postgres)
+      money.json.js        sponsorship pipeline      (Google Sheets, CSV, Postgres fallback)
       submissions.json.js  workspace roster by category (Yjs, GraphQL/Postgres fallback)
-      tasks.json.js        open/done + rollup        (GraphQL)
+      tasks.json.js        open/done + rollup        (Yjs, GraphQL fallback)
       meta.json.js         last-refresh timestamp
 ```
 
@@ -38,7 +38,15 @@ frontend.
 
 - **RustyRed/Yjs read** (`submissions`) pulls the live planning workspace first,
   so organizer-entered vendors and category corrections are counted.
-- **GraphQL reads** (`submissions` fallback, `tasks`) hit the public Axum
+- **Google Sheets read** (`money`) pulls the sponsorship tracker one-way when
+  configured. It reads the public/authorized sheet range at build time and
+  publishes aggregate totals only.
+- **CSV read** (`money` local seed) reads a sponsorship export with the same
+  columns. Use it for local verification or one-off rebuilds, not as a
+  committed data file.
+- **Yjs task reads** (`tasks`) pull the first-class task-row database the
+  workspace edits, then compute open/done, status, and milestone rollups.
+- **GraphQL reads** (`submissions` fallback, `tasks` fallback) hit the public Axum
   endpoint the frontend already talks to. No credential.
 - **Read-only Postgres** (`money`, and optionally the cheaper `submissions`
   aggregate) reads the ledger directly, because the schema exposes no money
@@ -56,9 +64,27 @@ show as pending).
 | `PORCHFEST_WORKSPACE_SYNC_URL` | RustyRed/Yjs sync endpoint for the workspace roster | the production RustyRed endpoint |
 | `PORCHFEST_TENANT_SLUG` | Tenant for GraphQL reads | `flint` |
 | `PORCHFEST_EVENT_SLUG` | Event layer slug | `porchfest-2026` |
-| `PORCHFEST_READONLY_DATABASE_URL` | Read-only Postgres for the money ledger | unset → money pending |
+| `PORCHFEST_SPONSORSHIP_SHEET_ID` | Google Sheet id for the sponsorship tracker | unset → skip Sheets |
+| `PORCHFEST_SPONSORSHIP_SHEET_RANGE` | A1 range for the sponsorship tracker | `Sponsorship!A:J` |
+| `PORCHFEST_GOOGLE_SHEETS_API_KEY` | API key for a public/readable sheet | unset |
+| `PORCHFEST_GOOGLE_SERVICE_ACCOUNT_JSON` | Service account JSON for a private shared sheet | unset |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Alternative service-account keyfile path | unset |
+| `PORCHFEST_SPONSORSHIP_CSV_BASE64` | Encrypted CSV seed for rebuilds before Sheets is configured | unset → skip env CSV |
+| `PORCHFEST_SPONSORSHIP_CSV_PATH` | Local CSV export for seed/verification builds | unset → skip CSV |
+| `PORCHFEST_READONLY_DATABASE_URL` | Read-only Postgres fallback for the money ledger | unset → money pending |
 | `PORCHFEST_TENANT_ID` | Flint tenant UUID, to set the RLS GUC for a non-BYPASSRLS read role | unset → assumes BYPASSRLS |
 | `PORCHFEST_FUNDRAISING_GOAL_CENTS` | Fundraising goal in cents | unset → "goal not set" |
+
+### One-way Google Sheets sponsorship sync
+
+The dashboard reads Sheets only during rebuild. To make the sponsorship tracker
+the durable source, share the Google Sheet with the service account email, then
+set `PORCHFEST_SPONSORSHIP_SHEET_ID`,
+`PORCHFEST_SPONSORSHIP_SHEET_RANGE`, and either
+`PORCHFEST_GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS`.
+The loader uses `spreadsheets.values.get` with read-only scope and publishes
+only aggregate totals to the browser. Sheet edits appear after the next
+dashboard rebuild or deploy; the dashboard never writes back to Google Sheets.
 
 ### Read-only Postgres + RLS
 

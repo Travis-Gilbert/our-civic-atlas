@@ -59,68 +59,74 @@ unavailableSources.length > 0
 ```js
 const goalCents = money.goalCents ?? null;
 const raisedCents = money.raisedCents ?? 0;
+const sponsorship = money.sponsorship ?? {};
+const askedCents = sponsorship.askedCents ?? 0;
+const promisedCents = sponsorship.promisedCents ?? 0;
+const collectedCents = sponsorship.collectedCents ?? raisedCents;
+const openPromisedCents = sponsorship.openPromisedCents ?? Math.max(promisedCents - collectedCents, 0);
 const gapCents = goalCents != null ? Math.max(goalCents - raisedCents, 0) : null;
 const moneyPct = goalCents ? Math.min(raisedCents / goalCents, 1) : null;
+const promisedPct = goalCents ? Math.min(promisedCents / goalCents, 1) : null;
 ```
 
-<div class="grid grid-cols-3">
+<div class="grid grid-cols-4">
   <div class="card">
-    <h2>Raised</h2>
-    <div class="big">${money.status === "pending" ? "—" : formatMoney(raisedCents, money.currency)}</div>
-    <div class="muted">${money.status === "pending" ? "ledger source unavailable" : `${money.paidCount} payment${money.paidCount === 1 ? "" : "s"} received`}</div>
+    <h2>Collected</h2>
+    <div class="big">${money.status === "pending" ? "—" : formatMoney(collectedCents, money.currency)}</div>
+    <div class="muted">${money.status === "pending" ? "funding source unavailable" : `${money.paidCount} collected entr${money.paidCount === 1 ? "y" : "ies"}`}</div>
   </div>
   <div class="card">
-    <h2>Goal</h2>
-    <div class="big">${goalCents != null ? formatMoney(goalCents, money.currency) : "—"}</div>
-    <div class="muted">${goalCents != null ? "fundraising target" : "goal not configured"}</div>
+    <h2>Promised</h2>
+    <div class="big">${money.status === "pending" ? "—" : formatMoney(promisedCents, money.currency)}</div>
+    <div class="muted">${money.status === "pending" ? "awaiting source" : `${sponsorship.promisedCount ?? 0} sponsor${(sponsorship.promisedCount ?? 0) === 1 ? "" : "s"} pledged`}</div>
   </div>
   <div class="card">
-    <h2>Gap to goal</h2>
-    <div class="big">${gapCents != null ? formatMoney(gapCents, money.currency) : "—"}</div>
-    <div class="muted">${moneyPct != null ? `${Math.round(moneyPct * 100)}% of goal raised` : "add a goal to track the gap"}</div>
+    <h2>Asked</h2>
+    <div class="big">${money.status === "pending" ? "—" : formatMoney(askedCents, money.currency)}</div>
+    <div class="muted">${money.status === "pending" ? "awaiting source" : `${sponsorship.askedCount ?? 0} active ask${(sponsorship.askedCount ?? 0) === 1 ? "" : "s"}`}</div>
+  </div>
+  <div class="card">
+    <h2>Open pledges</h2>
+    <div class="big">${money.status === "pending" ? "—" : formatMoney(openPromisedCents, money.currency)}</div>
+    <div class="muted">${sponsorship.porchesSponsored ? `${sponsorship.porchesSponsored} porch sponsorship${sponsorship.porchesSponsored === 1 ? "" : "s"} assigned` : "porch sponsorships not assigned"}</div>
   </div>
 </div>
 
 <div class="grid grid-cols-1">
   <div class="card">
-    <h2>Progress to goal</h2>
-    ${goalCents ? resize((width) => moneyBar(width)) : html`<div class="muted">No fundraising goal configured yet.</div>`}
+    <h2>Sponsorship pipeline</h2>
+    ${money.status === "pending" ? html`<div class="muted">Funding source unavailable.</div>` : resize((width) => sponsorshipPipeline(width))}
+    <div class="muted">${goalCents ? `${Math.round((promisedPct ?? 0) * 100)}% of goal promised; ${Math.round((moneyPct ?? 0) * 100)}% collected` : `${sponsorship.sponsorRows ?? 0} sponsor rows in the current source`}</div>
   </div>
 </div>
 
 ```js
-function moneyBar(width) {
-  const domainMax = Math.max(goalCents ?? 0, raisedCents, 1);
+function sponsorshipPipeline(width) {
+  const rows = [
+    {label: "Asked", value: askedCents, fill: FAINT},
+    {label: "Promised", value: promisedCents, fill: "#4f7d57"},
+    {label: "Collected", value: collectedCents, fill: NAVY},
+  ];
+  const domainMax = Math.max(goalCents ?? 0, askedCents, promisedCents, collectedCents, 1);
   return Plot.plot({
     width,
-    height: 70,
-    marginTop: 8,
+    height: 120,
+    marginTop: 12,
     marginBottom: 28,
-    marginLeft: 8,
-    marginRight: 8,
+    marginLeft: 80,
+    marginRight: 16,
     x: {
       domain: [0, domainMax],
       label: null,
       tickFormat: (d) => formatMoney(d, money.currency),
       ticks: 4,
     },
-    y: {axis: null, domain: ["goal"]},
+    y: {label: null, domain: rows.map((d) => d.label)},
     marks: [
-      Plot.barX([{y: "goal", v: goalCents ?? 0}], {y: "y", x: "v", fill: TRACK, rx: 4}),
-      Plot.barX([{y: "goal", v: raisedCents}], {y: "y", x: "v", fill: NAVY, rx: 4}),
-      Plot.ruleX([goalCents ?? 0], {stroke: "var(--theme-foreground)", strokeDasharray: "3,3"}),
-      Plot.text(
-        [{y: "goal", v: raisedCents}],
-        {
-          y: "y",
-          x: "v",
-          text: () => (moneyPct != null ? `${Math.round(moneyPct * 100)}%` : ""),
-          fill: "var(--theme-background)",
-          dx: -6,
-          textAnchor: "end",
-          fontWeight: 600,
-        },
-      ),
+      Plot.barX(rows, {y: "label", x: "value", fill: "fill", rx: 4}),
+      Plot.text(rows, {y: "label", x: "value", text: (d) => formatMoney(d.value, money.currency), dx: 6, textAnchor: "start", fill: "var(--theme-foreground-muted)"}),
+      ...(goalCents ? [Plot.ruleX([goalCents], {stroke: "var(--theme-foreground)", strokeDasharray: "3,3"})] : []),
+      Plot.ruleX([0]),
     ],
   });
 }
