@@ -2230,8 +2230,8 @@ function WorkspaceInner() {
             font-size: 12px;
           }
           .civic-google-band {
+            grid-template-columns: minmax(0, 1fr);
             align-items: stretch;
-            flex-direction: column;
             gap: 7px;
             padding: 6px 10px;
           }
