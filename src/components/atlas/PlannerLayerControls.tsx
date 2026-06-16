@@ -61,16 +61,32 @@ const CATEGORY_LABELS: ReadonlyArray<readonly [AtlasEventPlannerCategory, string
   ["amenity", "Other"],
 ];
 
+/**
+ * Optional emphasis control: dim every placed porch except the
+ * organizer-confirmed roster. Porchfest-specific, so it rides in as an optional
+ * prop rather than a field on the shared visibility type.
+ */
+export interface ParticipatingHighlightControl {
+  readonly enabled: boolean;
+  readonly onToggle: () => void;
+  /** Placed porches that match the confirmed roster. */
+  readonly matchedCount: number;
+  /** All placed porch submissions on the map. */
+  readonly placedCount: number;
+}
+
 export interface PlannerLayerControlsProps {
   readonly visibility: PlannerLayerVisibility;
   readonly setVisibility: (next: PlannerLayerVisibility) => void;
   readonly placementCountByCategory: ReadonlyArray<readonly [string, number]>;
+  readonly participatingHighlight?: ParticipatingHighlightControl;
 }
 
 export function PlannerLayerControls({
   visibility,
   setVisibility,
   placementCountByCategory,
+  participatingHighlight,
 }: PlannerLayerControlsProps) {
   const countMap = new Map(placementCountByCategory);
 
@@ -146,6 +162,28 @@ export function PlannerLayerControls({
             </span>
           </label>
         </li>
+        {participatingHighlight ? (
+          <li className="planner-divider mt-2 pt-2">
+            <label className="planner-row flex cursor-pointer items-center justify-between gap-2 px-1.5 py-1.5">
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={participatingHighlight.enabled}
+                  onChange={participatingHighlight.onToggle}
+                  className="planner-check h-3.5 w-3.5"
+                />
+                <span>Highlight participating porches</span>
+              </span>
+            </label>
+            <p className="planner-muted mt-0.5 px-1.5 text-[12px] leading-4">
+              {participatingHighlight.enabled
+                ? participatingHighlight.matchedCount > 0
+                  ? `${participatingHighlight.matchedCount} of ${participatingHighlight.placedCount} placed porches highlighted; the rest dimmed.`
+                  : "No placed porches match the confirmed 2026 roster yet."
+                : "Confirmed porches from the 2026 roster."}
+            </p>
+          </li>
+        ) : null}
       </ul>
     </section>
   );

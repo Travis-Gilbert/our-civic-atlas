@@ -373,6 +373,13 @@ export interface PorchfestFigureDecorationOptions {
   readonly visibility?: Partial<Record<AtlasEventPlannerCategory, boolean>>;
   readonly selectedPlacementId?: string | null;
   readonly layerIdPrefix?: string;
+  /**
+   * Per-placement opacity, shared with the mesh layer so a dimmed figure's
+   * name label and billboard dim with it instead of staying bright.
+   */
+  readonly getOpacityMultiplier?: (
+    placement: AtlasEventPlannerPlacement,
+  ) => number;
 }
 
 export function buildPorchfestFigureDecorations({
@@ -380,7 +387,10 @@ export function buildPorchfestFigureDecorations({
   visibility,
   selectedPlacementId = null,
   layerIdPrefix = "porchfest-affordance",
+  getOpacityMultiplier,
 }: PorchfestFigureDecorationOptions): Layer[] {
+  const opacityFor = (placement: AtlasEventPlannerPlacement): number =>
+    Math.max(0.1, Math.min(1, getOpacityMultiplier?.(placement) ?? 1));
   const decorated = placements.filter(
     (placement) =>
       isCivicFigureKey(placement.figureKey) &&
@@ -410,11 +420,22 @@ export function buildPorchfestFigureDecorations({
           width: 128,
           height: 128,
         }),
+        // Tint white so RGB is preserved while the alpha carries the dim.
+        getColor: (placement) =>
+          [255, 255, 255, Math.round(255 * opacityFor(placement))] as [
+            number,
+            number,
+            number,
+            number,
+          ],
         getSize: (placement) =>
           placement.id === selectedPlacementId ? 44 : 36,
         sizeUnits: "pixels",
         getPixelOffset: [0, -30],
-        updateTriggers: { getSize: selectedPlacementId },
+        updateTriggers: {
+          getSize: selectedPlacementId,
+          getColor: getOpacityMultiplier,
+        },
       }),
     );
   }
@@ -428,9 +449,21 @@ export function buildPorchfestFigureDecorations({
       getPosition: (placement) => readPointPosition(placement) ?? [0, 0],
       getText: (placement) => placement.label,
       getSize: 11,
-      getColor: LABEL_INK,
+      getColor: (placement) =>
+        [LABEL_INK[0], LABEL_INK[1], LABEL_INK[2], Math.round(LABEL_INK[3] * opacityFor(placement))] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       background: true,
-      getBackgroundColor: LABEL_CHIP,
+      getBackgroundColor: (placement) =>
+        [LABEL_CHIP[0], LABEL_CHIP[1], LABEL_CHIP[2], Math.round(LABEL_CHIP[3] * opacityFor(placement))] as [
+          number,
+          number,
+          number,
+          number,
+        ],
       backgroundPadding: [4, 2, 4, 2],
       fontFamily: '"IBM Plex Sans", "Plex Sans", system-ui, sans-serif',
       characterSet: "auto",
@@ -443,7 +476,11 @@ export function buildPorchfestFigureDecorations({
         const base = placement.imageUrl ? -52 : -18;
         return [0, placement.id === selectedPlacementId ? base - 8 : base];
       },
-      updateTriggers: { getPixelOffset: selectedPlacementId },
+      updateTriggers: {
+        getPixelOffset: selectedPlacementId,
+        getColor: getOpacityMultiplier,
+        getBackgroundColor: getOpacityMultiplier,
+      },
     }),
   );
 

@@ -162,6 +162,7 @@ import {
   type CivicObjectFields,
 } from "@/lib/civic/civic-object-schema";
 import { reconcileAddressLocation } from "@/lib/civic/civic-address-sync";
+import { isParticipatingPorch } from "@/lib/civic/participating-porches-2026";
 import {
   addressSourceLabel,
   resolveBuildingAddress,
@@ -933,6 +934,9 @@ function PorchfestPlannerWorkspace({
   const networkOnline = useNetworkStatus();
   const prefersReducedMotion = usePrefersReducedMotion();
   const [runOfShowEnabled, setRunOfShowEnabled] = useState(false);
+  // Highlight the organizer-confirmed roster (dim the rest). On by default so
+  // the planner opens on the confirmed-porches view the organizer asked for.
+  const [highlightParticipating, setHighlightParticipating] = useState(true);
   const runOfShowClock = useRunOfShowClock();
   const runOfShowTime = runOfShowClock.t;
   const pauseRunOfShow = runOfShowClock.pause;
@@ -2343,6 +2347,46 @@ function PorchfestPlannerWorkspace({
       scheduledRunOfShowPlacementIds,
     ],
   );
+  // Placed porches whose email or mirrored address matches the confirmed 2026
+  // roster. Joined back to placement ids so the opacity multiplier is an O(1)
+  // membership check, the same shape run-of-show uses.
+  const participatingPlacementIds = useMemo(() => {
+    const rowsById = new Map(civicRows.map((row) => [row.rowId, row]));
+    const ids = new Set<string>();
+    for (const placement of civicBinding.placed) {
+      const fields = rowsById.get(placement.civicRowId)?.fields;
+      if (
+        isParticipatingPorch({
+          email: fields?.email,
+          address: placement.address ?? fields?.address,
+        })
+      ) {
+        ids.add(placement.id);
+      }
+    }
+    return ids;
+  }, [civicBinding.placed, civicRows]);
+  const participationOpacityMultiplier = useCallback(
+    (placement: AtlasEventPlannerPlacement) => {
+      if (!highlightParticipating) return 1;
+      // Nothing matched the roster yet (store still loading, or none placed):
+      // no-op rather than dimming the whole map into gray.
+      if (participatingPlacementIds.size === 0) return 1;
+      // Only porch submissions take part; infrastructure (parking, food court)
+      // stays at full opacity as stable context.
+      if (!civicRowIdByPlacementId.has(placement.id)) return 1;
+      return participatingPlacementIds.has(placement.id) ? 1 : 0.3;
+    },
+    [highlightParticipating, participatingPlacementIds, civicRowIdByPlacementId],
+  );
+  // Run-of-show dimming and participation dimming compose, so neither view
+  // cancels the other when both are on.
+  const combinedOpacityMultiplier = useCallback(
+    (placement: AtlasEventPlannerPlacement) =>
+      runOfShowOpacityMultiplier(placement) *
+      participationOpacityMultiplier(placement),
+    [runOfShowOpacityMultiplier, participationOpacityMultiplier],
+  );
   const taskLocationDetails = useMemo<ReadonlyMap<string, TaskLocationDetail>>(() => {
     const details = new Map<string, TaskLocationDetail>();
     for (const task of taskNodes) {
@@ -2468,7 +2512,7 @@ function PorchfestPlannerWorkspace({
         visibility,
         selectedPlacementId,
         getScaleMultiplier: runOfShowScaleMultiplier,
-        getOpacityMultiplier: runOfShowOpacityMultiplier,
+        getOpacityMultiplier: combinedOpacityMultiplier,
         animated: !prefersReducedMotion,
         onClickPlacement: handleSelectPlacement,
       }),
@@ -2493,6 +2537,7 @@ function PorchfestPlannerWorkspace({
           placements: renderPlacements,
           visibility,
           selectedPlacementId,
+          getOpacityMultiplier: combinedOpacityMultiplier,
         }),
       );
     }
@@ -2566,7 +2611,7 @@ function PorchfestPlannerWorkspace({
     runOfShowPerformances,
     runOfShowTrips,
     runOfShowScaleMultiplier,
-    runOfShowOpacityMultiplier,
+    combinedOpacityMultiplier,
     activeRunOfShowTaskIds,
     prefersReducedMotion,
     weatherVisible,
@@ -2622,6 +2667,12 @@ function PorchfestPlannerWorkspace({
       visibility={visibility}
       setVisibility={setVisibility}
       placementCountByCategory={placementCountByCategory}
+      participatingHighlight={{
+        enabled: highlightParticipating,
+        onToggle: () => setHighlightParticipating((value) => !value),
+        matchedCount: participatingPlacementIds.size,
+        placedCount: civicBinding.placed.length,
+      }}
     />
   );
   const runOfShowPanel = (
@@ -2744,6 +2795,12 @@ function PorchfestPlannerWorkspace({
         visibility={visibility}
         setVisibility={setVisibility}
         placementCountByCategory={placementCountByCategory}
+        participatingHighlight={{
+          enabled: highlightParticipating,
+          onToggle: () => setHighlightParticipating((value) => !value),
+          matchedCount: participatingPlacementIds.size,
+          placedCount: civicBinding.placed.length,
+        }}
       />
       {visibility.weather ? (
         isMobile ? (
