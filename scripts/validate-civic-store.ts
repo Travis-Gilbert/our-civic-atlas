@@ -327,6 +327,58 @@ async function main() {
     hydratedSponsor?.fields.status === 'submitted',
     hydratedSponsor?.fields.status,
   );
+  const manualRowId = insertCivicObject(handlesA, {
+    category: 'other',
+    name: 'Manual Organizer Row',
+    orgName: 'Manual Organizer Row',
+  });
+  const sparseSourceId = 'public:vendor:repair@example.com';
+  hydrateCivicObjectsFromExternalSource(handlesA, [
+    {
+      sourceId: sparseSourceId,
+      category: 'vendor',
+    },
+  ]);
+  const repairedExisting = hydrateCivicObjectsFromExternalSource(handlesA, [
+    {
+      sourceId: sparseSourceId,
+      category: 'vendor',
+      name: 'Riley Morgan',
+      email: 'repair@example.com',
+      businessName: 'Ledger Taco Table',
+      foodDescription: 'Postgres ledger source fields repair a sparse shell.',
+      status: 'accepted',
+      location: '{"lng":-83.7,"lat":43.0}',
+    },
+  ]);
+  const repairedRows = readCivicObjects(handlesA).filter(
+    (r) => r.fields.sourceId === sparseSourceId,
+  );
+  check(
+    'Postgres hydrate repairs an existing sparse source row',
+    repairedExisting.updated === 1 && repairedExisting.inserted === 0,
+    repairedExisting,
+  );
+  check('Postgres hydrate does not duplicate sparse source rows', repairedRows.length === 1, {
+    got: repairedRows.length,
+  });
+  check(
+    'Postgres hydrate restores visible row title',
+    repairedRows[0]?.title === 'Ledger Taco Table',
+    repairedRows[0]?.title,
+  );
+  check(
+    'Postgres hydrate preserves local planning fields',
+    repairedRows[0]?.fields.status === 'submitted' &&
+      repairedRows[0]?.fields.location === undefined,
+    repairedRows[0]?.fields,
+  );
+  check(
+    'Postgres hydrate leaves manual rows without sourceId untouched',
+    readCivicObjects(handlesA).some(
+      (r) => r.rowId === manualRowId && r.title === 'Manual Organizer Row',
+    ),
+  );
 
   console.log('5. column backfill: a contract column added after doc creation');
   // Simulate a doc created before the `figureKey` column existed: remove
@@ -422,6 +474,12 @@ async function main() {
     workspaceSource.includes('GOOGLE_SHEET_REFRESH_MS') &&
       automaticImportIndex > explicitExportIndex &&
       explicitExportIndex > -1,
+  );
+  check(
+    'workspace repairs Postgres application rows instead of skipping existing source ids',
+    workspaceSource.includes(
+      'const hydrated = mounted.api.hydrateExternalRows(mapped.map((m) => m.fields));',
+    ) && !workspaceSource.includes('const added = mounted.api.ingestLedgerRows'),
   );
   check(
     'GraphQL operation names include one-way import and explicit export',

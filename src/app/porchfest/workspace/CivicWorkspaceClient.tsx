@@ -1147,8 +1147,8 @@ function WorkspaceInner() {
         Array.from(new Set(dropped)),
       );
     }
-    const added = mounted.api.ingestLedgerRows(mapped.map((m) => m.fields));
-    if (added > 0) {
+    const hydrated = mounted.api.hydrateExternalRows(mapped.map((m) => m.fields));
+    if (hydrated.inserted > 0 || hydrated.updated > 0 || rows.length > 0) {
       setMobileRows(mounted.api.list());
     }
   }, [applicationsResult.data, state.kind]);

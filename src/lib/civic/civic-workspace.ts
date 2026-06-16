@@ -529,6 +529,19 @@ function civicValueEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
+function setRowTitle(
+  handles: CivicDatabaseHandles,
+  rowId: string,
+  title: string,
+): void {
+  const row = handles.store.getModelById(rowId) as
+    | { props?: { text?: Text } }
+    | undefined;
+  const text = row?.props?.text;
+  if (!text || text.toString() === title) return;
+  text.replace(0, text.length, title);
+}
+
 function externalHydrateFields(row: CivicObjectFields): CivicObjectFields {
   const fields: Partial<Record<CivicFieldKey, unknown>> = {};
   for (const key of EXTERNAL_HYDRATE_KEYS) {
@@ -575,6 +588,10 @@ export function hydrateCivicObjectsFromExternalSource(
 
     let wrote = false;
     const existingFields = existing.fields as Partial<Record<CivicFieldKey, unknown>>;
+    const existingTitle = existing.title.trim();
+    const oldComputedTitle = civicObjectTitle(
+      existingFields as Partial<CivicObjectFields>,
+    );
     for (const key of EXTERNAL_HYDRATE_KEYS) {
       if (key === 'sourceId') continue;
       const value = hydratableRow[key as keyof CivicObjectFields];
@@ -582,6 +599,17 @@ export function hydrateCivicObjectsFromExternalSource(
       if (civicValueEqual(existingFields[key], value)) continue;
       updateCivicObjectField(handles, existing.rowId, key, value);
       existingFields[key] = value;
+      wrote = true;
+    }
+    const nextTitle = civicObjectTitle(existingFields as Partial<CivicObjectFields>);
+    const canRepairTitle =
+      nextTitle !== 'Untitled application' &&
+      (existingTitle === '' ||
+        existingTitle === 'Untitled application' ||
+        existingTitle === oldComputedTitle);
+    if (canRepairTitle) {
+      setRowTitle(handles, existing.rowId, nextTitle);
+      existing.title = nextTitle;
       wrote = true;
     }
     if (wrote) {
