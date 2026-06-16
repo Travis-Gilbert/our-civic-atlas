@@ -482,6 +482,14 @@ async function main() {
     ) && !workspaceSource.includes('const added = mounted.api.ingestLedgerRows'),
   );
   check(
+    'workspace renders the applications roster outside the BlockSuite editor on desktop',
+    workspaceSource.includes('@media (min-width: 781px)') &&
+      workspaceSource.includes('.civic-mobile-workspace {\n            display: flex;') &&
+      workspaceSource.includes(
+        '.civic-workspace-editor[data-mobile-replaced="true"] {\n            display: none;',
+      ),
+  );
+  check(
     'GraphQL operation names include one-way import and explicit export',
     source('src/lib/api/graphql/queries/google-workspace.graphql').includes(
       'mutation SyncGoogleSheetCivicRows',

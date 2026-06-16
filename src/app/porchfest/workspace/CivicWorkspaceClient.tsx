@@ -1064,7 +1064,10 @@ function WorkspaceInner() {
   // once on mount; the apply effect below drives the editor when it is ready.
   useEffect(() => {
     const view = new URLSearchParams(window.location.search).get("view");
-    if (view === "kanban" || view === "table") setDbView(view);
+    if (view === "kanban" || view === "table") {
+      setDbView(view);
+      setMobileView(view);
+    }
   }, []);
 
   // Apply the desired database view whenever it changes or the applications doc
@@ -1094,6 +1097,16 @@ function WorkspaceInner() {
     setDocs(mounted.docs());
     setCurrentDocId(mounted.currentDocId());
     setCanUndo(mounted.canUndo());
+  };
+
+  const currentDatabaseView =
+    currentDoc?.kind === "applications" ? mobileView : dbView;
+
+  const handleDatabaseViewChange = (view: MobileWorkspaceView) => {
+    if (currentDoc?.kind === "applications") {
+      setMobileView(view);
+    }
+    setDbView(view);
   };
 
   const handleNewNote = () => {
@@ -1241,17 +1254,17 @@ function WorkspaceInner() {
             >
               <button
                 type="button"
-                data-active={dbView === "table" || undefined}
-                aria-pressed={dbView === "table"}
-                onClick={() => setDbView("table")}
+                data-active={currentDatabaseView === "table" || undefined}
+                aria-pressed={currentDatabaseView === "table"}
+                onClick={() => handleDatabaseViewChange("table")}
               >
                 Table
               </button>
               <button
                 type="button"
-                data-active={dbView === "kanban" || undefined}
-                aria-pressed={dbView === "kanban"}
-                onClick={() => setDbView("kanban")}
+                data-active={currentDatabaseView === "kanban" || undefined}
+                aria-pressed={currentDatabaseView === "kanban"}
+                onClick={() => handleDatabaseViewChange("kanban")}
               >
                 Kanban
               </button>
@@ -1870,6 +1883,316 @@ function WorkspaceInner() {
         }
         .civic-mobile-workspace {
           display: none;
+        }
+        @media (min-width: 781px) {
+          .civic-mobile-workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 24px 16px;
+            background: #ffffff;
+          }
+          .civic-workspace-editor[data-mobile-replaced="true"] {
+            display: none;
+          }
+          .civic-mobile-toolbar {
+            display: none;
+          }
+          .civic-mobile-columns {
+            border: 1px solid #e2e2e2;
+            border-radius: 6px;
+            background: #fbfbfb;
+          }
+          .civic-mobile-columns summary {
+            min-height: 30px;
+            padding: 6px 10px;
+            color: #1c1c1c;
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+          }
+          .civic-mobile-columns > div {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: 8px 12px;
+            padding: 0 12px 12px;
+          }
+          .civic-mobile-columns label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 28px;
+            color: #454545;
+            font-size: 12px;
+          }
+          .civic-mobile-columns input {
+            accent-color: #005186;
+          }
+          .civic-mobile-table-frame {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            border: 1px solid #e2e2e2;
+            border-radius: 6px;
+            background: #ffffff;
+          }
+          .civic-mobile-table {
+            min-width: 860px;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+          }
+          .civic-mobile-table th,
+          .civic-mobile-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e2e2;
+            text-align: left;
+            vertical-align: middle;
+          }
+          .civic-mobile-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f5f5f5;
+            color: #454545;
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+          }
+          .civic-mobile-table tbody th {
+            max-width: 260px;
+            color: #1c1c1c;
+            font-weight: 600;
+          }
+          .civic-mobile-title-button {
+            max-width: 100%;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #005186;
+            font: inherit;
+            font-weight: 650;
+            text-align: left;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            cursor: pointer;
+          }
+          .civic-mobile-table select,
+          .civic-mobile-card select,
+          .civic-mobile-detail-status select {
+            min-height: 32px;
+            border: 1px solid #cfcfcf;
+            border-radius: 4px;
+            background: #ffffff;
+            color: #1c1c1c;
+            font: inherit;
+          }
+          .civic-mobile-table select {
+            width: 160px;
+            padding: 0 8px;
+          }
+          .civic-mobile-lanes {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .civic-mobile-lane-tabs {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scroll-snap-type: x mandatory;
+          }
+          .civic-mobile-lane-tabs button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            flex: 0 0 auto;
+            padding: 0 10px;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            background: #f5f5f5;
+            color: #454545;
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            scroll-snap-align: start;
+          }
+          .civic-mobile-lane-tabs button[data-active] {
+            border-color: #005186;
+            background: #ffffff;
+            color: #005186;
+          }
+          .civic-mobile-lane-tabs button span:last-child {
+            color: #454545;
+            font-variant-numeric: tabular-nums;
+          }
+          .civic-mobile-lane-stack {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 2px;
+          }
+          .civic-mobile-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 168px;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 8px;
+            padding: 12px;
+            border: 1px solid #e2e2e2;
+            border-radius: 6px;
+            background: #ffffff;
+          }
+          .civic-mobile-card h2 {
+            margin: 0;
+            color: #1c1c1c;
+            font-size: 15px;
+            font-weight: 650;
+            line-height: 1.25;
+          }
+          .civic-mobile-card p {
+            margin: 4px 0 0;
+            color: #454545;
+            font-size: 12px;
+            line-height: 1.35;
+          }
+          .civic-mobile-card select {
+            width: 100%;
+            padding: 0 8px;
+          }
+          .civic-mobile-open-button {
+            margin-top: 8px;
+            min-height: 30px;
+            padding: 0 10px;
+            border: 1px solid #005186;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #005186;
+            font-family: var(--font-mono, inherit);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .civic-mobile-detail-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(28, 28, 28, 0.28);
+          }
+          .civic-mobile-detail-sheet {
+            display: flex;
+            width: min(760px, 100%);
+            max-height: calc(100dvh - 48px);
+            flex-direction: column;
+            border: 1px solid #d8d8d8;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 20px 60px -36px rgba(0, 0, 0, 0.5);
+          }
+          .civic-mobile-detail-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid #e2e2e2;
+          }
+          .civic-mobile-detail-header p {
+            margin: 0 0 4px;
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #454545;
+          }
+          .civic-mobile-detail-header h2 {
+            margin: 0;
+            color: #1c1c1c;
+            font-size: 20px;
+            line-height: 1.2;
+          }
+          .civic-mobile-detail-header button {
+            min-height: 32px;
+            padding: 0 10px;
+            border: 1px solid #cfcfcf;
+            border-radius: 999px;
+            background: #ffffff;
+            color: #1c1c1c;
+            font-size: 13px;
+            font-weight: 650;
+          }
+          .civic-mobile-detail-status {
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #e2e2e2;
+          }
+          .civic-mobile-detail-status span {
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #454545;
+          }
+          .civic-mobile-detail-status select {
+            width: 100%;
+            padding: 0 8px;
+          }
+          .civic-mobile-detail-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 14px 16px 18px;
+          }
+          .civic-mobile-detail-group {
+            margin-bottom: 16px;
+          }
+          .civic-mobile-detail-group h3 {
+            margin: 0 0 8px;
+            font-family: var(--font-mono, inherit);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #454545;
+          }
+          .civic-mobile-detail-row {
+            display: grid;
+            grid-template-columns: 140px minmax(0, 1fr);
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #eeeeee;
+          }
+          .civic-mobile-detail-row dt {
+            color: #454545;
+            font-size: 12px;
+          }
+          .civic-mobile-detail-row dd {
+            margin: 0;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            color: #1c1c1c;
+            font-size: 13px;
+          }
         }
         @media (max-width: 780px) {
           .civic-workspace-shell {
