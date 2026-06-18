@@ -89,6 +89,18 @@ export function categorySortKey(category) {
   return i === -1 ? CATEGORY_ORDER.length + 1 : i;
 }
 
+/**
+ * Board grouping only: the "Goods and Services" intake lane (category value
+ * "other") is a kind of vendor, so it counts under Vendors on the board rather
+ * than as its own "Other" bucket. something_else stays the true catch-all and
+ * sponsor stays its own bucket. This does NOT touch intake, storage, the map,
+ * figures, or the workspace - it only changes how this dashboard groups
+ * categories for display.
+ */
+export function dashboardCategory(category) {
+  return category === "other" ? "vendor" : category;
+}
+
 // ---------------------------------------------------------------------------
 // GraphQL
 // ---------------------------------------------------------------------------

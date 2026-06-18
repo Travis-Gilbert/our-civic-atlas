@@ -24,6 +24,7 @@ import {
   EVENT_SLUG,
   nowIso,
   WORKSPACE_SYNC_URL,
+  dashboardCategory,
 } from "./_lib.js";
 import * as Y from "yjs";
 
@@ -54,7 +55,8 @@ function rollup(rows, source) {
   const byCategoryMap = new Map();
   const byDayMap = new Map();
   for (const row of rows) {
-    const category = row.category ?? "uncategorized";
+    // Goods and Services ("other") counts under Vendors on the board.
+    const category = dashboardCategory(row.category ?? "uncategorized");
     byCategoryMap.set(category, (byCategoryMap.get(category) ?? 0) + 1);
     const day = dayBucket(row.createdAt);
     if (day) byDayMap.set(day, (byDayMap.get(day) ?? 0) + 1);
