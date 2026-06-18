@@ -148,6 +148,12 @@ export function middleware(req: NextRequest) {
       return NextResponse.redirect(target, 308);
     }
 
+    if (req.nextUrl.pathname === "/porchfest/apply") {
+      const target = req.nextUrl.clone();
+      target.pathname = "/apply";
+      return NextResponse.redirect(target, 308);
+    }
+
     const targetPath = PORCHFEST_FLINT_PATHS.get(req.nextUrl.pathname);
     if (!targetPath) {
       return NextResponse.next();

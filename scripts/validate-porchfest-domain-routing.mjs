@@ -117,6 +117,12 @@ check(
     middleware.includes('target.pathname = "/workspace"') &&
     middleware.includes('NextResponse.redirect(target, 308)'),
 );
+check(
+  'legacy /porchfest/apply redirects to clean /apply on porchfestflint.com',
+  middleware.includes('req.nextUrl.pathname === "/porchfest/apply"') &&
+    middleware.includes('target.pathname = "/apply"') &&
+    middleware.includes('NextResponse.redirect(target, 308)'),
+);
 
 console.log('3. retired legacy dependencies stay out of the public-site island');
 const publicSiteFiles = [
