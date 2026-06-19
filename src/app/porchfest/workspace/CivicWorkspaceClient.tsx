@@ -27,6 +27,9 @@ import {
 } from "react";
 import { useMutation, useQuery } from "urql";
 import {
+  ArrowDown,
+  ArrowDownUp,
+  ArrowUp,
   CloudDownload,
   CloudUpload,
   Download,
@@ -84,10 +87,17 @@ type MobileColumnKey =
   | "feePaid"
   | "setTime"
   | "location";
+type MobileSortKey = "application" | "status" | MobileColumnKey;
+type SortDirection = "asc" | "desc";
 
 interface MobileColumnDef {
   readonly key: MobileColumnKey;
   readonly label: string;
+}
+
+interface MobileSortState {
+  readonly key: MobileSortKey;
+  readonly direction: SortDirection;
 }
 
 interface MobileDetailField {
@@ -120,6 +130,13 @@ const DEFAULT_MOBILE_COLUMNS: readonly MobileColumnKey[] = [
   "feePaid",
   "location",
 ];
+const MOBILE_COLUMN_KEYS = new Set<MobileColumnKey>(
+  MOBILE_COLUMN_DEFS.map((column) => column.key),
+);
+const MOBILE_SORT_COLLATOR = new Intl.Collator("en-US", {
+  numeric: true,
+  sensitivity: "base",
+});
 
 type MountState =
   | { kind: "loading" }
@@ -239,6 +256,10 @@ function mobileRowTitle(row: CivicWorkspaceRow): string {
   return row.title.trim() || "Untitled application";
 }
 
+function isMobileColumnKey(key: MobileSortKey): key is MobileColumnKey {
+  return MOBILE_COLUMN_KEYS.has(key as MobileColumnKey);
+}
+
 function fieldValue(row: CivicWorkspaceRow, key: MobileColumnKey): string {
   if (key === "location") return row.fields.location ? "Placed" : "Unplaced";
   const value = row.fields[key as keyof CivicObjectFields];
@@ -246,6 +267,58 @@ function fieldValue(row: CivicWorkspaceRow, key: MobileColumnKey): string {
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "number") return String(value);
   return typeof value === "string" && value.trim() !== "" ? value : "—";
+}
+
+function numericFieldValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const numeric = Number(value.trim().replace(/[$,]/g, ""));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function mobileSortValue(
+  row: CivicWorkspaceRow,
+  key: MobileSortKey,
+): string | number | null {
+  if (key === "application") return mobileRowTitle(row);
+  if (key === "status") return PLANNING_STATUSES.indexOf(rowStatus(row));
+  if (key === "location") return row.fields.location ? 1 : 0;
+  if (key === "feePaid") return numericFieldValue(row.fields.feePaid);
+  const value = fieldValue(row, key);
+  return value === "—" ? null : value;
+}
+
+function compareMobileSortValues(
+  a: string | number | null,
+  b: string | number | null,
+  direction: SortDirection,
+): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  const result =
+    typeof a === "number" && typeof b === "number"
+      ? a - b
+      : MOBILE_SORT_COLLATOR.compare(String(a), String(b));
+  return direction === "asc" ? result : -result;
+}
+
+function sortMobileRows(
+  rows: readonly CivicWorkspaceRow[],
+  sort: MobileSortState | null,
+): readonly CivicWorkspaceRow[] {
+  if (!sort) return rows;
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => {
+      const value = compareMobileSortValues(
+        mobileSortValue(a.row, sort.key),
+        mobileSortValue(b.row, sort.key),
+        sort.direction,
+      );
+      return value || a.index - b.index;
+    })
+    .map(({ row }) => row);
 }
 
 function detailSectionTitle(column: CivicColumnSpec): string {
@@ -338,6 +411,42 @@ function mobileDetailSections(row: CivicWorkspaceRow): MobileDetailSection[] {
     sections.set(title, fields);
   }
   return Array.from(sections, ([title, fields]) => ({ title, fields }));
+}
+
+function MobileSortableHeader({
+  sortKey,
+  label,
+  sort,
+  onSort,
+}: {
+  readonly sortKey: MobileSortKey;
+  readonly label: string;
+  readonly sort: MobileSortState | null;
+  readonly onSort: (key: MobileSortKey) => void;
+}) {
+  const active = sort?.key === sortKey;
+  const direction = active ? sort.direction : null;
+  const nextDirection = active && direction === "asc" ? "descending" : "ascending";
+  const Icon = !active ? ArrowDownUp : direction === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th
+      scope="col"
+      aria-sort={
+        !active ? "none" : direction === "asc" ? "ascending" : "descending"
+      }
+    >
+      <button
+        type="button"
+        className="civic-mobile-sort-button"
+        data-active={active || undefined}
+        onClick={() => onSort(sortKey)}
+        aria-label={`Sort by ${label} ${nextDirection}`}
+      >
+        <span>{label}</span>
+        <Icon aria-hidden="true" size={13} strokeWidth={2.25} />
+      </button>
+    </th>
+  );
 }
 
 function MobileWorkspaceSurface({
@@ -451,6 +560,28 @@ function MobileApplicationsTable({
   readonly onOpenRow: (rowId: string) => void;
   readonly onStatusChange: (rowId: string, status: PlanningStatus) => void;
 }) {
+  const [sort, setSort] = useState<MobileSortState | null>(null);
+  const visibleColumnKeys = useMemo(
+    () => new Set(visibleColumns.map((column) => column.key)),
+    [visibleColumns],
+  );
+  const sortedRows = useMemo(() => sortMobileRows(rows, sort), [rows, sort]);
+
+  useEffect(() => {
+    setSort((current) => {
+      if (!current || !isMobileColumnKey(current.key)) return current;
+      return visibleColumnKeys.has(current.key) ? current : null;
+    });
+  }, [visibleColumnKeys]);
+
+  const handleSort = (key: MobileSortKey) => {
+    setSort((current) =>
+      current?.key === key
+        ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+        : { key, direction: "asc" },
+    );
+  };
+
   if (rows.length === 0) {
     return <p className="civic-mobile-empty">No applications loaded.</p>;
   }
@@ -460,17 +591,31 @@ function MobileApplicationsTable({
       <table className="civic-mobile-table">
         <thead>
           <tr>
-            <th scope="col">Application</th>
-            <th scope="col">Status</th>
+            <MobileSortableHeader
+              sortKey="application"
+              label="Application"
+              sort={sort}
+              onSort={handleSort}
+            />
+            <MobileSortableHeader
+              sortKey="status"
+              label="Status"
+              sort={sort}
+              onSort={handleSort}
+            />
             {visibleColumns.map((column) => (
-              <th key={column.key} scope="col">
-                {column.label}
-              </th>
+              <MobileSortableHeader
+                key={column.key}
+                sortKey={column.key}
+                label={column.label}
+                sort={sort}
+                onSort={handleSort}
+              />
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
+          {sortedRows.map((row) => {
             const title = mobileRowTitle(row);
             return (
               <tr key={row.rowId}>
@@ -1968,6 +2113,42 @@ function WorkspaceInner() {
         }
         .civic-mobile-workspace {
           display: none;
+        }
+        .civic-mobile-sort-button {
+          display: inline-flex;
+          max-width: 100%;
+          min-height: 24px;
+          align-items: center;
+          gap: 5px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          font: inherit;
+          letter-spacing: inherit;
+          text-transform: inherit;
+          cursor: pointer;
+        }
+        .civic-mobile-sort-button span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .civic-mobile-sort-button svg {
+          flex: 0 0 auto;
+          opacity: 0.58;
+        }
+        .civic-mobile-sort-button[data-active] {
+          color: #005186;
+        }
+        .civic-mobile-sort-button[data-active] svg {
+          opacity: 1;
+        }
+        .civic-mobile-sort-button:focus-visible {
+          outline: 2px solid #005186;
+          outline-offset: 2px;
+          border-radius: 3px;
         }
         @media (min-width: 781px) {
           .civic-mobile-workspace {

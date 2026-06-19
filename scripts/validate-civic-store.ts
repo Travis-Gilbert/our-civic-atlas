@@ -497,6 +497,14 @@ async function main() {
       ),
   );
   check(
+    'workspace roster headers sort visible application rows',
+    workspaceSource.includes('function MobileSortableHeader') &&
+      workspaceSource.includes('aria-sort=') &&
+      workspaceSource.includes('sortMobileRows(rows, sort)') &&
+      workspaceSource.includes('compareMobileSortValues(') &&
+      workspaceSource.includes('numericFieldValue(row.fields.feePaid)'),
+  );
+  check(
     'GraphQL operation names include one-way import and explicit export',
     source('src/lib/api/graphql/queries/google-workspace.graphql').includes(
       'mutation SyncGoogleSheetCivicRows',
