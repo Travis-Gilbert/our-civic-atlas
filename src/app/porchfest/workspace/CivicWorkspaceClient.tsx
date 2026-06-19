@@ -26,7 +26,13 @@ import {
   useState,
 } from "react";
 import { useMutation, useQuery } from "urql";
-import { CloudDownload, CloudUpload, Undo2 } from "lucide-react";
+import {
+  CloudDownload,
+  CloudUpload,
+  Download,
+  Map as MapIcon,
+  Undo2,
+} from "lucide-react";
 
 import {
   EventApplicationsDocument,
@@ -56,6 +62,11 @@ import {
   type CivicObjectFields,
   type PlanningStatus,
 } from "@/lib/civic/civic-object-schema";
+import {
+  civicRowsToCsv,
+  downloadTextFile,
+  placedCivicRowsToGeoJson,
+} from "@/lib/civic/civic-export";
 
 const EVENT_SLUG = "porchfest-2026";
 const APPLICATION_LEDGER_REFRESH_MS = 15_000;
@@ -163,6 +174,10 @@ function rowsForGoogleExport(rows: readonly CivicWorkspaceRow[]) {
       },
     };
   });
+}
+
+function exportDateStamp(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function formatCurrency(cents: number): string {
@@ -1002,6 +1017,26 @@ function WorkspaceInner() {
     reexecuteGoogleConnection({ requestPolicy: "network-only" });
   };
 
+  const handleDownloadCsv = () => {
+    const mounted = apiRef.current;
+    if (!mounted) return;
+    downloadTextFile(
+      `${EVENT_SLUG}-applications-${exportDateStamp()}.csv`,
+      civicRowsToCsv(mounted.api.list()),
+      "text/csv;charset=utf-8",
+    );
+  };
+
+  const handleDownloadGeoJson = () => {
+    const mounted = apiRef.current;
+    if (!mounted) return;
+    downloadTextFile(
+      `${EVENT_SLUG}-placed-${exportDateStamp()}.geojson`,
+      `${JSON.stringify(placedCivicRowsToGeoJson(mounted.api.list()), null, 2)}\n`,
+      "application/geo+json;charset=utf-8",
+    );
+  };
+
   // Mount the editor bundle once.
   useEffect(() => {
     if (mountedRef.current || !containerRef.current) return;
@@ -1272,6 +1307,26 @@ function WorkspaceInner() {
           ) : null}
           <button
             type="button"
+            className="civic-workspace-export-button"
+            title="Export CSV"
+            onClick={handleDownloadCsv}
+            disabled={state.kind !== "ready"}
+          >
+            <Download aria-hidden="true" size={14} strokeWidth={2} />
+            <span>CSV</span>
+          </button>
+          <button
+            type="button"
+            className="civic-workspace-export-button"
+            title="Export GeoJSON"
+            onClick={handleDownloadGeoJson}
+            disabled={state.kind !== "ready"}
+          >
+            <MapIcon aria-hidden="true" size={14} strokeWidth={2} />
+            <span>GeoJSON</span>
+          </button>
+          <button
+            type="button"
             className="civic-workspace-history-button"
             aria-label="Undo last workspace edit"
             title="Undo"
@@ -1526,6 +1581,36 @@ function WorkspaceInner() {
         .civic-workspace-viewseg button[data-active] {
           background: #f1f6fb;
           color: #005186;
+        }
+        .civic-workspace-export-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          min-width: 34px;
+          height: 30px;
+          padding: 0 9px;
+          border: 1px solid #e2e2e2;
+          border-radius: 9999px;
+          background: #ffffff;
+          color: #1c1c1c;
+          font-family: var(--font-mono, inherit);
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        .civic-workspace-export-button:hover:not(:disabled) {
+          border-color: #005186;
+          color: #005186;
+          background: #f1f6fb;
+        }
+        .civic-workspace-export-button:disabled {
+          color: #b8b8b8;
+          cursor: default;
+          background: #f5f5f5;
         }
         .civic-workspace-history-button {
           display: inline-flex;
@@ -2261,6 +2346,14 @@ function WorkspaceInner() {
              the desktop database segment is hidden with the billing band. */
           .civic-workspace-viewseg {
             display: none;
+          }
+          .civic-workspace-export-button {
+            min-width: 30px;
+            padding: 0 8px;
+          }
+          .civic-workspace-export-button span {
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
           .civic-mobile-workspace {
             display: flex;

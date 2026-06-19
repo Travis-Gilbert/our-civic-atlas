@@ -455,6 +455,13 @@ async function main() {
       workspaceSource.includes('window.confirm('),
   );
   check(
+    'workspace renders local file export actions',
+    workspaceSource.includes('Export CSV') &&
+      workspaceSource.includes('Export GeoJSON') &&
+      workspaceSource.includes('civicRowsToCsv(mounted.api.list())') &&
+      workspaceSource.includes('placedCivicRowsToGeoJson(mounted.api.list())'),
+  );
+  check(
     'workspace keeps raw Google env setup out of the visible status line',
     workspaceSource.includes('googleStatusDetail') &&
       workspaceSource.includes('Google Sheets sync needs backend configuration') &&
