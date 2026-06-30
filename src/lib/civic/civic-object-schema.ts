@@ -202,6 +202,7 @@ export const CIVIC_OBJECT_COLUMNS: readonly CivicColumnSpec[] = [
   { key: 'flintBased', name: 'Flint Based', type: 'select', options: FLINT_BASED, scope: 'shared' },
   { key: 'accessNeeds', name: 'Accessibility Needs', type: 'text', scope: 'shared' },
   { key: 'submittedAt', name: 'Submitted At', type: 'date', scope: 'shared', note: 'ISO datetime at intake; import keeps the original timestamp.' },
+  { key: 'submissionFlag', name: 'Submission Flag', type: 'text', scope: 'shared' },
   { key: 'sourceId', name: 'Source Id', type: 'text', scope: 'shared', note: 'Provenance, e.g. formspree:<id> for imported records; dedup aid.' },
 
   // Musician
@@ -272,6 +273,7 @@ export interface CivicObjectFields {
   flintBased?: (typeof FLINT_BASED)[number];
   accessNeeds?: string;
   submittedAt?: string;
+  submissionFlag?: string;
   sourceId?: string;
   artistName?: string;
   genre?: string;

@@ -199,6 +199,12 @@ export function mapEventApplicationToCivicFields(
   } else if (row.setTime) {
     fields.setTime = row.setTime;
   }
+  if (
+    typeof planning['submissionFlag'] === 'string' &&
+    planning['submissionFlag'].trim() !== ''
+  ) {
+    fields.submissionFlag = planning['submissionFlag'];
+  }
 
   fields.status = isPlanningStatus(row.status) ? row.status : 'submitted';
 
