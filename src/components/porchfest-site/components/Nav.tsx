@@ -121,7 +121,7 @@ export default function Nav() {
         >
           Sponsors
         </Link>
-        <Link href="/apply" style={ctaStyle} className="nav-cta">Apply Now</Link>
+        <Link href="/sponsors" style={ctaStyle} className="nav-cta">Partner With Us</Link>
       </div>
       <style>{`
         @media(max-width:640px){

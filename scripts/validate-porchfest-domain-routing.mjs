@@ -145,6 +145,17 @@ check('sponsor form submits through Civic Atlas GraphQL', sponsorForm.includes('
 check('sponsor form posts to the shared GraphQL endpoint', sponsorForm.includes('resolveBrowserGraphqlEndpoint'));
 check('sponsor form has no Formspree endpoint', !/FORMSPREE|formspree\.io/.test(sponsorForm));
 
+const applyPage = read('src/app/porchfest/apply/page.tsx');
+const nav = read('src/components/porchfest-site/components/Nav.tsx');
+const footer = read('src/components/porchfest-site/components/Footer.tsx');
+const hero = read('src/components/porchfest-site/sections/Hero.tsx');
+const landing = read('src/components/porchfest-site/pages/Landing.tsx');
+check('public apply route is taken down', applyPage.includes('notFound()'));
+check('public nav no longer links to /apply', !nav.includes('href="/apply"'));
+check('public footer no longer links to /apply', !footer.includes('href="/apply"'));
+check('public hero no longer links to /apply', !hero.includes('href="/apply"'));
+check('public landing no longer renders the apply CTA', !landing.includes('ApplyCTA'));
+
 const videoBackground = read('src/components/porchfest-site/components/VideoBackground.tsx');
 check('missing webm source is not requested', !videoBackground.includes('porchfest-highlights.webm'));
 check('mp4 video path remains deploy-asset compatible', videoBackground.includes('/video/porchfest-highlights.mp4'));

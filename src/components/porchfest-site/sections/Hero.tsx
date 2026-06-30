@@ -164,7 +164,7 @@ export default function Hero() {
 
           <ScrollReveal delay={4} distance={16}>
             <div className="hero-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-              <Button href="/apply">Apply to Perform &rarr;</Button>
+              <Button href="/sponsors">Partner With Us &rarr;</Button>
               <Button variant="secondary" href="#about">Learn More</Button>
             </div>
           </ScrollReveal>

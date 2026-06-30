@@ -21,7 +21,6 @@ export default function Footer() {
             <a href="/#about" style={{ ...sans, display: 'block', fontSize: 14, color: muted, textDecoration: 'none', marginBottom: 8 }}>About</a>
             <a href="/#gallery" style={{ ...sans, display: 'block', fontSize: 14, color: muted, textDecoration: 'none', marginBottom: 8 }}>Gallery</a>
             <Link href="/sponsors" style={{ ...sans, display: 'block', fontSize: 14, color: muted, textDecoration: 'none', marginBottom: 8 }}>Sponsors</Link>
-            <Link href="/apply" style={{ ...sans, display: 'block', fontSize: 14, color: muted, textDecoration: 'none', marginBottom: 8 }}>Apply</Link>
           </div>
           <div>
             <h4 style={{ ...mono, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.14em', color: 'rgba(240,235,228,.28)', marginBottom: 12 }}>CTHNA</h4>
