@@ -238,7 +238,7 @@ export default function SponsorTiers() {
             color: C.heroText,
           }}
         >
-          Six ways to partner. Cumulative benefits.
+          Five ways to partner. Benefits build as you go.
         </h2>
         <p
           style={{
@@ -250,14 +250,14 @@ export default function SponsorTiers() {
             marginBottom: 40,
           }}
         >
-          Each tier includes the tiers below. Pick the level that fits. Your brand is covered from shirts to stages.
+          Every level includes shirts, social, and print placement. Higher levels add porch, zone, block, and stage visibility.
         </p>
       </ScrollReveal>
       <div
         className="tiers-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(6, 1fr)',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           gap: 12,
           alignItems: 'stretch',
         }}

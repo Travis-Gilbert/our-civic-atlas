@@ -318,7 +318,7 @@ export default function SponsorForm() {
         bio: message.trim() || null,
         flintBased: false,
         categoryPayload: {
-          // Human-readable level + amount so the workspace shows "Gold / $500".
+          // Human-readable level + amount so the workspace shows the selected tier and price.
           tier: selectedTier?.name ?? tier,
           tierPrice: selectedTier?.price ?? null,
           sponsoringAs: sponsoringAs || null,

@@ -215,24 +215,6 @@ export const accentDim = (accent) => {
 
 export const SPONSOR_TIERS = [
   {
-    id: 'gold',
-    name: 'Gold',
-    price: '$500',
-    priceNum: 500,
-    badge: 'Gold',
-    badgeBg: C.goldDim,
-    badgeColor: C.gold,
-    featured: false,
-    items: [
-      'Logo on event shirts',
-      'Social media promotion',
-      'Logo on all printed materials',
-    ],
-    inherited: [],
-    ctaBg: C.goldDim,
-    ctaColor: C.gold,
-  },
-  {
     id: 'porch',
     name: 'Porch',
     price: '$1,000',
@@ -249,7 +231,7 @@ export const SPONSOR_TIERS = [
       'Your banner on a named porch',
       'Featured with 2 performing acts',
     ],
-    inherited: ['+ All Gold benefits'],
+    inherited: ['+ Shirts, social media, and print placement'],
     ctaBg: C.teal,
     ctaColor: '#fff',
   },
@@ -266,7 +248,7 @@ export const SPONSOR_TIERS = [
       'Your name on the Kids Zone',
       'Activation space for a family-friendly booth',
     ],
-    inherited: ['+ All Gold benefits'],
+    inherited: ['+ Shirts, social media, and print placement'],
     ctaBg: C.goldDim,
     ctaColor: C.goldBright,
   },
