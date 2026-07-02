@@ -145,6 +145,14 @@ check('sponsor form submits through Civic Atlas GraphQL', sponsorForm.includes('
 check('sponsor form posts to the shared GraphQL endpoint', sponsorForm.includes('resolveBrowserGraphqlEndpoint'));
 check('sponsor form has no Formspree endpoint', !/FORMSPREE|formspree\.io/.test(sponsorForm));
 
+const sponsorData = read('src/components/porchfest-site/porchfest-data.tsx');
+const sponsorTiers = read('src/components/porchfest-site/sections/SponsorTiers.tsx');
+const sponsorPublicCopy = `${sponsorData}\n${sponsorTiers}`;
+check(
+  'sponsor copy no longer promises shirt or merch placement',
+  !/\b(shirts?|merch|merchandise)\b/i.test(sponsorPublicCopy),
+);
+
 const applyPage = read('src/app/porchfest/apply/page.tsx');
 const nav = read('src/components/porchfest-site/components/Nav.tsx');
 const footer = read('src/components/porchfest-site/components/Footer.tsx');

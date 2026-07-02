@@ -250,7 +250,7 @@ export default function SponsorTiers() {
             marginBottom: 40,
           }}
         >
-          Every level includes shirts, social, and print placement. Higher levels add porch, zone, block, and stage visibility.
+          Every level includes social and print placement. Higher levels add porch, zone, block, and stage visibility.
         </p>
       </ScrollReveal>
       <div

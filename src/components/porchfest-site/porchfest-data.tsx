@@ -231,7 +231,7 @@ export const SPONSOR_TIERS = [
       'Your banner on a named porch',
       'Featured with 2 performing acts',
     ],
-    inherited: ['+ Shirts, social media, and print placement'],
+    inherited: ['+ Social media and print placement'],
     ctaBg: C.teal,
     ctaColor: '#fff',
   },
@@ -248,7 +248,7 @@ export const SPONSOR_TIERS = [
       'Your name on the Kids Zone',
       'Activation space for a family-friendly booth',
     ],
-    inherited: ['+ Shirts, social media, and print placement'],
+    inherited: ['+ Social media and print placement'],
     ctaBg: C.goldDim,
     ctaColor: C.goldBright,
   },
@@ -303,7 +303,7 @@ export const SPONSOR_TIERS = [
     items: [
       'Only one spot',
       'Naming rights across the festival',
-      'Your name on merch, shirts, and signage',
+      'Festival-wide signage recognition',
       'Featured in all marketing and print',
     ],
     inherited: ['+ All Main Stage benefits'],
@@ -327,14 +327,14 @@ export const SPONSOR_WHY = [
   },
   {
     title: 'Stacked Visibility',
-    body: 'Every tier builds on the last. Logo on merch, banners on porches, your name on the main stage. All at once, all day.',
+    body: 'Every tier builds on the last. Banners on porches, social placement, print visibility, and main stage recognition. All at once, all day.',
     iconColor: C.gold,
     iconBg: C.goldDim,
   },
 ];
 
 export const SPONSOR_DELIVERABLES = [
-  { title: 'Shirts & Merch', body: 'Your logo on official Porchfest shirts. Worn by staff, sold to attendees.' },
+  { title: 'Festival Signage', body: 'Recognition on approved festival signage in high-traffic areas.' },
   { title: 'Porch Banners', body: 'Banners hang on the porch where your acts perform.' },
   { title: 'Stage Branding', body: 'Your name on the main stage at Mason Street and First Avenue.' },
   { title: 'Social & Digital', body: 'Promotion on Porchfest social channels and the website before the event.' },
